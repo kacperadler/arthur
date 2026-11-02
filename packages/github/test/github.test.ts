@@ -7,8 +7,9 @@ import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { JOB_SCOPE } from "@arthur/core/inside-job";
-import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, plantAfterCheck, temporaryFolder, until } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
+import { deleteOnOrigin, originBranches, push } from "../src/github-git.ts";
 import { DOCS, type FakePull, type FakeRun, fakeGithub } from "./fake-github.ts";
 
 // The github plugin against the fake host and a fake GitHub REST API (fake-github.ts). Each project is a real repository whose
@@ -563,6 +564,20 @@ test("github.push refuses, running none, while the checkout's own config sets a 
 	git(local.path, "config", "--worktree", "--unset", "core.sshCommand");
 	assert.deepEqual([existsSync(ran), spawnSync("git", ["-C", origin, "rev-parse", "--verify", "--quiet", "main"]).status], [false, 1], "nothing run, nothing pushed");
 	assert.equal(await push(), "github: pushed main to origin: [new branch]");
+});
+
+test("a key a job writes into the checkout's config after the check runs no program in a call to origin: its core.sshCommand is the owner's", async (t) => {
+	withEnv(t, { GIT_CONFIG_GLOBAL: FOLDERS_ALLOWED, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_COUNT: "0", GIT_SSH_COMMAND: undefined, GIT_SSH: undefined });
+	const local = repository("git@example.invalid:acme/shop.git");
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	const calls = { push: () => push(local.path, "main"), branches: () => originBranches(local.path, "arthur/"), delete: () => deleteOnOrigin(local.path, new Map([["arthur/x", "0".repeat(40)]])) };
+	for (const [name, call] of Object.entries(calls)) {
+		plantAfterCheck(t, [["core.sshCommand", program]]);
+		await call();
+		assert.deepEqual([git(local.path, "config", "core.sshCommand"), existsSync(ran)], [program, false], `${name}: planted, not run`);
+		git(local.path, "config", "--unset", "core.sshCommand");
+	}
 });
 
 test("github.push runs no program origin's URL names: a transport helper (<name>:: or <name>://), ext::, or a folder whose receive-pack runs its hooks, unless the owner's ~/.gitconfig allows that transport", async (t) => {

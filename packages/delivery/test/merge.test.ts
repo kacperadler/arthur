@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, jobSlice, temporaryFolder, until } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, jobSlice, plantAfterCheck, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -366,6 +366,21 @@ test("refused, main unchanged: the repository's own config sets a key that may n
 	const merged = await merge(job.id);
 	assert.equal(merged.err, `arthur merge: check failed on main (npm test), and main could not be reset to ${before.slice(0, 7)}: ${said("credential.helper")}`);
 	assert.deepEqual([git(root, "rev-parse", "HEAD^2"), existsSync(ran)], [job.tip, false], "main keeps the merge");
+});
+
+test("a signing program a job writes into main's config after the check runs not in the merge commit: Git signs as the owner's config says", async (t) => {
+	const { root, git, worker, review, merge } = await load(t);
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	const job = await worker({ "README.md": "# acme, signed\n" });
+	await review(job.id, "PASS");
+	// No commit.gpgSign from the env (a job's sandbox sets one), which Git would read after the repository's config.
+	const count = process.env.GIT_CONFIG_COUNT;
+	process.env.GIT_CONFIG_COUNT = "0";
+	t.after(() => void (count === undefined ? delete process.env.GIT_CONFIG_COUNT : (process.env.GIT_CONFIG_COUNT = count)));
+	plantAfterCheck(t, [["commit.gpgSign", "true"], ["gpg.program", program]]);
+	await merge(job.id);
+	assert.deepEqual([git(root, "rev-parse", "HEAD^2"), git(root, "config", "gpg.program"), existsSync(ran)], [job.tip, program, false], "merged unsigned, the key planted");
 });
 
 test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an older commit; --unreviewed lets it in with the owner's decision, and outcome.md says so", async (t) => {

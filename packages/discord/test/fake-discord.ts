@@ -8,7 +8,7 @@ import type { TestContext } from "node:test";
 import { fakeHost } from "@arthur/core/testing";
 import { type DiscordOptions, discord } from "../src/discord.ts";
 
-// The fake Discord the discord tests share, REST API and gateway on one loopback port, and the plugin loaded on a fake host
+// The fake Discord the discord tests share, REST API, CDN and gateway on one loopback port, and the plugin loaded on a fake host
 // against it. Node has a WebSocket client but no server, so the gateway is the least of RFC 6455 over `node:http`'s upgrade:
 // the handshake, unmasked text and close frames out, masked ones in.
 
@@ -23,7 +23,9 @@ const EPOCH = 1420070400000n;
 export const snowflake = (ms: number, n = 0) => String(((BigInt(ms) - EPOCH) << 22n) | BigInt(n));
 
 export const user = (id: string, username: string, bot = false) => ({ id, username, discriminator: "0", global_name: bot ? null : username, avatar: null, ...(bot ? { bot: true } : {}) });
-const channel = (id: string, type: number, name: string) => ({ id, type, guild_id: GUILD, position: 0, permission_overwrites: [], name, nsfw: false, parent_id: null, flags: 0, ...(type === 0 ? { topic: null, last_message_id: null, rate_limit_per_user: 0 } : {}) });
+const channel = (id: string, type: number, name: string, guild = GUILD) => ({ id, type, guild_id: guild, position: 0, permission_overwrites: [], name, nsfw: false, parent_id: null, flags: 0, ...(type === 0 ? { topic: null, last_message_id: null, rate_limit_per_user: 0 } : {}) });
+// A text channel of another server the bot is in, which `GET /channels/{id}` answers.
+export const FOREIGN = "1300000000000000088";
 // A message as MESSAGE_CREATE gives one in the server's main channel, by the owner, every field the documentation does not mark optional.
 export const message = (id: string, fields: Readonly<Record<string, unknown>> = {}) => ({
 	id, channel_id: MAIN, guild_id: GUILD, author: user(OWNER, "kacper"), content: `message ${id}`, timestamp: "2026-10-31T09:59:55.000000+00:00", edited_timestamp: null,
@@ -38,15 +40,22 @@ const application = (flags: number) => ({ id: BOT, name: "Arthur", icon: null, d
 
 export type FakeMessage = { readonly id: string; readonly channel_id: string } & Readonly<Record<string, unknown>>;
 export type Call = { readonly method: string; readonly path: string; readonly headers: IncomingMessage["headers"]; readonly body: unknown; readonly at: number };
+// A file of a multipart message Discord took: its form field, its file name and its bytes as text.
+export type Upload = { readonly field: string; readonly filename: string; readonly text: string };
 type Connection = { readonly url: string; readonly got: Readonly<Record<string, unknown>>[]; closed?: number; send(payload: unknown): void; close(code: number): void };
 
 // The fake on a loopback port the OS picks. The gateway sends Hello, answers Identify with READY and GUILD_CREATE (a wrong token
 // with 4004), Resume with RESUMED and each heartbeat with its ACK but the next `unacked`; `dispatch` sends an event, `drop` closes
 // from Discord's side. REST answers what the documentation shows; `fail` scripts the next answer of a call, `history` is what
-// `GET /channels/{id}/messages` reads. `took` is every message Discord took.
+// `GET /channels/{id}/messages` reads. `took` is every message Discord took, a multipart one (`payload_json`, `files[n]`) with
+// its `files`. The CDN, under `/attachments/`, asks no token and serves what `attach` put there, else 404.
 export async function fakeDiscord(t: TestContext) {
 	const calls: Call[] = [];
-	const took: { channel: string; body: Readonly<Record<string, unknown>> }[] = [];
+	const took: { channel: string; body: Readonly<Record<string, unknown>>; files?: Upload[] }[] = [];
+	// What the CDN serves by path; null sends the first bytes and holds the rest, as a slow download, until `attach` puts
+	// bytes at that path; `held` are those downloads.
+	const cdn = new Map<string, Buffer | null>();
+	const held: { path: string; response: ServerResponse }[] = [];
 	const connections: Connection[] = [];
 	const failures: { call: string; status: number; body: unknown }[] = [];
 	let [session, seq] = [0, 0];
@@ -55,9 +64,19 @@ export async function fakeDiscord(t: TestContext) {
 		const chunks: Buffer[] = [];
 		for await (const chunk of request) chunks.push(chunk as Buffer);
 		const url = new URL(request.url ?? "/", "http://fake");
-		const body = chunks.length > 0 ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined;
+		const type = String(request.headers["content-type"] ?? "");
+		const form = type.startsWith("multipart/form-data") ? await new Response(Buffer.concat(chunks), { headers: { "Content-Type": type } }).formData() : undefined;
+		const body = form !== undefined ? JSON.parse(String(form.get("payload_json") ?? "{}")) : chunks.length > 0 ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined;
 		calls.push({ method: request.method ?? "", path: `${url.pathname}${url.search}`, headers: request.headers, body, at: Date.now() });
 		const call = `${request.method} ${url.pathname}`;
+		if (url.pathname.startsWith("/attachments/")) {
+			const bytes = cdn.get(url.pathname);
+			if (bytes === null) {
+				response.writeHead(200, { "Content-Type": "application/octet-stream" }).write("first bytes");
+				return void held.push({ path: url.pathname, response });
+			}
+			return bytes === undefined ? response.writeHead(404, { "Content-Type": "text/plain" }).end("This content is no longer available.") : response.writeHead(200, { "Content-Type": "application/octet-stream" }).end(bytes);
+		}
 		if (![TOKEN, SECOND].map((token) => `Bot ${token}`).includes(String(request.headers.authorization))) return json(response, 401, { message: "401: Unauthorized", code: 0 });
 		const failure = failures.findIndex((each) => each.call === call);
 		if (failure >= 0) {
@@ -67,11 +86,21 @@ export async function fakeDiscord(t: TestContext) {
 		if (call === "GET /gateway/bot") return json(response, 200, { url: api.gatewayUrl ?? `ws://127.0.0.1:${port}`, shards: 1, session_start_limit: { total: 1000, remaining: api.remaining, reset_after: api.resetAfter, max_concurrency: 1 } });
 		if (call === "GET /applications/@me") return json(response, 200, application(api.flags));
 		if (call === `GET /guilds/${GUILD}`) return json(response, 200, guild(api.members, api.mfa));
+		const lookup = request.method === "GET" ? /^\/channels\/(\d+)$/.exec(url.pathname)?.[1] : undefined;
+		if (lookup === FOREIGN) return json(response, 200, channel(FOREIGN, 0, "elsewhere", "1100000000000000999"));
+		if (lookup !== undefined) return [MAIN, PROJECT].includes(lookup) ? json(response, 200, channel(lookup, 0, "arthur")) : json(response, 404, { message: "Unknown Channel", code: 10003 });
 		const id = /^\/channels\/(\d+)\/messages$/.exec(url.pathname)?.[1];
 		if (id !== undefined && ![MAIN, PROJECT, ...api.extra].includes(id)) return json(response, 404, { message: "Unknown Channel", code: 10003 });
 		if (id !== undefined && request.method === "POST") {
-			took.push({ channel: id, body });
-			return json(response, 200, message(snowflake(Date.now()), { channel_id: id, guild_id: undefined, author: user(BOT, "arthur", true), content: body.content, flags: body.flags ?? 0 }));
+			// Discord's files are the fields files[n], each named in payload_json's attachments by its n.
+			const files = form === undefined ? [] : [...form.entries()].filter(([field]) => field !== "payload_json");
+			const named = Array.isArray(body.attachments) ? (body.attachments as { id: unknown }[]).map((each) => `files[${String(each.id)}]`) : [];
+			if (files.some(([field, value]) => !/^files\[\d+\]$/.test(field) || typeof value === "string" || !named.includes(field)))
+				return json(response, 400, { message: "Invalid Form Body", code: 50035, errors: { files: { _errors: [{ code: "BASE_TYPE_REQUIRED", message: "This field is required" }] } } });
+			const uploads = await Promise.all(files.map(async ([field, value]) => ({ field, filename: (value as File).name, text: await (value as File).text() })));
+			took.push({ channel: id, body, ...(form === undefined ? {} : { files: uploads }) });
+			const attachments = uploads.map((each, at) => ({ id: snowflake(Date.now(), at), filename: each.filename, size: Buffer.byteLength(each.text), url: `${api.url}/attachments/${id}/${at}/${each.filename}`, proxy_url: `${api.url}/attachments/${id}/${at}/${each.filename}` }));
+			return json(response, 200, message(snowflake(Date.now()), { channel_id: id, guild_id: undefined, author: user(BOT, "arthur", true), content: body.content ?? "", flags: body.flags ?? 0, attachments }));
 		}
 		if (id !== undefined && request.method === "GET") {
 			const since = BigInt(url.searchParams.get("after") ?? "0");
@@ -168,6 +197,15 @@ export async function fakeDiscord(t: TestContext) {
 			return sent;
 		},
 		fail: (call: string, status: number, body: unknown) => void failures.push({ call, status, body }),
+		// An attachment as the gateway gives one, `bytes` on the CDN behind its signed link (null: held until a later `attach`
+		// of the same id and name gives its bytes); `fields` change it, as `content_type`.
+		attach(id: string, filename: string, bytes: string | null, fields: Readonly<Record<string, unknown>> = {}) {
+			const path = `/attachments/${MAIN}/${id}/${encodeURIComponent(filename)}`;
+			cdn.set(path, bytes === null ? null : Buffer.from(bytes));
+			if (bytes !== null) for (const each of held.filter((one) => one.path === path)) each.response.end(bytes);
+			const signed = `?ex=6724a000&is=67234e80&hm=${"0f".repeat(32)}&`;
+			return { id, filename, size: Buffer.byteLength(bytes ?? ""), url: `${api.url}${path}${signed}`, proxy_url: `${api.url}${path.replace("attachments", "media")}${signed}`, ...fields };
+		},
 	};
 	return api;
 }

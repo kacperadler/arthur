@@ -4484,7 +4484,7 @@
     "title": "arthur repeats and /repeats: what the owner decides again and again and what agents keep hitting, and a decisions retro",
     "status": "done",
     "path": "spec/features/AR0562-arthur-repeats-and-repeats-what-the-owner-decides-again-and-again-and-what/ticket.md",
-    "updated": "2026-11-02T12:19:53.284Z"
+    "updated": "2026-11-02T13:43:25.041Z"
   },
   {
     "id": "AR0563",
@@ -4819,9 +4819,9 @@
   {
     "id": "AR0602",
     "title": "Discord T2: photos, files, voice and the phone commands in Discord (roadmap 90)",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0602-discord-t2-photos-files-voice-and-the-phone-commands-in-discord-roadmap-90/ticket.md",
-    "updated": "2026-11-02T12:34:43.947Z"
+    "updated": "2026-11-02T13:08:49.115Z"
   },
   {
     "id": "AR0603",

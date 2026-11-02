@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { once } from "node:events";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -88,15 +88,29 @@ test("dropped unanswered: another user, another server, the bot itself, a webhoo
 	assert.deepEqual(api.took, []);
 });
 
-test("a thread, a forum post or a voice channel's chat gets one line in the main channel; a file or a sticker a line where it came, its text still going", async (t) => {
+test("a message that cannot be kept as heard is said on stderr and dropped; the messages after it are still heard", async (t) => {
+	const api = await fakeDiscord(t);
+	const { plugin, received, errors, folder } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	await until("identified", () => api.sent(2).length === 1);
+	// A folder where seen.json's temporary file goes: writing it fails.
+	mkdirSync(join(folder, "seen.json.tmp"));
+	const lost = api.message({ content: "Lost." });
+	await until("the failure said", () => errors.some((line) => line.startsWith(`discord bot (unnamed): message ${lost.id} is not read: EISDIR`)));
+	rmSync(join(folder, "seen.json.tmp"), { recursive: true });
+	api.message({ content: "Heard." });
+	await until("the next", () => received().length === 1);
+	assert.deepEqual(received(), [{ channel: "discord", parts: said("Heard.") }]);
+});
+
+test("a thread, a forum post or a voice channel's chat gets one line in the main channel; a sticker, or neither text nor file, a line where it came, its text still going", async (t) => {
 	const api = await fakeDiscord(t);
 	const { plugin, received, folder } = await load(t, { apiUrl: api.url });
 	await plugin.start?.();
 	await until("identified", () => api.sent(2).length === 1);
 	api.message({ channel_id: THREAD, content: "In a thread." });
 	api.message({ channel_id: "1300000000000000005", content: "In the voice channel's chat." });
-	const file = { id: "1800000000000000001", filename: "a.png", size: 3, url: "https://cdn.discordapp.com/a.png", proxy_url: "https://media.discordapp.net/a.png" };
-	api.message({ channel_id: PROJECT, content: "", attachments: [file] });
+	api.message({ channel_id: PROJECT, content: "  ", embeds: [{ type: "rich", title: "A link's preview" }] });
 	api.message({ content: "With a sticker.", sticker_items: [{ id: "1900000000000000001", name: "wave", format_type: 1 }] });
 	await until("four lines", () => api.took.length === 4);
 	assert.deepEqual(api.took, [sent(MAIN, ELSEWHERE), sent(MAIN, ELSEWHERE), sent(PROJECT, OTHER), sent(MAIN, OTHER)]);

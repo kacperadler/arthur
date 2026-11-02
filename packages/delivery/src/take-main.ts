@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { configRefusal } from "@arthur/core/git-config";
+import { checkConfig } from "@arthur/core/git-config";
 import type { Command, Host } from "@arthur/core/plugin";
 
 // The last merge `arthur merge` made in a project, `<folder>/<project>/last-merge` (AR0441): the stray-commit check lists main's
@@ -49,7 +49,7 @@ export function takeMainCommand(host: Host): Command {
 			const found = project === undefined ? projects[0] : projects.find((each) => each.name === project);
 			if (found === undefined) throw new Error(`no project ${project ?? ""} in the project list`);
 			// No program the checkout's own config may name runs (AR0330, AR0380, AR0384), as in `arthur merge`.
-			const planted = configRefusal(found.path);
+			const planted = checkConfig(found.path).refusal;
 			if (planted !== "") throw new Error(`${planted}; nothing taken`);
 			const head = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", found.path, "rev-parse", "--verify", "--quiet", "HEAD^{commit}"], { encoding: "utf8" }).stdout.trim();
 			const owner = host.call<string>("decision.owner", { id, what: "arthur take-main", kind: "merge", use: `take-main ${found.name} ${head}` });

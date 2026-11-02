@@ -4,11 +4,12 @@ import { once } from "node:events";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
+import { deleteOnOrigin, originBranches, push } from "../src/github-git.ts";
 import { DOCS, type FakePull, type FakeRun, fakeGithub } from "./fake-github.ts";
 
 // The github plugin against the fake host and a fake GitHub REST API (fake-github.ts). Each project is a real repository whose
@@ -565,6 +566,33 @@ test("github.push refuses, running none, while the checkout's own config sets a 
 	assert.equal(await push(), "github: pushed main to origin: [new branch]");
 });
 
+// A `git` first on PATH until the test ends that writes `keys` into a repository's own config right after Arthur's config check
+// (@arthur/core/git-config) first lists it, as a job's program would between that check and the git call (AR0392).
+function plantAfterCheck(t: TestContext, keys: readonly (readonly [string, string])[]): void {
+	const folder = temporaryFolder();
+	const quote = (word: string) => `'${word.replaceAll("'", "'\\''")}'`;
+	const real = quote(execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim());
+	const plant = keys.map(([key, value]) => `${real} -C "$2" config ${quote(key)} ${quote(value)}\n`).join("");
+	const now = `[ "$3 $4 $5" = "config --list --show-scope" ] && mkdir ${quote(join(folder, "planted"))} 2>/dev/null`;
+	writeFileSync(join(folder, "git"), `#!/bin/sh\n${real} "$@"\ncode=$?\nif ${now}; then\n${plant}fi\nexit $code\n`, { mode: 0o755 });
+	process.env.PATH = [folder, process.env.PATH].join(delimiter);
+	t.after(() => void (process.env.PATH = process.env.PATH?.split(delimiter).filter((each) => each !== folder).join(delimiter)));
+}
+
+test("a key a job writes into the checkout's config after the check runs no program in a call to origin: its core.sshCommand is the owner's", async (t) => {
+	withEnv(t, { GIT_CONFIG_GLOBAL: FOLDERS_ALLOWED, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_COUNT: "0", GIT_SSH_COMMAND: undefined, GIT_SSH: undefined });
+	const local = repository("git@example.invalid:acme/shop.git");
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	const calls = { push: () => push(local.path, "main"), branches: () => originBranches(local.path, "arthur/"), delete: () => deleteOnOrigin(local.path, new Map([["arthur/x", "0".repeat(40)]])) };
+	for (const [name, call] of Object.entries(calls)) {
+		plantAfterCheck(t, [["core.sshCommand", program]]);
+		await call();
+		assert.deepEqual([git(local.path, "config", "core.sshCommand"), existsSync(ran)], [program, false], `${name}: planted, not run`);
+		git(local.path, "config", "--unset", "core.sshCommand");
+	}
+});
+
 test("github.push runs no program origin's URL names: a transport helper (<name>:: or <name>://), ext::, or a folder whose receive-pack runs its hooks, unless the owner's ~/.gitconfig allows that transport", async (t) => {
 	const api = await fakeGithub(t);
 	const [ran, helpers, owner] = [join(temporaryFolder(), "ran"), temporaryFolder(), join(temporaryFolder(), "gitconfig")];
@@ -632,6 +660,7 @@ test("github.push of a branch whose .gitattributes, in any folder, names filter=
 version) echo 'git-lfs/3.4.1 (GitHub; linux amd64; go 1.22.2)' ;;
 push) if [ -e '${fail}' ]; then echo 'Unable to find source for object ${unknown} (try running git lfs fetch --all)' >&2; exit 2; fi
 	echo "$PWD $* $(git --git-dir='${origin}' rev-parse --verify --quiet "$3" || echo absent)" >> '${log}'
+	echo "$GIT_CONFIG_PARAMETERS" > '${log}.config'
 	echo 'Uploading LFS objects: 100% (1/1), 6 B | 0 B/s, done.' >&2 ;;
 esac\n`;
 	writeFileSync(join(lfsBin, "git-lfs"), `#!/bin/sh\n${fake}`, { mode: 0o755 });
@@ -641,6 +670,8 @@ esac\n`;
 	rmSync(fail);
 	assert.match(await push("main"), /^github: pushed main to origin: [0-9a-f]{7,}\.\.[0-9a-f]{7,}$/);
 	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), [`${local.path} push origin refs/heads/main ${first}`], "git lfs push ran before the push");
+	// git-lfs, which runs ssh and credential helpers itself, reads the keys pinned as git does (AR0392).
+	assert.match(readFileSync(`${log}.config`, "utf8"), /'credential\.helper'='' .*'protocol\.ext\.allow'='never'/);
 	assert.equal(git(origin, "rev-parse", "main"), local.head());
 	commit("arthur/plain", first, "README.md", "Large files would take filter=lfs in .gitattributes.\n");
 	assert.equal(await push("arthur/plain"), "github: pushed arthur/plain to origin: [new branch]");

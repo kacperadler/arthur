@@ -25,17 +25,30 @@ const ALLOWED = new RegExp(
 	].join("|")})$`,
 );
 
-// Why Arthur runs no git call that may run a program in the checkout or repository at `root`: the first key of its own config
-// outside ALLOWED, with the file that sets it; "" when there is none. Git lists a section and a key in lower case.
-export function configRefusal(root: string): string {
+// The keys Git reads by a fixed name that name a program or turn signing on, with Git's default: a job may write one between the check and the git call
+// (AR0392), so a call that reads them passes each with `-c`, read after the repository's config, as the owner's config sets it, else as this default.
+const PINNED = { "commit.gpgsign": "false", "gpg.format": "openpgp", "gpg.program": "gpg", "gpg.ssh.program": "ssh-keygen", "gpg.x509.program": "gpgsm" };
+
+// Before an Arthur git call that may run a program at `root`: `refusal`, the first key of its own config outside ALLOWED with the file that sets it, "" when
+// none (Git lists a section and a key in lower case); `pins`, that call's `-c`: PINNED and the keys below, the credential helpers reset by an empty one and
+// then the owner's again, no `ext::`. Unset, Git runs GIT_SSH or ssh, SSH_ASKPASS or no askpass, no key command.
+export function checkConfig(root: string): { readonly refusal: string; readonly pins: readonly string[] } {
 	const listed = spawnSync("git", ["-C", root, "config", "--list", "--show-scope", "--show-origin", "-z"], { encoding: "utf8" });
-	if (listed.status !== 0) return `git config --list in ${root}: ${listed.error?.message ?? (listed.stderr.trim().split("\n").at(-1) || `exit code ${listed.status}`)}`;
-	// `<scope>\0<origin>\0<key>\n<value>\0`, each entry.
+	if (listed.status !== 0) return { refusal: `git config --list in ${root}: ${listed.error?.message ?? (listed.stderr.trim().split("\n").at(-1) || `exit code ${listed.status}`)}`, pins: [] };
+	const ssh = process.env.GIT_SSH === undefined ? "ssh" : `'${process.env.GIT_SSH.replaceAll("'", "'\\''")}'`;
+	const owner = new Map(Object.entries({ "core.sshcommand": ssh, "core.askpass": process.env.SSH_ASKPASS ?? "", "gpg.ssh.defaultkeycommand": "", ...PINNED }));
+	const helpers = ["-c", "credential.helper="];
+	// `<scope>\0<origin>\0<key>\n<value>\0`, each entry; a key with no value is `true`. No key ALLOWED lets through is pinned.
 	const fields = listed.stdout.split("\0");
 	for (let at = 0; at + 2 < fields.length; at += 3) {
-		const [scope, origin = "", key = ""] = [fields[at], fields[at + 1], fields[at + 2]?.split("\n")[0]];
+		const [scope, origin = "", entry = ""] = [fields[at], fields[at + 1], fields[at + 2]];
+		const key = entry.split("\n", 1)[0] ?? "";
 		if ((scope === "local" || scope === "worktree") && !ALLOWED.test(key))
-			return `${resolve(root, origin.replace(/^file:/, ""))} sets ${key}, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+			return { refusal: `${resolve(root, origin.replace(/^file:/, ""))} sets ${key}, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`, pins: [] };
+		const value = entry.includes("\n") ? entry.slice(key.length + 1) : "true";
+		const name = key === "gpg.openpgp.program" ? "gpg.program" : key;
+		if (owner.has(name)) owner.set(name, value);
+		else if (/^credential\.(.+\.)?helper$/.test(key)) helpers.push("-c", `${key}=${value}`);
 	}
-	return "";
+	return { refusal: "", pins: [...helpers, ...[...owner].flatMap(([key, value]) => ["-c", `${key}=${value}`]), "-c", "protocol.ext.allow=never"] };
 }

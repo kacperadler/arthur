@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
-import { test } from "node:test";
+import { type TestContext, test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -211,6 +211,30 @@ test("the push of a job's base and the fetch of its branch run no transport help
 	} finally {
 		process.env.PATH = path;
 	}
+});
+
+// A `git` first on PATH until the test ends that writes `keys` into a repository's own config right after Arthur's config check
+// (git-config.ts) first lists it, as a job's program would between that check and the git call (AR0392).
+function plantAfterCheck(t: TestContext, keys: readonly (readonly [string, string])[]): void {
+	const folder = temporaryFolder();
+	const quote = (word: string) => `'${word.replaceAll("'", "'\\''")}'`;
+	const real = quote(execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim());
+	const plant = keys.map(([key, value]) => `${real} -C "$2" config ${quote(key)} ${quote(value)}\n`).join("");
+	const now = `[ "$3 $4 $5" = "config --list --show-scope" ] && mkdir ${quote(join(folder, "planted"))} 2>/dev/null`;
+	writeFileSync(join(folder, "git"), `#!/bin/sh\n${real} "$@"\ncode=$?\nif ${now}; then\n${plant}fi\nexit $code\n`, { mode: 0o755 });
+	process.env.PATH = [folder, process.env.PATH].join(delimiter);
+	t.after(() => void (process.env.PATH = process.env.PATH?.split(delimiter).filter((each) => each !== folder).join(delimiter)));
+}
+
+test("a protocol.ext.allow a job writes into the checkout's config after the check runs no ext:: program in the push of a job's base", async (t) => {
+	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Built it.", cost: 0 }] }) });
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	// A remote named as the machine's URL passes the check (AR0393); Git allows its ext:: only with protocol.ext.allow.
+	git(root, "config", `remote.gpu:${join(there, "repos", "acme.git")}.url`, `ext::${program}`);
+	plantAfterCheck(t, [["protocol.ext.allow", "always"]]);
+	await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: "git push: fatal: transport 'ext' not allowed" });
+	assert.deepEqual([git(root, "config", "protocol.ext.allow"), existsSync(ran)], ["always", false]);
 });
 
 test("under umask 022 a spawn leaves the home here and the one there their user's alone: one made 0755 earlier and a new one are 0700", async (t) => {

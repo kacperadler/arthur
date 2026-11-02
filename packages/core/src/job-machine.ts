@@ -2,7 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import { configRefusal } from "./git-config.ts";
+import { checkConfig } from "./git-config.ts";
 import { field } from "./job-state.ts";
 import type { Added } from "./remote-job.ts";
 
@@ -138,14 +138,14 @@ function failure(machine: Machine, argv: readonly string[], code: number | strin
 	return new Error(`machine ${machine.name}: ${argv.slice(0, 3).join(" ")}: ${said}`);
 }
 
-// `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement (refs/replace), and none of
-// its keys that may name a program (git-config.ts). Git reads the URL first as a remote's name, whose `url` the config may set:
-// GIT_PROTOCOL_FROM_USER=0 refuses any transport but those allowed always (ssh among them), so no helper and no folder (AR0393).
+// `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement (refs/replace), none of
+// its keys that may name a program, the owner's value of each Git reads by a fixed name (git-config.ts). Git reads the URL first as a remote's name,
+// whose `url` the config may set: GIT_PROTOCOL_FROM_USER=0 refuses any transport but those allowed always (ssh among them): no helper, no folder (AR0393).
 export function gitOver(root: string, args: readonly string[]): void {
-	const refusal = configRefusal(root);
+	const { refusal, pins } = checkConfig(root);
 	if (refusal !== "") throw new Error(`git ${args[0]}: ${refusal}`);
 	const env = { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" "), GIT_PROTOCOL_FROM_USER: "0" };
-	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8", env });
+	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...args], { encoding: "utf8", env });
 	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.error?.message ?? run.stderr.trim()}`);
 }
 

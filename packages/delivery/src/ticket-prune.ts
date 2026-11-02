@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { basename } from "node:path";
-import { configRefusal } from "@arthur/core/git-config";
+import { checkConfig } from "@arthur/core/git-config";
 import type { Host } from "@arthur/core/plugin";
 import { endHandBack } from "./hand-back.ts";
 import { FEATURE } from "./review-command.ts";
@@ -18,7 +18,7 @@ export function pruneTicket(host: Host, project: string, ticket: string | undefi
 	const root = host.board.projects().find((each) => each.name === project)?.path;
 	const left = drop ? host.jobs.list().filter((job) => ids.includes(job.id) && job.state === "ended" && job.branch !== "" && job.machine === "local") : [];
 	if (root === undefined || left.length === 0) return lines;
-	const planted = configRefusal(root);
+	const planted = checkConfig(root).refusal;
 	if (planted !== "") return [...lines, `kept every unmerged branch: ${planted}`];
 	// No hook or fsmonitor the checkout's config names runs, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
 	const forced = left.filter((job) => spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, "branch", "--quiet", "-D", job.branch]).status === 0);

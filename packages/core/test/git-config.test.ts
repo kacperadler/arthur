@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { configRefusal } from "../src/git-config.ts";
+import { checkConfig } from "../src/git-config.ts";
 import { temporaryFolder } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -34,7 +34,7 @@ function repository(): string {
 }
 
 test("a repository's own config that names no program passes: a clone's, a branch's upstream, Git LFS's, husky's and Arthur's", () => {
-	assert.equal(configRefusal(repository()), "");
+	assert.equal(checkConfig(repository()).refusal, "");
 });
 
 test("each key outside the allowed set is refused, named with the file that sets it, as Git lists it", () => {
@@ -50,18 +50,18 @@ test("each key outside the allowed set is refused, named with the file that sets
 	];
 	for (const [key = "", listed = ""] of keys) {
 		git(root, "config", key, "program");
-		assert.equal(configRefusal(root), refused(join(root, ".git", "config"), listed), key);
+		assert.deepEqual(checkConfig(root), { refusal: refused(join(root, ".git", "config"), listed), pins: [] }, key);
 		git(root, "config", "--unset", key);
 	}
-	assert.equal(configRefusal(root), "", "nothing left");
+	assert.equal(checkConfig(root).refusal, "", "nothing left");
 });
 
 test("the main checkout's own config.worktree is checked once Git reads it; the user's config and the command line's are not", (t) => {
 	const root = repository();
 	git(root, "config", "--worktree", "core.sshCommand", "program");
-	assert.equal(configRefusal(root), refused(join(root, ".git", "config.worktree"), "core.sshcommand"));
+	assert.equal(checkConfig(root).refusal, refused(join(root, ".git", "config.worktree"), "core.sshcommand"));
 	git(root, "config", "extensions.worktreeConfig", "false");
-	assert.equal(configRefusal(root), "", "Git reads no config.worktree with extensions.worktreeConfig off");
+	assert.equal(checkConfig(root).refusal, "", "Git reads no config.worktree with extensions.worktreeConfig off");
 	const user = join(temporaryFolder(), "gitconfig");
 	writeFileSync(user, "[credential]\n\thelper = program\n[filter \"x\"]\n\tsmudge = program\n");
 	const env = { GIT_CONFIG_GLOBAL: user, GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "core.sshCommand", GIT_CONFIG_VALUE_0: "program" };
@@ -71,11 +71,110 @@ test("the main checkout's own config.worktree is checked once Git reads it; the 
 		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
 	}
 	assert.match(git(root, "config", "--list", "--show-scope"), /^global\tcredential\.helper=program$[^]*^command\tcore\.sshcommand=program$/m, "both are read");
-	assert.equal(configRefusal(root), "");
+	assert.equal(checkConfig(root).refusal, "");
 });
 
 test("a config Git cannot read is refused with Git's own line", () => {
 	const root = repository();
 	appendFileSync(join(root, ".git", "config"), "[broken\n");
-	assert.match(configRefusal(root), new RegExp(`^git config --list in ${root}: fatal: bad config line \\d+ in file \\.git/config$`));
+	assert.deepEqual(checkConfig(root).pins, []);
+	assert.match(checkConfig(root).refusal, new RegExp(`^git config --list in ${root}: fatal: bad config line \\d+ in file \\.git/config$`));
+});
+
+// The env of the rest of the test: each variable set, or removed when undefined; each one back as it was at the end.
+function environment(t: { after: (fn: () => void) => void }, vars: Readonly<Record<string, string | undefined>>): void {
+	for (const [name, value] of Object.entries(vars)) {
+		const was = process.env[name];
+		if (value === undefined) delete process.env[name];
+		else process.env[name] = value;
+		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
+	}
+}
+
+// The owner's config of a test: `user` as ~/.gitconfig, no system config, nothing from the command line or the env.
+const owner = (t: { after: (fn: () => void) => void }, user: string) =>
+	environment(t, {
+		...{ GIT_CONFIG_GLOBAL: user, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_COUNT: "0", GIT_CONFIG_KEY_0: undefined, GIT_CONFIG_VALUE_0: undefined, GIT_CONFIG_PARAMETERS: undefined },
+		...{ GIT_SSH: undefined, GIT_SSH_COMMAND: undefined, GIT_ASKPASS: undefined, SSH_ASKPASS: undefined },
+	});
+const c = (...values: string[]) => values.flatMap((value) => ["-c", value]);
+
+test("a passed check pins each key Git reads by a fixed name to the owner's config, outside the repository's own, or to Git's default", (t) => {
+	const root = repository();
+	const user = join(temporaryFolder(), "gitconfig");
+	writeFileSync(user, "");
+	owner(t, user);
+	const defaults = ["gpg.ssh.defaultkeycommand=", "commit.gpgsign=false", "gpg.format=openpgp", "gpg.program=gpg", "gpg.ssh.program=ssh-keygen", "gpg.x509.program=gpgsm", "protocol.ext.allow=never"];
+	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=", ...defaults), "nothing set: Git's defaults");
+	process.env.SSH_ASKPASS = "/usr/bin/ssh-askpass";
+	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=/usr/bin/ssh-askpass", ...defaults), "SSH_ASKPASS, which Git asks last");
+	delete process.env.SSH_ASKPASS;
+	// GIT_SSH names the program itself, which core.sshCommand, a shell's command, would otherwise override.
+	const folder = temporaryFolder();
+	const ssh = join(folder, "it's ssh");
+	writeFileSync(ssh, `#!/bin/sh\necho "$@" > '${join(folder, "ran")}'\nexit 1\n`, { mode: 0o755 });
+	process.env.GIT_SSH = ssh;
+	const { pins } = checkConfig(root);
+	assert.deepEqual(pins, c("credential.helper=", `core.sshcommand='${ssh.replaceAll("'", "'\\''")}'`, "core.askpass=", ...defaults), "GIT_SSH, quoted for the shell");
+	spawnSync("git", ["-C", root, ...pins, "ls-remote", "ssh://example.invalid/x"]);
+	assert.match(readFileSync(join(folder, "ran"), "utf8"), /^example\.invalid git-upload-pack '\/x'$/m, "Git runs it");
+	const config = ["[credential]", "\thelper = first", "\thelper =", "\thelper = second", '[credential "https://example.com"]', "\thelper = url", "[core]", "\tsshCommand = user ssh", "\taskPass = asks"];
+	config.push("[gpg]", "\tformat = ssh", "\tprogram = gpg one");
+	const more = ['[gpg "openpgp"]', "\tprogram = gpg two", '[gpg "ssh"]', "\tprogram = keygen", "\tdefaultKeyCommand = key", '[gpg "x509"]', "\tprogram = gpgsm two", "[commit]", "\tgpgSign"];
+	writeFileSync(user, [...config, ...more, ""].join("\n"));
+	Object.assign(process.env, { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "core.sshCommand", GIT_CONFIG_VALUE_0: "command ssh" });
+	assert.deepEqual(
+		checkConfig(root).pins,
+		c(...["credential.helper=", "credential.helper=first", "credential.helper=", "credential.helper=second", "credential.https://example.com.helper=url", "core.sshcommand=command ssh", "core.askpass=asks"],
+			...["gpg.ssh.defaultkeycommand=key", "commit.gpgsign=true", "gpg.format=ssh", "gpg.program=gpg two", "gpg.ssh.program=keygen", "gpg.x509.program=gpgsm two", "protocol.ext.allow=never"]),
+		"the owner's, the last one of each, in the order Git reads them; gpg.openpgp.program is gpg.program; a key with no value is true",
+	);
+});
+
+test("a key a job writes into the repository's config after the check runs no program in a git call with the pins; without them it does", (t) => {
+	const root = repository();
+	const folder = temporaryFolder();
+	const script = (name: string) => {
+		writeFileSync(join(folder, name), `#!/bin/sh\necho "$@" >> '${join(folder, `${name}.ran`)}'\nexit 1\n`, { mode: 0o755 });
+		return join(folder, name);
+	};
+	const [planted, own, user] = [script("planted"), script("own"), join(folder, "gitconfig")];
+	const owned = [`[credential]\n\thelper = !${own}`, `[core]\n\tsshCommand = ${own}\n\taskPass = ${own}`, `[gpg]\n\tprogram = ${own}`, `[gpg "x509"]\n\tprogram = ${own}`];
+	writeFileSync(user, [...owned, `[gpg "ssh"]\n\tprogram = ${own}\n\tallowedSignersFile = ${user}\n`].join("\n"));
+	owner(t, user);
+	environment(t, { GIT_TERMINAL_PROMPT: "0" });
+	const { pins } = checkConfig(root);
+	const tree = git(root, "hash-object", "-w", "-t", "tree", "/dev/null");
+	const head = `tree ${tree}\nauthor a <a@example.com> 1 +0000\ncommitter a <a@example.com> 1 +0000\n`;
+	const signed = (kind: string) =>
+		execFileSync("git", ["-C", root, "hash-object", "-w", "-t", "commit", "--stdin"], { encoding: "utf8", input: `${head}gpgsig -----BEGIN ${kind}-----\n eA==\n -----END ${kind}-----\n\nsigned\n` }).trim();
+	const fill = ["credential", "fill"];
+	const commit = ["commit", "--quiet", "--allow-empty", "-m", "planted"];
+	// The keys planted, the git call, whether the owner's own program runs in it instead.
+	const rows: [string[][], string[], boolean][] = [
+		[[["credential.helper", `!${planted}`]], fill, true],
+		[[["core.askPass", planted]], fill, true],
+		[[["credential.https://example.com.helper", `!${planted}`]], fill, true],
+		[[["core.sshCommand", planted]], ["ls-remote", "ssh://example.invalid/x"], true],
+		[[["protocol.ext.allow", "always"]], ["ls-remote", `ext::${planted}`], false],
+		[[["commit.gpgSign", "true"], ["gpg.program", planted]], commit, false],
+		[[["commit.gpgSign", "true"], ["gpg.openpgp.program", planted]], commit, false],
+		[[["gpg.format", "x509"], ["gpg.x509.program", planted]], [...commit, "-S"], true],
+		[[["gpg.format", "ssh"], ["gpg.ssh.defaultKeyCommand", planted]], [...commit, "-S"], true],
+		[[["gpg.program", planted]], ["log", "--show-signature", signed("PGP SIGNATURE")], true],
+		[[["gpg.ssh.program", planted]], ["log", "--show-signature", signed("SSH SIGNATURE")], true],
+		[[["gpg.x509.program", planted]], ["log", "--show-signature", signed("SIGNED MESSAGE")], true],
+	];
+	for (const [keys, args, ran] of rows) {
+		for (const [key = "", value = ""] of keys) git(root, "config", key, value);
+		const run = (...before: string[]) => spawnSync("git", ["-C", root, ...before, ...args], { encoding: "utf8", input: "protocol=https\nhost=example.com\n\n" });
+		const pinned = run(...pins);
+		const what = `${keys.join(" ")}: git ${args.join(" ")}`;
+		assert.deepEqual([existsSync(`${planted}.ran`), existsSync(`${own}.ran`)], [false, ran], `${what}: ${pinned.stderr}`);
+		if (args === commit) assert.equal(pinned.status, 0, `${what}: unsigned, ${pinned.stderr}`);
+		run();
+		assert.equal(existsSync(`${planted}.ran`), true, `${what}: runs it without the pins`);
+		for (const [key = ""] of keys) git(root, "config", "--unset", key);
+		for (const name of [planted, own]) rmSync(`${name}.ran`, { force: true });
+	}
 });

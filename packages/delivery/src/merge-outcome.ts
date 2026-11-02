@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { configRefusal } from "@arthur/core/git-config";
+import { checkConfig } from "@arthur/core/git-config";
 import type { Host, JobRecord, Ticket } from "@arthur/core/plugin";
 import { writeChangelog } from "./changelog.ts";
 import type { Step } from "./merge-checks.ts";
@@ -75,7 +75,7 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 	const made = host.board.list(job.project).flatMap((each) => (had.has(each.id) ? [] : [dirname(each.path)]));
 	const paths = [folder, ...made, "spec/build.json", "CHANGELOG.md"].filter((path) => existsSync(join(root, path)));
 	const subject = `spec: ${ticket.id} merged`;
-	const refusal = configRefusal(root);
+	const refusal = checkConfig(root).refusal;
 	const added = refusal === "" ? git("add", "--all", "--", ...paths) : { status: 1, stdout: "", stderr: refusal };
 	const done = added.status === 0 ? git("commit", "--quiet", "-m", subject, "--", ...paths) : added;
 	if (done.status === 0) log(`committed ${subject}: ${git("rev-parse", "--short", "HEAD").stdout.trim()}`);

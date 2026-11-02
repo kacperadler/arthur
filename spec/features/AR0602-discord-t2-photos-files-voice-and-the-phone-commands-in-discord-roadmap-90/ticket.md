@@ -56,4 +56,5 @@ Out:
 
 ## Decisions
 - 2026-11-01: AR0602 and AR0603 approved; they run after the weekly usage reset on 2026-11-04; the owner: "AR-D429 1" (AR-D429)
+- 2026-11-02: Wait: switch Telegram off once AR0602 is merged; AR0602 becomes the first priority, ahead of AR0562 and Groups 1 and 2; the owner: "AR-D441 1 but i think you can add this as main piority to complete this now" (AR-D441)
 

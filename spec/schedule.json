@@ -36,20 +36,6 @@
     }
   },
   {
-    "id": "ar0562-resume",
-    "at": "2026-11-04T08:30",
-    "action": {
-      "message": "AR-D428 (owner picked 1): usage has reset. Run arthur usage; then arthur continue 2026-10-29-worker-868301bd with a new budget to commit and finish AR0562 (arthur repeats), then AR0584 once AR0562 merges."
-    }
-  },
-  {
-    "id": "ar0602-ar0603-start",
-    "at": "2026-11-04T09:00",
-    "action": {
-      "message": "AR-D429 (owner picked 1): run arthur usage (AR-D420: nothing at 77% or more); then spawn AR0602 (Discord T2) and AR0603 (Dokploy T2) with --machine local, as slots allow beside the AR0562 continue (2 at once)."
-    }
-  },
-  {
     "id": "ar0604-plan",
     "at": "2026-11-04T10:30",
     "action": {
@@ -57,10 +43,10 @@
     }
   },
   {
-    "id": "telegram-off",
-    "at": "2026-11-09T12:00",
+    "id": "ar0602-first",
+    "at": "2026-11-04T08:30",
     "action": {
-      "message": "Discord has been on since 2026-11-02 (all doctor lines ok). AR-D402: Telegram goes off one week after Discord is on. Ask the owner first whether Discord has worked well; on his yes, remove telegram() from arthur.config.ts, run arthur config check, restart the service."
+      "message": "AR0602 is the owner's first priority (AR-D441). Check npx arthur usage that the 7-day window reset (under 77%; else wait). Spawn AR0602 first: arthur spawn --machine local 'Ticket: spec/features/AR0602-discord-t2-photos-files-voice-and-the-phone-commands-in-discord-roadmap-90/ticket.md' with the spawn suffix from the handoff (Discord line budget 900, AR-D402). Then continue the AR0562 worker 2026-10-29-worker-868301bd (about $12, AR-D428; check arthur continue --help for a budget decision). AR0603 and the AR0604 plan wait for a free slot after Groups 1 and 2 start (.arthur/session/progress.md). When AR0602 is merged and restarted: remove telegram() from arthur.config.ts, arthur config check, restart, tell the owner (AR-D441). Every message ends with the counter lines."
     }
   }
 ]

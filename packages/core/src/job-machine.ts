@@ -139,14 +139,14 @@ function failure(machine: Machine, argv: readonly string[], code: number | strin
 }
 
 // `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement (refs/replace), none of
-// its keys that may name a program, the owner's value of each Git reads by a fixed name (git-config.ts). Git reads the URL first as a remote's name,
-// whose `url` the config may set: GIT_PROTOCOL_FROM_USER=0 refuses any transport but those allowed always (ssh among them): no helper, no folder (AR0393).
-export function gitOver(root: string, args: readonly string[]): void {
+// its keys that may name a program, the owner's value of each Git reads by a fixed name (git-config.ts); its stdout. `send-pack` and `fetch-pack`, unlike
+// `push` and `fetch`, read no remote named as the URL, nor `insteadOf`, which a job may write even after the check: the machine's repository (AR0398).
+export function gitOver(root: string, verb: string, args: readonly string[]): string {
 	const { refusal, pins } = checkConfig(root);
-	if (refusal !== "") throw new Error(`git ${args[0]}: ${refusal}`);
-	const env = { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" "), GIT_PROTOCOL_FROM_USER: "0" };
-	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...args], { encoding: "utf8", env });
-	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.error?.message ?? run.stderr.trim()}`);
+	if (refusal !== "") throw new Error(`git ${verb}: ${refusal}`);
+	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...args], { encoding: "utf8", env: { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" ") } });
+	if (run.status !== 0) throw new Error(`git ${verb}: ${run.error?.message ?? run.stderr.trim()}`);
+	return run.stdout;
 }
 
 // Before any record exists: `arthur` there of this version, the project's repository there, and `base` in it, pushed from
@@ -158,7 +158,7 @@ export function reach(machine: Machine, project: string, root: string, base: str
 	if (theirs !== ours) throw new Error(`machine ${machine.name} runs arthur ${theirs}, this one is ${ours}; both need the same version`);
 	for (const [commit, ref] of fetch === undefined ? [[base, "base"]] : [[base, "base"], [fetch, "fetch"]]) {
 		const there = ssh(machine, ["arthur", "remote-job", "repo", machine.home, project, commit ?? ""]).trim();
-		if (there === "missing") gitOver(root, ["push", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", url(machine, project), `+${commit}:refs/arthur/${ref}`]);
+		if (there === "missing") gitOver(root, "push", ["send-pack", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", url(machine, project), `+${commit}:refs/arthur/${ref}`]);
 	}
 	return repositoryThere(machine, project);
 }

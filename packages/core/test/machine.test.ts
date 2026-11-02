@@ -186,31 +186,46 @@ test("the push of a job's base to another machine and the fetch of its branch ba
 	assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
 });
 
-test("the push of a job's base and the fetch of its branch run no transport helper nor a folder's hooks that a remote named as the machine's URL names", async () => {
-	const gate = join(temporaryFolder(), "go");
-	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0 }] }) });
+// Git's `push` and `fetch` read `gpu:<there>/repos/acme.git` first as the name of a remote, which a job may add to the checkout's config.
+const namedAsUrl = (there: string, key: string) => `remote.gpu:${join(there, "repos", "acme.git")}.${key}`;
+
+test("the push of a job's base and the fetch of its branch reach the machine's repository whatever a remote named as its URL names: no helper, folder or other repository", async () => {
+	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Built it.", cost: 0 }] }) });
 	const ran = join(temporaryFolder(), "ran");
 	const helpers = temporaryFolder();
 	writeFileSync(join(helpers, "git-remote-evil"), `#!/bin/sh\necho helper "$@" >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	// Another repository, a folder whose hooks would run, which the fake ssh reaches at any host.
 	const folder = temporaryFolder();
 	git(folder, "init", "--quiet", "--bare");
 	writeFileSync(join(folder, "hooks", "pre-receive"), `#!/bin/sh\necho hook >> '${ran}'\n`, { mode: 0o755 });
 	const path = process.env.PATH;
 	process.env.PATH = `${helpers}${delimiter}${path}`;
+	const repository = join(there, "repos", "acme.git");
 	try {
-		// Git reads `gpu:<there>/repos/acme.git` first as the name of a remote, which a job may add to the checkout's config.
-		const named = `remote.gpu:${join(there, "repos", "acme.git")}.url`;
-		for (const [url, transport] of [["evil::x", "evil"], ["evil://x", "evil"], [folder, "file"]] as const) {
-			git(root, "config", named, url);
-			await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: `git push: fatal: transport '${transport}' not allowed` }, url);
+		for (const [key, url] of [["url", "evil::x"], ["url", "evil://x"], ["url", folder], ["url", `ssh://elsewhere${folder}`], ["pushurl", `ssh://elsewhere${folder}`], ["pushurl", `gpu:${folder}`]] as const) {
+			commit(root, `base for ${key} ${url}`);
+			git(root, "config", namedAsUrl(there, key), url);
+			const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
+			assert.equal(job.failed, undefined, `${key} ${url}`);
+			assert.equal(git(repository, "rev-parse", "refs/arthur/base"), git(root, "rev-parse", "HEAD"), `${key} ${url}: the base reached the machine's repository`);
+			git(root, "config", "--unset", namedAsUrl(there, key));
 		}
-		git(root, "config", "--unset", named);
 		const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
-		git(root, "config", named, "evil::x");
-		writeFileSync(gate, "");
 		await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
-		await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id}: git fetch: fatal: transport 'evil' not allowed` });
-		assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
+		commit(join(there, "repos", ".arthur-worktrees", job.id), "the change");
+		const tip = git(repository, "rev-parse", job.branch ?? "");
+		// The other repository holds the job's branch at the base, which a fetch from it would bring back.
+		git(folder, "fetch", "--quiet", root, `+main:refs/heads/${job.branch}`);
+		git(root, "config", namedAsUrl(there, "url"), `ssh://elsewhere${folder}`);
+		// A branch a worktree here has checked out is not moved under it, and is fetched at the next sweep once it is not.
+		const checkout = join(temporaryFolder(), "checkout");
+		git(root, "worktree", "add", "--quiet", "-b", job.branch ?? "", checkout);
+		await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id}: git fetch: fatal: cannot force update the branch '${job.branch}' used by worktree at '${checkout}'` });
+		assert.equal(git(root, "rev-parse", job.branch ?? ""), git(root, "rev-parse", "main"), "the checked-out branch stays");
+		git(root, "worktree", "remove", checkout);
+		await jobs.sweep();
+		assert.equal(git(root, "rev-parse", job.branch ?? ""), tip, "its branch from the machine's repository");
+		assert.equal(git(folder, "for-each-ref", "refs/arthur"), "", "nothing pushed to the other repository");
 		assert.equal(existsSync(ran), false, "nothing run");
 	} finally {
 		process.env.PATH = path;
@@ -230,15 +245,16 @@ function plantAfterCheck(t: TestContext, keys: readonly (readonly [string, strin
 	t.after(() => void (process.env.PATH = process.env.PATH?.split(delimiter).filter((each) => each !== folder).join(delimiter)));
 }
 
-test("a protocol.ext.allow a job writes into the checkout's config after the check runs no ext:: program in the push of a job's base", async (t) => {
+test("a remote named as the machine's URL that a job writes into the checkout's config after the check sends the push of a job's base nowhere else", async (t) => {
 	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Built it.", cost: 0 }] }) });
-	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
-	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
-	// A remote named as the machine's URL passes the check (AR0393); Git allows its ext:: only with protocol.ext.allow.
-	git(root, "config", `remote.gpu:${join(there, "repos", "acme.git")}.url`, `ext::${program}`);
-	plantAfterCheck(t, [["protocol.ext.allow", "always"]]);
-	await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: "git push: fatal: transport 'ext' not allowed" });
-	assert.deepEqual([git(root, "config", "protocol.ext.allow"), existsSync(ran)], ["always", false]);
+	const folder = temporaryFolder();
+	git(folder, "init", "--quiet", "--bare");
+	plantAfterCheck(t, [[namedAsUrl(there, "pushurl"), `ssh://elsewhere${folder}`]]);
+	const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	assert.equal(git(root, "config", namedAsUrl(there, "pushurl")), `ssh://elsewhere${folder}`, "written before the push");
+	assert.equal(git(join(there, "repos", "acme.git"), "rev-parse", "refs/arthur/base"), git(root, "rev-parse", "HEAD"));
+	assert.equal(git(folder, "for-each-ref"), "", "nothing pushed elsewhere");
 });
 
 test("under umask 022 a spawn leaves the home here and the one there their user's alone: one made 0755 earlier and a new one are 0700", async (t) => {

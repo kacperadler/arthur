@@ -3092,9 +3092,9 @@
   {
     "id": "AR0398",
     "title": "A remote named as a machine's URL sends a job's push and fetch to another repository",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0398-a-remote-named-as-a-machine-s-url-sends-a-job-s-push-and-fetch-to-another-repository/ticket.md",
-    "updated": "2026-11-02T10:18:37.339Z",
+    "updated": "2026-11-02T17:24:13.768Z",
     "after": [
       "AR0348",
       "AR0402",
@@ -4056,9 +4056,9 @@
   {
     "id": "AR0512",
     "title": "A job that empties its record's `guarded` file reads the env file after `arthur continue`",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0512-a-job-that-empties-its-record-s-guarded-file-reads-the-env-file-after-arthur/ticket.md",
-    "updated": "2026-11-02T16:36:15.098Z"
+    "updated": "2026-11-02T17:31:04.914Z"
   },
   {
     "id": "AR0513",

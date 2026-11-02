@@ -15,6 +15,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0369 The agent's own request to a provider is never checked against the private network (03a3298c)
 - AR0392 A job's program can still plant a key between the config check and the git call (5fc95d86)
 - AR0507 A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff (bccfdff3)
+- AR0512 A job that empties its record's `guarded` file reads the env file after `arthur continue` (f5f2367e)
 
 ## 2026-11-01
 

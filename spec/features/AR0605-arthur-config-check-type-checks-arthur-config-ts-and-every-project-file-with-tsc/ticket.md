@@ -38,4 +38,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-11-02: AR0605 approved: plan first, after Group 2; the owner: "arthur config check - ok" (AR-D459)

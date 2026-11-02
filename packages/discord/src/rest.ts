@@ -1,6 +1,7 @@
-// Discord's REST API (spec/roadmap.md, entry 89): one call to `<apiUrl><path>` with the bot's token in the Authorization header,
-// never in the URL, and the User-Agent Discord asks of a bot, answered JSON or a refusal `{ code, message }` (a 429: `{ message,
-// retry_after, global }`). A failure is one line naming the bot and the call, the token replaced wherever it shows.
+// Discord's REST API (spec/roadmap.md, entries 89 and 90): one call to `<apiUrl><path>` with the bot's token in the Authorization
+// header, never in the URL, and the User-Agent Discord asks of a bot, sending JSON or a multipart form, answered JSON or a refusal
+// `{ code, message }` (a 429: `{ message, retry_after, global }`). A failure is one line naming the bot and the call, the token
+// replaced wherever it shows.
 
 export type Bot = {
 	// The name, absent for the unnamed bot; `label` is how errors say it: the name, or `(unnamed)`.
@@ -27,11 +28,12 @@ export const failure = (bot: Bot, call: string, code: number, text: string, retr
 export async function rest(bot: Bot, method: "GET" | "POST", path: string, body: unknown, signal: AbortSignal, ms = CALL_MS): Promise<unknown> {
 	const call = `${method} ${path.replace(/\?.*$/, "")}`;
 	const within = AbortSignal.any([signal, AbortSignal.timeout(ms)]);
-	const headers = { Authorization: `Bot ${bot.token}`, "User-Agent": AGENT, ...(body === undefined ? {} : { "Content-Type": "application/json" }) };
+	const json = body !== undefined && !(body instanceof FormData);
+	const headers = { Authorization: `Bot ${bot.token}`, "User-Agent": AGENT, ...(json ? { "Content-Type": "application/json" } : {}) };
 	let response: Response;
 	let text: string;
 	try {
-		response = await fetch(`${bot.apiUrl}${path}`, { method, headers, signal: within, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+		response = await fetch(`${bot.apiUrl}${path}`, { method, headers, signal: within, ...(body === undefined ? {} : { body: json ? JSON.stringify(body) : (body as FormData) }) });
 		text = await response.text();
 	} catch (error) {
 		if (signal.aborted) throw error;

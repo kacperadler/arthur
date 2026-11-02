@@ -2,16 +2,18 @@ import type { Plugin } from "@arthur/core/plugin";
 import { checkOptions } from "./discord-options.ts";
 import { requirements } from "./discord-doctor.ts";
 import { gateway } from "./gateway.ts";
+import { outgoing } from "./media-out.ts";
 import { channelId, enqueue, outbox } from "./outbox.ts";
 import { type Ear, receiver, type Send } from "./receive.ts";
 import type { Bot } from "./rest.ts";
 
-// The discord plugin (spec/roadmap.md, entry 89): bots as instances, named and unnamed, each on its one server through the
-// gateway (gateway.ts), where the owner's text becomes `message-received` (receive.ts); the coordinator's replies by the bot
-// the messages they answer came through, the notices by the unnamed bot, else the first, through the outbox (outbox.ts),
-// without a notification in quiet hours, and a notice only when `call("coordinator.silent", notice)` does not hold it; each
+// The discord plugin (spec/roadmap.md, entries 89 and 90): bots as instances, named and unnamed, each on its one server through
+// the gateway (gateway.ts), where the owner's messages become `message-received` and `/name text` is a phone command
+// (receive.ts); the coordinator's replies by the bot the messages they answer came through, the notices by the unnamed bot,
+// else the first, through the outbox (outbox.ts), without a notification in quiet hours, and a notice only when
+// `call("coordinator.silent", notice)` does not hold it; files by `channel.send` (media-out.ts), which `arthur send` asks; each
 // bot's requirements for `arthur doctor` (discord-doctor.ts): packages/discord/docs/discord.md. Only `arthur run` starts the
-// plugin, so only it connects and sends; what comes before the start, as the replay of the event log, is queued at the start.
+// plugin, so only it connects and sends texts; what comes before the start, as the replay of the event log, is queued at the start.
 
 export type BotOptions = { readonly name?: string; readonly tokenEnv: string; readonly guildIdEnv: string; readonly userIdEnv: string; readonly channelIdEnv: string };
 
@@ -72,8 +74,13 @@ export function discord(options: DiscordOptions): Plugin {
 				box.flush();
 				return bots.map((each) => gateway(each, stopping.signal, (type, data) => ears.get(each)?.on(type, data), fatal));
 			};
-			idle = box.idle;
+			// The messages in hand first, since a command's reply joins the outbox.
+			idle = async () => {
+				await Promise.all([...ears.values()].map((each) => each.idle()));
+				await box.idle();
+			};
 			host.provide("doctor", () => bots.flatMap(requirements));
+			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
 		},
 		start() {
 			connections = begin();

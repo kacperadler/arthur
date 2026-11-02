@@ -213,7 +213,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `roles.model` | orchestration | the core, session (its LLM probe), develop (`arthur eval`) | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | listen, video | the core (`turnText`) | A `Claim` for a part it handles. |
 | `listen.transcribe` | listen | listen (`arthur transcribe`), video (a video's sound track, through `collect`: none answering is the listen plugin not enabled), any plugin | A promise of `{ seconds, text, segments }` for a file's path, each segment `{ start, end, text }` in seconds; rejects with why it was not transcribed (`docs/listen.md`). |
-| `channel.send` | telegram | the core (`arthur send`), manage (`/retro`, only the channel the command came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
+| `channel.send` | discord, telegram | the core (`arthur send`), manage (`/retro`, only the channel the command came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
 | `coordinator.context` | develop, findings, manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |

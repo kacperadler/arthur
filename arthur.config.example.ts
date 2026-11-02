@@ -407,7 +407,7 @@ export default defineConfig({
 
 		// Discord through its gateway: an outbound WebSocket, no Interactions Endpoint URL, so nothing listens. One private server,
 		// and in it only your user. Turn on Message Content Intent in Discord's developer portal; without it Discord refuses the
-		// connection (4014). Text in and out today; files, voice messages and phone commands typed as `/name text` come with entry 90.
+		// connection (4014). Text, files and voice messages both ways; phone commands are typed as `/name text`.
 		discord({
 			enabled: false,
 			bots: [

@@ -3064,9 +3064,9 @@
   {
     "id": "AR0396",
     "title": "A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0396-a-git-fetch-or-git-push-from-a-job-s-worktree-into-refs-replace-still-writes-a-replacement-every-worktree-reads/ticket.md",
-    "updated": "2026-11-02T10:18:38.392Z",
+    "updated": "2026-11-02T20:25:55.478Z",
     "after": [
       "AR0395",
       "AR0402",
@@ -4864,5 +4864,12 @@
     "after": [
       "AR0603"
     ]
+  },
+  {
+    "id": "AR0608",
+    "title": "The plan guard ignores a Plan line it cannot read, so a misspelt one lets a worker start without a plan",
+    "status": "planning",
+    "path": "spec/features/AR0608-the-plan-guard-ignores-a-plan-line-it-cannot-read-so-a-misspelt-one-lets-a/ticket.md",
+    "updated": "2026-11-02T20:49:39.511Z"
   }
 ]

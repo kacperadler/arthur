@@ -362,8 +362,9 @@ test("a name that resolves outside the private network after the pick and before
 	const mac = await ollama();
 	const { root, env } = repository({ steps: [{ message: "Done." }] });
 	const lookup = dns.lookup;
-	// Private until the pick's probe reached the server, public from then on: the prepare's own lookup sees the change.
-	dns.lookup = (async () => [{ address: mac.seen.length === 0 ? "127.0.0.1" : "8.8.8.8", family: 4 }]) as unknown as typeof dns.lookup;
+	// Private until the pick's probe reached the server, `later` from then on: the prepare's own lookup sees the change.
+	let later = ["8.8.8.8"];
+	dns.lookup = (async () => (mac.seen.length === 0 ? ["127.0.0.1"] : later).map((address) => ({ address, family: 4 }))) as unknown as typeof dns.lookup;
 	syncBuiltinESMExports();
 	try {
 		const { fake } = await load({ providers: { mac: { kind: "ollama", url: mac.url.replace("127.0.0.1", "mac.tail1234.ts.net") } } }, {}, root);
@@ -375,6 +376,9 @@ test("a name that resolves outside the private network after the pick and before
 		const worktrees = execFileSync("git", ["-C", root, "worktree", "list"], { encoding: "utf8" }).trim().split("\n");
 		assert.deepEqual([readdirSync(join(home, "jobs")), worktrees.length], [[], 1], "no record, no worktree");
 		assert.throws(env, { code: "ENOENT" }, "the agent never started: its environment was never written");
+		later = ["127.0.0.1", "8.8.8.8"];
+		await assert.rejects(fake.host.jobs.spawn({ task: "Build it.", model: "mac/qwen3-coder" }), { message: /^plugin models: prepare failed: provider mac: mac\.tail1234\.ts\.net resolves to 8\.8\.8\.8, not a private address;/ }, "any address, not only the first");
+		assert.throws(env, { code: "ENOENT" }, "the agent never started");
 	} finally {
 		dns.lookup = lookup;
 		syncBuiltinESMExports();

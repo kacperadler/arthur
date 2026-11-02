@@ -17,7 +17,7 @@ The owner (2026-10-17): a setup guide, and Arthur helping with setup itself thro
 A new owner goes from a fresh VPS to a running Arthur by following one guide and one command that tells them what is there and what is missing.
 
 - Kind: feat
-- Plan: tak
+- Plan: yes
 
 ## Done means
 

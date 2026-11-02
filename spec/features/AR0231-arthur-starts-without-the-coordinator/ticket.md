@@ -16,7 +16,7 @@ Today the core refuses a config without the `orchestration` plugin, or with it d
 
 A config without `orchestration`, or with `enabled: false` on it, loads and runs; Arthur then works as a watchman and a toolbox.
 
-- Plan: tak
+- Plan: yes
 
 ## Done means
 

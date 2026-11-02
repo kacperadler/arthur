@@ -10,7 +10,7 @@
 
 ## Description
 
-The owner, 2026-11-02, found `- Plan: tak` (Polish) in AR0128's ticket. 14 tickets written on 2026-10-16 to 2026-10-23 carried it; the plan guard reads only `- Plan: yes` (`packages/orchestration/src/plans.ts:17`), so for it those tickets had no plan line at all, and a worker could have started on the six still open (AR0086, AR0128, AR0129, AR0131, AR0214, AR0216) without an approved plan. The coordinator changed those six to `- Plan: yes` (ae81d01d); the eight merged or dropped ones keep their text as history.
+The owner, 2026-11-02, found `- Plan: tak` (Polish) in AR0128's ticket. 14 tickets written on 2026-10-16 to 2026-10-23 carried it; the plan guard reads only `- Plan: yes` (`packages/orchestration/src/plans.ts:17`), so for it those tickets had no plan line at all, and a worker could have started on the six still open (AR0086, AR0128, AR0129, AR0131, AR0214, AR0216) without an approved plan. The coordinator changed all 14 to `- Plan: yes` (ae81d01d for the six open ones, then the eight merged or dropped).
 
 ## Goal
 

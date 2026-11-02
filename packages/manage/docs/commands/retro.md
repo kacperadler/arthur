@@ -9,4 +9,6 @@ The newest retro's phone page: `spec/retro/<date>.html`, which `arthur ticket fi
 
 With no page yet, both answer so instead of failing: `no retro page yet: spec/retro/ in <project folder> holds none; a retro's filing writes one beside its report`, and `arthur retro` exits 0.
 
+Neither starts a retro: a retro by hand is `arthur spawn --kind retro '<focus>'`, a decisions retro `arthur repeats --retro '<focus>'` or `/repeats retro <focus>` (`arthur repeats --help`).
+
 More than nothing after the command prints `usage: arthur retro [--project <name>]` and exits 2, and more than nothing after `/retro` answers `usage: /retro`; an unknown project exits 1 with the board's refusal.

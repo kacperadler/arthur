@@ -17,7 +17,7 @@ export type ManageOptions = {
 };
 
 export const summary =
-	"managing Arthur: arthur health and /health, what should have happened by now and has not, its new lines sent as a notice; a daily prune of old jobs and temporary folders; the nightly audit; the weekly retro, arthur retro-due and /retro";
+	"managing Arthur: arthur health and /health, what should have happened by now and has not, its new lines sent as a notice; a daily prune of old jobs and temporary folders; the nightly audit; the weekly retro, arthur retro-due and /retro; arthur repeats and /repeats, what the owner decides again and again";
 
 // Git, which the checks of each project's checkout and the audit run, is the core's tool.
 export const tools: readonly Tool[] = [];

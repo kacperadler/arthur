@@ -327,6 +327,19 @@ test("a log line that is not a record refuses every write, naming the line and l
 	assert.deepEqual(notices(), [`${JOB} asks: May I?`], "the notice went, naming no decision");
 });
 
+test("decision.entries answers a project's log as parsed, none without one; an unknown project or a line broken by hand throws", async (t) => {
+	const { decision, fake, file, log } = await setup(t);
+	assert.deepEqual(fake.call("decision.entries", { project: "acme" }), [], "no log yet");
+	await decision(...PLAN_ASK);
+	await decision("answer", "AC-D1", ...APPROVED, "ok");
+	assert.equal(log()?.length, 2);
+	assert.deepEqual(fake.call("decision.entries", { project: "acme" }), log());
+	assert.deepEqual(fake.call("decision.entries", { project: "shop" }), [], "shop's own log, which it has not");
+	assert.throws(() => fake.call("decision.entries", { project: "nowhere" }), { message: "unknown project nowhere" });
+	appendFileSync(file(), "not json\n");
+	assert.throws(() => fake.call("decision.entries", { project: "acme" }), { message: new RegExp(`^${file()} line 3 is not a decision record \\(not a JSON object\\)`) });
+});
+
 test("a crash between the log's line and the ticket's: the answer is kept, the line named missing, and the next arthur decision writes it once", async (t) => {
 	const { decision, decisions, log, acme, ticket } = await setup(t);
 	await decision(...PLAN_ASK);

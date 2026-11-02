@@ -27,13 +27,13 @@ const BUDGETS = {
 
 	machines: 488,
 
-	manage: 931,
+	manage: 1262,
 
 	models: 509,
 
 	nvm: 96,
 
-	orchestration: 2434,
+	orchestration: 2440,
 
 	projects: 482,
 

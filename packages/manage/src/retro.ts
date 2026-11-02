@@ -4,14 +4,15 @@ import type { Host, Job, PhoneFrom } from "@arthur/core/plugin";
 import type { RetroOptions } from "./manage-options.ts";
 import { fileReport, newest } from "./report-file.ts";
 import { period, RETROS, retroDue } from "./retro-due.ts";
+import { repeats } from "./repeats.ts";
 import { scheduleKind } from "./scheduled-kind.ts";
 import { stats } from "./stats.ts";
 
 // The retro (spec/roadmap.md, entry 63): the kind `retro`, read-only, with the retro role and the retro criteria; every retro's
-// prompt gets the FAIL reviews, findings and outcomes of the merges since the last retro (retro-due.ts), the stats, the board,
-// and the roles and criteria; `arthur retro-due`, also the coordinator's context line; the schedule entry of `retro.day` and
-// `retro.at`, which starts none while no retro is due; the filing with its phone page (report-file.ts), `/retro` sending the
-// newest page, and the procedure its end brings. docs/manage.md, "The retro".
+// prompt gets the FAIL reviews, findings and outcomes of the merges since the last retro (retro-due.ts), the stats, the digest
+// of `arthur repeats` (repeats.ts), the board, and the roles and criteria; `arthur retro-due`, also the coordinator's context
+// line; the schedule entry of `retro.day` and `retro.at`, which starts none while no retro is due; the filing with its phone page
+// (report-file.ts), `/retro` sending the newest page, and the procedure its end brings. docs/manage.md, "The retro".
 
 const KIND = "retro";
 export const RETRO_TASK = "Look back on the merges since the last retro, as your role and the retro criteria say.";
@@ -68,15 +69,19 @@ const noPage = (root: string) => `no retro page yet: ${RETROS.folder}/ in ${root
 async function sendPage(host: Host, from: PhoneFrom): Promise<string> {
 	const root = projectRoot(host, undefined);
 	const [page] = newest(root, RETROS, "html");
-	if (page === undefined) return noPage(root);
-	const message = { files: [join(root, page)], ...(from.place === undefined ? {} : { place: from.place }) };
+	return page === undefined ? noPage(root) : sendFile(host, from, join(root, page), page);
+}
+
+// `file`, named `name` in each line, sent by the channel the phone command came from, to its place (`/retro`, `/repeats`).
+export async function sendFile(host: Host, from: PhoneFrom, file: string, name: string): Promise<string> {
+	const message = { files: [file], ...(from.place === undefined ? {} : { place: from.place }) };
 	const answers = host.collectEach("channel.send", message).filter((answer) => from.channel === undefined || answer.plugin === from.channel);
-	if (answers.length === 0) return `${page} not sent: ${from.channel === undefined ? "no plugin provides" : `${from.channel} provides no`} channel.send`;
+	if (answers.length === 0) return `${name} not sent: ${from.channel === undefined ? "no plugin provides" : `${from.channel} provides no`} channel.send`;
 	const lines = await Promise.all(
 		answers.map(async (answer) => {
-			if ("error" in answer) return `${page} not sent by ${answer.plugin}: ${answer.error.message.split("\n").join("; ")}`;
-			if (typeof answer.value !== "function") return `${page} not sent by ${answer.plugin}: channel.send answered no send`;
-			return `${page}: ${answer.plugin}: ${await answer.value()}`;
+			if ("error" in answer) return `${name} not sent by ${answer.plugin}: ${answer.error.message.split("\n").join("; ")}`;
+			if (typeof answer.value !== "function") return `${name} not sent by ${answer.plugin}: channel.send answered no send`;
+			return `${name}: ${answer.plugin}: ${await answer.value()}`;
 		}),
 	);
 	return lines.join("\n");
@@ -101,7 +106,7 @@ function shipped(host: Host, root: string): string[] {
 }
 
 // The section every retro's prompt gets, from the project's checkout: the period, each merged ticket's files to read, the stats
-// since the last retro's commit, the board, and the roles and criteria.
+// and the repeats digest since the last retro's commit, the board, and the roles and criteria.
 function context(host: Host, job: Job): string {
 	const look = period(host, job.project, job.base);
 	const merged = look.merged.map((each) => {
@@ -113,7 +118,18 @@ function context(host: Host, job: Job): string {
 		`## This retro\n\nYou look back on project ${job.project} at ${job.base}; your worktree is a detached checkout of that commit.`,
 		`### Merges since ${look.since}\n\n${retroDue(look).line}\n\n${merged.join("\n") || "none"}`,
 		`### Stats\n\n${stats(host, job.project, look.made)}`,
+		repeatsOf(host, job.project, look.made),
 		`### Board\n\n${host.board.digest(job.project)}`,
 		`### Roles and criteria\n\nThe files the plugins ship:\n${shipped(host, look.project.path).map((file) => `- ${file}`).join("\n") || "none"}\n\nThe project's own criteria files, beside the retro criteria above: ${host.jobs.criteria().join(", ")}.`,
 	].join("\n\n");
+}
+
+// The repeats digest of the period, from the day of the last retro's commit, its headings two levels down; a log broken by hand
+// or no decision log to read costs this section only.
+function repeatsOf(host: Host, project: string, made: Date | undefined): string {
+	try {
+		return repeats(host, project, made === undefined ? undefined : host.clock.local(made).date).replace(/^#/gm, "###");
+	} catch (error) {
+		return `### Repeats\n\nnot read: ${(error as Error).message.split("\n")[0]}`;
+	}
 }

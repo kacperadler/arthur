@@ -6,8 +6,8 @@ import { type Answer, ask, close, type Decision, decisions, readLog } from "./de
 
 // What the plugin records in the decision log by itself (spec/roadmap.md, entry 96): the question of a job blocked on the
 // owner, asked as kind `job` (blocked-notice.ts names its id in the notice); a close once what an open question waits on is
-// gone, its job continued or ended, its ticket merged or dropped; and the wake's line naming the id to answer, or the
-// decision of the class that answered it by policy (entry 97).
+// gone, its job continued or ended, its ticket merged or dropped; the wake's line naming the id to answer, or the decision of
+// the class that answered it by policy (entry 97); and `decision.entries`, a project's log as it is parsed, for manage's repeats.
 
 // The project a job or a ticket of `name` belongs to; undefined without a project list, or for a name not in it.
 function eventProject(host: Host, name: unknown): Project | undefined {
@@ -42,6 +42,12 @@ export function decisionHooks(host: Host): void {
 		const { id, project, to } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
 		const where = to === "merged" || to === "dropped" ? eventProject(host, project) : undefined;
 		if (where !== undefined && decisions(readLog(where)).some((each) => each.state === "open" && each.ask.ticket === id)) return queued(host, where, (lock) => void close(host, where, (each) => each.ticket === id, `ticket ${String(to)}`, lock));
+	});
+	// Asked with a project's name; an unknown one, or a log broken by hand, throws.
+	host.provide("decision.entries", ({ project }: { readonly project: string }) => {
+		const where = host.board.projects().find((each) => each.name === project);
+		if (where === undefined) throw new Error(`unknown project ${project}`);
+		return readLog(where);
 	});
 	// A wake must not fail: a log broken by hand costs this line only.
 	host.provide("coordinator.wake", (job: Readonly<Record<string, unknown>>) => {

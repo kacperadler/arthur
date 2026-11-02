@@ -2,11 +2,12 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { Command, Host } from "@arthur/core/plugin";
-import { branchOf, worker } from "./review-command.ts";
+import { entryOf } from "./auto-merge.ts";
+import { branchOf, tipChecks, worker } from "./review-command.ts";
 
 // `arthur review-needed <worker job>` (spec/roadmap.md, entry 53): whether an ended worker's branch needs a review, by the
-// first rule that holds, its answer kept in `<folder>/<job>/review-needed`; on `no review` its ticket moved to done and its
-// branch pushed (`github.push`, entry 58, when a plugin provides it), as after a PASS. docs/commands/review-needed.md.
+// first rule that holds, its answer kept in `<folder>/<job>/review-needed`; on `no review` its ticket moved to done, its branch
+// pushed (`github.push`, entry 58, when a plugin provides it) as after a PASS, and `no-review` emitted (pass-forward.ts). docs/commands/review-needed.md.
 
 const USAGE = "usage: arthur review-needed <worker job>";
 // At most this many lines added and removed, a branch with passing checks needs no review.
@@ -27,6 +28,9 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 			}
 			const job = worker(host, name);
 			const { folder: feature, root, commit: tip, base } = branchOf(host, job);
+			// The merge's own checks first (AR0570): no review is paid for a branch the merge would refuse.
+			const refusals = host.collect("merge.check", job).filter((answer) => typeof answer === "string" && answer !== "");
+			if (refusals.length > 0) throw new Error(`refused by merge.check: ${refusals.join("; ")}; no review until the branch passes it`);
 			const ticket = basename(feature).split("-")[0] ?? "";
 			// No hook or fsmonitor the main checkout's config names runs, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
 			const git = (...words: string[]) => {
@@ -42,7 +46,10 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 			writeFileSync(join(folder, ".review-needed"), `${JSON.stringify({ answer, ticket, branch: job.branch, commit: tip, at: Date.now() })}\n`);
 			renameSync(join(folder, ".review-needed"), join(folder, "review-needed"));
 			console.log(answer);
-			if (answer.startsWith("no review")) for (const line of [`${ticket} moves to done.`, ...(await Promise.all(host.collect<Promise<string>>("github.push", { project: job.project, branch: job.branch })))]) console.log(line);
+			if (!answer.startsWith("no review")) return;
+			for (const line of [`${ticket} moves to done.`, ...(await Promise.all(host.collect<Promise<string>>("github.push", { project: job.project, branch: job.branch })))]) console.log(line);
+			host.events.emit("no-review", { id: job.id, project: job.project, ticket, branch: job.branch, commit: tip });
+			if (entryOf(host, job.project)?.pieces?.delivery?.autoMerge === true) console.log(`${job.project} merges on its own (autoMerge): arthur run runs arthur merge --auto ${job.id} and wakes you with what it printed; nothing to do until then.`);
 		},
 	};
 }
@@ -68,21 +75,13 @@ function decide(git: (...words: string[]) => string, base: string, tip: string, 
 	const size = numstat.reduce((sum, [added, removed]) => sum + Number(added) + Number(removed), 0);
 	const lines = `${size} line${size === 1 ? "" : "s"} changed`;
 	if (size > SMALL) return `review: ${lines}, over ${SMALL}`;
-	let scripts: readonly string[] = [];
-	try {
-		const { scripts: declared } = JSON.parse(git("show", `${tip}:package.json`)) as { readonly scripts?: Readonly<Record<string, unknown>> };
-		scripts = ["check", "test"].filter((name) => typeof declared?.[name] === "string");
-	} catch {
-		// No package.json at the tip, or a broken one: no checks.
-	}
-	if (scripts.length === 0) return `review: ${lines}; the project's package.json declares no check or test script`;
-	const recorded = checks.split("\n").map((line) => line.split(" ")).filter((words) => words.length >= 4);
-	if (recorded.length === 0) return `review: ${lines}; the job recorded no checks`;
-	const latest = scripts.map((script) => recorded.findLast((words) => words[0] === script && words.at(-2) === tip && words.at(-1) === "clean") ?? recorded.findLast(([name]) => name === script));
-	const off = latest.find((words) => words !== undefined && `${words.at(-2)} ${words.at(-1)}` !== `${tip} clean`);
+	const latest = tipChecks(git, tip, checks).filter(([script]) => script !== "mutate");
+	if (latest.length === 0) return `review: ${lines}; the project's package.json declares no check or test script`;
+	if (!checks.split("\n").some((line) => line.split(" ").length >= 4)) return `review: ${lines}; the job recorded no checks`;
+	const off = latest.find(([, words]) => words !== undefined && `${words.at(-2)} ${words.at(-1)}` !== `${tip} clean`)?.[1];
 	if (off !== undefined) return `review: ${lines}; the job's checks ran on ${off.at(-2) === tip ? "a dirty tree" : `${off.at(-2)}, not the tip`}`;
-	const results = latest.map((words, at) => words?.slice(0, -2).join(" ") ?? `no ${scripts[at]}`);
-	return `${latest.every((words) => words?.[1] === "pass") ? "no review" : "review"}: ${lines}; the job's checks: ${results.join(", ")}`;
+	const results = latest.map(([script, words]) => words?.slice(0, -2).join(" ") ?? `no ${script}`);
+	return `${latest.every(([, words]) => words?.[1] === "pass") ? "no review" : "review"}: ${lines}; the job's checks: ${results.join(", ")}`;
 }
 
 // The first file of a `git diff --unified=0` with `.env` in a changed line.

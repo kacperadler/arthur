@@ -3,18 +3,14 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
+import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import type { Entry } from "../src/entry.ts";
 import { claim } from "../src/run-state.ts";
 import { schedule } from "../src/schedule.ts";
 
 const STANDUP: Entry = { id: "standup", at: "09:00", action: { message: "Plan the day." } };
 const REPORT = { id: "report", at: "08:00", option: "morningReport.at", action: { message: "Write the morning report." } };
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(20)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // The schedule plugin set up on a fake host in Warsaw at `now`, as `arthur run` and the `arthur` binary set it up. Its file is
 // `<root>/spec/schedule.json`, given by its absolute path, so nothing reads the folder the tests run in; `manage` is the
@@ -300,7 +296,7 @@ test("inside a job (ARTHUR_JOB set) arthur schedule add and remove refuse, the f
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).
-const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const scope = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in a job's scope arthur schedule remove is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
 	const box = await load(t, [], "2026-10-19T10:00:00+02:00");

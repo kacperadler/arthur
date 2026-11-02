@@ -3,30 +3,34 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import type { Plugin } from "@arthur/core/plugin";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "@arthur/delivery";
 import { github } from "@arthur/github";
 import { projects } from "@arthur/projects";
+import { projectFolders } from "./project-folders.ts";
 import { type FakeRun, fakeGithub } from "../packages/github/test/fake-github.ts";
 
 // AR0257: the end of a CI run on a branch `arthur merge --auto` left waiting wakes the coordinator once, delivery's wake, not
 // github's too. A plugin's own tests never load another plugin; this one, outside every package, loads projects, delivery and
-// github together on one fake host, against the fake GitHub REST API of github's tests, polled every second.
+// github together on one fake host, against the fake GitHub REST API of github's tests, polled every second. AR0576: in arthur
+// run delivery runs that merge itself, the core's CLI in the folder it runs in, here one whose config holds a fake `merge`.
 
 const FOLDER = "spec/features/SH0001-shop";
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
 const RUNS = "/repos/acme/shop/actions/workflows/ci.yml/runs";
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
-async function until(what: string, predicate: () => boolean) {
-	for (const end = Date.now() + 20_000; !predicate(); await sleep(20)) if (Date.now() > end) throw new Error(`timed out waiting for ${what}`);
-}
-
 test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the merge it asks for ends the wait and no later poll wakes again", async (t) => {
 	const api = await fakeGithub(t);
 	const folder = temporaryFolder();
+	writeFileSync(join(folder, "merge.md"), "# arthur merge\n");
+	const said = "arthur merge: --auto merges only with CI passed on the branch: no run built the tip yet; it waits: when that run ends, the coordinator is woken with its verdict; main is unchanged";
+	const merge = `{ name: "merge", doc: new URL("./merge.md", import.meta.url), run() { console.error(${JSON.stringify(said)}); return 1; } }`;
+	writeFileSync(join(folder, "arthur.config.ts"), `export default { plugins: [{ name: "orchestration", setup() {} }, { name: "fake", setup(host) { host.commands.register(${merge}); } }] };\n`);
+	const cwd = process.cwd();
+	process.chdir(folder);
+	t.after(() => process.chdir(cwd));
 	// Its origin a bare repository whose path names acme/shop, so github finds its repository and a push stays on this machine.
 	const origin = join(folder, "acme", "shop.git");
 	const shop = join(folder, "shop");
@@ -48,12 +52,13 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 	git(shop, "merge", "--quiet", "--no-ff", "-m", "Take main as it is", git(shop, "commit-tree", "-p", "HEAD", "-m", "main as it is", "HEAD^{tree}"));
 	git(shop, "remote", "add", "origin", origin);
 	git(shop, "push", "--quiet", "origin", "main");
-	const list = [{ name: "shop", prefix: "SH", path: shop, autoMerge: true, ci: { workflow: "ci.yml" } }];
+	const list = [{ name: "shop", prefix: "SH", path: shop, pieces: { delivery: { autoMerge: true }, github: { workflow: "ci.yml" } } }];
+	const given = projectFolders(list);
 	const fake = fakeHost({ name: "projects", now: new Date("2026-10-21T10:00:00Z"), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	const options = { instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }], poll: { everySeconds: 1 } };
 	const [withDelivery, withGithub] = [delivery(), github(options)];
 	const loaded: [Plugin, Readonly<Record<string, unknown>>][] = [
-		[projects({ list }), { list }],
+		[projects(given), given],
 		[withDelivery, {}],
 		[withGithub, options],
 	];
@@ -89,9 +94,14 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 	git(job.worktree, "add", "--all");
 	git(job.worktree, "commit", "--quiet", "-m", "feat(SH0001): the shop");
 	const tip = git(job.worktree, "rev-parse", "HEAD");
+	// The worker's checks passed on its tip, as delivery's extension records them, so a review starts (AR0580); delivery runs on
+	// this one fake host, so its folder is the host's.
+	mkdirSync(join(fake.host.folder, job.id), { recursive: true });
+	writeFileSync(join(fake.host.folder, job.id, "checks"), `check pass ${tip} clean\ntest pass 1/1 ${tip} clean\n`);
 	agent("PASS");
 	await run("review", job.id);
-	await ended(out.at(-1) ?? "");
+	const review = out.at(-1) ?? "";
+	await ended(review);
 	const ci: FakeRun = { id: 51, sha: tip, branch: job.branch ?? "", status: "in_progress", conclusion: null };
 	api.runs["acme/shop/ci.yml"] = [ci];
 	const refused = await run("merge", job.id, "--auto");
@@ -107,13 +117,14 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 	[ci.status, ci.conclusion] = ["completed", "success"];
 	await until("ci-finished", () => fake.emitted.some((event) => event.name === "ci-finished"));
 	const polls = api.count(RUNS);
-	await until("two more polls", () => api.count(RUNS) >= polls + 2);
+	await until("two more polls and the merges' wakes", () => api.count(RUNS) >= polls + 2 && messages().length >= before + 2);
 	const where = `${job.branch} (run 51, attempt 1, on ${tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/51`;
-	assert.deepEqual(messages().slice(before), [`CI passed on ${where}. It waited for that: arthur merge --auto ${job.id}`], "one wake, delivery's");
+	const ran = `shop merges on its own (autoMerge), so delivery ran arthur merge --auto ${job.id}: exit 1, it did not go in; act on its last line as arthur merge --help, "What the coordinator does with the result", says. What it printed:\n\n${said}`;
+	assert.deepEqual(messages().slice(before).sort(), [`CI passed on ${where}. ${ran}`, `Review ${review} says PASS on SH0001, ${job.branch} at ${tip.slice(0, 7)}. ${ran}`], "one wake for the run's end, delivery's, and one for the PASS");
 
 	const merged = await run("merge", job.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
 	const after = api.count(RUNS);
 	await until("two polls after the merge", () => api.count(RUNS) >= after + 2);
-	assert.equal(messages().length, before + 1, "no poll after the merge wakes on that run again");
+	assert.equal(messages().length, before + 2, "no poll after the merge wakes on that run again");
 });

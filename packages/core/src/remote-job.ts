@@ -23,7 +23,7 @@ const USAGE = "usage: arthur remote-job repo|add|launch|stop|steer|continue|prun
 const LOG_BYTES = 256 * 1024;
 
 // What `add` reads on stdin: the job with the repository there as its `root`, its prompt, and the record's other keys.
-export type Added = { readonly job: Job; readonly prompt: string; readonly kind: Own; readonly idleMinutes: number; readonly since: string };
+export type Added = { readonly job: Job; readonly prompt: string; readonly kind: Own; readonly idleMinutes: number; readonly unsandboxed: boolean; readonly since: string };
 
 const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => void | Promise<void>>> = {
 	// Prints `present` when the repository of the project holds the commit, else `missing`, creating the repository bare. Refused
@@ -40,11 +40,11 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		console.log(spawnSync("git", ["-C", root, "cat-file", "-e", `${commit}^{commit}`], { stdio: "ignore" }).status === 0 ? "present" : "missing");
 	},
 	add(home) {
-		const { job, prompt, kind, idleMinutes, since } = JSON.parse(readFileSync(0, "utf8")) as Added;
+		const { job, prompt, kind, idleMinutes, unsandboxed, since } = JSON.parse(readFileSync(0, "utf8")) as Added;
 		addWorktree(job.root, job.worktree, job.base, job.branch);
 		try {
 			// Every project's repository there is `<home>/repos/<project>.git`, with its jobs' worktrees, in the home folder the guard refuses.
-			writeRecord(home, job, prompt, kind, idleMinutes, new Date(since), "", undefined);
+			writeRecord(home, job, prompt, kind, idleMinutes, unsandboxed, new Date(since), "", undefined);
 		} catch (error) {
 			removeWorktree(job.root, job.worktree, job.branch);
 			throw error;
@@ -55,7 +55,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	async launch(home, [id = "", agent = "", slice = ""]) {
 		const read = record(home, id);
 		const env = jobEnv("core", JSON.parse(readFileSync(0, "utf8").trim() || "{}"));
-		const failed = await launch(home, { id, kind: read("kind"), project: read("project") }, agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), env);
+		const failed = await launch(home, { id, kind: read("kind"), project: read("project"), root: read("root"), worktree: read("worktree") }, agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), env);
 		if (failed !== undefined) console.log(failed);
 	},
 	// `stop`, `steer` and `continue` as here, on the record there: `arthur stop --help` and the others say what each refuses.
@@ -67,10 +67,10 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		console.log(steerJob(home, id, readFileSync(0, "utf8")));
 	},
 	// Reads `{ instruction, env }` on stdin, `env` the variables the prepares returned on the main Arthur; `caps`, the caps in force
-	// (JSON of what `jobs.limits` answered), replace the record's; prints why the wrapper did not start, as `launch`.
+	// (JSON of what `jobs.limits` answered), replace the record's; prints why the wrapper did not start, as `launch`. `root` as `add` has it.
 	async continue(home, [id = "", agent = "", slice = "", caps = "{}", budget]) {
 		const { instruction, env } = JSON.parse(readFileSync(0, "utf8")) as { readonly instruction: string; readonly env?: unknown };
-		const steps = { check: async () => ({ release: () => {}, caps: await jobCaps([JSON.parse(caps)]) }), prepare: async () => jobEnv("core", env) };
+		const steps = { check: async () => ({ release: () => {}, caps: await jobCaps([JSON.parse(caps)]) }), prepare: async () => jobEnv("core", env), root: (project: string) => join(home, "repos", `${project}.git`) };
 		const failed = await continueJob(home, id, instruction, budget === undefined ? undefined : Number(budget), agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), steps);
 		if (failed !== undefined) console.log(failed);
 	},

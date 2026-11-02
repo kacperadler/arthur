@@ -75,6 +75,6 @@ export function registerGuard(host: Host): void {
 		const state = restartDue(host.folder);
 		if (state === undefined) return undefined;
 		if (state.due.length === 0) return `Restart: none due; no commit changed Arthur's code ${since(state.loaded)}.`;
-		return `Restart: due, ${state.due.join(", ")} changed Arthur's code ${since(state.loaded)}. Every spawn and continue is refused, unless --ignore-restart, until arthur run starts again (the service: systemctl --user restart arthur, or /restart, which ends it) once no job runs.`;
+		return `Restart: due, ${state.due.join(", ")} changed Arthur's code ${since(state.loaded)}. Every spawn and continue is refused, unless --ignore-restart, until arthur run starts again: under its service it restarts itself once no job runs.`;
 	});
 }

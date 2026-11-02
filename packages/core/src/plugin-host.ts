@@ -32,7 +32,7 @@ export function asPlugin(entry: unknown): Plugin | string {
 		if (list !== undefined && !(Array.isArray(list) && list.every((item) => typeof item === "string"))) return `${name}: expected ${key} as a list of plugin names, got ${describe(list)}`;
 	if (module !== undefined && !(typeof module === "string" && module.startsWith("file:///"))) return `${name}: expected module as its own import.meta.url, a file: URL, got ${describe(module)}`;
 	if (typeof plugin.setup !== "function") return `${name}: expected a setup function, got ${describe(plugin.setup)}`;
-	for (const key of ["check", "doctor", "start", "stop"])
+	for (const key of ["check", "doctor", "piece", "start", "stop"])
 		if (plugin[key] !== undefined && typeof plugin[key] !== "function") return `${name}: expected ${key} as a function, got ${describe(plugin[key])}`;
 	return entry as Plugin;
 }
@@ -86,7 +86,7 @@ export function pluginHost(
 	bus: Bus,
 	runner: JobRunner,
 	arthur: { readonly envFile: string; readonly home: string; readonly config: string },
-	own: Pick<Host, "name" | "options" | "env" | "secrets" | "folder" | "clock" | "agent" | "code" | "package">,
+	own: Pick<Host, "name" | "options" | "env" | "secrets" | "folder" | "clock" | "agent" | "code" | "package" | "job">,
 	loading: () => boolean,
 ): Host {
 	const tickets = board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data));

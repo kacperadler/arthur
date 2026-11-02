@@ -2,6 +2,74 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-01
+
+### Fixed
+
+- AR0597 A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue (b9549ffe)
+- AR0599 Two core job tests can start the same systemd scope name at once (091ae34b)
+
+### Changed
+
+- AR0582 Defaults T14: a source line over 160 characters counts as more than one (61f2a538)
+- AR0594 Retro: a worker sent back after a FAIL fixes the cause, not only the reviewer's examples (b9308c3e)
+- AR0595 Retro: a change brings along every line it makes false, whichever file holds it (3989d460)
+- AR0596 Retro: the project's review criteria fail a branch that leaves docs saying the old thing (fb2f5535)
+- AR0598 The Discord gateway test reads the first heartbeat, which may go out before READY with a null sequence (8bdec3cf)
+- AR0600 Split the five source files that leave their zone once a line counts once per 160 characters (2320de78)
+- AR0601 Docs catch up: Dokploy in the README, setup guide, architecture diagram and vision; the roadmap and arthur.mmd lines left stale (290e014e)
+
+## 2026-10-31
+
+### Added
+
+- AR0580 Defaults T12: a review starts only on a tip whose check, test and mutate passed (1384c34b)
+- AR0588 Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers (e4a950b0)
+- AR0592 Plan: a discord plugin, the owner chat with Arthur in a private Discord server (84170c00)
+
+### Fixed
+
+- AR0590 AR0589 T3: a job cannot read the shared home .arthur/ of other projects (c966fcae)
+- AR0593 AR0589 T2: a job sees only its own project (d8013c2d)
+
+### Changed
+
+- AR0495 Source file size in three zones: green up to 200 lines, yellow up to 220, red up to 250, never above (4253ffdb)
+- AR0579 Defaults T11: npm run mutate finds the tests that do not catch a change (6d1e9372)
+
+## 2026-10-30
+
+### Added
+
+- AR0569 Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event (cdb0abdc)
+- AR0571 Defaults T3: a job resumes once after a provider error or an ending with no verdict (4393690f)
+- AR0573 Defaults T5: the merge writes What went in per file and commits the ticket's folder itself (820466db)
+- AR0574 Defaults T6: a passed review's notes reach findings.md by themselves (9a45692e)
+- AR0575 Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs (7431ebe0)
+- AR0576 Defaults T8: a passed review merges by itself in an autoMerge project, and four FAILs come before the owner is asked (c2bb5da7)
+- AR0583 Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job (691ec332)
+- AR0585 Before a job ends, the agent is reminded to close the processes it started that are no longer needed (81dd75ff)
+
+### Fixed
+
+- AR0566 Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach (425ca8aa)
+- AR0570 Defaults T2: a branch cannot change its ticket, the board or the decision log (5a2e3ed8)
+- AR0572 Defaults T4: a job with no sandbox refuses to start unless core.jobs.unsandboxed is on (97e94575)
+- AR0586 The report check tests fail on GitHub CI: its Chrome will not render narrower than 500 px (8c271b51)
+- AR0591 The sandbox check reads a python3 that exits 127 itself as a missing agent, so the job runs without a sandbox (ee38ee83)
+
+### Changed
+
+- AR0564 A report skill: how every HTML page for the owner is styled and checked before it is sent (f60b89db)
+- AR0565 limits.test.ts fails under load: three tests race a fixed 3 s job limit (4888ddf5)
+- AR0567 AR0311's 18 findings stay open forever though each is already a ticket (4a15b3fc)
+- AR0568 After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins (8faffe55)
+- AR0577 Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal (4b974151)
+- AR0578 Defaults T10: one until for every test, and the time-limit tests stop racing (a18ef20c)
+- AR0581 Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter (e45aba3d)
+- AR0587 The report check tests skip on this server since the test kit moved HOME (0c4b7f93)
+- AR0589 Plan: each project keeps all its plugin settings in one place of arthur.config.ts (1f31ca20)
+
 ## 2026-10-29
 
 ### Added

@@ -2659,9 +2659,9 @@
   {
     "id": "AR0348",
     "title": "The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0348-the-answer-of-records-is-not-checked-and-one-job-s-bad-answer-stops-the-copy-of-the-machine-s-other-jobs/ticket.md",
-    "updated": "2026-10-26T10:52:16.151Z",
+    "updated": "2026-11-02T10:18:31.249Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2839,9 +2839,9 @@
   {
     "id": "AR0369",
     "title": "The agent's own request to a provider is never checked against the private network",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
-    "updated": "2026-10-26T10:52:16.666Z",
+    "updated": "2026-11-02T10:18:31.794Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2995,9 +2995,9 @@
   {
     "id": "AR0390",
     "title": "A job on another machine moves a Git LFS project's commits there and back without their LFS objects",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0390-a-job-on-another-machine-moves-a-git-lfs-project-s-commits-there-and-back-without-their-lfs-objects/ticket.md",
-    "updated": "2026-10-26T10:52:18.148Z",
+    "updated": "2026-11-02T10:18:39.446Z",
     "after": [
       "AR0398",
       "AR0402",
@@ -3023,9 +3023,9 @@
   {
     "id": "AR0392",
     "title": "A job's program can still plant a key between the config check and the git call",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0392-a-job-s-program-can-still-plant-a-key-between-the-config-check-and-the-git-call/ticket.md",
-    "updated": "2026-10-26T10:52:19.145Z",
+    "updated": "2026-11-02T10:18:32.330Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3050,9 +3050,9 @@
   {
     "id": "AR0395",
     "title": "A link to the repository made and used in one bash call still moves main",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
-    "updated": "2026-10-26T10:52:19.645Z",
+    "updated": "2026-11-02T10:18:37.865Z",
     "after": [
       "AR0392",
       "AR0402",
@@ -3064,9 +3064,9 @@
   {
     "id": "AR0396",
     "title": "A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0396-a-git-fetch-or-git-push-from-a-job-s-worktree-into-refs-replace-still-writes-a-replacement-every-worktree-reads/ticket.md",
-    "updated": "2026-10-26T10:52:20.150Z",
+    "updated": "2026-11-02T10:18:38.392Z",
     "after": [
       "AR0395",
       "AR0402",
@@ -3078,9 +3078,9 @@
   {
     "id": "AR0397",
     "title": "Arthur's other git reads in a main checkout still read through a replacement",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0397-arthur-s-other-git-reads-in-a-main-checkout-still-read-through-a-replacement/ticket.md",
-    "updated": "2026-10-26T10:52:20.652Z",
+    "updated": "2026-11-02T10:18:38.916Z",
     "after": [
       "AR0396",
       "AR0402",
@@ -3092,9 +3092,9 @@
   {
     "id": "AR0398",
     "title": "A remote named as a machine's URL sends a job's push and fetch to another repository",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0398-a-remote-named-as-a-machine-s-url-sends-a-job-s-push-and-fetch-to-another-repository/ticket.md",
-    "updated": "2026-10-26T10:52:21.147Z",
+    "updated": "2026-11-02T10:18:37.339Z",
     "after": [
       "AR0348",
       "AR0402",
@@ -3927,9 +3927,9 @@
   {
     "id": "AR0495",
     "title": "Source file size in three zones: green up to 200 lines, yellow up to 220, red up to 250, never above",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0495-source-file-size-in-three-zones-green-up-to-200-lines-yellow-up-to-220-red-up-to/ticket.md",
-    "updated": "2026-10-27T08:56:25.323Z"
+    "updated": "2026-10-31T19:12:43.254Z"
   },
   {
     "id": "AR0496",
@@ -3972,9 +3972,9 @@
   {
     "id": "AR0501",
     "title": "A branch may rewrite the owner's decision log and the board, and `review-needed` lets a small one in without a review",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0501-a-branch-may-rewrite-the-owner-s-decision-log-and-the-board-and-review-needed/ticket.md",
-    "updated": "2026-10-27T12:19:47.668Z"
+    "updated": "2026-10-30T07:47:24.481Z"
   },
   {
     "id": "AR0502",
@@ -4021,9 +4021,9 @@
   {
     "id": "AR0507",
     "title": "A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0507-a-branch-s-own-gitattributes-can-hide-a-text-file-s-lines-from-the-reviewer-s/ticket.md",
-    "updated": "2026-10-27T12:19:47.690Z"
+    "updated": "2026-11-02T10:19:03.040Z"
   },
   {
     "id": "AR0508",
@@ -4056,9 +4056,9 @@
   {
     "id": "AR0512",
     "title": "A job that empties its record's `guarded` file reads the env file after `arthur continue`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0512-a-job-that-empties-its-record-s-guarded-file-reads-the-env-file-after-arthur/ticket.md",
-    "updated": "2026-10-27T13:31:11.647Z"
+    "updated": "2026-11-02T10:19:03.564Z"
   },
   {
     "id": "AR0513",
@@ -4448,7 +4448,7 @@
     "path": "spec/features/AR0558-github-t2-create-comment-on-and-close-pull-requests/ticket.md",
     "updated": "2026-10-29T14:33:13.845Z",
     "after": [
-      "AR0557"
+      "AR0581"
     ]
   },
   {
@@ -4482,9 +4482,9 @@
   {
     "id": "AR0562",
     "title": "arthur repeats and /repeats: what the owner decides again and again and what agents keep hitting, and a decisions retro",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0562-arthur-repeats-and-repeats-what-the-owner-decides-again-and-again-and-what/ticket.md",
-    "updated": "2026-10-29T19:12:54.157Z"
+    "updated": "2026-11-02T12:19:53.284Z"
   },
   {
     "id": "AR0563",
@@ -4499,8 +4499,342 @@
   {
     "id": "AR0564",
     "title": "A report skill: how every HTML page for the owner is styled and checked before it is sent",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0564-a-report-skill-how-every-html-page-for-the-owner-is-styled-and-checked-before-it/ticket.md",
-    "updated": "2026-10-29T19:42:29.543Z"
+    "updated": "2026-10-30T07:39:00.643Z"
+  },
+  {
+    "id": "AR0565",
+    "title": "limits.test.ts fails under load: three tests race a fixed 3 s job limit",
+    "status": "merged",
+    "path": "spec/features/AR0565-limits-test-ts-fails-under-load-three-tests-race-a-fixed-3-s-job-limit/ticket.md",
+    "updated": "2026-10-30T01:53:17.880Z"
+  },
+  {
+    "id": "AR0566",
+    "title": "Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach",
+    "status": "merged",
+    "path": "spec/features/AR0566-five-job-roles-tell-the-agent-to-wait-on-proc-which-a-job-sandbox-cannot-reach/ticket.md",
+    "updated": "2026-10-30T08:31:05.050Z"
+  },
+  {
+    "id": "AR0567",
+    "title": "AR0311's 18 findings stay open forever though each is already a ticket",
+    "status": "merged",
+    "path": "spec/features/AR0567-ar0311-s-18-findings-stay-open-forever-though-each-is-already-a-ticket/ticket.md",
+    "updated": "2026-10-30T08:05:50.485Z"
+  },
+  {
+    "id": "AR0568",
+    "title": "After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins",
+    "status": "merged",
+    "path": "spec/features/AR0568-after-the-listen-rename-the-core-still-names-the-voice-plugin-and-versions-mmd/ticket.md",
+    "updated": "2026-10-30T08:25:15.354Z"
+  },
+  {
+    "id": "AR0569",
+    "title": "Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event",
+    "status": "merged",
+    "path": "spec/features/AR0569-defaults-t1-a-check-call-gets-1800-s-by-itself-pkill-is-refused-and-every-steer/ticket.md",
+    "updated": "2026-10-30T08:58:46.910Z"
+  },
+  {
+    "id": "AR0570",
+    "title": "Defaults T2: a branch cannot change its ticket, the board or the decision log",
+    "status": "merged",
+    "path": "spec/features/AR0570-defaults-t2-a-branch-cannot-change-its-ticket-the-board-or-the-decision-log/ticket.md",
+    "updated": "2026-10-30T11:05:54.269Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0571",
+    "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
+    "status": "merged",
+    "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
+    "updated": "2026-10-30T11:46:11.298Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0572",
+    "title": "Defaults T4: a job with no sandbox refuses to start unless core.jobs.unsandboxed is on",
+    "status": "merged",
+    "path": "spec/features/AR0572-defaults-t4-a-job-with-no-sandbox-refuses-to-start-unless-core-jobs-unsandboxed/ticket.md",
+    "updated": "2026-10-30T15:14:47.536Z",
+    "after": [
+      "AR0571"
+    ]
+  },
+  {
+    "id": "AR0573",
+    "title": "Defaults T5: the merge writes What went in per file and commits the ticket's folder itself",
+    "status": "merged",
+    "path": "spec/features/AR0573-defaults-t5-the-merge-writes-what-went-in-per-file-and-commits-the-ticket-s/ticket.md",
+    "updated": "2026-10-30T12:50:38.260Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0574",
+    "title": "Defaults T6: a passed review's notes reach findings.md by themselves",
+    "status": "merged",
+    "path": "spec/features/AR0574-defaults-t6-a-passed-review-s-notes-reach-findings-md-by-themselves/ticket.md",
+    "updated": "2026-10-30T14:45:06.512Z",
+    "after": [
+      "AR0573"
+    ]
+  },
+  {
+    "id": "AR0575",
+    "title": "Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs",
+    "status": "merged",
+    "path": "spec/features/AR0575-defaults-t7-a-passed-ci-run-wakes-no-one-and-arthur-restarts-by-itself-once-no/ticket.md",
+    "updated": "2026-10-30T09:43:59.297Z"
+  },
+  {
+    "id": "AR0576",
+    "title": "Defaults T8: a passed review merges by itself in an autoMerge project, and four FAILs come before the owner is asked",
+    "status": "merged",
+    "path": "spec/features/AR0576-defaults-t8-a-passed-review-merges-by-itself-in-an-automerge-project-and-four/ticket.md",
+    "updated": "2026-10-30T18:03:58.448Z",
+    "after": [
+      "AR0574",
+      "AR0575"
+    ]
+  },
+  {
+    "id": "AR0577",
+    "title": "Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal",
+    "status": "merged",
+    "path": "spec/features/AR0577-defaults-t9-the-test-kit-keeps-home-tmpdir-and-the-git-identity-in-its-own/ticket.md",
+    "updated": "2026-10-30T09:51:18.471Z"
+  },
+  {
+    "id": "AR0578",
+    "title": "Defaults T10: one until for every test, and the time-limit tests stop racing",
+    "status": "merged",
+    "path": "spec/features/AR0578-defaults-t10-one-until-for-every-test-and-the-time-limit-tests-stop-racing/ticket.md",
+    "updated": "2026-10-30T13:24:47.320Z",
+    "after": [
+      "AR0577"
+    ]
+  },
+  {
+    "id": "AR0579",
+    "title": "Defaults T11: npm run mutate finds the tests that do not catch a change",
+    "status": "merged",
+    "path": "spec/features/AR0579-defaults-t11-npm-run-mutate-finds-the-tests-that-do-not-catch-a-change/ticket.md",
+    "updated": "2026-10-31T16:04:19.240Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0580",
+    "title": "Defaults T12: a review starts only on a tip whose check, test and mutate passed",
+    "status": "merged",
+    "path": "spec/features/AR0580-defaults-t12-a-review-starts-only-on-a-tip-whose-check-test-and-mutate-passed/ticket.md",
+    "updated": "2026-10-31T19:07:41.111Z",
+    "after": [
+      "AR0576",
+      "AR0578",
+      "AR0579"
+    ]
+  },
+  {
+    "id": "AR0581",
+    "title": "Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter",
+    "status": "merged",
+    "path": "spec/features/AR0581-defaults-t13-the-fakes-of-github-youtrack-and-telegram-are-checked-against/ticket.md",
+    "updated": "2026-10-30T10:35:41.696Z"
+  },
+  {
+    "id": "AR0582",
+    "title": "Defaults T14: a source line over 160 characters counts as more than one",
+    "status": "merged",
+    "path": "spec/features/AR0582-defaults-t14-a-source-line-over-160-characters-counts-as-more-than-one/ticket.md",
+    "updated": "2026-11-01T00:32:14.608Z",
+    "after": [
+      "AR0600"
+    ]
+  },
+  {
+    "id": "AR0583",
+    "title": "Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job",
+    "status": "merged",
+    "path": "spec/features/AR0583-defaults-t15-a-go-with-my-recommendation-grant-and-a-policy-answer-continues-the/ticket.md",
+    "updated": "2026-10-30T14:22:02.778Z",
+    "after": [
+      "AR0570"
+    ]
+  },
+  {
+    "id": "AR0584",
+    "title": "Defaults T16: verify.md criteria for workers and reviewers, one Every job rule, and the retro sees the corrections",
+    "status": "planned",
+    "path": "spec/features/AR0584-defaults-t16-verify-md-criteria-for-workers-and-reviewers-one-every-job-rule-and/ticket.md",
+    "updated": "2026-10-30T07:47:13.353Z",
+    "after": [
+      "AR0570",
+      "AR0571",
+      "AR0572",
+      "AR0574",
+      "AR0575",
+      "AR0576",
+      "AR0579",
+      "AR0580",
+      "AR0562",
+      "AR0566"
+    ]
+  },
+  {
+    "id": "AR0585",
+    "title": "Before a job ends, the agent is reminded to close the processes it started that are no longer needed",
+    "status": "merged",
+    "path": "spec/features/AR0585-before-a-job-ends-the-agent-is-reminded-to-close-the-processes-it-started-that/ticket.md",
+    "updated": "2026-10-30T20:43:26.960Z"
+  },
+  {
+    "id": "AR0586",
+    "title": "The report check tests fail on GitHub CI: its Chrome will not render narrower than 500 px",
+    "status": "merged",
+    "path": "spec/features/AR0586-the-report-check-tests-fail-on-github-ci-its-chrome-will-not-render-narrower/ticket.md",
+    "updated": "2026-10-30T09:33:14.522Z"
+  },
+  {
+    "id": "AR0587",
+    "title": "The report check tests skip on this server since the test kit moved HOME",
+    "status": "merged",
+    "path": "spec/features/AR0587-the-report-check-tests-skip-on-this-server-since-the-test-kit-moved-home/ticket.md",
+    "updated": "2026-10-30T11:00:32.169Z"
+  },
+  {
+    "id": "AR0588",
+    "title": "Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers",
+    "status": "merged",
+    "path": "spec/features/AR0588-plan-a-dokploy-plugin-deploy-and-upload-to-the-owner-s-dokploy-servers/ticket.md",
+    "updated": "2026-10-31T18:17:47.472Z"
+  },
+  {
+    "id": "AR0589",
+    "title": "Plan: each project keeps all its plugin settings in one place of arthur.config.ts",
+    "status": "merged",
+    "path": "spec/features/AR0589-plan-each-project-keeps-all-its-plugin-settings-in-one-place-of-arthur-config-ts/ticket.md",
+    "updated": "2026-10-30T20:14:29.622Z"
+  },
+  {
+    "id": "AR0590",
+    "title": "AR0589 T3: a job cannot read the shared home .arthur/ of other projects",
+    "status": "merged",
+    "path": "spec/features/AR0590-ar0589-t3-a-job-cannot-read-the-shared-home-arthur-of-other-projects/ticket.md",
+    "updated": "2026-10-31T16:26:53.289Z",
+    "after": [
+      "AR0593"
+    ]
+  },
+  {
+    "id": "AR0591",
+    "title": "The sandbox check reads a python3 that exits 127 itself as a missing agent, so the job runs without a sandbox",
+    "status": "merged",
+    "path": "spec/features/AR0591-the-sandbox-check-reads-a-python3-that-exits-127-itself-as-a-missing-agent-so/ticket.md",
+    "updated": "2026-10-30T18:59:54.075Z"
+  },
+  {
+    "id": "AR0592",
+    "title": "Plan: a discord plugin, the owner chat with Arthur in a private Discord server",
+    "status": "merged",
+    "path": "spec/features/AR0592-plan-a-discord-plugin-the-owner-chat-with-arthur-in-a-private-discord-server/ticket.md",
+    "updated": "2026-10-31T16:10:56.517Z"
+  },
+  {
+    "id": "AR0593",
+    "title": "AR0589 T2: a job sees only its own project",
+    "status": "merged",
+    "path": "spec/features/AR0593-ar0589-t2-a-job-sees-only-its-own-project/ticket.md",
+    "updated": "2026-10-31T14:08:10.817Z"
+  },
+  {
+    "id": "AR0594",
+    "title": "Retro: a worker sent back after a FAIL fixes the cause, not only the reviewer's examples",
+    "status": "merged",
+    "path": "spec/features/AR0594-retro-a-worker-sent-back-after-a-fail-fixes-the-cause-not-only-the-reviewer-s/ticket.md",
+    "updated": "2026-11-01T03:52:44.208Z"
+  },
+  {
+    "id": "AR0595",
+    "title": "Retro: a change brings along every line it makes false, whichever file holds it",
+    "status": "merged",
+    "path": "spec/features/AR0595-retro-a-change-brings-along-every-line-it-makes-false-whichever-file-holds-it/ticket.md",
+    "updated": "2026-11-01T04:09:10.531Z"
+  },
+  {
+    "id": "AR0596",
+    "title": "Retro: the project's review criteria fail a branch that leaves docs saying the old thing",
+    "status": "merged",
+    "path": "spec/features/AR0596-retro-the-project-s-review-criteria-fail-a-branch-that-leaves-docs-saying-the/ticket.md",
+    "updated": "2026-11-01T07:05:14.206Z",
+    "after": [
+      "AR0595"
+    ]
+  },
+  {
+    "id": "AR0597",
+    "title": "A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue",
+    "status": "merged",
+    "path": "spec/features/AR0597-a-job-that-rewrites-its-record-s-project-worktree-or-root-gets-another-project/ticket.md",
+    "updated": "2026-11-01T02:35:20.937Z"
+  },
+  {
+    "id": "AR0598",
+    "title": "The Discord gateway test reads the first heartbeat, which may go out before READY with a null sequence",
+    "status": "merged",
+    "path": "spec/features/AR0598-the-discord-gateway-test-reads-the-first-heartbeat-which-may-go-out-before-ready/ticket.md",
+    "updated": "2026-10-31T23:22:38.225Z"
+  },
+  {
+    "id": "AR0599",
+    "title": "Two core job tests can start the same systemd scope name at once",
+    "status": "merged",
+    "path": "spec/features/AR0599-two-core-job-tests-can-start-the-same-systemd-scope-name-at-once/ticket.md",
+    "updated": "2026-11-01T04:16:17.474Z"
+  },
+  {
+    "id": "AR0600",
+    "title": "Split the five source files that leave their zone once a line counts once per 160 characters",
+    "status": "merged",
+    "path": "spec/features/AR0600-split-the-five-source-files-that-leave-their-zone-once-a-line-counts-once-per/ticket.md",
+    "updated": "2026-10-31T23:38:14.527Z"
+  },
+  {
+    "id": "AR0601",
+    "title": "Docs catch up: Dokploy in the README, setup guide, architecture diagram and vision; the roadmap and arthur.mmd lines left stale",
+    "status": "merged",
+    "path": "spec/features/AR0601-docs-catch-up-dokploy-in-the-readme-setup-guide-architecture-diagram-and-vision/ticket.md",
+    "updated": "2026-11-01T01:27:06.524Z"
+  },
+  {
+    "id": "AR0602",
+    "title": "Discord T2: photos, files, voice and the phone commands in Discord (roadmap 90)",
+    "status": "in-progress",
+    "path": "spec/features/AR0602-discord-t2-photos-files-voice-and-the-phone-commands-in-discord-roadmap-90/ticket.md",
+    "updated": "2026-11-02T12:34:43.947Z"
+  },
+  {
+    "id": "AR0603",
+    "title": "Dokploy T2: upload a file or folder and start a deploy, on the owner's word",
+    "status": "planned",
+    "path": "spec/features/AR0603-dokploy-t2-upload-a-file-or-folder-and-start-a-deploy-on-the-owner-s-word/ticket.md",
+    "updated": "2026-11-01T13:57:25.519Z"
+  },
+  {
+    "id": "AR0604",
+    "title": "Plan: the docker plugin and the core cleanup hook, roadmap 70 to 72",
+    "status": "planned",
+    "path": "spec/features/AR0604-plan-the-docker-plugin-and-the-core-cleanup-hook-roadmap-70-to-72/ticket.md",
+    "updated": "2026-11-01T13:57:26.050Z"
   }
 ]

@@ -2,14 +2,14 @@ import type { Plugin } from "@arthur/core/plugin";
 import { type Failure, type Instance, type Run, type Watched, workflowRuns } from "./github-api.ts";
 import { pruned, recordPush } from "./github-branch.ts";
 import { built, cancel, ciCommand } from "./github-ci.ts";
-import { type Entry, githubCommand, repository } from "./github-command.ts";
+import { type CiPiece, type Entry, githubCommand, repository } from "./github-command.ts";
 import { git, nearestRun, push } from "./github-git.ts";
 import { API_URL, checkOptions, EVERY_SECONDS, type GithubOptions, type InstanceOptions, WAKE_ON } from "./github-options.ts";
 import { newReviews } from "./github-pulls.ts";
 import { readState, type State, writeState } from "./github-state.ts";
 
 // The github plugin (spec/roadmap.md, entries 57 and 58): while `arthur run` runs, every `poll.everySeconds` the newest runs of
-// each project's `ci.workflow` are asked of GitHub, and each branch in play (the checkout's own branch and every job's branch
+// each project's `github.project({ workflow })` are asked of GitHub, and each branch in play (the checkout's own branch and every job's branch
 // that still exists) gets its run: the run that built it (github-git.ts `nearestRun`). A finished run is told once per run
 // attempt as `ci-finished` (AR0238: a rerun keeps its id), across a restart too (github-state.ts), and wakes the coordinator when
 // `wakeOn` names it; with `pull-request-review` in `wakeOn`, the reviews of the open pull requests are told likewise. A refusal
@@ -31,13 +31,17 @@ export function github(options: GithubOptions): Plugin {
 		options,
 		requires: ["projects"],
 		check: checkOptions,
+		piece: (value) => {
+			const { workflow, ...rest } = (typeof value === "object" && value !== null && !Array.isArray(value) ? value : {}) as Readonly<Record<string, unknown>>;
+			return typeof workflow === "string" && workflow !== "" && Object.keys(rest).length === 0 ? undefined : "expected { workflow }, a non-empty string: the workflow's file name or name";
+		},
 		setup(host) {
 			const { instances, poll, wakeOn = WAKE_ON } = host.options as GithubOptions;
 			every = (poll?.everySeconds ?? EVERY_SECONDS) * 1000;
 			const accounts = instances.map((each, index) => account(host.env, each, index));
 			const [list = []] = host.collect<readonly Entry[]>("projects");
-			// A project without `ci.workflow` is found only when `arthur github` runs for it, so nothing of it is refused here.
-			const watched: Watched[] = list.flatMap((project) => (project.ci === undefined ? [] : [{ ...repository(project, accounts, "ci.workflow is set, but "), workflow: project.ci.workflow }]));
+			// A project without `github.project({ workflow })` is found only when `arthur github` runs for it, so nothing of it is refused here.
+			const watched: Watched[] = list.flatMap((project) => (project.pieces?.github === undefined ? [] : [{ ...repository(project, accounts, "github.project({ workflow }) is set, but "), workflow: project.pieces.github.workflow }]));
 			host.commands.register(ciCommand(host, watched));
 			host.commands.register(githubCommand(host, list, accounts));
 			// Asked by delivery after a PASS and a merge: one line, what came of the push; a job's branch pushed is recorded at the tip it had.
@@ -93,11 +97,11 @@ export function github(options: GithubOptions): Plugin {
 					const fresh = !told.has(key(run));
 					told.add(key(run));
 					const { project, repo, workflow } = each;
-					// A branch whose CI wait delivery woke the coordinator for (`delivery.ciEnded`) is left out: one wake per run end.
+					// A branch whose CI wait delivery woke the coordinator for (`delivery.ciEnded`) is left out: one wake per run end; a passed run wakes no one.
 					const rest = ends.flatMap(({ branch, below }) => (host.collect<boolean>("delivery.ciEnded", { project, branch, below, run }).includes(true) ? [] : [branch]));
 					if (!fresh) continue;
 					host.events.emit("ci-finished", { project, repo, workflow, run: run.id, attempt: run.attempt, sha: run.sha, branch: run.branch, branches: ends.map((end) => end.branch), conclusion: run.conclusion, url: run.url });
-					if (!wakeOn.includes("ci-finished") || rest.length === 0) continue;
+					if (!wakeOn.includes("ci-finished") || rest.length === 0 || run.conclusion === "success") continue;
 					const ci = `arthur ci ${rest[0]} --project ${project}`;
 					// A job's branch goes back to its worker; main, or any branch no job has, is the owner's. A job id names one branch.
 					const job = host.jobs.list().find((each) => each.branch === rest[0])?.id;
@@ -162,3 +166,6 @@ function account(env: Readonly<Record<string, string>>, { name, tokenEnv, apiUrl
 	if (!/^[\x21-\x7e]+$/.test(token)) throw new Error(`instances[${index}].tokenEnv: ${tokenEnv} is empty or holds a space or a character outside ASCII, which a header cannot carry`);
 	return { name, label: name ?? "(unnamed)", tokenEnv, apiUrl: apiUrl.replace(/\/+$/, ""), token };
 }
+
+// A project file's piece: `github.project({ workflow: "ci.yml" })`, the workflow that builds its branches.
+github.project = (piece: CiPiece) => ({ github: piece });

@@ -13,19 +13,19 @@ const PACKAGES = join(import.meta.dirname, "..", "packages");
 const CLI = join(PACKAGES, "core", "src", "cli.ts");
 const RECORD = "/home/arthur/.arthur/jobs/2026-10-23-worker-0a1b2c3d";
 const REFUSAL = "refused inside a job 2026-10-23-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message";
-const PLUGINS = ["orchestration", "projects", "delivery", "develop", "findings", "github", "machines", "manage", "models", "resources", "schedule", "session", "youtrack"];
+const PLUGINS = ["orchestration", "projects", "delivery", "develop", "dokploy", "findings", "github", "machines", "manage", "models", "resources", "schedule", "session", "youtrack"];
 const CONFIG = `${PLUGINS.map((name) => `import { ${name} } from ${JSON.stringify(join(PACKAGES, name, "src", `${name}.ts`))};`).join("\n")}
-export default { plugins: [orchestration({}), projects({ list: [{ name: "shop", path: import.meta.dirname, prefix: "SH" }] }), delivery({}), develop({}), findings({}),
+export default { plugins: [orchestration({}), projects({ folders: ["projects/shop"] }), delivery({}), develop({}), dokploy({ instances: [{ url: "http://127.0.0.1:9", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }] }), findings({}),
 	github({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }] }), machines({}), manage({}), models({}), resources({}), schedule({ file: "spec/schedule.json" }), session({}),
 	youtrack({ instances: [{ urlEnv: "ARTHUR_YOUTRACK_URL", tokenEnv: "ARTHUR_YOUTRACK_TOKEN" }] })] };
 `;
 
-// The project `shop` holding the config, its board with SH0001 and a schedule file; one run outside a job first makes the
-// home folder as a live one has it.
+// The project `shop` holding the config, its board with SH0001 and a schedule file, and the home holding the job's record,
+// which names its project; one run outside a job first makes the home folder as a live one has it.
 function shop(): string {
 	const folder = temporaryFolder();
 	const board = [{ id: "SH0001", title: "Shop", status: "planned", path: "spec/features/SH0001-shop/ticket.md", updated: "2026-10-21T08:00:00Z" }];
-	for (const [path, text] of Object.entries({ "arthur.config.ts": CONFIG, "spec/features/SH0001-shop/ticket.md": "# SH0001 - Shop\n", "spec/build.json": JSON.stringify(board), "spec/schedule.json": "[]\n" })) {
+	for (const [path, text] of Object.entries({ "arthur.config.ts": CONFIG, "projects/shop/project.config.ts": 'export default [{ projects: { prefix: "SH", path: "../.." } }];\n', "spec/features/SH0001-shop/ticket.md": "# SH0001 - Shop\n", "spec/build.json": JSON.stringify(board), "spec/schedule.json": "[]\n", [`.arthur/jobs/${RECORD.split("/").at(-1)}/project`]: "shop\n" })) {
 		mkdirSync(dirname(join(folder, path)), { recursive: true });
 		writeFileSync(join(folder, path), text);
 	}
@@ -35,7 +35,7 @@ function shop(): string {
 }
 
 function arthur(folder: string, job: string, ...args: string[]) {
-	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t", ARTHUR_JOB: job };
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_DOKPLOY_TOKEN: "t", ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t", ARTHUR_JOB: job };
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env });
 }
 
@@ -83,6 +83,8 @@ test("inside a job every command that changes Arthur's state refuses with one li
 		["schedule", "remove", "nightly"],
 		["remote-job", "stop", "/home/arthur/.arthur", job],
 		["remote-job", "add", "/home/arthur/.arthur"],
+		["dokploy", "apps"],
+		["dokploy", "status", "kXx3shopWeb01"],
 	] as const) {
 		const run = arthur(folder, RECORD, name, ...args);
 		const said = name === "schedule" || name === "remote-job" ? `${name} ${args[0]}` : name === "ci" ? "ci --rerun" : name;
@@ -113,7 +115,7 @@ test("inside a job the commands a role needs run, each to its own answer; youtra
 		[["health"], 0, /./],
 		[["schedule"], 0, /^no entries; /],
 		[["schedule", "list"], 0, /^no entries; /],
-		[["ci", "main"], 1, /^arthur ci: project shop has no ci\.workflow, so github watches no run of it\n$/],
+		[["ci", "main"], 1, /^arthur ci: project shop has no github\.project\(\{ workflow \}\), so github watches no run of it\n$/],
 		[["youtrack"], 2, /^usage: arthur youtrack /],
 		[["youtrack", "issue", "tag", "SH-1", "x"], 1, /^arthur youtrack: a job never writes to YouTrack;/],
 		[["plugin"], 2, /^usage: arthur plugin new /],

@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type ManageOptions, manage } from "../src/manage.ts";
 import { RETRO_TASK } from "../src/retro.ts";
 
@@ -17,6 +16,8 @@ const PATH = process.env.PATH ?? "";
 const NOW = new Date("2026-10-21T02:00:00Z");
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/retro-ended.md", import.meta.url), "utf8").trim();
 const MESSAGE = "## Period\n\nAC0001 <merged> & went well.\n\n## 1. Say it twice\nKind: cleanup\n\n## Dead sentences\n\nnone";
+// The worker's rule (packages/core/roles/worker.md), word for word: omp ends a bash call at 300 s when it names no timeout (AR0566).
+const TIMEOUT_RULE = "\n- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.\n";
 
 const folder = (id: string) => `spec/features/${id}-t`;
 
@@ -82,7 +83,7 @@ async function load(t: TestContext, options: ManageOptions = {}, run: AgentRun =
 		return { printed, job: retros().length > before ? retros()[0] : undefined };
 	};
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; read(id, "state") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => read(id, "state") === "ended");
 	};
 	return { root, fake, git, commit, merge, merges, entries, command, scheduled, read, ended, jobs: fake.host.jobs };
 }
@@ -172,6 +173,9 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	env.commit("work on a ticket since dropped");
 	env.git("checkout", "--quiet", "main");
 	env.git("merge", "--quiet", "--no-ff", "-m", "Merge AC0077: Dropped from the board", "gone");
+	mkdirSync(join(env.root, ".agents/arthur/criteria"), { recursive: true });
+	writeFileSync(join(env.root, ".agents/arthur/criteria/report.md"), "# Report\n\nInk on paper.\n");
+	env.commit("the page criteria");
 	const plugin = fakeHost({ name: "manage", root: env.root, code: [inside, outside] });
 	plugin.provide("projects", () => [{ name: "acme", path: env.root, prefix: "AC" }]);
 	await plugin.setup(manage({}));
@@ -181,6 +185,9 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	assert.deepEqual([job.branch, read("task"), job.kind], [undefined, RETRO_TASK, "retro"]);
 	const prompt = read("prompt");
 	assert.match(prompt, /^# Retro\n\n## Your job\n/);
+	assert.ok(prompt.includes(TIMEOUT_RULE), "the worker's timeout rule");
+	assert.doesNotMatch(prompt, /proc:\/\/|sleep 30/, "no wait on proc://, which the job sandbox refuses");
+	assert.ok(prompt.includes("\n\n## Report (.agents/arthur/criteria/report.md)\n\n# Report\n\nInk on paper.\n\n"), "the page criteria, for a page it writes for the owner");
 	const section = prompt.slice(prompt.indexOf("## This retro"));
 	assert.ok(section.startsWith(`## This retro\n\nYou look back on project acme at ${job.base}; your worktree is a detached checkout of that commit.\n\n`), section);
 	assert.ok(
@@ -193,7 +200,7 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	);
 	assert.ok(section.includes("### Stats\n\nStats of acme: 2 merged tickets\n"), "no retro yet: every merged ticket");
 	assert.ok(section.includes("### Board\n\n"), section);
-	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, audit, retro.\n`), section);
+	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, audit, report, retro.\n`), section);
 });
 
 test("retro.day and retro.at register one weekly entry; it starts a retro only while one is due, and none on another day", async (t) => {

@@ -3,18 +3,21 @@
 Roadmap entry 83: what a ticket's `findings.md` holds, and what `arthur merge` makes of its open entries, per project. The plugin is optional: without it a merge leaves every open entry open and says so once (`arthur merge --help`, step 4), and there is no `/findings`.
 
 ```ts
-plugins: [orchestration({}), projects({ list: [...] }), delivery(), findings({ mode: { "acme-shop": "summary" } })],
+// arthur.config.ts
+plugins: [orchestration({}), projects({ folders: ["projects/acme-shop"] }), delivery(), findings()],
+// projects/acme-shop/project.config.ts
+export default [projects.project({ prefix: "AS", path: "../../../acme-shop" }), findings.project("summary")];
 ```
 
-## Options
+## Its piece
 
-`mode`: each project's mode, by the project's name; a project it does not name gets `ticket`.
+The plugin takes no option but `enabled`. A project's mode is its piece, `findings.project(<mode>)` in its project file (`arthur projects --help`, "A project's file"); a project without one gets `ticket`.
 
 - `ticket` (the default): one planning ticket for each open entry.
 - `grouped`: one planning ticket for the merged ticket, every open entry in it.
 - `summary`: no ticket; each open entry becomes `deferred (client summary)` and is listed in the outcome, for the client's summary.
 
-Refused at load: an unknown option (`<key>: unknown option; options: mode`); `mode` that is not an object; an unknown mode, naming its project (`findings.mode.<project>: project <project>: expected one of ticket, grouped, summary, got "<value>"`); a key of `mode` that is no project of the projects list (`plugin findings: setup failed: mode names <names>, not a project of the projects list; each key of mode is a project's name`).
+Refused at load: any option, the old `mode` among them (`findings.<key>: unknown option; findings takes none: a project's mode is its findings.project("summary") in its project file`); a piece that is no mode, before the plugin's setup, naming its project (`plugin findings: setup failed: project <project>: findings.project(...): expected one of ticket, grouped, summary, got "<value>"`).
 
 ## The format
 
@@ -24,9 +27,21 @@ Only an entry whose Status is exactly `open` is open. `fixed in <commit>`, `tick
 
 ## At a merge
 
-`arthur merge` asks `findings.onMerge` with `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md` from the project's folder `root`. The answer is the lines of the outcome's `## Left open`, which the merge prints:
+`arthur merge` asks `findings.onMerge` with `{ project, ticket, path, root, review, notes }`, `path` the merged ticket's `findings.md` from the project's folder `root`, `review` the job of the branch's passed review and `notes` that review's `- (<kind>) <file:line>: <title>. <what>` lines (`arthur merge --help`, step 4). First each note of kind `security`, `bug` or `risk` is appended as an open entry, numbered after the file's last, a note of any other kind or shape left in the review:
 
-- No `findings.md`: `- Findings: none; no findings.md on this ticket.`
+```markdown
+## F3. <title>
+
+- Kind: security (fix for bug and risk)
+- Found by: <review> (review), <today>
+- Where: `<file:line>`
+- What: <what>, else the title
+- Status: open
+```
+
+Without a `findings.md` the file is made from the template's head, its sample entry left out. A file already holding an entry `- Found by: <review> (review)` gets none, so the same review's notes are never filed twice. Then every open entry, the appended ones with them, is settled, and the answer is the lines of the outcome's `## Left open`, which the merge prints:
+
+- No `findings.md` and no note to file: `- Findings: none; no findings.md on this ticket.`
 - No open entry: `- Tickets from findings: none open.` Nothing is made or written.
 - `ticket`: one ticket per open entry, `board.create` with the entry's title in the entry's project: `- Tickets from findings: AC0002 (F2), AC0003 (F4).`
 - `grouped`: one ticket titled `Findings of <ticket>: <its title>`: `- Tickets from findings: AC0002 (F2, F4).`, one entry included.
@@ -39,7 +54,7 @@ Each new ticket is in `planning`, its `ticket.md` the core's template with:
 - `budget` in its JSON block when the entry's `- Budget:` is a plain amount such as `1.5` (grouped: the sum, when every entry has one), which `arthur ticket status <id> planned --autopilot` takes when `--budget` is left out; a Budget that is no amount stays in the Description only;
 - its Decisions `- <today>: Source: F<n> of <ticket>`, one line per entry, today in `core.timeZone`, the line autopilot reads as the ticket's source.
 
-The rest of the template's guidance (Goal, Done means, Scope) is the coordinator's to write before the ticket can be `planned`. Then each settled entry's Status line becomes `ticket <id>` or `deferred (client summary)`, and `findings.md` is written whole, once, under a temporary name. A title the board refuses (one with no letter or digit) makes no ticket: that entry stays open, said as `- Findings: F<n> left open, no ticket made: <the board's reason>`, and the others are made. The merge does not commit: the coordinator commits the ticket's folder, the new tickets and the board after it (the procedure after a merge).
+The rest of the template's guidance (Goal, Done means, Scope) is the coordinator's to write before the ticket can be `planned`. Then each settled entry's Status line becomes `ticket <id>` or `deferred (client summary)`, and `findings.md` is written whole, once, under a temporary name (an appended entry that stays open included). A title the board refuses (one with no letter or digit) makes no ticket: that entry stays open, said as `- Findings: F<n> left open, no ticket made: <the board's reason>`, and the others are made. The merge commits the ticket's folder and the new tickets after it (`arthur merge --help`, step 8).
 
 ## `/findings`
 

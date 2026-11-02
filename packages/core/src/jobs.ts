@@ -7,14 +7,15 @@ import { addWorktree, branchExists, fileAt, head, removeWorktree } from "./git.t
 import { checkout, checkouts } from "./job-checkout.ts";
 import { type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
-import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere, type Requires } from "./job-machine.ts";
+import { addThere, LOCAL, type Machine, machineRegistry, reach, removeThere, type Requires } from "./job-machine.ts";
 import { type Kind, kindRegistry } from "./job-kinds.ts";
 import { extensionPath, newJob, writeRecord } from "./job-record.ts";
-import { type JobRecord, jobUpkeep } from "./job-records.ts";
+import { jobUpkeep } from "./job-records.ts";
+import type { Jobs } from "./host-jobs.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin-host.ts";
 import { spawnChecks } from "./spawn-check.ts";
-import { type Collect, describeRoles, prompt, type Role, type RoleReads, roleModel, roleReads, roleRegistry, type RoleView } from "./roles.ts";
+import { type Collect, describeRoles, prompt, type Role, roleModel, roleReads, roleRegistry, type RoleView } from "./roles.ts";
 import { type Caps, jobCaps, jobEnv, launch, type Slice, sayUncapped } from "./job-scope.ts";
 import { pickModel } from "./job-model.ts";
 import type { Board } from "./board.ts";
@@ -67,37 +68,6 @@ export type Started = Job & { readonly warnings: readonly string[]; readonly fai
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
 export type Prepare = (job: Job, env: Readonly<Record<string, string>>, continued: boolean) => void | Readonly<Record<string, string>> | Promise<void | Readonly<Record<string, string>>>;
 
-// What a plugin sees as `host.jobs`; what it reads of the roles outside a spawn (`prompt`, `vision`, `criteria`) is in roles.ts.
-export type Jobs = RoleReads & {
-	registerKind(kind: Kind): void;
-	// A role whose prompt this plugin ships; its kinds name it.
-	registerRole(role: Role): void;
-	// An OMP extension, its module's `file:` URL, that each job's agent loads with `-e` after the core's own, in the order registered.
-	registerExtension(url: URL): void;
-	beforeSpawn(check: SpawnCheck): void;
-	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`. Variables it returns go into the job's environment only (job-scope.ts), never its record, and reach the prepares after it, in setup order, as `env`. `arthur continue` runs it again on the job its record holds, `continued` true, for its variables only: a throw refuses the continue, and a step that sets up the worktree returns at once.
-	prepare(fn: Prepare): void;
-	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name; `home`: Arthur's home folder on one (docs/commands/spawn.md); `slice`: the jobs' systemd slice without `.slice`, `arthur-jobs` or the one `ARTHUR_JOB_SLICE` names (host.ts), a test kit's own under the fake host.
-	registerMachine(machine: Machine): void;
-	run(machine: string, argv: readonly string[], limitSeconds?: number, input?: string): Promise<Ran>;
-	machines(): string[];
-	home(machine: string): string;
-	readonly slice: string;
-	spawn(request: SpawnRequest): Promise<Started>;
-	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, `decision` as its `--decision` (AR0355); resolves to why its wrapper did not start (job-control.ts).
-	continue(id: string, instruction: string, budgetUsd?: number, decision?: string): Promise<string | undefined>;
-	// Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
-	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
-	// `list`: every project's job records, in any state, the newest spawn first; `running`: the ids of those in a run (working, idle, or held), as `arthur stopall` counts them; `prune`: `arthur prune <id>...`, one line per job (docs/commands/jobs.md, prune.md).
-	list(): JobRecord[];
-	running(): string[];
-	prune(ids: readonly string[]): string[];
-	// The final message of job `id`, empty while it runs or when it wrote none; refused for anything but a job's id.
-	result(id: string): string;
-	// `arthur ticket file [<id>] <job>`: job `job`, finished on ticket `id` or, undefined, on none, filed by its kind's `file`; the path written (ticket-file.ts).
-	file(id: string | undefined, job: string): string;
-};
-
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for; `sweep`: dead jobs here, then the copy from every other machine.
 export type JobRunner = Omit<ReturnType<typeof jobUpkeep>, "sweep"> & { sweep(): Promise<void> } & Pick<Jobs, "spawn" | "run" | "machines" | "home" | "slice" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
 	registerKind(owner: string, kind: Kind): void;
@@ -112,7 +82,7 @@ export type JobRunner = Omit<ReturnType<typeof jobUpkeep>, "sweep"> & { sweep():
 };
 
 // `folder` is the config's, with its `envFile`, and in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list; the bus's `hide` names each env value in the prompt (secret-names.ts).
-export function jobRunner(home: string, folder: string, envFile: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
+export function jobRunner(home: string, folder: string, envFile: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number; readonly unsandboxed: boolean }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const [kinds, roles, machines] = [kindRegistry(), roleRegistry(), machineRegistry(home)];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
 	const [checks, prepares, extensions] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[]];
@@ -138,7 +108,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		slice: limits.slice,
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd, ignoreRestart = false, decision) =>
-			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),
+			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true), root: (project) => where(project).root }, machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -175,9 +145,9 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job])), named = bus.hide(built.prompt);
 					warnings = [...built.warnings, ...(there !== undefined && preset.mcp ? [`MCP servers left out on ${machine.name}, which Arthur sends no MCP secret (arthur spawn --help, "On another machine"): ${Object.keys(preset.mcp).join(", ")}`] : [])];
 					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [], extensions }, time.now()];
-					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: named, kind: own, idleMinutes: limits.idleMinutes, since: since.toISOString() });
+					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: named, kind: own, idleMinutes: limits.idleMinutes, unsandboxed: limits.unsandboxed, since: since.toISOString() });
 					added = true;
-					writeRecord(home, job, named, own, limits.idleMinutes, since, checkouts(collect("projects", [])), { folder, envFile }, there === undefined ? preset.mcp : undefined);
+					writeRecord(home, job, named, own, limits.idleMinutes, limits.unsandboxed, since, checkouts(collect("projects", [])), { folder, envFile }, there === undefined ? preset.mcp : undefined);
 					release();
 					env = await prepared(job, false);
 				} catch (error) {

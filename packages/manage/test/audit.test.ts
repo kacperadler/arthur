@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { AUDIT_TASK } from "../src/audit.ts";
 import { type ManageOptions, manage } from "../src/manage.ts";
 
@@ -16,6 +15,8 @@ const PATH = process.env.PATH ?? "";
 const NOW = new Date("2026-10-21T02:00:00Z");
 const FOUND = "spec/features/AC0001-one";
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/audit-ended.md", import.meta.url), "utf8").trim();
+// The worker's rule (packages/core/roles/worker.md), word for word: omp ends a bash call at 300 s when it names no timeout (AR0566).
+const TIMEOUT_RULE = "\n- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.\n";
 
 const findings = [
 	"# AC0001 - Findings\n",
@@ -63,7 +64,7 @@ async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:
 		return audits().length > before ? audits()[0] : undefined;
 	};
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; read(id, "state") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => read(id, "state") === "ended");
 	};
 	return { root, fake, git, commit, entries, printed, home, read, night, ended, jobs: fake.host.jobs };
 }
@@ -80,6 +81,8 @@ test("audit.at registers one entry with the schedule on audit.days, running mana
 
 test("the night's audit is a read-only job with its budget and model, its prompt the commits, board, stats, findings and vision", async (t) => {
 	const { night, read, printed, commit, root } = await load(t, { audit: { at: "02:00", budgetUsd: 7.5, model: "anthropic/opus" } });
+	mkdirSync(join(root, ".agents/arthur/criteria"), { recursive: true });
+	writeFileSync(join(root, ".agents/arthur/criteria/report.md"), "# Report\n\nInk on paper.\n");
 	const head = commit("second");
 	const job = await night();
 	assert.ok(job !== undefined);
@@ -88,6 +91,9 @@ test("the night's audit is a read-only job with its budget and model, its prompt
 	assert.deepEqual([job.branch, read(job.id, "task"), read(job.id, "budget"), read(job.id, "model"), read(job.id, "resume-on-budget"), read(job.id, "base")], ["", AUDIT_TASK, "7.5", "anthropic/opus", "true", head]);
 	const prompt = read(job.id, "prompt");
 	assert.match(prompt, /^# Auditor\n/);
+	assert.ok(prompt.includes(TIMEOUT_RULE), "the worker's timeout rule");
+	assert.doesNotMatch(prompt, /proc:\/\/|sleep 30/, "no wait on proc://, which the job sandbox refuses");
+	assert.ok(prompt.includes("\n\n## Report (.agents/arthur/criteria/report.md)\n\n# Report\n\nInk on paper.\n\n"), "the page criteria, for a page it writes for the owner");
 	const section = prompt.slice(prompt.indexOf("## This audit"));
 	assert.match(section, new RegExp(`^## This audit\n\nYou audit project acme at ${head}; your worktree is a detached checkout of that commit\\.\n\n`));
 	assert.match(section, /### Commits of the last 24 hours \(no report in spec\/quality\/ names an audited commit\)\n\n[0-9a-f]+ second\n[0-9a-f]+ first\n\n/);
@@ -157,8 +163,7 @@ test("an audit is resumed once when its budget runs out, doubled, then stopped; 
 	const job = await night();
 	assert.ok(job !== undefined);
 	// The state is written last, so the wait is for it, not for the reason before it.
-	for (const deadline = Date.now() + 20_000; read(job.id, "state") !== "ended" || !read(job.id, "reason").startsWith("limit: budget: its cost $2"); await sleep(50))
-		if (Date.now() > deadline) throw new Error(`timed out: ${read(job.id, "state")} ${read(job.id, "reason")}`);
+	await until("the end at the doubled budget", () => read(job.id, "state") === "ended" && read(job.id, "reason").startsWith("limit: budget: its cost $2"));
 	assert.deepEqual([read(job.id, "state"), read(job.id, "reason"), read(job.id, "budget")], ["ended", "limit: budget: its cost $2.0000 reached its budget of $2", "2"]);
 	assert.equal(read(job.id, "log").match(/the kind resumes once, its budget doubled to \$2\n/g)?.length, 1, "resumed once, never twice");
 	assert.throws(() => jobs.file(undefined, job.id), { message: `${job.id} ended ended (limit: budget: its cost $2.0000 reached its budget of $2), not finished: its result is unfinished and is never filed; prune it` });

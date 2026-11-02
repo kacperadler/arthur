@@ -2,8 +2,9 @@ import { dirname } from "node:path";
 import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host, Project } from "@arthur/core/plugin";
 import { classList, evidence, propose, revoke } from "./decision-class.ts";
-import { described, policyOf } from "./decision-classes.ts";
-import { answer, ask, close, DECISION_ID, type Decision, decisions, KINDS, readLog } from "./decision-log.ts";
+import { described } from "./decision-classes.ts";
+import { DECISION_ID, type Decision, decisions, KINDS, readLog } from "./decision-log.ts";
+import { answer, ask, close } from "./decision-writes.ts";
 import { line, whole } from "./decision-views.ts";
 
 // `arthur decision ask|answer|close|class`, the one writer of the decision log besides the plugin itself, refused inside a
@@ -88,7 +89,8 @@ export function decisionCommands(host: Host): Command[] {
 					const [recommend, ticket, job, what] = [one("--recommend"), one("--ticket")?.toUpperCase(), one("--job"), read.flags["--what"]];
 					const optional = { ...(recommend === undefined ? {} : { recommend: /^\d+$/.test(recommend) ? Number(recommend) : recommend }), ...(ticket === undefined ? {} : { ticket }), ...(job === undefined ? {} : { job }), ...(what === undefined ? {} : { what }) };
 					const { id, policy, classes, unwritten } = ask(host, projectNamed(host, project), { kind: one("--kind") ?? "", question: one("--question") ?? "", options: read.flags["--option"] ?? [], ...optional });
-					const by = policy === undefined ? "" : `\n${id} answered by policy (${policyOf(policy)}): ${policy.decided}; act on it as on the owner's answer, and say so in your reply`;
+					// `by policy: <class id>` or `by recommendation: <grant id>` (silent.ts).
+					const by = policy === undefined ? "" : `\n${id} answered ${policy.words.replace(/^(by \w+): /, "$1 (")}): ${policy.decided}; act on it as on the owner's answer, and say so in your reply`;
 					return done(`${id}${by}${classes.length > 1 ? `\n${id} goes to the owner: it matches classes ${classes.join(" and ")}` : ""}`, unwritten);
 				}
 				if (sub === "propose") {

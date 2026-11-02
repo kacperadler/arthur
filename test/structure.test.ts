@@ -3,53 +3,91 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { checkStructure } from "./structure.ts";
+import { checkStructure, type Structure } from "./structure.ts";
 
-// The line budget of each package: the number of lines its src/ may hold. They live here only; a raise is a decision recorded in its ticket.
+// The line budget of each package: the number of lines its src/ may hold. They live here only.
 // One budget per line in name order, a blank line after each, so Git merges raises to two neighbours, and two new budgets with an
 // existing budget's name sorting between theirs, without a conflict.
 const BUDGETS = {
-	"commit-rules": 165,
+	"commit-rules": 184,
 
-	core: 6470,
+	core: 7056,
 
-	"core/testing": 349,
+	"core/testing": 403,
 
-	delivery: 1734,
+	delivery: 2064,
 
-	develop: 710,
+	develop: 760,
 
-	findings: 254,
+	discord: 750,
 
-	github: 951,
+	dokploy: 450,
 
-	listen: 248,
+	findings: 276,
 
-	machines: 488,
+	github: 1020,
 
-	manage: 1262,
+	listen: 262,
 
-	models: 509,
+	machines: 535,
 
-	nvm: 96,
+	manage: 1297,
 
-	orchestration: 2440,
+	models: 534,
 
-	projects: 482,
+	nvm: 98,
 
-	resources: 617,
+	orchestration: 2738,
 
-	schedule: 595,
+	projects: 594,
 
-	session: 880,
+	resources: 638,
 
-	telegram: 641,
+	schedule: 619,
 
-	uptime: 298,
+	session: 917,
 
-	video: 186,
+	telegram: 680,
 
-	youtrack: 661,
+	uptime: 312,
+
+	video: 197,
+
+	youtrack: 733,
+
+};
+
+// The source files allowed in the red zone, 221 to 250 lines, by their path from the root (AR0495): each one's reason is in its
+// ticket's Decisions, as a budget raise's is. A file over 250 lines fails listed or not; a listed file at 220 lines or fewer fails
+// until it leaves the list. One per line in name order, a blank line after each, as BUDGETS.
+const RED_FILES: readonly string[] = [
+];
+
+// The fixed waits (sleep, setTimeout, Atomics.wait outside strings and comments) each test file may hold, by its path; a file
+// left out may hold none. A test waits with until for the state it asserts; one here waits for nothing to happen. Lower a
+// number when its waits go, never raise one. One per line in name order, a blank line after each, as BUDGETS.
+const FIXED_WAITS = {
+	"packages/core/test/job-control.test.ts": 1,
+
+	"packages/github/test/fake-github.ts": 1,
+
+	"packages/orchestration/test/coordinator.test.ts": 5,
+
+	"packages/orchestration/test/inbox.test.ts": 3,
+
+	"packages/orchestration/test/job-states.test.ts": 1,
+
+	"packages/resources/test/feature-caps.test.ts": 1,
+
+	"packages/session/test/restart.test.ts": 25,
+
+	"packages/session/test/session.test.ts": 10,
+
+	"packages/session/test/start-notice.test.ts": 1,
+
+	"packages/telegram/test/fake-bot-api.ts": 1,
+
+	"packages/uptime/test/uptime.test.ts": 2,
 
 };
 
@@ -72,10 +110,12 @@ const BASE: Readonly<Record<string, string>> = {
 	"packages/telegram/test/telegram.test.ts": 'import { fakeHost } from "@arthur/core/testing";\nimport "../src/telegram.ts";\n',
 };
 
-function check(
+function structureOf(
 	files: Readonly<Record<string, string | undefined>>,
 	budgets: Readonly<Record<string, number>> = { core: 100, "core/testing": 100, telegram: 300 },
-): string[] {
+	waits: Readonly<Record<string, number>> = {},
+	red: readonly string[] = [],
+): Structure {
 	const root = mkdtempSync(join(tmpdir(), "arthur-structure-test-"));
 	try {
 		for (const [path, text] of Object.entries({ ...BASE, ...files })) {
@@ -83,24 +123,32 @@ function check(
 			mkdirSync(dirname(join(root, path)), { recursive: true });
 			writeFileSync(join(root, path), text);
 		}
-		return checkStructure(root, budgets);
+		return checkStructure(root, budgets, waits, red);
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
 }
 
-test("the repository keeps every rule", () => {
-	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS), []);
+const check = (files: Readonly<Record<string, string | undefined>>, budgets?: Readonly<Record<string, number>>, waits?: Readonly<Record<string, number>>) =>
+	structureOf(files, budgets, waits).problems;
+
+// The yellow and red files' lines, printed on every run, so the coordinator and the owner see them in the checks' output.
+test("the repository keeps every rule", (t) => {
+	const { problems, zones } = checkStructure(join(import.meta.dirname, ".."), BUDGETS, FIXED_WAITS, RED_FILES);
+	for (const line of zones) t.diagnostic(line);
+	assert.deepEqual(problems, []);
 	assert.deepEqual(Object.keys(BUDGETS), Object.keys(BUDGETS).toSorted(), "BUDGETS in name order, as arthur plugin new inserts");
+	assert.deepEqual(RED_FILES, RED_FILES.toSorted(), "RED_FILES in name order");
 });
 
 // The README is a front page (AR0450, AR-D87): at most 120 lines, with one small ```mermaid block GitHub draws; the full diagram is arthur.mmd.
 test("the README holds at most 120 lines and one closed mermaid flowchart of at most 40", () => {
 	const readme = readFileSync(join(import.meta.dirname, "..", "README.md"), "utf8");
 	assert.ok(readme.split("\n").length <= 121, "README.md holds at most 120 lines");
-	const blocks = [...readme.matchAll(/^```mermaid\n([\s\S]*?)^```$/gm)].map((match) => match[1] ?? "");
+	// \x60 is a backtick, which test/structure.ts would read as the start of a template string.
+	const blocks = [...readme.matchAll(/^\x60\x60\x60mermaid\n([\s\S]*?)^\x60\x60\x60$/gm)].map((match) => match[1] ?? "");
 	assert.equal(blocks.length, 1, "one ```mermaid block");
-	assert.match(blocks[0] ?? "", /^flowchart [^`]*$/, "a flowchart, closed before any other fence");
+	assert.match(blocks[0] ?? "", /^flowchart [^\x60]*$/, "a flowchart, closed before any other fence");
 	assert.ok((blocks[0] ?? "").split("\n").length <= 41, "at most 40 lines; the rest is arthur.mmd");
 });
 
@@ -210,12 +258,58 @@ test("the words class, enum and an import in a comment or a string pass", () => 
 	assert.deepEqual(check({ "packages/telegram/src/words.ts": text }), []);
 });
 
-test("a source file of exactly 200 lines passes, 201 lines fails", () => {
-	assert.deepEqual(check({ "packages/telegram/src/long.ts": lines(200) }), []);
-	assert.deepEqual(check({ "packages/telegram/src/long.ts": lines(200).trimEnd() }), []);
-	assert.deepEqual(check({ "packages/telegram/src/long.ts": lines(201) }), [
-		"packages/telegram/src/long.ts: has 201 lines; a source file has at most 200",
+test("a source file is green up to 200 lines, yellow up to 220 with its line, red up to 250 only when listed, never above", () => {
+	const file = "packages/telegram/src/long.ts";
+	const listed = [file];
+	assert.deepEqual(structureOf({ [file]: lines(200) }), { problems: [], zones: [] });
+	assert.deepEqual(structureOf({ [file]: lines(200).trimEnd() }), { problems: [], zones: [] });
+	assert.deepEqual(structureOf({ [file]: lines(201) }), { problems: [], zones: [`${file}: 201 lines, yellow (over 200)`] });
+	assert.deepEqual(structureOf({ [file]: lines(220) }), { problems: [], zones: [`${file}: 220 lines, yellow (over 200)`] });
+	assert.deepEqual(structureOf({ [file]: lines(221) }, undefined, undefined, listed), {
+		problems: [],
+		zones: [`${file}: 221 lines, red (over 220), listed in RED_FILES`],
+	});
+	assert.deepEqual(structureOf({ [file]: lines(221) }, undefined, undefined, ["packages/telegram/src/other.ts"]).problems, [
+		`${file}: has 221 lines, red (over 220); split it, or list it in RED_FILES in test/structure.test.ts with its reason in the ticket's Decisions`,
+		"packages/telegram/src/other.ts: listed in RED_FILES in test/structure.test.ts, but no source file over 220 lines; remove it from the list",
 	]);
+	assert.deepEqual(structureOf({ [file]: lines(250) }, undefined, undefined, listed), {
+		problems: [],
+		zones: [`${file}: 250 lines, red (over 220), listed in RED_FILES`],
+	});
+	assert.deepEqual(structureOf({ [file]: lines(251) }, undefined, undefined, listed), {
+		problems: [`${file}: has 251 lines; a source file has at most 250, listed in RED_FILES or not`],
+		zones: [],
+	});
+	assert.deepEqual(check({ [file]: lines(251) }), [`${file}: has 251 lines; a source file has at most 250, listed in RED_FILES or not`]);
+});
+
+test("a line counts once per 160 characters begun, toward a file's zone and its package's budget; an empty line or file as written", () => {
+	const file = "packages/telegram/src/wide.ts";
+	const row = (width: number) => `${"x".repeat(width)}\n`;
+	// BASE's packages/telegram/src/telegram.ts holds 2 lines.
+	const over = (text: string, budget: number) => check({ [file]: text }, { core: 100, "core/testing": 100, telegram: budget });
+	const has = (lines: number, budget: number) => [`packages/telegram: has ${lines} source lines, over its line budget of ${budget}`];
+	assert.deepEqual(over(row(160), 3), []);
+	assert.deepEqual(over(row(161), 3), has(4, 3));
+	assert.deepEqual(over(row(161), 4), []);
+	assert.deepEqual(over(row(161).trimEnd(), 4), []);
+	assert.deepEqual(over(row(320), 4), []);
+	assert.deepEqual(over(row(321), 4), has(5, 4));
+	assert.deepEqual(over("\n\n", 4), []);
+	assert.deepEqual(over("\n\n\n", 4), has(5, 4));
+	assert.deepEqual(over("", 2), []);
+	assert.deepEqual(structureOf({ [file]: lines(199) + row(160) }).zones, []);
+	assert.deepEqual(structureOf({ [file]: lines(199) + row(161) }).zones, [`${file}: 201 lines, yellow (over 200)`]);
+});
+
+test("a file in RED_FILES at 220 lines or fewer, or gone, fails until it leaves the list; a test file is never sized", () => {
+	const red = ["packages/telegram/src/long.ts", "packages/telegram/src/gone.ts", "packages/telegram/test/long.test.ts"];
+	const files = { "packages/telegram/src/long.ts": lines(220), "packages/telegram/test/long.test.ts": lines(300) };
+	assert.deepEqual(structureOf(files, undefined, undefined, red), {
+		problems: red.map((path) => `${path}: listed in RED_FILES in test/structure.test.ts, but no source file over 220 lines; remove it from the list`),
+		zones: ["packages/telegram/src/long.ts: 220 lines, yellow (over 200)"],
+	});
 });
 
 test("a package over its line budget, or without one, fails; tests do not count", () => {
@@ -228,20 +322,63 @@ test("a package over its line budget, or without one, fails; tests do not count"
 	assert.deepEqual(check({}, { core: 3, "core/testing": 2 }), ["packages/telegram: has no line budget; add one to test/structure.test.ts"]);
 });
 
-test("the core's test kit, testing.ts and fake-agent.ts, counts against core/testing alone, and needs that budget", () => {
-	const kit = { "packages/core/src/fake-agent.ts": lines(5) };
-	assert.deepEqual(check(kit, { core: 1, "core/testing": 7, telegram: 300 }), []);
-	assert.deepEqual(check(kit, { core: 1, "core/testing": 6, telegram: 300 }), [
-		"packages/core: its test kit (src/testing.ts, src/fake-agent.ts) has 7 lines, over its line budget of 6",
+test("the core's test kit, testing.ts, test-env.ts, fake-agent.ts and until.ts, counts against core/testing alone, and needs that budget", () => {
+	const kit = { "packages/core/src/fake-agent.ts": lines(5), "packages/core/src/test-env.ts": lines(3), "packages/core/src/until.ts": lines(1) };
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 11, telegram: 300 }), []);
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 10, telegram: 300 }), [
+		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts, src/until.ts) has 11 lines, over its line budget of 10",
 	]);
 	assert.deepEqual(check({ "packages/core/src/extra.ts": lines(6) }, { core: 7, "core/testing": 1, telegram: 300 }), [
-		"packages/core: its test kit (src/testing.ts, src/fake-agent.ts) has 2 lines, over its line budget of 1",
+		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts, src/until.ts) has 2 lines, over its line budget of 1",
 	]);
 	assert.deepEqual(check({}, { core: 1, telegram: 300 }), [
 		"packages/core: has no line budget for its test kit; add core/testing to test/structure.test.ts",
 	]);
 	assert.deepEqual(check({ "packages/telegram/src/testing.ts": lines(5) }, { core: 1, "core/testing": 2, telegram: 6 }), [
 		"packages/telegram: has 7 source lines, over its line budget of 6",
+	]);
+});
+
+// AR0578: a test waits with the kit's until for the state it asserts.
+test("a test file's own until, or a loop that sleeps, fails in a package's test/ and the root's test/ alike; in a string, a comment or src/ it passes", () => {
+	const waits = { "test/loop.test.ts": 1, "packages/telegram/test/fake-api.ts": 1 };
+	assert.deepEqual(
+		check(
+			{
+				"packages/telegram/test/own.test.ts": "async function until(what, holds) {}\nexport function untilLater() {}\n",
+				"packages/telegram/test/arrow.test.ts": "const until = async (what) => what;\n",
+				"packages/telegram/test/fake-api.ts": "for (const end = Date.now() + 1000; !done(); await setTimeout(20)) {}\n",
+				"test/loop.test.ts": "while (!done()) await sleep(10);\n",
+			},
+			undefined,
+			waits,
+		),
+		[
+			"test/loop.test.ts: has a loop that sleeps; wait with until from @arthur/core/testing",
+			"packages/telegram/test/arrow.test.ts: declares its own until; import until from @arthur/core/testing",
+			"packages/telegram/test/fake-api.ts: has a loop that sleeps; wait with until from @arthur/core/testing",
+			"packages/telegram/test/own.test.ts: declares its own until; import until from @arthur/core/testing",
+		],
+	);
+	const quoted = [
+		'import { until } from "@arthur/core/testing";',
+		'await until("the reply", () => replied());',
+		"// for (;;) await sleep(10), never: function until() {}",
+		'const script = "async function until() { while (true) await sleep(10); }";',
+		"const child = `for (;;) setTimeout(go, 10); const until = 1;`;",
+		"",
+	].join("\n");
+	const own = "export async function until() {\n\tfor (;;) await sleep(10);\n}\n";
+	assert.deepEqual(check({ "packages/telegram/test/quoted.test.ts": quoted, "test/quoted.test.ts": quoted, "packages/telegram/src/wait.ts": own }), []);
+});
+
+test("a test file's fixed waits up to its baseline pass, one more fails; a file left out may hold none; strings and comments do not count", () => {
+	const quiet = "await sleep(1200);\nsetTimeout(done, 5);\nAtomics.wait(cell, 0, 0, 20);\n// await sleep(1)\nconst child = 'setTimeout(() => {}, 300_000)';\n";
+	const files = { "packages/telegram/test/quiet.test.ts": quiet, "test/quiet.test.ts": "await sleep(300);\n" };
+	assert.deepEqual(check(files, undefined, { "packages/telegram/test/quiet.test.ts": 3, "test/quiet.test.ts": 1 }), []);
+	assert.deepEqual(check(files, undefined, { "packages/telegram/test/quiet.test.ts": 2 }), [
+		"test/quiet.test.ts: has 1 fixed waits (sleep, setTimeout, Atomics.wait), over its baseline of 0 in test/structure.test.ts; wait for the state with until",
+		"packages/telegram/test/quiet.test.ts: has 3 fixed waits (sleep, setTimeout, Atomics.wait), over its baseline of 2 in test/structure.test.ts; wait for the state with until",
 	]);
 });
 

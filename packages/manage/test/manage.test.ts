@@ -3,8 +3,7 @@ import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type ManageOptions, manage } from "../src/manage.ts";
 
 // The manage plugin against the fake host: `arthur health`, `/health` and the rounds under `arthur run`, over the project
@@ -14,10 +13,6 @@ const START = new Date("2026-01-01T12:00:00Z");
 const ALL_WELL = "All well: nothing that should have happened by now is missing.";
 const STALLED = "AC0001 is in-progress with no job in a run for 4 h: Shop";
 const TICKET = "spec/features/AC0001-shop/ticket.md";
-
-async function until(what: string, predicate: () => boolean): Promise<void> {
-	for (const end = Date.now() + 20_000; !predicate(); await sleep(20)) if (Date.now() > end) throw new Error(`timed out waiting for ${what}`);
-}
 
 // The repository acme with its board, ticket AC0001 in `status` since 08:00, all committed.
 function repository(status = "done") {

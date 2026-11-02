@@ -5,18 +5,18 @@ import { syncBuiltinESMExports } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { board } from "../src/board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "../src/board-jobs.ts";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { type Bus, eventBus } from "../src/events.ts";
+import { insideJob } from "../src/inside-job.ts";
 import { steerJob, stopJob } from "../src/job-control.ts";
 import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import steerExtension from "../src/steer.ts";
 import { queueSteer } from "../src/steer-inbox.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -34,20 +34,12 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
 	const bus = eventBus(home);
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, bus, () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, bus, () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	jobs.registerKind("delivery", { name: "audit", readOnly: false, role: "reviewer", budgetUsd: 1, resumeOnBudget: true });
 	return { root, home, jobs, bus };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : undefined);
@@ -224,6 +216,19 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
+});
+
+test("a stop that comes once the agent exited on a provider error rules out the resume (AR0571)", async () => {
+	const overloaded = { ...JSON.parse(spent(0, "error")).message, errorMessage: "529 overloaded_error" };
+	const { agent, dir } = script((dir) => [`echo '${JSON.stringify({ type: "message_end", message: overloaded })}'`, "sleep 300 &", `echo $$ >> '${dir}/pid'`, "exit 1"]);
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
+	await until("the agent's exit", () => !alive(pid));
+	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "failed: the agent stopped on error: 529 overloaded_error" }]);
+	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
+	assert.equal(read(join(dir, "pid"))?.trim().split("\n").length, 1, "one start, no resume");
 });
 
 for (const scoped of [true, false])
@@ -455,6 +460,32 @@ test("a continue whose wrapper does not start ends the job failed and says why, 
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: `failed: ${reason}` });
 	assert.deepEqual(["state", "reason", "pid"].map((name) => field(home, job.id, name)), ["ended", `failed: ${reason}`, undefined]);
 	assert.equal(existsSync(join(home, "jobs", job.id, "continuing")), false, "a failed continue frees the record");
+});
+
+test("each continue starts its run in a scope of a new name, as the scope of the run before can still be loaded", async (t) => {
+	const { agent } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Again." }] });
+	const { home, jobs } = setup(agent);
+	// A `systemctl` that sets any slice and a `systemd-run` that, as systemd while a scope is loaded, refuses a name it started
+	// once, first on PATH; else it notes the name in `<itself>.units` and execs the wrapper.
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	const refuse = `echo "Failed to start transient scope unit: Unit $unit was already loaded or has a fragment file." >&2; exit 1`;
+	writeFileSync(join(bin, "systemd-run"), `#!/bin/sh\nfor arg; do case $arg in --unit=*) unit=\${arg#--unit=} ;; esac; done\nif grep -qxF "$unit" "$0.units" 2>/dev/null; then ${refuse}; fi\necho "$unit" >> "$0.units"\nwhile [ "$1" != -- ]; do shift; done\nshift\nexec "$@"\n`, { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => void (process.env.PATH = saved));
+	process.env.PATH = [bin, saved].join(delimiter);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await ended(home, job.id, 2);
+	assert.equal(await jobs.continue(job.id, "Once more."), undefined);
+	const finished = { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" };
+	assert.deepEqual(await ended(home, job.id, 3), [finished, finished, finished]);
+	const [first, ...continued] = readFileSync(join(bin, "systemd-run.units"), "utf8").trimEnd().split("\n");
+	assert.equal(first, `arthur-job-${job.id}.scope`);
+	assert.equal(continued.length, 2);
+	for (const unit of continued) assert.match(unit, new RegExp(`^arthur-job-${job.id}\\.\\d+\\.scope$`));
+	assert.equal(insideJob(home, `0::/${jobSlice.slice}.slice/${continued[1]}\n`, {}), job.id, "a continued run's scope names its job");
 });
 
 test("a continue moves the job to working before its wrapper starts, so a continue that takes its lock over is refused", { timeout: 30_000 }, async (t) => {
@@ -724,7 +755,7 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 	const agent = fakeAgent({ steps: [stuck()] });
 	const full = join(root, "..", "full");
 	const check = `host.jobs.beforeSpawn((spawn) => (spawn.decision !== undefined ? \`decision \${JSON.stringify(spawn.decision)} of \${spawn.id}\` : existsSync(${JSON.stringify(full)}) && !spawn.ignoreRestart ? "restart due: AC0001" : undefined))`;
-	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${check}; } }] };\n`);
+	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${check}; } }] };\n`);
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	const home = join(root, ".arthur");
 	const id = arthur("spawn", "Go.").stdout.trim();

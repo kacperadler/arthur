@@ -15,16 +15,18 @@ Can the owner merge this branch as it is? Judge the branch against its instructi
 
 ## FAIL when any one holds
 
-- A requirement is missing, stubbed, faked, or only claimed in the final message.
+- A requirement is missing, stubbed, faked, or only claimed in the final message; or a line of the docs, the README, a diagram, the roadmap, a role or a code comment still says what the branch changed (search for each name, number and message the diff changes), in a file the Scope's Out does not name.
 - A check fails, or a claimed result does not reproduce.
 - A boundary breaks: a plugin imports another plugin, a core file by path, or anything outside `@arthur/core`'s published exports; the core imports a plugin; a plugin reads or writes another plugin's folder under `.arthur/`, or reads a file beyond the one path another plugin handed it in an event or a `collect` answer (a message part's `path`).
-- The styleguide's Shape rules break: a runtime dependency, an `index.ts`, `types.ts` or `utils.ts`, a class or enum, non-erasable TypeScript, a file over 200 lines, a line budget exceeded.
+- The styleguide's Shape rules break: a runtime dependency, an `index.ts`, `types.ts` or `utils.ts`, a class or enum, non-erasable TypeScript, a source file over 250 lines, or red (221 to 250) and not in `RED_FILES` with its reason in the ticket's Decisions, a line budget exceeded.
+- A branch moves a source file into yellow (201 to 220 lines) or red and its final message does not say why. A yellow or red file with an obvious split (a part with its own job and its own callers) is a finding in the ticket's `findings.md`, not a FAIL.
 - A new behavior has no test, its test would still pass with the behavior removed, or only the happy path is tested. A mutation of a key behavior (condition removed or inverted, refusal disabled, limit moved by one) that the tests do not catch is the same FAIL: name the mutation.
-- A plugin is tested against another real plugin instead of the fake host, or a fake of an outside service answers in a shape its documentation does not show.
+- A plugin is tested against another real plugin instead of the fake host, or a fake of an outside service answers in a shape its documentation does not show: its shape test (`packages/<plugin>/test/fake-shapes.test.ts`) does not pass, or leaves out a route the fake answers with JSON on success.
 - A test uses a production resource name (tmux socket, systemd unit, bot, port, fixed `/tmp` path, a checkout's `.arthur/`) or leaves one behind.
 - Something can lose the owner's work: deleting worktrees, branches or job records without Git's own safety (`git worktree remove` without `--force`, `git branch -d`, not `-D`), or without being asked.
 - The owner's work leaks: a committed file (code, test, doc, ticket, plan, review, finding, commit message) names a real client, a project of the owner other than Arthur, its folder on a server, or what is built for it. Arthur's repository is public and is about Arthur alone; use made-up names (`acme`, `web-shop`) (the owner, 2026-10-17).
 - A secret can leak: a value in the config, a fixture or the code; a value printed in an error or a log; a job able to read `.env`.
+- A guard bypass whose write the sandbox refuses is a note; a plain command the base refused and the tip lets through is a FAIL.
 - Something listens on a public address, or a text that is not English reaches code, docs or the user.
 - Code beyond what the change needs, by the styleguide's Simplest solution.
 

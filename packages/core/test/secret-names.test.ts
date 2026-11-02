@@ -4,10 +4,9 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { readEvents } from "../src/event-log.ts";
 import { namedChunks, secretNames } from "../src/secret-names.ts";
-import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const NAME = "ARTHUR_ORCHESTRATION_TOKEN";
@@ -21,7 +20,7 @@ function config(sent: string, envFile: string, agent: string): string {
 	return `import { appendFileSync } from "node:fs";
 const doc = new URL("./doc.md", import.meta.url);
 const sent = (message) => appendFileSync(${JSON.stringify(sent)}, JSON.stringify(message) + "\\n");
-export default { core: { timeZone: "UTC", envFile: ${JSON.stringify(envFile)}, agent: { command: ${JSON.stringify(agent)} } }, plugins: [
+export default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, envFile: ${JSON.stringify(envFile)}, agent: { command: ${JSON.stringify(agent)} } }, plugins: [
 	{ name: "orchestration", options: { tokenEnv: "${NAME}" }, setup(host) {
 		const token = host.env.${NAME};
 		host.provide("projects", () => [{ name: "acme", path: import.meta.dirname, prefix: "AC" }]);
@@ -46,10 +45,6 @@ const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root
 // Without the user manager's variables, so a job runs bare, and with the kit's slice, so it never joins Arthur's own.
 function arthur(root: string, ...args: string[]): { readonly status: number | null; readonly stdout: string; readonly stderr: string } {
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
-}
-
-async function until(what: string, holds: () => boolean): Promise<void> {
-	for (const start = Date.now(); !holds(); await sleep(20)) if (Date.now() - start > 20_000) assert.fail(`waited 20 s for ${what}`);
 }
 
 const files = (folder: string): string[] => readdirSync(folder, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => join(entry.parentPath, entry.name));

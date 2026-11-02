@@ -7,11 +7,10 @@ import { syncBuiltinESMExports } from "node:module";
 import type { AddressInfo } from "node:net";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import type { Requirement } from "@arthur/core/plugin";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { checkOptions, table } from "../src/model-options.ts";
 import { DEFAULTS, type ModelsOptions, models } from "../src/models.ts";
 
@@ -229,7 +228,7 @@ test("two processes probing at once make one request: the second waits for the f
 	const requests: string[] = [];
 	const http = createServer(async (request, response) => {
 		requests.push(request.url ?? "");
-		while (readdirSync(asking).length < 2) await sleep(10);
+		await until("both askers", () => readdirSync(asking).length >= 2);
 		response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(TAGS));
 	});
 	await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
@@ -286,11 +285,8 @@ test("a job on another machine is probed from there, through host.jobs.run over 
 const record = (home: string, id: string) =>
 	readdirSync(join(home, "jobs", id), { withFileTypes: true }).flatMap((entry) => (entry.isFile() ? [readFileSync(join(home, "jobs", id, entry.name), "utf8")] : [])).join("\n");
 async function ended(home: string, id: string): Promise<string> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const state = existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "";
-		if (state === "ended") return readFileSync(join(home, "jobs", id, "reason"), "utf8");
-	}
-	throw new Error(`job ${id} did not end`);
+	await until(`job ${id} to end`, () => existsSync(join(home, "jobs", id, "state")) && readFileSync(join(home, "jobs", id, "state"), "utf8") === "ended");
+	return readFileSync(join(home, "jobs", id, "reason"), "utf8");
 }
 
 // A repository with one commit, and `omp` the fake agent playing `run` with its environment written to `env` beside it.
@@ -369,7 +365,8 @@ test("a model lost mid-job fails the job with the agent's reason; it is never sw
 		const { fake } = await load({ providers: { mac: { kind: "ollama", url: mac.url } } }, {}, root);
 		const job = await fake.host.jobs.spawn({ task: "Build it.", model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"] });
 		assert.equal(await ended(dirname(fake.host.folder), job.id), "failed: the agent stopped on error: Connection error: fetch failed (http://mac:11434)");
-		assert.equal(starts().length, 1, "one run of the agent, on its one model");
+		// The connection error is resumed once (AR0571), on the same model, and the second failure ends the job.
+		assert.deepEqual(starts().map((args) => [args[0] === "--continue", args[args.indexOf("--model") + 1]]), [[false, "ollama/qwen3-coder"], [true, "ollama/qwen3-coder"]], "two runs of the agent, on its one model");
 	} finally {
 		mac.close();
 		process.env.PATH = PATH;
@@ -414,6 +411,26 @@ test("a report older than 10 minutes is fetched again; a failed fetch keeps the 
 	fake.setNow(new Date(after(11)));
 	assert.equal(await fake.host.commands.route("/usage"), "as of 11 min ago; the fetch 0 min ago failed: omp usage --json: network down\nanthropic: Claude 7 Day 50% used, resets in 9 h 49 min");
 	assert.equal(starts(failing), 1);
+});
+
+test("models.usage reads the highest used percent of the last report's windows, a model tier's too; none before a report, with no window, or after a failed fetch", async () => {
+	says(report([{ id: "5h", used: 0.82, resetsIn: 60 }, { id: "7d", used: 0.5, resetsIn: 600 }, { id: "7d", used: 0.91, tier: "fable", resetsIn: 600 }]));
+	const { fake } = await load({});
+	assert.deepEqual(fake.collect("models.usage"), [undefined], "no report fetched yet");
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [91]);
+	says(report([], { accountsWithoutUsage: ["openai-codex"] }));
+	fake.setNow(new Date(after(11)));
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [undefined], "no window");
+	says(report([{ id: "5h", used: 0.1, resetsIn: 60 }]));
+	fake.setNow(new Date(after(22)));
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [10]);
+	agent({ steps: [{ stderr: "network down" }], exitCode: 1 });
+	fake.setNow(new Date(after(33)));
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [undefined], "the last fetch failed: the reading is unknown");
 });
 
 test("a list skips a built-in model whose provider's window is at or over limits.stopAt; a window over limits.warnAt is on the spawn line and in the context", async () => {

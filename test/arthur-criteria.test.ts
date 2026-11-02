@@ -9,6 +9,7 @@ import { delivery } from "@arthur/delivery";
 import { manage } from "@arthur/manage";
 import { orchestration } from "@arthur/orchestration";
 import { projects } from "@arthur/projects";
+import { projectFolders } from "./project-folders.ts";
 
 // AR0272: Arthur's own repository, a project of a list without `prompts`, gives every role the plugins that register one
 // read each of its criteria files, in `.agents/arthur/criteria/`, none missing, empty, or only headings.
@@ -17,9 +18,10 @@ const ROOT = join(import.meta.dirname, "..");
 
 // The real plugins that register a role, set up for `list` on a fake host whose load runs `code`.
 async function load(list: readonly { name: string; prefix: string; path: string }[], code: readonly string[] = []) {
+	const given = projectFolders(list);
 	const fake = fakeHost({ name: "test", code });
 	fake.provide("schedule.register", () => undefined);
-	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}], [manage(), {}], [orchestration(), {}]];
+	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects(given), given], [delivery(), {}], [manage(), {}], [orchestration(), {}]];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	return fake;
 }
@@ -27,7 +29,7 @@ async function load(list: readonly { name: string; prefix: string; path: string 
 test("every role of the plugins that register one reads each of its criteria files in Arthur's own repository", async () => {
 	const fake = await load([{ name: "arthur", prefix: "AR", path: ROOT }]);
 	const criteria = fake.host.jobs.criteria();
-	assert.deepEqual(criteria.toSorted(), ["audit", "autopilot", "retro", "review", "styleguide"], "the criteria the loaded roles read");
+	assert.deepEqual(criteria.toSorted(), ["audit", "autopilot", "report", "retro", "review", "styleguide"], "the criteria the loaded roles read");
 	for (const role of ["worker", ...fake.roles.map((each) => each.name)]) assert.deepEqual(fake.host.jobs.prompt(role, "arthur").warnings, [], role);
 	for (const name of criteria) {
 		const sections = readFileSync(join(ROOT, ".agents/arthur/criteria", `${name}.md`), "utf8").split(/^#+ .*$/m).slice(1);

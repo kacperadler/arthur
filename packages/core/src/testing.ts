@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
+import { root } from "./test-env.ts"; // First: the kit's environment is set before any other module of the core loads.
 import { board } from "./board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
@@ -16,15 +16,11 @@ import { jobRunner } from "./jobs.ts";
 import type { Role } from "./roles.ts";
 import type { Host, Options, Plugin, Provider, SpawnCheck } from "./plugin.ts";
 import { pluginHost, registry } from "./plugin-host.ts";
+import { checkPieces } from "./project-pieces.ts";
+export { until } from "./until.ts";
 
-// The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
-// (`--import`) as the safety net: every `ARTHUR_` variable and tmux's session variables are cleared and tmux's default socket
-// and `XDG_CONFIG_HOME`, where the env file lies by default, move into a temporary folder, so no test reaches a live bot, token or tmux server; `omp` on `PATH` is the fake agent with
-// no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
-
-for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
-const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
-Object.assign(process.env, { TMUX_TMPDIR: root, XDG_CONFIG_HOME: root });
+// The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process (`--import`) as the safety net: its environment (test-env.ts) keeps live variables, folders and identities out of reach, so no test reaches
+// a live bot, token or tmux server; `omp` on `PATH` is the fake agent with no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
 
 // The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-` would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed. `ARTHUR_JOB_SLICE` names it to a load in this process (host.ts) and to an `arthur` it starts; a test that gives the CLI an env of its own passes it there.
 export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
@@ -36,9 +32,9 @@ process.on("exit", () => {
 });
 process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);
 
-// A new empty folder of the kit's, e.g. a test's home folder instead of a live `.arthur/`.
+// A new empty folder of the kit's, in its TMPDIR, where a job's sandbox lets it write as in the system's, e.g. a test's home folder instead of a live `.arthur/`.
 export function temporaryFolder(): string {
-	return mkdtempSync(join(root, "folder-"));
+	return mkdtempSync(join(root, "tmp", "folder-"));
 }
 
 // A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends` messages throw, the next `dropSends` sent while idle
@@ -76,9 +72,10 @@ export function fakeAgent(run: AgentRun): string {
 type Use = { readonly kind: "call" | "collect"; readonly name: string; readonly args: readonly unknown[] };
 
 export type FakeHost = {
-	// Given to the plugin's `setup`, which `setup(plugin)` runs: a spawn during it throws, as in a real load.
+	// Given to the plugin's `setup`, which `setup(plugin)` runs after the plugin's `piece` check of each project's piece, as
+	// the host does (its problems thrown, unprefixed): a spawn during it throws, as in a real load.
 	readonly host: Host;
-	setup(plugin: Pick<Plugin, "setup">): Promise<void>;
+	setup(plugin: Pick<Plugin, "setup" | "piece">): Promise<void>;
 	// What the plugin did through `host`, in order.
 	readonly provided: readonly string[];
 	readonly calls: readonly Use[];
@@ -106,8 +103,8 @@ export type FakeHost = {
 // command's registration refuses like the real host's, naming the plugin. Its clock stands still at `now` (default
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the project's folder in that list, else of the repository
-// `root` (a test's own), with the core's default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds, as `host.agent` names it.
-// `host.code` is `code`, default none: the package folders a test's restart guard watches, in a repository of its own. `host.sandbox` hides `<root>/env` and keeps it, `<root>/arthur.config.ts` and the home from a step's writes.
+// `root` (a test's own), with the core's default limits but `unsandboxed` on, so a job on a host without the sandbox runs bare, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds, as `host.agent` names it.
+// `host.code` is `code`, default none: the package folders a test's restart guard watches, in a repository of its own. `host.job` is `job`, as inside that job. `host.sandbox` hides `<root>/env` and keeps it, `<root>/arthur.config.ts` and the home from a step's writes.
 // As in a real load, the core follows the jobs after `setup`: at the first spawn, its `beforeSpawn` joins after the plugin's
 // checks and refuses a worker on a ticket of that list that cannot move to in-progress, and its move joins after the plugin's
 // `job-started` handlers, which still see the ticket `planned`. A plugin must not rely on that: a `job-started` from another
@@ -121,7 +118,7 @@ export function fakeHost(plugin: {
 	readonly now?: Date;
 	readonly root?: string;
 	readonly code?: readonly string[];
-}): FakeHost {
+} & Pick<Host, "job">): FakeHost {
 	const names = registry();
 	const registered = commandRegistry();
 	const home = temporaryFolder();
@@ -130,9 +127,9 @@ export function fakeHost(plugin: {
 	mkdirSync(folder);
 	let now = (plugin.now ?? new Date("2026-01-01T00:00:00Z")).getTime();
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
-	const jobs = jobRunner(home, plugin.root ?? home, join(plugin.root ?? home, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, bus, names.collect);
+	const jobs = jobRunner(home, plugin.root ?? home, join(plugin.root ?? home, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
-	const real = pluginHost(names, registered, bus, jobs, { envFile: join(plugin.root ?? home, "env"), home, config: join(plugin.root ?? home, "arthur.config.ts") }, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, secrets: Object.values(plugin.env ?? {}), folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
+	const real = pluginHost(names, registered, bus, jobs, { envFile: join(plugin.root ?? home, "env"), home, config: join(plugin.root ?? home, "arthur.config.ts") }, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, secrets: Object.values(plugin.env ?? {}), folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined, job: plugin.job }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	const [provided, calls, commands, kinds, roles] = [[] as string[], [] as Use[], [] as Command[], [] as Kind[], [] as Role[]];
 	const host: Host = {
@@ -178,9 +175,12 @@ export function fakeHost(plugin: {
 	};
 	return {
 		host,
-		setup(plugin) {
+		setup(each) {
 			loading = true;
-			return Promise.try(() => plugin.setup(host)).finally(() => (loading = false));
+			return Promise.try(() => {
+				checkPieces({ name: plugin.name, piece: each.piece }, real.options, names.collect("projects", []));
+				return each.setup(host);
+			}).finally(() => (loading = false));
 		},
 		provided,
 		calls,

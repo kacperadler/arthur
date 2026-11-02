@@ -1,16 +1,18 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
-import { projectFolder } from "./clone.ts";
 import { BOARD, init } from "./init.ts";
 import { installCommand, installStep } from "./install.ts";
 import { onboarding } from "./onboarding.ts";
+import { readProjects } from "./project-file.ts";
 import { checkOptions } from "./project-options.ts";
 
-// The projects plugin (spec/roadmap.md, entries 41 and 42): the project list in `arthur.config.ts` and nowhere else, served as
-// `projects` and kept in `<home>/projects/checkouts` for the worktree guard; one line per project in the coordinator's context;
-// `arthur projects` and `/projects`; doctor requirements per project; the install of every new worktree, also served as
-// `projects.install`; `arthur init` and the kind `onboarding`. docs/commands/projects.md, docs/commands/init.md.
+// The projects plugin (spec/roadmap.md, entries 41 and 42): one folder per project, named in `arthur.config.ts`, each with its
+// `project.config.ts` (project-file.ts); the projects served as `projects`, inside a job only its own (AR0593), and kept in
+// `<home>/projects/checkouts` and `folders` for the worktree guard and the job sandbox; one line per project in the coordinator's
+// context; `arthur projects` and `/projects`; doctor requirements per project; the install of every new worktree, also served as
+// `projects.install`; `arthur init` and the kind `onboarding`.
+// docs/commands/projects.md, docs/commands/init.md.
 
 export type ProjectEntry = {
 	readonly name: string;
@@ -20,20 +22,15 @@ export type ProjectEntry = {
 	readonly title?: string;
 	readonly about?: string;
 	readonly install?: string;
-	readonly tracker?: { readonly plugin: string; readonly instance?: string; readonly project: string };
-	readonly ci?: { readonly workflow: string };
-	readonly commitRules?: { readonly regex: string } | { readonly words: string } | { readonly file: string };
-	readonly autoMerge?: boolean;
-	readonly requires?: { readonly os?: string; readonly arch?: string; readonly tools?: readonly string[] };
-	readonly docker?: boolean;
-	// The files the roles read in its repository; left out, `spec/vision.md`, `.agents/arthur/criteria` and `.agents/arthur/roles`.
+	// The files the roles read, each in the project's folder; left out, `spec/vision.md`, `.agents/arthur/criteria` and `.agents/arthur/roles` in its repository.
 	readonly prompts?: { readonly vision?: string; readonly criteriaDir?: string; readonly rolesDir?: string };
 };
 
-// As `projects` serves it: the entry, its folder absolute and its title set.
-export type Project = ProjectEntry & { readonly path: string; readonly title: string };
+// As `projects` serves it: the entry, its checkout absolute and its title set, its written prompts absolute; `folder`, its
+// project folder's real path; `pieces`, every other plugin's piece of its file, by plugin name, which that plugin reads.
+export type Project = ProjectEntry & { readonly path: string; readonly title: string; readonly folder: string; readonly pieces: Readonly<Record<string, unknown>> };
 
-export type ProjectsOptions = { readonly enabled?: boolean; readonly list: readonly ProjectEntry[]; readonly reposDir?: string };
+export type ProjectsOptions = { readonly enabled?: boolean; readonly folders: readonly string[]; readonly reposDir?: string };
 
 const HEADER =
 	"A prefix, name or title, in any case, names that project, even when another project's title or about holds the word; " +
@@ -46,10 +43,17 @@ export function projects(options: ProjectsOptions): Plugin {
 		module: import.meta.url,
 		options,
 		check: checkOptions,
-		setup(host) {
-			const { list, reposDir } = host.options as ProjectsOptions;
-			const all: Project[] = list.map((entry) => ({ ...entry, title: entry.title ?? entry.name, path: projectFolder(entry, reposDir, dirname(host.folder)) }));
-			keepCheckouts(host.folder, all);
+		async setup(host) {
+			const { folders, reposDir } = host.options as ProjectsOptions;
+			// Inside a job only its project's folder is imported, whose name is the project's; the lists stay as the last load outside one wrote them.
+			const { job } = host;
+			const own = job === undefined ? folders : folders.filter((each) => basename(resolve(each)) === job.project);
+			if (job !== undefined && own.length === 0) throw new Error(`job ${job.id} is of project ${JSON.stringify(job.project)}, which no folder of projects.folders holds; a job loads only its own project`);
+			const all = await readProjects(own, reposDir, dirname(host.folder));
+			if (job === undefined) {
+				keep(join(host.folder, "checkouts"), all.map((project) => `${project.name} ${project.path}\n`).join(""));
+				keep(join(host.folder, "folders"), all.map((project) => `${project.name} ${project.folder}\n`).join(""));
+			}
 			host.provide("projects", () => all);
 			host.provide("coordinator.context", () => [HEADER, ...all.map(projectLine)].join("\n"));
 			host.provide("doctor", () => all.flatMap(requirements));
@@ -79,10 +83,13 @@ export function projects(options: ProjectsOptions): Plugin {
 	};
 }
 
-// Each project's name and checkout, `<name> <folder>` a line, in `<folder>/checkouts`, which the worktree guard of every running
-// job reads on each tool call (packages/core/src/job-place.ts); rewritten, whole, only when the list changed.
-function keepCheckouts(folder: string, all: readonly Project[]): void {
-	const [file, text] = [join(folder, "checkouts"), all.map((project) => `${project.name} ${project.path}\n`).join("")];
+// This project's own piece in its file: `projects.project({ prefix, path, ... })`.
+projects.project = (piece: Omit<ProjectEntry, "name">) => ({ projects: piece });
+
+// Each project's name and checkout, `<name> <checkout>` a line, in `<folder>/checkouts`, which the worktree guard of every running
+// job reads on each tool call (packages/core/src/job-place.ts), and `<name> <project folder>` a line in `<folder>/folders`, which
+// with `checkouts` names what a job's sandbox hides of other projects (packages/core/src/job-sandbox.ts); each rewritten, whole, only when it changed.
+function keep(file: string, text: string): void {
 	let kept: string | undefined;
 	try {
 		kept = readFileSync(file, "utf8");
@@ -116,9 +123,9 @@ function overview(host: Host, all: readonly Project[]): string {
 
 // The requirements of `arthur doctor` (entry 80), none critical: `check` answers `ok` or `missing: <reason>`. The board's fix walks
 // a new owner, through `arthur setup`, to `arthur init`.
-function requirements({ name, about, path }: Project) {
+function requirements({ name, about, path, folder }: Project) {
 	return [
-		{ name: `${name} about`, check: () => (about === undefined ? "missing: no about" : "ok"), costs: "the coordinator knows it only by prefix, name and title", fix: `add about to project ${name} in arthur.config.ts`, critical: false },
+		{ name: `${name} about`, check: () => (about === undefined ? "missing: no about" : "ok"), costs: "the coordinator knows it only by prefix, name and title", fix: `add about to projects.project(...) in ${folder}/project.config.ts`, critical: false },
 		{ name: `${name} board`, check: () => (existsSync(join(path, BOARD)) ? "ok" : `missing: no ${BOARD}`), costs: `no tickets for ${name}`, fix: `arthur init ${name}`, critical: false },
 	];
 }

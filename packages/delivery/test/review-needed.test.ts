@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { checkOptions } from "../src/delivery-options.ts";
 import { delivery } from "../src/delivery.ts";
 
@@ -14,7 +13,8 @@ const PASSING = "check pass TIP clean\ntest pass 3/3 TIP clean\n";
 const OLD = "0123456789abcdef0123456789abcdef01234567";
 const SUMMARY = "✔ shop\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ duration_ms 5\n";
 const FILES: Readonly<Record<string, string>> = {
-	"package.json": `${JSON.stringify({ scripts: { check: "tsc", test: "node --test" } })}\n`,
+	// A mutate script too, whose lines `no review` does not ask for (AR0580 asks them before a review only).
+	"package.json": `${JSON.stringify({ scripts: { check: "tsc", test: "node --test", mutate: "node mutate.ts" } })}\n`,
 	"src/env.ts": "export const env = 1;\n",
 	"src/shop.ts": "export const shop = 1;\n",
 	"README.md": "# acme\n",
@@ -51,7 +51,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	const home = dirname(fake.host.folder);
 	const state = (id: string) => (existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "");
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; state(id) !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => state(id) === "ended");
 	};
 	const job = await fake.host.jobs.spawn({ task: `Ticket: ${TICKET}` });
 	await ended(job.id);
@@ -173,6 +173,23 @@ test("refused: wrong usage, no such job, a job with no ticket", async (t) => {
 	const loose = await fake.host.jobs.spawn({ task: "No ticket here." });
 	await ended(loose.id);
 	assert.equal((await decide(undefined, loose.id)).err, `arthur review-needed: ${loose.id}'s task names no ticket; a review is of one ticket's branch`);
+});
+
+test("merge.check is asked first: a branch one answer refuses, or several, is refused with every refusal, nothing kept, moved or pushed; blank answers let the rules decide", async (t) => {
+	const { fake, job, branch, decide, status } = await load(t);
+	const [asked, pushes]: [string[], unknown[]] = [[], []];
+	const one = "arthur/x changes spec/build.json, which only the coordinator writes";
+	let answers: (string | undefined)[] = [one, undefined];
+	for (const at of [0, 1]) fake.provide("merge.check", (each: { readonly id: string }) => (asked.push(each.id), answers[at]));
+	fake.provide("github.push", (each: unknown) => (pushes.push(each), Promise.resolve("github: pushed")));
+	branch(edit("README.md", "# acme shop\n"));
+	assert.deepEqual(await decide(PASSING), { code: 1, out: "", err: `arthur review-needed: refused by merge.check: ${one}; no review until the branch passes it` }, "a docs-only branch, else no review; one refusal is enough");
+	answers = [one, "another plugin's reason"];
+	assert.deepEqual(await decide(PASSING), { code: 1, out: "", err: `arthur review-needed: refused by merge.check: ${answers.join("; ")}; no review until the branch passes it` });
+	assert.deepEqual(asked, [job.id, job.id, job.id, job.id], "asked with the job as host.jobs.list() has it");
+	assert.deepEqual([status(), existsSync(join(fake.host.folder, job.id, "review-needed")), pushes], ["in-progress", false, []]);
+	answers = [undefined, ""];
+	assert.deepEqual(await decide(PASSING), { code: undefined, out: "no review: 1 file, all docs (*.md)\nAC0001 moves to done.\ngithub: pushed", err: "" });
 });
 
 test("the always-review list: review.alwaysReview replaces the default, and delivery.alwaysReview answers the paths on it", async (t) => {

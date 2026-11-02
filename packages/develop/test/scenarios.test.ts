@@ -62,10 +62,7 @@ const KIND = "- Kind: <!-- feat | fix | security | perf | refactor | test | docs
 const DECISION = "<!-- - YYYY-MM-DD: one decision the human made, in one line. -->";
 const APPROVED = "- 2026-10-21: The owner approved it.\n";
 const SH0004 = "spec/features/SH0004-show-the-cart-s-total-with-tax/ticket.md";
-const SH0005 = "spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice";
-const SH0006 = "spec/features/SH0006-count-the-items-per-order-in-the-sales-report";
 const SH0011 = "spec/features/SH0011-warn-when-a-product-has-no-image/ticket.md";
-const AR0090 = "spec/features/AR0090-name-the-machine-in-arthur-jobs/outcome.md";
 const AR0091 = "'Ticket: spec/features/AR0091-sort-arthur-jobs-by-machine/ticket.md'";
 const CHECK_FAILED = `'npm test failed on main after the merge: test/catalog.test.ts:77, a product named with spaces around it is listed untrimmed (expected Blue mug, got " Blue mug"). Fix it, run the checks, commit, and end.'`;
 // A ticket `arthur ticket new` made, filled as a procedure asks: its kind under the Goal and its source under the Decisions.
@@ -101,15 +98,11 @@ const retro = (...extra: Step[]): Step[] => [
 const restart = (...extra: Step[]): Step[] => [
 	{ bash: "arthur jobs" },
 	{ bash: "arthur merge 5c6d7e8f" },
-	{ edit: AR0090, find: "- feat(AR0090): name the machine in arthur jobs", replace: "- `packages/core/src/job-records.ts`: arthur jobs names the machine of each job." },
-	commit("AR0090 merged"),
 	{ bash: `arthur spawn ${AR0091}` },
 	...extra,
 	{ reply: "AR0090 is merged: arthur jobs names each job's machine. AR0091, sorting arthur jobs by machine, is unblocked, but its start waits for arthur run to restart on the new code: systemctl --user restart arthur, once no job runs." },
 ];
 const QUESTIONS = ["1. Who reads the blog?", "2. Is a post changed after it is published?", "3. Which languages?", "4. Must a post have an image?", "5. Who approves a post?", "6. Are old posts removed?"];
-const FINDINGS =
-	"# SH0006 - Findings\n\n## F1. The count reads each order's items twice\n\n- Kind: refactor\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `src/report.ts:88`\n- What: the count reads each order's items once for the total and once for the column.\n- Suggestion: one pass.\n- Status: ticket SH0016\n\n## F2. No test of an order with no items\n\n- Kind: test\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `test/report.test.ts:140`\n- What: the report shows 0 for an order with no items, and no test holds it.\n- Suggestion: a test of that order.\n- Status: ticket SH0017\n";
 
 const ACTS: Readonly<Record<string, Act>> = {
 	"delivery/worker-done": {
@@ -131,28 +124,15 @@ const ACTS: Readonly<Record<string, Act>> = {
 		fails: [`${SH0011} does not match /^## Done means`, `${SH0011} does not match /^## Decisions`, "refs/heads/main stayed at "],
 	},
 	"delivery/review-pass": {
-		right: [
-			{ bash: "arthur ticket file SH0005 1f2e3d4c" },
-			commit("SH0005: review 1 filed"),
-			{ bash: "arthur prune 1f2e3d4c" },
-			{ bash: "arthur merge --auto 4d5e6f70" },
-			{ edit: `${SH0005}/outcome.md`, find: "- feat(SH0005): name the removed item in the undo notice", replace: "- `src/cart-notice.ts`: the undo notice names the removed item." },
-			commit("SH0005 merged"),
-			{ reply: "SH0005 is merged without you: the cart's undo notice names the item removed." },
-		],
-		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, { bash: "git add -A && git commit -qm filed" }, { bash: "arthur prune 1f2e3d4c" }, { reply: "SH0005 passed its review; its merge waits for you." }],
-		fails: ["origin:refs/heads/main stayed at ", "no call matches /^arthur merge (?=.*--auto)"],
+		// With autoMerge on, delivery merges the branch itself (`arthur merge --help`, "On its own"); the merge files and prunes the review.
+		right: [{ reply: "SH0005, the cart's undo notice naming the removed item, passed its review; Arthur merges it on its own, and I tell you once it is in." }],
+		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, commit("SH0005: review 1 filed"), { bash: "arthur prune 1f2e3d4c" }, { bash: "arthur merge --auto 4d5e6f70" }, { reply: "SH0005 is merged without you." }],
+		fails: ["refs/heads/main moved", "arthur merge --auto 4d5e6f70 matches /^arthur merge /", "arthur ticket file SH0005 1f2e3d4c matches /^arthur ticket file /", "arthur prune 1f2e3d4c matches /^arthur prune /"],
 	},
 	"delivery/review-pass-hook": {
-		right: [
-			{ bash: "arthur ticket file SH0012 3a4b5c6d" },
-			commit("SH0012: review 1 filed"),
-			{ bash: "arthur prune 3a4b5c6d" },
-			{ bash: "arthur merge --auto c9d0e1f2" },
-			{ reply: "SH0012, the support role's answer to a refund question, passed its review; it changes a role, so its merge waits for your word: merge SH0012." },
-		],
+		right: [{ reply: "SH0012, the support role's answer to a refund question, passed its review; it changes a role, so its merge waits for your word: merge SH0012." }],
 		wrong: [{ bash: "arthur merge --auto c9d0e1f2" }, { bash: "arthur merge c9d0e1f2" }, { reply: "Merged." }],
-		fails: ["arthur merge c9d0e1f2 matches /^arthur merge (?!.*--auto)/", "the reply does not match /SH0012/"],
+		fails: ["arthur merge --auto c9d0e1f2 matches /^arthur merge /", "arthur merge c9d0e1f2 matches /^arthur merge /", "the reply does not match /SH0012/"],
 	},
 	"delivery/review-fail-handed-back": {
 		right: [{ bash: "arthur prune 9a8c7e61" }, { reply: "SH0004's review failed: the cart rounds each line where the receipt rounds the total once. Its worker fixes it, and the next review starts by itself." }],
@@ -161,27 +141,18 @@ const ACTS: Readonly<Record<string, Act>> = {
 	},
 	"delivery/review-fail-continue": {
 		right: [
-			{ edit: SH0004, find: APPROVED, replace: `${APPROVED}- 2026-10-22: The owner chose a third review round after two FAILs.\n` },
-			commit("SH0004: a third round"),
+			{ edit: SH0004, find: APPROVED, replace: `${APPROVED}- 2026-10-22: The owner chose a fifth review round after four FAILs.\n` },
+			commit("SH0004: a fifth round"),
 			{ bash: "arthur continue 7b2e4d11 'Review 2c3d4e5f says FAIL: round the tax half up, as src/receipt.ts:20 does (src/cart.ts:44). Fix it, run the checks, commit, and end.'" },
-			{ reply: "SH0004, the cart's total with tax, goes for a third round: its worker rounds the tax half up, then I review it again." },
+			{ reply: "SH0004, the cart's total with tax, goes for a fifth round: its worker rounds the tax half up, then I review it again." },
 		],
-		wrong: [{ bash: "arthur review 7b2e4d11 --round 3" }, { reply: "SH0004's third review started." }],
-		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 3 matches /^arthur review/"],
+		wrong: [{ bash: "arthur review 7b2e4d11 --round 5" }, { reply: "SH0004's fifth review started." }],
+		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 5 matches /^arthur review/"],
 	},
 	"delivery/merge": {
-		right: [
-			{ bash: "arthur jobs" },
-			{ bash: "arthur merge 8e9f0a1b" },
-			{ edit: `${SH0006}/outcome.md`, find: "- feat(SH0006): count the items per order in the sales report", replace: "- `src/report.ts`: the sales report's Items column, the sum of each order's quantities." },
-			{ bash: "arthur ticket new 'Count the items of each order in one pass'" },
-			{ bash: "arthur ticket new 'Test the sales report on an order with no items'" },
-			{ write: `${SH0006}/findings.md`, text: FINDINGS },
-			commit("SH0006 merged"),
-			{ reply: "SH0006 is merged: the sales report counts each order's items. Its review's two notes are planning tickets: SH0016 counts them in one pass, SH0017 tests an order with no items." },
-		],
-		wrong: [{ bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged." }],
-		fails: [`${SH0006}/findings.md is missing`, `${SH0006}/outcome.md does not match `, "refs/heads/main stayed at ", "origin:refs/heads/main stayed at ", "no call matches /^arthur ticket new / after arthur merge 8e9f0a1b"],
+		right: [{ bash: "arthur jobs" }, { bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged: the sales report counts each order's items. Its review's risk note is planning ticket SH0016: no test covers an order with no items." }],
+		wrong: [{ bash: "arthur merge 8e9f0a1b" }, { bash: "arthur ticket new 'Test an order with no items'" }, { reply: "SH0006 is merged." }],
+		fails: ["arthur ticket new Test an order with no items matches /^arthur ticket new /", "the reply does not match /SH0016/"],
 	},
 	"delivery/check-failed": {
 		right: [

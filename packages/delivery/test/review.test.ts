@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
+import { setImmediate as tick } from "node:timers/promises";
 import { coreVersion } from "@arthur/core";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
+import { startWait } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
 import { handBack } from "../src/hand-back.ts";
 import { reviewTask, worker as workerOf } from "../src/review-command.ts";
@@ -16,12 +17,14 @@ const FOLDER = "spec/features/AC0001-shop";
 const TICKET = `${FOLDER}/ticket.md`;
 const OTHER = "spec/features/AC0002-other/ticket.md";
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/review-limit.md", import.meta.url), "utf8").trim();
+// The worker's rule (packages/core/roles/worker.md), word for word: omp ends a bash call at 300 s when it names no timeout (AR0566).
+const TIMEOUT_RULE = "\n- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.\n";
 
 // The repository `acme` (prefix AC): ticket AC0001, labelled os=macos, and AC0002, both planned; the repository `beta` (prefix
 // BE), whose HEAD holds AC0001's ticket file and no board entry; delivery set up on the fake host with its project list, and
-// with `start` started as `arthur run` starts it, so it hands a FAIL back. `worker()` runs a worker on AC0001 and commits a
-// file on its branch, as a worker would; `review(message, ...args)` runs `arthur review` with the fake agent playing a
-// reviewer whose final message is `message`.
+// with `start` started as `arthur run` starts it, so it hands a FAIL back. `worker(task, file)` runs a worker on AC0001 and
+// commits a file on its branch (`<job>.ts` by default), as a worker would; `review(message, ...args)` runs `arthur review` with
+// the fake agent playing a reviewer whose final message is `message`; `setAutoMerge` sets acme's piece, `delivery.project({ autoMerge })`.
 async function load(t: TestContext, { start = false } = {}) {
 	const root = join(temporaryFolder(), "acme");
 	for (const [path, json] of [[TICKET, '{ "id": "AC0001", "requires": { "os": "macos" } }'], [OTHER, '{ "id": "AC0002" }']] as const) {
@@ -49,22 +52,24 @@ async function load(t: TestContext, { start = false } = {}) {
 		process.env.PATH = `${dirname(fakeAgent(run))}${delimiter}${process.env.PATH}`;
 	};
 	const fake = fakeHost({ name: "delivery", root });
-	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }, { name: "beta", path: other, prefix: "BE" }]);
+	let autoMerge: boolean | undefined;
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC", pieces: autoMerge === undefined ? {} : delivery.project({ autoMerge }) }, { name: "beta", path: other, prefix: "BE", pieces: {} }]);
 	const plugin = delivery();
 	await fake.setup(plugin);
 	if (start) await plugin.start?.();
 	const home = dirname(fake.host.folder);
 	const state = (id: string) => (existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "");
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; state(id) !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => state(id) === "ended");
 		fake.emit("job-ended", { id, state: "ended" });
 	};
-	const worker = async (task = `Ticket: ${TICKET}`) => {
+	const worker = async (task = `Ticket: ${TICKET}`, file?: string) => {
 		agent({ steps: [{ message: "Done.\nTicket: spec/features/AC0002-other/ticket.md was not touched." }] });
 		const job = await fake.host.jobs.spawn({ task });
 		await ended(job.id);
-		writeFileSync(join(job.worktree, `${job.id}.ts`), "export const shop = 1;\n");
-		git(job.worktree, "add", `${job.id}.ts`);
+		const path = file ?? `${job.id}.ts`;
+		writeFileSync(join(job.worktree, path), "export const shop = 1;\n");
+		git(job.worktree, "add", path);
 		git(job.worktree, "commit", "--quiet", "-m", "shop");
 		return { id: job.id, branch: job.branch ?? "", commit: git(root, "rev-parse", job.branch ?? "") };
 	};
@@ -89,11 +94,7 @@ async function load(t: TestContext, { start = false } = {}) {
 		const record: unknown = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
 		return typeof record === "object" && record !== null && "step" in record ? record.step : undefined;
 	};
-	return { root, other, fake, git, worker, review, status, home, state, ended, agent, field, step, plugin };
-}
-
-async function until(what: string, holds: () => boolean) {
-	for (const deadline = Date.now() + 15_000; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+	return { root, other, fake, git, worker, review, status, home, state, ended, agent, field, step, plugin, setAutoMerge: (value: boolean | undefined) => void (autoMerge = value) };
 }
 
 test("the verdict is the last line, exactly PASS or FAIL; anything else is none", () => {
@@ -122,6 +123,9 @@ test("a PASS review runs on the branch's tip with its ticket, moves the ticket t
 	const task = readFileSync(join(home, "jobs", passed.id, "task"), "utf8");
 	assert.equal(task.split("\n\n")[0], `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`);
 	assert.match(task, new RegExp(`## The worker's final message \\(job ${job.id}\\)\n\nDone.\nTicket\\\\: spec/features/AC0002`));
+	const prompt = readFileSync(join(home, "jobs", passed.id, "prompt"), "utf8");
+	assert.ok(prompt.includes(TIMEOUT_RULE), "the worker's timeout rule");
+	assert.doesNotMatch(prompt, /proc:\/\/|sleep 30/, "no wait on proc://, which the job sandbox refuses");
 	assert.equal(git(readFileSync(join(home, "jobs", passed.id, "worktree"), "utf8"), "rev-parse", "HEAD"), job.commit, "the review's checkout is the tip");
 	assert.equal(status("AC0001"), "done");
 	assert.deepEqual(
@@ -143,7 +147,7 @@ test("PASS not on the last line is no verdict: the run ends failed, the ticket s
 	const reason = "failed: no verdict: the last line of its final message is not PASS or FAIL alone";
 	assert.equal(readFileSync(join(home, "jobs", none.id, "reason"), "utf8"), reason, "the core's record says the review failed");
 	assert.equal(status("AC0001"), "review");
-	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id}: no verdict, so the review failed: .* Review again with arthur review ${job.id}, then arthur prune ${none.id}\\.$`));
+	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone though Arthur resumed it once for that already, or its run did not finish\\. .* Review again with arthur review ${job.id}, then arthur prune ${none.id}\\.$`));
 	assert.throws(() => fake.host.jobs.file("AC0001", none.id), { message: `${none.id} ended ended (${reason}), not finished: its result is unfinished and is never filed; prune it` });
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined], "a worker's wake gets nothing");
@@ -162,7 +166,11 @@ test("a review in no home, an eval's, is worded from the record its data names a
 	const wake = (job: object, result: unknown) => fake.collect("coordinator.wake", job, result)[0];
 	const file = `File it: arthur ticket file AC0001 ${id}, commit it, then arthur prune ${id}.`;
 	assert.equal(wake(ended, "Clean.\n\nPASS"), `Review verdict: PASS on ${branch} at 9c1d2e3; AC0001 moves to done. ${file}`);
-	assert.equal(wake({ ...ended, records: records({ ...given, autoMerge: true }) }, "Clean.\n\nPASS"), `Review verdict: PASS on ${branch} at 9c1d2e3; AC0001 moves to done. ${file} acme merges on its own (autoMerge): after that commit, arthur merge --auto 2026-10-22-worker-4d5e6f70.`);
+	assert.equal(
+		wake({ ...ended, records: records({ ...given, autoMerge: true }) }, "Clean.\n\nPASS"),
+		`Review verdict: PASS on ${branch} at 9c1d2e3; AC0001 moves to done. acme merges on its own (autoMerge): delivery runs arthur merge --auto 2026-10-22-worker-4d5e6f70, whose merge files and prunes this review, and wakes you with what it printed; nothing to do until then.`,
+		"no filing and no merge of the coordinator's, which would race the merge on main",
+	);
 	assert.match(String(wake(ended, "Rounds each line.\n\nFAIL")), new RegExp(`^Review verdict: FAIL on ${branch} at 9c1d2e3, 1 since its last PASS; AC0001 moves back to in-progress\\. .* It hands the branch back: `));
 	assert.match(String(wake(ended, "PASS\n\nAll good.")), new RegExp(`^Review ${id}: no verdict, so the review failed: `));
 	assert.match(String(wake({ ...ended, reason: "limit: budget" }, "Clean.\n\nPASS")), new RegExp(`^Review ${id}: no verdict, `), "a run that did not finish has none");
@@ -178,7 +186,7 @@ test("a review in no home, an eval's, is worded from the record its data names a
 	assert.match(String(wake(ended, "Clean.\n\nPASS")), /AC0002 stays at review/);
 });
 
-test("a FAIL moves the ticket back to in-progress and pushes nothing; a third review after 2 FAILs is refused naming both, until --round 3", async (t) => {
+test("a FAIL moves the ticket back to in-progress and pushes nothing; a fifth review after 4 FAILs is refused naming them, until --round 5", async (t) => {
 	const { root, fake, worker, review, status, home } = await load(t);
 	const pushes: unknown[] = [];
 	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
@@ -194,17 +202,24 @@ test("a FAIL moves the ticket back to in-progress and pushes nothing; a third re
 		`Review verdict: FAIL on ${job.branch} at ${job.commit.slice(0, 7)}, 1 since its last PASS; AC0001 moves back to in-progress. ${filed(first.id)} It hands the branch back: ${job.id} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.`,
 	);
 	assert.equal((await review("x\nFAIL", job.id, "--round", "3")).err, `arthur review: refused by delivery: round 3 is not the next one of ${job.branch}: it has 1 FAIL since its last PASS, so the next round is 2`);
-	const second = await review("Still missing.\n\nFAIL", job.id);
-	assert.ok(wake(second.id).endsWith(`2 since its last PASS; AC0001 moves back to in-progress. ${filed(second.id)} The hand-back stops at the limit.\n\n${PROCEDURE}`), "the second FAIL's wake carries the procedure");
+	const fails = [first.id];
+	for (const round of [2, 3, 4]) {
+		const failed = await review(`Still missing, round ${round}.\n\nFAIL`, job.id);
+		assert.equal(failed.code, undefined, `round ${round} starts without --round: ${failed.err}`);
+		fails.push(failed.id);
+		const line = `${round} since its last PASS; AC0001 moves back to in-progress. ${filed(failed.id)}`;
+		if (round < 4) assert.ok(wake(failed.id).endsWith(`${line} It hands the branch back: ${job.id} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.`), `FAIL ${round} hands back`);
+		else assert.ok(wake(failed.id).endsWith(`${line} The hand-back stops at the limit.\n\n${PROCEDURE}`), "the fourth FAIL's wake carries the procedure");
+	}
 	const refused = await review("PASS", job.id);
 	assert.equal(refused.code, 1);
-	const reason = `refused by delivery: 2 FAILs on ${job.branch} since its last PASS: ${first.id}, ${second.id}; the owner decides what comes next, and only on his word: arthur review ${job.id} --round 3`;
+	const reason = `refused by delivery: 4 FAILs on ${job.branch} since its last PASS: ${fails.join(", ")}; the owner decides what comes next, and only on his word: arthur review ${job.id} --round 5`;
 	assert.equal(refused.err, `arthur review: ${reason}\n\n${PROCEDURE}`);
 	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`, kind: "review" }), { message: reason });
 	rmSync(join(home, "jobs", first.id), { recursive: true });
 	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`, kind: "review" }), { message: reason }, "a FAIL counts once its job record is pruned");
-	const third = await review("Fixed.\n\nPASS", job.id, "--round", "3");
-	assert.equal(third.code, undefined, third.err);
+	const fifth = await review("Fixed.\n\nPASS", job.id, "--round", "5");
+	assert.equal(fifth.code, undefined, fifth.err);
 	assert.equal(status("AC0001"), "done");
 	const after = await review("Looked again.\n\nFAIL", job.id);
 	assert.equal(after.code, undefined, "a PASS starts the count again");
@@ -332,8 +347,8 @@ test("a review is refused in a project other than its worker's, though that proj
 const reviews = (fake: { readonly host: { readonly jobs: { list(): readonly { readonly id: string; readonly kind: string }[] } } }) =>
 	fake.host.jobs.list().filter((each) => each.kind === "review").map((each) => each.id);
 
-test("in arthur run a FAIL is filed, its worker continued with the findings and a new budget, reviewed again at its end; the second FAIL stops at the limit", async (t) => {
-	const { root, fake, worker, review, home, ended, field, step } = await load(t, { start: true });
+test("in arthur run a FAIL is filed, its worker continued with the findings and a new budget, reviewed again at its end; rounds 3 and 4 start by themselves; the fourth FAIL stops at the limit", async (t) => {
+	const { root, fake, worker, review, home, ended, field, step, agent, state } = await load(t, { start: true });
 	const job = await worker();
 	writeFileSync(join(home, "jobs", job.id, "cost"), "1.25");
 	// The reviewer's run plays for the continued worker and the next review too: each ends on FAIL.
@@ -349,11 +364,27 @@ test("in arthur run a FAIL is filed, its worker continued with the findings and 
 	assert.match(String(fake.collect("coordinator.wake", { id: job.id, kind: "worker" })[0]), new RegExp(`^${job.id} is in delivery's hand-back after FAIL ${first.id}: delivery starts the next review of ${job.branch} itself when a slot is free; run no arthur review-needed or arthur review for it\\.$`));
 	const [next = ""] = reviews(fake).filter((id) => id !== first.id);
 	assert.equal(readFileSync(join(home, "jobs", next, "task"), "utf8").split("\n\n")[0], `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`);
-	await ended(next);
-	await until("the second FAIL filed and the hand-back ended", () => existsSync(join(root, FOLDER, "review-2.md")) && step(job.id) === undefined);
-	assert.equal(reviews(fake).length, 2, "no third review");
-	assert.equal(field(job.id, "budget"), "3.25", "not continued again");
-	assert.match(String(fake.collect("coordinator.wake", { id: next, kind: "review" })[0]), new RegExp(`2 since its last PASS; .* The hand-back stops at the limit\\.\n\n${PROCEDURE.slice(0, 20)}`));
+	const wake = (id: string) => String(fake.collect("coordinator.wake", { id, kind: "review" })[0]);
+	const seen = [first.id, next];
+	let current = next;
+	for (const round of [2, 3]) {
+		// FAIL `round` ends: the worker is continued with its findings and ends; then review `round + 1` starts by itself.
+		await until(`review ${round}'s run`, () => state(current) === "ended");
+		agent({ steps: [{ message: `Fixed for round ${round + 1}.` }] });
+		fake.emit("job-ended", { id: current, state: "ended" });
+		await until(`FAIL ${round} filed and the continued run's end`, () => existsSync(join(root, FOLDER, `review-${round}.md`)) && fake.host.jobs.result(job.id) === `Fixed for round ${round + 1}.`);
+		assert.match(field(job.id, "continue") ?? "", new RegExp(`^Review ${current} of your branch ${job.branch} says FAIL\\. `));
+		assert.match(wake(current), new RegExp(`, ${round} since its last PASS; .* It hands the branch back: `));
+		agent({ steps: [{ message: "Missing test.\n\nFAIL" }] });
+		await ended(job.id);
+		await until(`review ${round + 1}`, () => reviews(fake).length === round + 1);
+		current = reviews(fake).find((id) => !seen.includes(id)) ?? "";
+		seen.push(current);
+	}
+	await ended(current);
+	await until("the fourth FAIL filed and the hand-back ended", () => existsSync(join(root, FOLDER, "review-4.md")) && step(job.id) === undefined);
+	assert.equal(reviews(fake).length, 4, "no fifth review");
+	assert.match(wake(current), new RegExp(`4 since its last PASS; .* The hand-back stops at the limit\\.\n\n${PROCEDURE.slice(0, 20)}`));
 	assert.equal(fake.collect("coordinator.wake", { id: job.id, kind: "worker" })[0], undefined);
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message"), [], "the repeated end of the first review did nothing");
 });
@@ -572,4 +603,182 @@ test("a worker's run that ends blocked keeps its hand-back, one that fails ends 
 	await ended(failed.id);
 	await until("the failed run ended the hand-back", () => step(failed.id) === undefined);
 	assert.equal(reviews(fake).length, count, "no review of a run that failed");
+});
+
+// `arthur` as `arthur run` starts it for a merge: the core's CLI in the folder the test then runs in, as `arthur run` runs in its
+// config's. That config loads a fake `merge`, which notes its arguments, prints `out` and `err` and exits `code` as `answer` sets.
+function fakeMerge(t: TestContext) {
+	const folder = temporaryFolder();
+	const [log, answer] = [join(folder, "asked"), join(folder, "answer.json")];
+	writeFileSync(join(folder, "merge.md"), "# arthur merge\n");
+	const merge = `{ name: "merge", doc: new URL("./merge.md", import.meta.url), run({ args }) { appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + "\\n"); const { out, err, code } = JSON.parse(readFileSync(${JSON.stringify(answer)}, "utf8")); process.stdout.write(out); process.stderr.write(err); return code; } }`;
+	writeFileSync(join(folder, "arthur.config.ts"), `import { appendFileSync, readFileSync } from "node:fs";\nexport default { plugins: [{ name: "orchestration", setup() {} }, { name: "fake", setup(host) { host.commands.register(${merge}); } }] };\n`);
+	const cwd = process.cwd();
+	process.chdir(folder);
+	t.after(() => process.chdir(cwd));
+	return {
+		answer: (out: string, err: string, code: number) => writeFileSync(answer, JSON.stringify({ out, err, code })),
+		asked: () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []),
+	};
+}
+
+const told = (fake: { readonly emitted: readonly { readonly name: string; readonly data: unknown }[] }) =>
+	fake.emitted.flatMap(({ name, data }) => (name === "coordinator-message" && typeof data === "object" && data !== null && "text" in data ? [String(data.text)] : []));
+// The causes delivery forwarded for a job, as `<folder>/<job>/forwarded` keeps them; read once the event's handler has run.
+const forwarded = async (folder: string, id: string) => {
+	await tick();
+	return existsSync(join(folder, id, "forwarded")) ? readFileSync(join(folder, id, "forwarded"), "utf8") : "";
+};
+
+test("in arthur run with autoMerge on, a PASS and then CI passed on a waiting branch each run arthur merge --auto as a child and wake the coordinator once with what it printed; a repeated end runs none, nor a PASS without autoMerge", async (t) => {
+	const merge = fakeMerge(t);
+	const { fake, worker, review, setAutoMerge } = await load(t, { start: true });
+	const off = await worker();
+	const unmerged = await review("Clean.\n\nPASS", off.id);
+	assert.match(String(fake.collect("coordinator.wake", { id: unmerged.id, kind: "review" })[0]), /File it: arthur ticket file AC0001 /, "without autoMerge the coordinator files it");
+	assert.equal(await forwarded(fake.host.folder, off.id), "", "and no merge runs");
+	setAutoMerge(true);
+	const job = await worker(`Ticket: ${OTHER}`);
+	merge.answer("merged arthur/x into main: 1a2b3c4\n\n# After a merge that went in\n", "", 0);
+	const passed = await review("Clean.\n\nPASS", job.id);
+	await until("the coordinator woken", () => told(fake).length === 1);
+	assert.deepEqual(merge.asked(), [["--auto", job.id]]);
+	const ran = `acme merges on its own (autoMerge), so delivery ran arthur merge --auto ${job.id}`;
+	assert.deepEqual(told(fake), [`Review ${passed.id} says PASS on AC0002, ${job.branch} at ${job.commit.slice(0, 7)}. ${ran}: it went in; follow the procedure it printed last. What it printed:\n\nmerged arthur/x into main: 1a2b3c4\n\n# After a merge that went in`]);
+	assert.match(String(fake.collect("coordinator.wake", { id: passed.id, kind: "review" })[0]), new RegExp(`moves to done\\. acme merges on its own \\(autoMerge\\): delivery runs arthur merge --auto ${job.id}, `));
+	fake.emit("job-ended", { id: passed.id, state: "ended" });
+	assert.equal(await forwarded(fake.host.folder, job.id), `${passed.id}\n`, "the repeated end runs no second merge");
+	// CI passed on the branch a refused --auto left waiting: the merge runs again, its refusal one wake.
+	merge.answer("", "arthur merge: --auto merges no held path: x changes roles/a.md (a role); its merge waits for the owner: arthur merge x on his word; main is unchanged\n", 1);
+	startWait(fake.host, { job: job.id, project: "acme", branch: job.branch, tip: job.commit, own: 1 });
+	const run = { id: 7, attempt: 1, sha: job.commit, branch: job.branch, status: "completed", conclusion: "success", url: "https://github.com/acme/shop/actions/runs/7", startedAt: "2026-01-01T00:00:00Z", below: 0 };
+	assert.deepEqual(fake.collect("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run }), [true]);
+	await until("the coordinator woken again", () => told(fake).length === 2);
+	assert.deepEqual(merge.asked(), [["--auto", job.id], ["--auto", job.id]]);
+	assert.equal(
+		told(fake)[1],
+		`CI passed on ${job.branch} (run 7, attempt 1, on ${job.commit.slice(0, 7)}): ${run.url}. ${ran}: exit 1, it did not go in; act on its last line as arthur merge --help, "What the coordinator does with the result", says. What it printed:\n\narthur merge: --auto merges no held path: x changes roles/a.md (a role); its merge waits for the owner: arthur merge x on his word; main is unchanged`,
+	);
+	// A rerun that passes, attempt 2 of the same run: its own cause, so the merge runs again and wakes the coordinator again.
+	assert.deepEqual(fake.collect("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run: { ...run, attempt: 2 } }), [true]);
+	assert.equal(await forwarded(fake.host.folder, job.id), `${passed.id}\nci 7/1\nci 7/2\n`, "each run attempt is a cause of its own");
+	await until("the coordinator woken a third time", () => told(fake).length === 3);
+	assert.equal(merge.asked().length, 3);
+	assert.match(told(fake)[2] ?? "", new RegExp(`^CI passed on ${job.branch} \\(run 7, attempt 2, `));
+});
+
+test("a no review of arthur review-needed, in its own process, is merged by arthur run once it starts, with one wake; the same answer again runs none", async (t) => {
+	const merge = fakeMerge(t);
+	const { fake, worker, setAutoMerge, plugin } = await load(t);
+	setAutoMerge(true);
+	const job = await worker(undefined, "notes.md");
+	merge.answer("", "arthur merge: --auto merges only with CI passed on the branch: no run built the tip yet; it waits: when that run ends, the coordinator is woken with its verdict; main is unchanged\n", 1);
+	const needed = async () => {
+		const out: string[] = [];
+		t.mock.method(console, "log", (text: string) => out.push(text));
+		await fake.commands.find((each) => each.name === "review-needed")?.run({ args: [job.id], project: undefined });
+		t.mock.restoreAll();
+		return out.join("\n");
+	};
+	assert.equal(await needed(), `no review: 1 file, all docs (*.md)\nAC0001 moves to done.\nacme merges on its own (autoMerge): arthur run runs arthur merge --auto ${job.id} and wakes you with what it printed; nothing to do until then.`);
+	assert.equal(await forwarded(fake.host.folder, job.id), "", "a process arthur run did not start runs no merge");
+	await plugin.start?.();
+	await until("the coordinator woken", () => told(fake).length === 1);
+	assert.deepEqual(merge.asked(), [["--auto", job.id]]);
+	assert.match(told(fake)[0] ?? "", new RegExp(`^arthur review-needed answered no review for AC0001, ${job.branch} at ${job.commit.slice(0, 7)}\\. acme merges on its own \\(autoMerge\\), so delivery ran arthur merge --auto ${job.id}: exit 1, it did not go in; .*What it printed:\n\narthur merge: --auto merges only with CI passed on the branch: no run built the tip yet; `));
+	await needed();
+	assert.equal(await forwarded(fake.host.folder, job.id), `no review ${job.commit}\n`, "the same answer on the same tip runs no second merge");
+	// An event of another shape, or naming no job, as a hand-written line in the log could: nothing runs.
+	fake.emit("no-review", { id: job.id, project: "acme", ticket: "AC0001", branch: job.branch });
+	for (const id of ["../outside", "--unreviewed"]) fake.emit("no-review", { id, project: "acme", ticket: "AC0001", branch: job.branch, commit: "f".repeat(40) });
+	assert.equal(await forwarded(fake.host.folder, job.id), `no review ${job.commit}\n`, "no commit, no merge");
+	assert.deepEqual([existsSync(join(fake.host.folder, "..", "outside")), existsSync(join(fake.host.folder, "--unreviewed"))], [false, false], "an id that is no job's is never a path or a flag");
+});
+
+// The hand-back's continue of a worker whose tip's checks did not pass, after the refusal.
+const RUN_CHECKS =
+	"Commit your work, then run the project's check, test and mutate scripts (npm run check, npm test, npm run mutate) on the committed tip, change nothing after them, name each mutant that survives in your final message, and end: Arthur reviews the branch when you end.";
+
+test("a review starts only on a tip whose check, test and mutate passed there: arthur review refuses one without each, the hand-back continues its worker once to run them, and a second miss goes to the coordinator", async (t) => {
+	const { root, fake, git, worker, review, home, ended, field, step, agent, state } = await load(t, { start: true });
+	writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts: { check: "tsc", test: "node --test", mutate: "node mutate.ts" } })}\n`);
+	git(root, "add", "package.json");
+	git(root, "commit", "--quiet", "-m", "scripts");
+	const old = git(root, "rev-parse", "HEAD");
+	const job = await worker();
+	const tip = job.commit;
+	const checks = (lines: string) => (mkdirSync(join(fake.host.folder, job.id), { recursive: true }), writeFileSync(join(fake.host.folder, job.id, "checks"), lines));
+	// Each on the tip's clean tree: mutate with survivors left, which the worker names.
+	const passing = (at: string) => `check pass ${at} clean\ntest pass 3/3 ${at} clean\nmutate fail ${at} clean\n`;
+	const refusal = (at: string, gaps: string) => `${job.branch} at ${at.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran): ${gaps}`;
+	const moved = (from: string) => ["check", "test", "mutate"].map((script) => `${script} ran on ${from.slice(0, 7)}, not the tip`).join(", ");
+	for (const [lines, gaps] of [
+		["", "no check, no test, no mutate"],
+		[`test pass 3/3 ${tip} clean\nmutate pass ${tip} clean\n`, "no check"],
+		[`check pass ${tip} clean\nmutate pass ${tip} clean\n`, "no test"],
+		[`check pass ${tip} clean\ntest pass 3/3 ${tip} clean\n`, "no mutate"],
+		[passing(tip).replace("check pass", "check fail"), "check fail"],
+		[passing(tip).replace("test pass 3/3", "test fail 2/3"), "test fail 2/3"],
+		[passing(tip).replace(`test pass 3/3 ${tip} clean`, `test pass 3/3 ${tip} dirty`), "test ran on a dirty tree"],
+		[passing(tip).replace(`mutate fail ${tip}`, `mutate fail ${old}`), `mutate ran on ${old.slice(0, 7)}, not the tip`],
+	] as const) {
+		checks(lines);
+		const refused = await review("PASS", job.id);
+		assert.deepEqual([refused.code, refused.err], [1, `arthur review: ${refusal(tip, gaps)}`], JSON.stringify(lines));
+	}
+	assert.deepEqual(reviews(fake), [], "no review job for a tip without its checks");
+	checks(passing(tip));
+	const first = await review("Missing test.\n\nFAIL", job.id);
+	await until("the worker continued with the findings", () => step(job.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	// The worker's fix, committed, so its tip moved and the old tip's checks count no more.
+	const worktree = field(job.id, "worktree") ?? "";
+	const commit = (name: string) => {
+		writeFileSync(join(worktree, name), "export const fix = 1;\n");
+		git(worktree, "add", name);
+		git(worktree, "commit", "--quiet", "-m", name);
+		return git(root, "rev-parse", job.branch);
+	};
+	const second = commit("fix.ts");
+	agent({ steps: [{ message: "Checks run." }] });
+	await ended(job.id);
+	await until("the worker continued to run its checks", () => field(job.id, "continue") === `Arthur starts no review yet: ${refusal(second, moved(tip))}. ${RUN_CHECKS}` && step(job.id) === "continued");
+	assert.deepEqual(reviews(fake), [first.id], "no review of a tip without its checks");
+	// It ran them on its tip: the next review starts there.
+	checks(passing(second));
+	await until("the run of its checks ended", () => fake.host.jobs.result(job.id) === "Checks run.");
+	agent({ steps: [{ message: "Missing test.\n\nFAIL" }] });
+	await ended(job.id);
+	await until("the next review", () => step(job.id) === "reviewing");
+	const [next = ""] = reviews(fake).filter((id) => id !== first.id);
+	assert.equal(readFileSync(join(home, "jobs", next, "task"), "utf8").split("\n\n")[0], `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${second}`);
+	// Its FAIL hands back again: a fix committed, a continue to run the checks, which the worker ends without: the coordinator is told.
+	await until("review 2's run", () => state(next) === "ended");
+	fake.emit("job-ended", { id: next, state: "ended" });
+	await until("the worker continued with review 2's findings", () => field(job.id, "continue")?.startsWith(`Review ${next} `) === true && step(job.id) === "continued");
+	await until("that run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	const third = commit("more.ts");
+	agent({ steps: [{ message: "Checks run." }] });
+	await ended(job.id);
+	await until("the worker continued to run its checks, once in this round too", () => field(job.id, "continue") === `Arthur starts no review yet: ${refusal(third, moved(second))}. ${RUN_CHECKS}` && step(job.id) === "continued");
+	await until("the run of its checks ended", () => fake.host.jobs.result(job.id) === "Checks run.");
+	await ended(job.id);
+	await until("the hand-back ended", () => step(job.id) === undefined);
+	assert.deepEqual(told(fake), [`Delivery's hand-back of ${job.branch} after FAIL ${next} stopped: ${refusal(third, moved(second))}. Hand it back yourself: arthur continue ${job.id} '<the findings of ${next}>', then arthur review ${job.id} once it ends.`]);
+	assert.equal(reviews(fake).length, 2, "no review after the second miss");
+	// A job on another machine writes its checks there: none is asked of it.
+	writeFileSync(join(home, "jobs", job.id, "machine"), "mac");
+	assert.match(reviewTask(fake.host, workerOf(fake.host, job.id), undefined).task, new RegExp(`^Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${third}\n`));
+});
+
+test("a hand-back whose worker's tip cannot be read for its next review stops and tells the coordinator once", async (t) => {
+	const { fake, worker, review, ended, step, home } = await load(t, { start: true });
+	const job = await worker();
+	const failed = await review("Missing test.\n\nFAIL", job.id);
+	await until("the worker continued", () => step(job.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	writeFileSync(join(home, "jobs", job.id, "project"), "gone");
+	await ended(job.id);
+	await until("the hand-back ended", () => step(job.id) === undefined);
+	assert.deepEqual(told(fake), [`Delivery's hand-back of ${job.branch} after FAIL ${failed.id} stopped: ${job.id}'s project gone is not in the project list. Hand it back yourself: arthur continue ${job.id} '<the findings of ${failed.id}>', then arthur review ${job.id} once it ends.`]);
 });

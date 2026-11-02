@@ -2,43 +2,78 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 // The rules that keep Arthur small (spec/roadmap.md, entry 1), checked over one repository tree.
-// Each problem is one line: the file, then the rule it breaks. The line budgets come from the caller.
+// Each problem is one line: the file, then the rule it breaks. The line budgets and fixed-wait baselines come from the caller.
 
-const MAX_FILE_LINES = 200;
+// A source file's zones (AR0495): green up to 200 lines, yellow up to 220, red up to 250 only when listed, never above.
+const GREEN_LINES = 200;
+const YELLOW_LINES = 220;
+const MAX_FILE_LINES = 250;
+// A line counts once per 160 characters begun (AR0582), toward the zones and the budgets: a longer line is not a way around them.
+const LINE_WIDTH = 160;
 const CODE = /\.[cm]?[jt]s$/;
 const BANNED_NAMES = /^(index|types|utils)\.[cm]?[jt]s$/;
 const RUNTIME_KEYS = ["dependencies", "optionalDependencies", "peerDependencies"];
 const TOOLCHAIN = ["typescript", "@types/node"];
 const LICENSE = "Apache-2.0";
 // The core's test kit: it never runs in production, so its lines count against a budget of their own, `core/testing`.
-const TEST_KIT = [join("src", "testing.ts"), join("src", "fake-agent.ts")];
+const TEST_KIT = [join("src", "testing.ts"), join("src", "test-env.ts"), join("src", "fake-agent.ts"), join("src", "until.ts")];
 // String literals and comments; strings come first so that `//` inside a string stays part of it.
 const TOKENS = /"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
 const SPECIFIER = /(?:\bfrom|\bimport|\brequire)\s*\(?\s*(["'])([^"'\n]+)\1/g;
 const CLASS = /\bclass\b\s*[A-Za-z_${]/;
 const ENUM = /\benum\b\s*[A-Za-z_$]/;
+// A test waits with the kit's `until` (AR0578): a test file declares no `until` of its own and no loop that sleeps, and holds
+// no more fixed waits than its baseline. Strings and comments do not count: a script a test writes may sleep.
+const OWN_UNTIL = /\bfunction\s+until\b|\b(?:const|let|var)\s+until\s*=/;
+const POLL = /\b(?:for|while)\s*\([^\n]*\b(?:sleep|setTimeout)\s*\(/;
+const FIXED_WAIT = /\b(?:sleep|setTimeout)\s*\(|\bAtomics\.wait\s*\(/g;
 
 type Report = (path: string, rule: string) => void;
+type Waits = Readonly<Record<string, number>>;
+type TestFile = (file: string, code: string) => void;
+export type Structure = { readonly problems: string[]; readonly zones: string[] };
 type Pkg = { readonly dir: string; readonly name: string; readonly coreExports: readonly string[] };
 
-export function checkStructure(root: string, budgets: Readonly<Record<string, number>>): string[] {
+// `waits`: the fixed waits each test file may hold, by its path from `root`; a file left out may hold none. `red`: the source
+// files allowed in the red zone, by their path from `root`; a listed file not there is a problem too. `zones`: a line for each
+// source file past green, yellow or listed red.
+export function checkStructure(root: string, budgets: Readonly<Record<string, number>>, waits: Waits, red: readonly string[]): Structure {
 	const problems: string[] = [];
+	const zones: string[] = [];
+	const redSeen: string[] = [];
 	const report: Report = (path, rule) => problems.push(`${relative(root, path) || "."}: ${rule}`);
+	const testFile: TestFile = (file, code) => checkTestFile(file, code, waits[relative(root, file).split(sep).join("/")] ?? 0, report);
+	// A source file's zone: a yellow or listed red one gets its line, an unlisted red one or one above red is a problem.
+	const size = (file: string, lines: number) => {
+		const path = relative(root, file).split(sep).join("/");
+		const listed = red.includes(path);
+		if (listed && lines > YELLOW_LINES) redSeen.push(path);
+		if (lines > MAX_FILE_LINES) report(file, `has ${lines} lines; a source file has at most ${MAX_FILE_LINES}, listed in RED_FILES or not`);
+		else if (lines > YELLOW_LINES && !listed)
+			report(file, `has ${lines} lines, red (over ${YELLOW_LINES}); split it, or list it in RED_FILES in test/structure.test.ts with its reason in the ticket's Decisions`);
+		else if (lines > YELLOW_LINES) zones.push(`${path}: ${lines} lines, red (over ${YELLOW_LINES}), listed in RED_FILES`);
+		else if (lines > GREEN_LINES) zones.push(`${path}: ${lines} lines, yellow (over ${GREEN_LINES})`);
+	};
 	checkManifest(join(root, "package.json"), report);
+	const tests = join(root, "test");
+	for (const path of existsSync(tests) ? readdirSync(tests, { recursive: true, encoding: "utf8" }).filter((path) => CODE.test(path)).sort() : [])
+		testFile(join(tests, path), strip(readFileSync(join(tests, path), "utf8"), true));
 	const packages = join(root, "packages");
-	if (!existsSync(packages)) return problems;
+	if (!existsSync(packages)) return { problems, zones };
 	const coreManifest = join(packages, "core", "package.json");
 	const coreExports = exportKeys(existsSync(coreManifest) ? JSON.parse(readFileSync(coreManifest, "utf8")).exports : undefined);
 	for (const name of readdirSync(packages).sort()) {
 		const dir = join(packages, name);
 		if (!statSync(dir).isDirectory()) continue;
 		checkManifest(join(dir, "package.json"), report);
-		checkPackage({ dir, name, coreExports }, budgets, report);
+		checkPackage({ dir, name, coreExports }, budgets, report, testFile, size);
 	}
-	return problems;
+	for (const path of red.filter((path) => !redSeen.includes(path)))
+		problems.push(`${path}: listed in RED_FILES in test/structure.test.ts, but no source file over ${YELLOW_LINES} lines; remove it from the list`);
+	return { problems, zones };
 }
 
-function checkPackage(pkg: Pkg, budgets: Readonly<Record<string, number>>, report: Report): void {
+function checkPackage(pkg: Pkg, budgets: Readonly<Record<string, number>>, report: Report, testFile: TestFile, size: (file: string, lines: number) => void): void {
 	const files = readdirSync(pkg.dir, { recursive: true, encoding: "utf8" })
 		.filter((path) => CODE.test(path) && !path.split(sep).includes("node_modules"))
 		.sort();
@@ -56,11 +91,12 @@ function checkPackage(pkg: Pkg, budgets: Readonly<Record<string, number>>, repor
 			const rule = importRule(pkg, file, match[2] ?? "");
 			if (rule) report(file, rule);
 		}
+		if (path.split(sep)[0] === "test") testFile(file, code);
 		if (path.split(sep)[0] !== "src") continue;
 		const lines = lineCount(text);
 		if (kit.includes(path)) kitLines += lines;
 		else sourceLines += lines;
-		if (lines > MAX_FILE_LINES) report(file, `has ${lines} lines; a source file has at most ${MAX_FILE_LINES}`);
+		size(file, lines);
 	}
 	const budget = budgets[pkg.name];
 	if (budget === undefined) report(pkg.dir, "has no line budget; add one to test/structure.test.ts");
@@ -70,6 +106,13 @@ function checkPackage(pkg: Pkg, budgets: Readonly<Record<string, number>>, repor
 	else if (kitLines > kitBudget) report(pkg.dir, `its test kit (${kit.join(", ")}) has ${kitLines} lines, over its line budget of ${kitBudget}`);
 	if (!files.some((path) => path.startsWith(`test${sep}`) && path.endsWith(".test.ts")))
 		report(pkg.dir, "has no test; a package has at least one test/*.test.ts");
+}
+
+function checkTestFile(file: string, code: string, allowed: number, report: Report): void {
+	if (OWN_UNTIL.test(code)) report(file, "declares its own until; import until from @arthur/core/testing");
+	if (POLL.test(code)) report(file, "has a loop that sleeps; wait with until from @arthur/core/testing");
+	const waits = code.match(FIXED_WAIT)?.length ?? 0;
+	if (waits > allowed) report(file, `has ${waits} fixed waits (sleep, setTimeout, Atomics.wait), over its baseline of ${allowed} in test/structure.test.ts; wait for the state with until`);
 }
 
 function importRule(pkg: Pkg, file: string, specifier: string): string | undefined {
@@ -115,5 +158,6 @@ function strip(text: string, strings: boolean): string {
 
 function lineCount(text: string): number {
 	if (text === "") return 0;
-	return text.split("\n").length - (text.endsWith("\n") ? 1 : 0);
+	const rows = (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n");
+	return rows.reduce((sum, row) => sum + Math.max(1, Math.ceil(row.length / LINE_WIDTH)), 0);
 }

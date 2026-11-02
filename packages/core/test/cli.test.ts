@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { test } from "node:test";
+import { JOB_SCOPE } from "../src/inside-job.ts";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -364,7 +365,7 @@ test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it ru
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`): the mark no process of it can change.
-const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const scope = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in a job's scope the CLI refuses with ARTHUR_JOB cleared once its home holds that job's record; a home without it is another Arthur's coordinator", { skip: scope === undefined && "not run in a job's systemd scope" }, () => {
 	const folder = project();

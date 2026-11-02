@@ -1,11 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Command, Host, JobRecord } from "@arthur/core/plugin";
 import { failsSincePass, LIMIT } from "./review-records.ts";
 
 // `arthur review <worker job> [--round <n>]` (spec/roadmap.md, entry 52): a review of a worker's branch at its tip, its task
 // built here so it carries the ticket, the branch and the commit; refused at the limit with the procedure for the owner's
-// choice. docs/commands/review.md.
+// choice, and before the job's checks passed on the tip (AR0580). docs/commands/review.md.
 
 const USAGE = "usage: arthur review <worker job> [--round <n>]";
 export const FEATURE = /(?:^|\/)(spec\/features\/[A-Z]+\d{4,}-[^/]+)\//;
@@ -75,7 +76,9 @@ export function worker(host: Host, name: string): JobRecord {
 // the limit), then the range to judge and the worker's final message, whose own `Ticket:` words are escaped so the core and
 // placement read the review's ticket alone; the hand-back's next review is built the same way.
 export function reviewTask(host: Host, job: JobRecord, round: number | undefined): { readonly task: string; readonly commit: string } {
-	const { folder, commit, base, head } = branchOf(host, job);
+	const { folder, commit, base, head, git } = branchOf(host, job);
+	const gap = untested(host, job, { git, commit });
+	if (gap !== undefined) throw new Error(gap);
 	const result = host.jobs.result(job.id).trim().replaceAll(/\bTicket:/g, "Ticket\\:");
 	const task = [
 		[`Ticket: ${folder}/ticket.md`, `Branch: ${job.branch}`, `Commit: ${commit}`, ...(round === undefined ? [] : [`Round: ${round}`])].join("\n"),
@@ -86,8 +89,8 @@ export function reviewTask(host: Host, job: JobRecord, round: number | undefined
 }
 
 // What a review and `arthur review-needed` judge of an ended worker: its one ticket's folder, its project's main checkout, its
-// branch's tip there, HEAD, and where the branch leaves HEAD; refused for a branch that adds nothing to HEAD.
-export function branchOf(host: Host, job: JobRecord): { readonly folder: string; readonly root: string; readonly commit: string; readonly head: string; readonly base: string } {
+// branch's tip there, HEAD, where the branch leaves HEAD, and Git there; refused for a branch that adds nothing to HEAD.
+export function branchOf(host: Host, job: JobRecord): { readonly folder: string; readonly root: string; readonly commit: string; readonly head: string; readonly base: string; readonly git: (...args: string[]) => string } {
 	const folders = [...new Set(job.tickets.flatMap((path) => FEATURE.exec(path)?.[1] ?? []))];
 	const [folder] = folders;
 	if (folder === undefined || folders.length > 1) throw new Error(`${job.id}'s task names ${folders.length === 0 ? "no ticket" : `${folders.length} tickets (${folders.join(", ")})`}; a review is of one ticket's branch`);
@@ -99,5 +102,32 @@ export function branchOf(host: Host, job: JobRecord): { readonly folder: string;
 	if (commit === "") throw new Error(`${job.branch} is not in ${root}: pruned, or not brought back from its machine`);
 	const [head, base] = [git("rev-parse", "HEAD"), git("merge-base", "HEAD", commit)];
 	if (base === commit) throw new Error(`${job.branch} at ${commit.slice(0, 7)} adds nothing to HEAD (${head.slice(0, 7)}): nothing to review`);
-	return { folder, root, commit, head, base };
+	return { folder, root, commit, head, base, git };
+}
+
+// The job's checks for its tip (docs/commands/review-needed.md, "The job's checks"): for each of `check`, `test` and `mutate`
+// the tip's package.json declares, its latest line on the tip's clean tree, else its latest line, else none; `git` shows a file.
+export function tipChecks(git: (...words: string[]) => string, tip: string, checks: string): (readonly [string, readonly string[] | undefined])[] {
+	let scripts: readonly string[] = [];
+	try {
+		const { scripts: declared } = JSON.parse(git("show", `${tip}:package.json`)) as { readonly scripts?: Readonly<Record<string, unknown>> };
+		scripts = ["check", "test", "mutate"].filter((name) => typeof declared?.[name] === "string");
+	} catch {
+		// No package.json at the tip, or a broken one: no checks.
+	}
+	const recorded = checks.split("\n").map((line) => line.split(" ")).filter((words) => words.length >= 4);
+	return scripts.map((script) => [script, recorded.findLast((words) => words[0] === script && words.at(-2) === tip && words.at(-1) === "clean") ?? recorded.findLast(([name]) => name === script)]);
+}
+
+// Why no review of the worker's tip starts yet (AR0580), or undefined: each script of `tipChecks` on the tip's clean tree, `check` and
+// `test` passing, `mutate` with any result (its survivors named by the worker); a job on another machine writes its checks there.
+export function untested(host: Host, job: JobRecord, { git, commit: tip }: { readonly git: (...words: string[]) => string; readonly commit: string } = branchOf(host, job)): string | undefined {
+	const file = join(host.folder, job.id, "checks");
+	const latest = job.machine === "local" ? tipChecks(git, tip, existsSync(file) ? readFileSync(file, "utf8") : "") : [];
+	const gaps = latest.flatMap(([script, words]) => {
+		if (words === undefined) return [`no ${script}`];
+		if (`${words.at(-2)} ${words.at(-1)}` !== `${tip} clean`) return [`${script} ran on ${words.at(-2) === tip ? "a dirty tree" : `${words.at(-2)?.slice(0, 7)}, not the tip`}`];
+		return script === "mutate" || words[1] === "pass" ? [] : [words.slice(0, -2).join(" ")];
+	});
+	return gaps.length === 0 ? undefined : `${job.branch} at ${tip.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran): ${gaps.join(", ")}`;
 }

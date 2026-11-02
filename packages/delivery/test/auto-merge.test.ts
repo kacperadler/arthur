@@ -3,10 +3,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { ciWaits } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
+import { saveReview } from "../src/review-records.ts";
 
 const PATH = process.env.PATH ?? "";
 const TEST_JS = 'console.log("ℹ tests 1\\nℹ pass 1");\n';
@@ -51,7 +51,8 @@ async function load(t: TestContext, github = true) {
 	});
 	const fake = fakeHost({ name: "delivery", root });
 	let project: Record<string, unknown> = { autoMerge: true };
-	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC", ...project }]);
+	// `autoMerge` is the project's piece, `delivery.project({ autoMerge })`; the rest is the project's own.
+	fake.provide("projects", () => [(({ autoMerge, ...own }) => ({ name: "acme", path: root, prefix: "AC", ...own, pieces: autoMerge === undefined ? {} : delivery.project({ autoMerge: autoMerge as boolean }) }))(project)]);
 	fake.provide("projects.install", () => "");
 	const asked: unknown[] = [];
 	const cancels: unknown[] = [];
@@ -74,7 +75,7 @@ async function load(t: TestContext, github = true) {
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
 		const state = join(home, "jobs", id, "state");
-		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 		fake.emit("job-ended", { id, state: "ended" });
 	};
 	const agent = (run: AgentRun) => {
@@ -102,6 +103,10 @@ async function load(t: TestContext, github = true) {
 		return { code, out: out.join("\n"), err: err.join("\n") };
 	};
 	const review = async (job: string, message: string) => {
+		// The worker's checks passed on its tip, as delivery's extension records them, so a review starts (AR0580).
+		const tip = git(root, "rev-parse", `arthur/${job}`);
+		mkdirSync(join(fake.host.folder, job), { recursive: true });
+		writeFileSync(join(fake.host.folder, job, "checks"), `check pass ${tip} clean\ntest pass 1/1 ${tip} clean\n`);
 		agent({ steps: [{ message }] });
 		const { out } = await run("review", [job]);
 		await ended(out);
@@ -128,7 +133,7 @@ test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused,
 	set({});
 	assert.equal((await merge(job.id, "--auto")).err, off("unset"));
 	set({ autoMerge: true });
-	assert.ok(fake.call<string>("coordinator.wake", { id: passed, kind: "review" }).endsWith(` acme merges on its own (autoMerge): after that commit, arthur merge --auto ${job.id}.`));
+	assert.match(fake.call<string>("coordinator.wake", { id: passed, kind: "review" }), new RegExp(` acme merges on its own \\(autoMerge\\): delivery runs arthur merge --auto ${job.id}, whose merge files and prunes this review, `));
 	const pass = (tip: string, why: string) => `arthur merge: --auto merges only with a PASS on the tip: ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review the tip: arthur review ${job.id}; main is unchanged`;
 	const tip = commit(job.worktree, { "late.ts": "export const late = 1;\n" });
 	assert.equal((await merge(job.id, "--auto")).err, pass(tip, `the last PASS, ${passed}, is on an older commit, ${job.tip.slice(0, 7)}`));
@@ -143,6 +148,39 @@ test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused,
 	assert.equal(merged.code, undefined, merged.err);
 	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\n`));
 	assert.equal(fake.host.board.get("AC0001")?.status, "merged");
+});
+
+test("--auto takes arthur review-needed's no review for the tip as its PASS; not for an older tip, nor beside a review of the tip that runs, has no verdict or says FAIL, nor a review answer", async (t) => {
+	const { fake, commit, worker, review, run, merge, answers, head } = await load(t);
+	const docs = (n: number) => `no review: ${n} file${n === 1 ? "" : "s"}, all docs (*.md)\nAC0001 moves to done.\nacme merges on its own (autoMerge): arthur run runs arthur merge --auto `;
+	const job = await worker(1, { "notes.md": "# Notes\n" });
+	assert.ok((await run("review-needed", [job.id])).out.startsWith(docs(1)));
+	const tip = commit(job.worktree, { "more.md": "# More\n" });
+	answers.ci = ciRun(tip, job.branch);
+	const start = head();
+	const refused = (why: string) => `arthur merge: --auto merges only with a PASS on the tip: ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review the tip: arthur review ${job.id}; main is unchanged`;
+	assert.equal((await merge(job.id, "--auto")).err, refused("no review of it says PASS"), "the no review of an older tip");
+	assert.ok((await run("review-needed", [job.id])).out.startsWith(docs(2)));
+	// A review of the tip still in its run (no verdict, no core record ended), then one that ended with none: no merge meanwhile.
+	const pending = { id: "2026-01-01-review-0000beef", ticket: "AC0001", branch: job.branch, commit: tip, at: 1 };
+	saveReview(fake.host, pending);
+	assert.equal((await merge(job.id, "--auto")).err, refused(`its review ${pending.id} has no verdict`), "a review that runs");
+	saveReview(fake.host, { ...pending, verdict: "none" });
+	assert.equal((await merge(job.id, "--auto")).err, refused(`its review ${pending.id} has no verdict`), "a review that ended with no verdict");
+	const failed = await review(job.id, "Wrong file.\n\nFAIL");
+	assert.equal((await merge(job.id, "--auto")).err, refused(`its newest review, ${failed}, says FAIL`));
+	assert.equal(head(), start);
+	const other = await worker(2, { "notes.md": "# Notes\n" });
+	await run("review-needed", [other.id]);
+	answers.ci = ciRun(other.tip, other.branch);
+	const merged = await merge(other.id, "--auto");
+	assert.equal(merged.code, undefined, merged.err);
+	assert.match(merged.out, new RegExp(`^merged ${other.branch} into main: [0-9a-f]+\n`));
+	// review-needed's `review` for the tip is no PASS.
+	const code = await worker(3);
+	assert.match((await run("review-needed", [code.id])).out, /^review: /);
+	answers.ci = ciRun(code.tip, code.branch);
+	assert.equal((await merge(code.id, "--auto")).err, `arthur merge: --auto merges only with a PASS on the tip: ${code.branch}'s tip ${code.tip.slice(0, 7)}: no review of it says PASS; review the tip: arthur review ${code.id}; main is unchanged`);
 });
 
 test("--auto refuses a held path: a role, the vision, CI, package.json, the always-review list (a lockfile too), a held file renamed away; another path goes in", async (t) => {
@@ -169,7 +207,7 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 	answers.ci = ciRun(plain.tip, plain.branch);
 	const merged = await merge(plain.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(git(root, "log", "-1", "--format=%s"), "Merge AC0009: T AC0009");
+	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0009 merged\nMerge AC0009: T AC0009");
 });
 
 test("--auto reads past a replacement of main's tip under refs/replace: the held path the branch changes still refuses it", async (t) => {
@@ -267,7 +305,7 @@ test("a run 1 below the tip, on the branch's own commit, that hangs past 30 minu
 });
 
 test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes the coordinator with its verdict once per run end, a rerun's end again, and answers true; the poll never wakes on an end; a run on main, another branch or project, or no wait answers false", async (t) => {
-	const { fake, worker, review, merge, answers, asked, messages, waiting } = await load(t);
+	const { fake, worker, review, merge, answers, asked, messages, waiting, set } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
 	answers.ci = ciRun(job.tip, job.branch, { status: "in_progress", conclusion: null });
@@ -287,9 +325,13 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 	assert.deepEqual(messages(), [`CI ended failure on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then ${what}`]);
 	assert.deepEqual(end(), [true], "asked again, it still owns that end");
 	assert.equal(messages().length, 1, "told once");
+	set({ autoMerge: false });
 	assert.deepEqual(end({}, { attempt: 2, conclusion: "success" }), [true]);
-	assert.deepEqual(messages().slice(1), [`CI passed on ${where.replace("attempt 1", "attempt 2")}. It waited for that: arthur merge --auto ${job.id}`]);
-	answers.ci = ciRun(job.tip, job.branch, { attempt: 2 });
+	assert.deepEqual(messages().slice(1), [`CI passed on ${where.replace("attempt 1", "attempt 2")}. acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} on his word`], "autoMerge off since the wait: the merge is the owner's");
+	set({ autoMerge: true });
+	assert.deepEqual(end({}, { attempt: 3, conclusion: "success" }), [true]);
+	assert.equal(messages().length, 2, "with autoMerge on delivery runs the merge in arthur run, whose output is the wake (review.test.ts)");
+	answers.ci = ciRun(job.tip, job.branch, { attempt: 3 });
 	const merged = await merge(job.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
 	assert.equal(waiting(job.id), false);
@@ -346,4 +388,13 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	t.mock.restoreAll();
 	assert.equal(said.length, 1, said.join("\n"));
 	assert.match(said[0] ?? "", /^delivery: .*broken\/ci-wait is no CI wait \(.+\); remove it, and arthur merge --auto broken again$/);
+});
+
+test("a project's piece other than { autoMerge: true | false } is refused before the setup, naming the project and the helper", async () => {
+	for (const piece of [true, {}, { autoMerge: "yes" }, { autoMerge: true, ci: "ci.yml" }]) {
+		const fake = fakeHost({ name: "delivery" });
+		fake.provide("projects", () => [{ name: "acme", path: temporaryFolder(), prefix: "AC", pieces: { delivery: piece } }]);
+		await assert.rejects(fake.setup(delivery()), { message: "project acme: delivery.project(...): expected { autoMerge }, true or false" }, JSON.stringify(piece));
+		assert.deepEqual(fake.commands, [], "no setup ran");
+	}
 });

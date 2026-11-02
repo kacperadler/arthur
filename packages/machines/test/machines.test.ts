@@ -5,10 +5,9 @@ import { availableParallelism, totalmem } from "node:os";
 import { arch, platform } from "node:process";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { coreVersion, loadConfig } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
-import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type MachinesOptions, machines } from "../src/machines.ts";
 
 // The fake `ssh` on PATH, for this file. `ssh -G <host>` prints its config as ssh does, `hostname` read from
@@ -88,14 +87,6 @@ const events = (fake: FakeHost) => fake.emitted.map((event) => [event.name, even
 // The one command of a machine's check over ssh, as the core quotes it: its script and its `node -e` script, then the number
 // of paths its df reads, those paths and its tools labels.
 const CHECK = "'sh' '-c' '[^']+' 'sh' '[^']+'";
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
 
 test("each listed machine is registered with the core's job runner; a job's commands reach it over ssh's batch mode", async () => {
 	machine("mac-mini", "Darwin arm64");
@@ -435,7 +426,7 @@ async function placing(provided = true): Promise<Placing> {
 	return at;
 }
 
-// The project `acme` as the projects plugin serves it, with `requires` when given: a repository with one commit holding
+// The project `acme` as the projects plugin serves it, with its piece `requires` when given: a repository with one commit holding
 // ticket AC0001, whose `ticket.md` has `json` as its JSON block, none when undefined.
 function acme(requires?: unknown, json?: string): Readonly<Record<string, unknown>> {
 	const folder = join(temporaryFolder(), "acme");
@@ -444,7 +435,7 @@ function acme(requires?: unknown, json?: string): Readonly<Record<string, unknow
 	execFileSync("git", ["init", "--quiet", "--initial-branch=main", folder]);
 	execFileSync("git", ["-C", folder, "add", "--all"]);
 	execFileSync("git", ["-C", folder, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first"]);
-	return { name: "acme", path: folder, prefix: "AC", ...(requires === undefined ? {} : { requires }) };
+	return { name: "acme", path: folder, prefix: "AC", pieces: requires === undefined ? {} : { machines: requires } };
 }
 
 const TICKET = "spec/features/AC0001-one/ticket.md";
@@ -542,7 +533,7 @@ test("--machine with the labels goes there unchecked; a ticket's broken JSON blo
 	const shape = "requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got";
 	await assert.rejects(place(at, { tickets: [TICKET] }), { message: `ticket AC0001 (${file}): ${shape} an object` });
 	await assert.rejects(place(at, { requires: { gpu: true } }), { message: `--requires: ${shape} an object` });
-	at.projects = [{ ...project, requires: ["macos"] }];
+	at.projects = [{ ...project, pieces: { machines: ["macos"] } }];
 	await assert.rejects(place(at), { message: `project acme: ${shape} a list` });
 });
 
@@ -571,4 +562,17 @@ test("a ticket's machine places each job of it there, unchecked and when full, w
 	}
 	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", }\n```\n');
 	await assert.rejects(place(at, { tickets: [TICKET], requires: { tools: ["docker"] } }), { message: /its JSON block is not JSON/ }, "read beside --requires too");
+});
+
+test("a project's piece that is no labels is refused before the setup, naming the project and the helper; labels pass", async () => {
+	const shape = "requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got";
+	for (const [piece, got] of [[["macos"], "a list"], [{ gpu: true }, "an object"], [{ tools: "docker" }, "an object"], ["macos", '"macos"']] as const) {
+		const fake = fakeHost({ name: "machines" });
+		fake.provide("projects", () => [{ name: "acme", path: temporaryFolder(), prefix: "AC", pieces: { machines: piece } }]);
+		await assert.rejects(fake.setup(machines()), { message: `project acme: machines.project(...): ${shape} ${got}` }, JSON.stringify(piece));
+		assert.deepEqual(fake.commands, [], "no setup ran");
+	}
+	const fine = fakeHost({ name: "machines" });
+	fine.provide("projects", () => [{ name: "acme", path: temporaryFolder(), prefix: "AC", pieces: machines.project({ os: "macos", tools: ["xcodebuild"] }) }]);
+	await fine.setup(machines());
 });

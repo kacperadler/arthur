@@ -4,7 +4,6 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSyn
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -13,7 +12,7 @@ import { coreVersion, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { secretNames } from "../src/secret-names.ts";
-import { fakeAgent, fakeHost, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, fakeHost, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -45,8 +44,8 @@ const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n
 // A repository `acme` with one commit, a home folder beside it, and a machine `gpu` in a folder of its own whose `arthur` is
 // this core (`arthur` there: the script of `<machine>/bin/arthur`); the runner's plugin `machines` registers it, and `place`
 // answers its `jobs.place`, `caps` its `jobs.limits`, `roles` its `roles.model`, `prompt` its `prompt`, one answer per plugin
-// that provides it; `hide` names the env values (secret-names.ts). The runner's clock stands at `now.at`, which a test moves.
-function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly roles?: () => readonly unknown[]; readonly prompt?: () => readonly unknown[]; readonly hide?: (text: string) => string; readonly slice?: Slice } = {}) {
+// that provides it; `hide` names the env values (secret-names.ts); `unsandboxed` is `core.jobs.unsandboxed`, default on. The runner's clock stands at `now.at`, which a test moves.
+function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly roles?: () => readonly unknown[]; readonly prompt?: () => readonly unknown[]; readonly hide?: (text: string) => string; readonly slice?: Slice; readonly unsandboxed?: boolean } = {}) {
 	rmSync(sshLog, { force: true });
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
@@ -63,18 +62,10 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const time = clock("UTC", undefined, () => now.at);
 	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles, prompt: options.prompt };
 	const collect = (name: string) => [...(answers[name]?.() ?? [])];
-	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...(options.slice ?? jobSlice) };
+	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: options.unsandboxed ?? true, ...(options.slice ?? jobSlice) };
 	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home, options.hide), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
 	return { root, home, machine, there, jobs, now };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const read = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
@@ -287,6 +278,17 @@ test("a prepare's variables reach the agent there through the launch's stdin, an
 	await jobs.sweep();
 	const secret = (folder: string) => readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isFile() && readFileSync(join(folder, entry.name), "utf8").includes("remote-s3cr3t")).map((entry) => entry.name);
 	assert.deepEqual([secret(join(there, "jobs", job.id)), secret(join(home, "jobs", job.id)), calls().filter((call) => call.includes("remote-s3cr3t"))], [[], [], []]);
+});
+
+test("a job on another machine without the sandbox fails there unless core.jobs.unsandboxed is on here; then it runs there bare", async () => {
+	for (const unsandboxed of [false, true]) {
+		const { machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }), unsandboxed });
+		writeFileSync(join(machine, "bin", "python3"), "#!/bin/sh\necho 'Landlock: Operation not supported' >&2\nexit 1\n", { mode: 0o755 });
+		const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
+		await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+		const why = process.platform === "linux" ? "Landlock: Operation not supported" : `${process.platform} has no Landlock`;
+		assert.equal(read(there, job.id, "reason"), unsandboxed ? "finished" : `failed: no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run the agent with the writes of Arthur's user`, String(unsandboxed));
+	}
 });
 
 test("a job on another machine starts with none of its role's MCP servers, nor its continue, and its spawn warns, naming them", async () => {
@@ -614,7 +616,7 @@ test("prune never deletes a worktree on a machine it cannot reach, nor one Git r
 		`${job.id}: kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree: fatal: '${worktree}' contains modified or untracked files, use --force to delete it`,
 	]);
 	assert.deepEqual([existsSync(join(worktree, "notes.txt")), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [true, true, true]);
-	const other = jobRunner(home, there, join(there, "env"), { timeoutMinutes: 1, budgetUsd: 1, idleMinutes: 1, offlineGraceMinutes: 1, ...jobSlice }, "omp", clock("UTC", undefined), eventBus(home), () => []);
+	const other = jobRunner(home, there, join(there, "env"), { timeoutMinutes: 1, budgetUsd: 1, idleMinutes: 1, offlineGraceMinutes: 1, unsandboxed: true, ...jobSlice }, "omp", clock("UTC", undefined), eventBus(home), () => []);
 	await assert.rejects(other.stop(job.id), { message: `${job.id} runs on machine gpu, which no plugin registers; machines: local` });
 });
 

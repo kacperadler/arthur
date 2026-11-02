@@ -4,7 +4,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmdirSync, statSync, wr
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type SessionOptions, session } from "../src/session.ts";
 
 const ARTHUR = "This message comes from Arthur, not the owner; your reply goes to the owner only if one of their messages joins this turn.";
@@ -16,10 +16,6 @@ const QUOTED = "> Work in progress: AR0144, its worker ended.\n> Next: review it
 const ask = (handoff: string, how: string) =>
 	`[Arthur] This conversation ends after this turn: the coordinator restarts ${how}. First write your handoff to ${handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The next conversation starts by reading it. ${ARTHUR}`;
 const read = (handoff: string) => `[Arthur] The coordinator just started again. Before that you wrote this handoff (${handoff}); go on from it:\n\n${QUOTED}\n\n${ARTHUR}`;
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // Whole lines only: a line the agent is still appending has no line break yet.
 const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);
@@ -552,4 +548,94 @@ test("under the service, /restart with no restart due, or with restartGuard: fal
 		await until("the notice", () => box.notices().length === 1);
 		assert.deepEqual([box.notices(), box.ended], [["Restarted. (handoff not written)"], []]);
 	}
+});
+
+test("under the service, a restart due is asked by arthur run itself once no job runs: the handoff first, then arthur run ends once, and Restarted. says so", async (t) => {
+	const arthur = checkout();
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+	service(t, { restart: "always", pid: process.pid });
+	const first = box.coordinator({ steps: [{ prompt: true }, { waitFor: box.gate("written") }, { message: "Written." }, { end: true }, { waitFor: box.gate("never") }] });
+	await first.up();
+	const job = box.job("2026-10-18-worker-0000000a");
+	await box.start();
+	arthur.merge("AR0002");
+	await sleep(1200);
+	assert.deepEqual([box.request(), first.messages()], [undefined, []], "nothing is asked while a job runs");
+	job.end();
+	await until("the restart due asked", () => box.request()?.slot === "due");
+	const { then, waitSeconds, run } = box.request() ?? {};
+	assert.deepEqual({ then, waitSeconds, run }, { then: "restart", waitSeconds: 120, run: true });
+	assert.equal(await box.route("/restart"), "error: a restart is already on its way, asked by the restart guard");
+	await until("the handoff request", () => first.messages().length === 1);
+	assert.equal(first.messages()[0]?.content, ask(box.handoff, "and goes on with this one"));
+	writeFileSync(box.handoff, `${HANDOFF}\n`);
+	box.open("written");
+	await until("arthur run ended", () => box.ended.length === 1);
+	assert.deepEqual(box.out, ["session: restart: done; the coordinator restarts, which starts by reading the handoff; arthur run ends, and its service starts it again on the new code"]);
+	// `arthur run` stops after its SIGTERM, not at once: no second restart is asked meanwhile.
+	await sleep(1200);
+	assert.deepEqual([box.restarts, box.ended, box.request(), box.notices()], [[false], [1], undefined, []]);
+	box.stop();
+	await box.start();
+	await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }).up();
+	await until("the notice", () => box.notices().length === 1);
+	assert.deepEqual(box.notices(), ["Restarted. (arthur run restarted)"]);
+});
+
+test("a restart due is not asked while a request is pending, by an arthur run that is not the service's, or with none due", async (t) => {
+	for (const [pending, pid, merged] of [[true, process.pid, true], [false, process.pid + 1, true], [false, process.pid, false]] as const) {
+		const arthur = checkout();
+		const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+		service(t, { restart: "always", pid });
+		await box.start();
+		const compaction = { then: "compact", slot: "13:00", asked: Date.now(), waitSeconds: 600 };
+		if (pending) writeFileSync(join(box.folder, "request.json"), JSON.stringify(compaction));
+		if (merged) arthur.merge("AR0002");
+		await sleep(1200);
+		assert.deepEqual([box.request(), box.restarts, box.ended], [pending ? compaction : undefined, [], []]);
+		if (!pending) continue;
+		// Once the compaction is over, the restart due is asked.
+		writeFileSync(join(box.folder, "request.json"), JSON.stringify({ ...compaction, line: "compacted" }));
+		await until("arthur run ended", () => box.ended.length === 1);
+		assert.deepEqual(box.restarts, [false]);
+	}
+});
+
+test("a job started while the restart due waits for the handoff: no notice, and the restart is asked again once it ends", async (t) => {
+	const arthur = checkout();
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+	service(t, { restart: "always", pid: process.pid });
+	const run = (gate: string) => [{ prompt: true }, { waitFor: box.gate(gate) }, { message: "Written." }, { end: true }] as const;
+	const first = box.coordinator({ steps: [...run("one"), ...run("two"), { waitFor: box.gate("never") }] });
+	await first.up();
+	await box.start();
+	arthur.merge("AR0002");
+	await until("the handoff request", () => first.messages().length === 1);
+	const job = box.job("2026-10-18-worker-0000000b");
+	box.open("one");
+	await until("the request dropped", () => box.request() === undefined);
+	await sleep(1200);
+	assert.deepEqual([box.request(), box.restarts, box.notices(), first.messages().length], [undefined, [], [], 1]);
+	job.end();
+	await until("the second handoff request", () => first.messages().length === 2);
+	writeFileSync(box.handoff, `${HANDOFF}\n`);
+	box.open("two");
+	await until("arthur run ended", () => box.ended.length === 1);
+	assert.deepEqual([box.restarts, box.notices()], [[false], []]);
+});
+
+test("a restart due that throws in the tick is logged once, tells the owner nothing, and is made once it can be", async (t) => {
+	const arthur = checkout();
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+	service(t, { restart: "always", pid: process.pid });
+	const blocked = join(box.folder, `restarted.json.${process.pid}`);
+	mkdirSync(blocked);
+	await box.start();
+	arthur.merge("AR0002");
+	await until("the error", () => box.err.length > 0);
+	await sleep(1200);
+	assert.deepEqual([box.err, box.restarts, box.notices()], [[`session: restart failed: EISDIR: illegal operation on a directory, open '${blocked}'`], [], []]);
+	rmdirSync(blocked);
+	await until("arthur run ended", () => box.ended.length === 1);
+	assert.deepEqual(box.restarts, [false]);
 });

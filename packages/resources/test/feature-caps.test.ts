@@ -5,7 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { loadConfig } from "@arthur/core";
-import { fakeAgent, fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, jobSlice, temporaryFolder, until } from "@arthur/core/testing";
 import { type ResourcesOptions, resources } from "../src/resources.ts";
 
 const manager = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;
@@ -42,14 +42,6 @@ function record(home: string, id: string, files: Readonly<Record<string, string 
 	mkdirSync(folder, { recursive: true });
 	const all = { kind: "worker", project: "acme", task: TASK, budget: "2", cost: "0.0000", state: "ended", reason: "finished", since: "2026-10-18T00:00:00.000Z", ...files };
 	for (const [name, text] of Object.entries(all)) if (text !== undefined) writeFileSync(join(folder, name), text);
-}
-
-async function until<T>(what: string, predicate: () => T | undefined | false, ms = 20_000): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < ms; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const refused = (text: string) => ({ message: `refused by resources: AC0001: ${text}; raise "caps" in its ticket's JSON block, or perFeature.${text.split(" ")[2]}` });
@@ -142,7 +134,7 @@ test("jobs of one ticket crossing its money cap together are both stopped and he
 	assert.deepEqual(jobs.map((job) => of(job.id)?.state), ["working", "working"], "$1.99 of $2: both run on");
 	writeFileSync(gate, "");
 	const reason = "user: feature cap budgetUsd reached: $2.0000 of $2";
-	await until("both stopped by the next sweep", () => jobs.every((job) => of(job.id)?.state === "blocked" && of(job.id)?.hold === ""), 15_000);
+	await until("both stopped by the next sweep", () => jobs.every((job) => of(job.id)?.state === "blocked" && of(job.id)?.hold === ""), { deadlineMs: 15_000 });
 	assert.deepEqual(jobs.map((job) => [of(job.id)?.reason, fake.host.jobs.running().includes(job.id)]), [[reason, false], [reason, false]]);
 	const events = fake.emitted.filter((event) => event.name === "cap-reached").map((event) => event.data);
 	assert.deepEqual(events, [{ ticket: "AC0001", project: "acme", cap: "budgetUsd", spent: 2, limit: 2, reason, jobs: [jobs[1]?.id, jobs[0]?.id] }]);

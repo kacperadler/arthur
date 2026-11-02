@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import type { Plugin } from "@arthur/core/plugin";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "@arthur/delivery";
 import { findings } from "@arthur/findings";
 import { projects } from "@arthur/projects";
+import { projectFolders } from "./project-folders.ts";
 
 // Roadmap entry 83 with the merge (54) that asks it: `arthur merge` of a worker's branch whose findings.md has an open entry,
 // with the findings plugin loaded and without it. A plugin's own tests never load another plugin; this one, outside every
@@ -18,8 +18,8 @@ const FOLDER = "spec/features/SH0001-shop";
 const git = (cwd: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, encoding: "utf8" }).trim();
 
 // The repository `shop` (SH) with SH0001 planned; projects, delivery and, with `withFindings`, findings set up on one fake host
-// with `settings`; `merged()` runs a worker on SH0001 whose branch commits a findings.md with F1 open and F2 fixed, then
-// `arthur merge --unreviewed`.
+// with `settings`; `merged(passed)` runs a worker on SH0001 whose branch commits a findings.md with F1 open and F2 fixed, then
+// `arthur merge --unreviewed`, or, with `passed`, `arthur review` whose reviewer answers it and `arthur merge`.
 async function load(t: TestContext, withFindings: boolean, settings: Readonly<Record<string, unknown>> = {}) {
 	const shop = temporaryFolder();
 	const board = [{ id: "SH0001", title: "Shop", status: "planned", path: `${FOLDER}/ticket.md`, updated: "2026-10-21T08:00:00Z" }];
@@ -33,8 +33,9 @@ async function load(t: TestContext, withFindings: boolean, settings: Readonly<Re
 	git(shop, "config", "user.name", "t");
 	git(shop, "config", "user.email", "t@example.com");
 	const list = [{ name: "shop", prefix: "SH", path: shop }];
+	const given = projectFolders(list);
 	const fake = fakeHost({ name: "projects", now: new Date("2026-10-21T10:00:00Z") });
-	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}], ...(withFindings ? [[findings(), settings] as [Plugin, {}]] : [])];
+	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects(given), given], [delivery(), {}], ...(withFindings ? [[findings(), settings] as [Plugin, {}]] : [])];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	// orchestration's check of the owner's decision is its own tests' (AR0355): here every id is the owner's.
 	fake.provide("decision.owner", () => "");
@@ -42,12 +43,11 @@ async function load(t: TestContext, withFindings: boolean, settings: Readonly<Re
 	t.after(() => {
 		process.env.PATH = saved;
 	});
-	const merged = async () => {
+	const ended = (id: string) => until(`${id} to end`, () => existsSync(join(dirname(fake.host.folder), "jobs", id, "state")) && readFileSync(join(dirname(fake.host.folder), "jobs", id, "state"), "utf8") === "ended");
+	const merged = async (passed?: string) => {
 		process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: "Done." }] }))}${delimiter}${saved}`;
 		const job = await fake.host.jobs.spawn({ task: `Ticket: ${FOLDER}/ticket.md` });
-		const state = join(dirname(fake.host.folder), "jobs", job.id, "state");
-		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50))
-			if (Date.now() > deadline) throw new Error(`timed out waiting for ${job.id} to end`);
+		await ended(job.id);
 		const text = "# SH0001 - Findings\n\n## F1. Prices round down\n\n- Kind: bug\n- What: 1.005 shows as 1.00.\n- Status: open\n\n## F2. Typo\n\n- Kind: cleanup\n- Status: fixed in abc1234\n";
 		writeFileSync(join(job.worktree, FOLDER, "findings.md"), text);
 		git(job.worktree, "add", "--all");
@@ -55,9 +55,17 @@ async function load(t: TestContext, withFindings: boolean, settings: Readonly<Re
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (line: string) => out.push(line));
 		t.mock.method(console, "error", (line: string) => err.push(line));
-		const code = await Promise.try(() => fake.commands.find((each) => each.name === "merge")?.run({ args: [job.id, "--unreviewed", "--decision", "SH-D1"], project: undefined }));
+		const run = (name: string, args: readonly string[]) => Promise.try(() => fake.commands.find((each) => each.name === name)?.run({ args, project: undefined }));
+		let review = "";
+		if (passed !== undefined) {
+			process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: passed }] }))}${delimiter}${saved}`;
+			await run("review", [job.id]);
+			review = out.splice(0).at(-1) ?? "";
+			await ended(review);
+		}
+		const code = await run("merge", passed === undefined ? [job.id, "--unreviewed", "--decision", "SH-D1"] : [job.id]);
 		t.mock.restoreAll();
-		return { code, out: out.join("\n"), err: err.join("\n"), text, outcome: readFileSync(join(shop, FOLDER, "outcome.md"), "utf8"), findings: readFileSync(join(shop, FOLDER, "findings.md"), "utf8") };
+		return { code, review, out: out.join("\n"), err: err.join("\n"), text, outcome: readFileSync(join(shop, FOLDER, "outcome.md"), "utf8"), findings: readFileSync(join(shop, FOLDER, "findings.md"), "utf8") };
 	};
 	return { shop, fake, merged };
 }
@@ -91,20 +99,22 @@ test("without the findings plugin, the merge leaves every finding open and says 
 	assert.equal(fake.commands.some((command) => command.name === "findings"), false, "no /findings without the plugin");
 });
 
-// The procedure the merge prints after it tells the coordinator to settle the reviews' notes as the merge settled the open
-// entries, so it must name what the findings plugin settles them with in each mode: the outcome's line, the status, the title.
-test("the procedure after the merge names what each findings mode settles the open entries with", async (t) => {
-	for (const mode of ["ticket", "grouped", "summary"]) {
-		const { fake, merged } = await load(t, true, { mode: { shop: mode } });
-		const { code, out, err, outcome, findings: after } = await merged();
-		assert.equal(code, undefined, err);
-		const procedure = out.slice(out.indexOf("# After a merge that went in"));
-		const line = outcome.split("\n").at(-2) ?? "";
-		assert.ok(procedure.includes(`\`${line.slice(0, line.indexOf(":") + 1)}\``), `${mode}: the procedure names ${line}`);
-		const status = /^- Status: (.+)$/m.exec(after)?.[1] ?? "";
-		const made = fake.host.board.get("SH0002")?.title;
-		const named = { ticket: `\`${status.replace("SH0002", "<id>")}\``, grouped: `\`${made?.replace("SH0001", "<ticket>").replace("Shop", "<its title>")}\``, summary: `\`${status}\`` }[mode] ?? "";
-		assert.ok(procedure.includes(named), `${mode}: the procedure names ${named}, as ${status} and ${made} show`);
-		assert.ok(procedure.includes(`(\`${mode}\`)`), `${mode}: the procedure names the mode`);
-	}
+test("a passed review's bug note becomes the findings.md entry after the worker's and its own ticket, committed with the merge; a minor one stays in the review", async (t) => {
+	const { shop, fake, merged } = await load(t, true);
+	const { code, out, err, review, text, findings: after } = await merged("Clean.\n\n## Notes\n\n- (bug) `shop.ts:1`: Prices round up. 1.004 shows as 1.01.\n- (minor) README.md:1: A short README. Say more.\n\nPASS");
+	assert.equal(code, undefined, err);
+	assert.match(out, /\n- Tickets from findings: SH0002 \(F1\), SH0003 \(F3\)\.\n/);
+	const entry = `## F3. Prices round up\n\n- Kind: fix\n- Found by: ${review} (review), 2026-10-21\n- Where: \`shop.ts:1\`\n- What: 1.004 shows as 1.01.\n- Status: ticket SH0003\n`;
+	assert.equal(after, `${text.replace("- Status: open", "- Status: ticket SH0002")}\n${entry}`);
+	assert.deepEqual(
+		fake.host.board.list("shop").map((ticket) => [ticket.id, ticket.title, ticket.status]),
+		[
+			["SH0001", "Shop", "merged"],
+			["SH0002", "Prices round down", "planning"],
+			["SH0003", "Prices round up", "planning"],
+		],
+	);
+	const committed = git(shop, "show", "--name-only", "--format=%s", "HEAD").split("\n");
+	assert.equal(committed[0], "spec: SH0001 merged");
+	assert.ok(committed.includes(`${FOLDER}/findings.md`) && committed.includes(fake.host.board.get("SH0003")?.path ?? "?"), committed.join("\n"));
 });

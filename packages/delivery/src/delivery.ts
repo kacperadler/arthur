@@ -1,28 +1,31 @@
-import { readFileSync, rmSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { basename, join, matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
-import { entryOf } from "./auto-merge.ts";
+import { autoMergePiece, type DeliveryPiece } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
 import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions, STEP_SECONDS } from "./delivery-options.ts";
-import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
+import { type HandBack, handBack } from "./hand-back.ts";
 import { identityRequirement, mergeCommand } from "./merge-command.ts";
+import { type PassForward, passForward } from "./pass-forward.ts";
 import { FEATURE, reviewCommand, reviewTask, worker } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
 import { reviewNeededCommand } from "./review-needed.ts";
-import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle, type Verdict, verdictOf } from "./review-records.ts";
+import { failsSincePass, LIMIT, readReview, saveReview, settle } from "./review-records.ts";
+import { named, recorded, wake } from "./review-wake.ts";
 import { takeMainCommand } from "./take-main.ts";
 import { pruneTicket } from "./ticket-prune.ts";
 
 // The delivery plugin (spec/roadmap.md, entry 52): the kind `review`, a read-only job on the reviewer role in a detached checkout
 // of a worker's branch, on `roles.reviewer`'s model in a session of its own. It moves its ticket to review as it starts, and its
 // verdict, `PASS` or `FAIL` alone on the last line, moves it to done or back to in-progress; with neither its run ends failed (the
-// kind's `verdicts`) and is never filed. A branch gets at most 2 FAILs since its last PASS; the next review needs `Round: <n>` (`arthur review --round`)
-// on the owner's word, and the wake of the second FAIL carries the procedure. docs/commands/review.md. Entry 53: `arthur
+// kind's `verdicts`) and is never filed. A branch gets at most 4 FAILs since its last PASS; the next review needs `Round: <n>` (`arthur review --round`)
+// on the owner's word, and the wake of the fourth FAIL carries the procedure. docs/commands/review.md. Entry 53: `arthur
 // review-needed`, the always-review list it and autopilot ask (`delivery.alwaysReview`), and the extension that records each
 // job's checks: docs/commands/review-needed.md. Entry 54: `arthur merge`: docs/commands/merge.md. Entry 55: the hand-back after
 // a FAIL (hand-back.ts): docs/commands/review.md, "Hand-back". Entry 56: `arthur changelog`: docs/commands/changelog.md. Entry
-// 59: `arthur merge --auto`, and the CI waits it leaves, polled while `arthur run` runs (ci-wait.ts).
+// 59: `arthur merge --auto`, and the CI waits it leaves, polled while `arthur run` runs (ci-wait.ts); AR0576: the merge on its
+// own after a PASS, a `no review` or CI passed (pass-forward.ts); a project file's piece, `delivery.project({ autoMerge: true })`.
 
 const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
@@ -32,22 +35,21 @@ const REVIEWED = ["in-progress", "review", "done"];
 const JOB = /^\d{4}-\d\d-\d\d-[a-z0-9-]+-[0-9a-f]{8}$/;
 
 export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] }; readonly merge?: { readonly stepSeconds?: number } } = {}): Plugin {
-	let loop: HandBack | undefined;
-	let waits: CiWaits | undefined;
+	let [loop, waits, passes]: [HandBack?, CiWaits?, PassForward?] = [];
 	return {
 		name: "delivery",
 		module: import.meta.url,
 		options,
+		after: ["projects"],
 		check: checkOptions,
-		start() {
-			loop?.start();
-			waits?.start();
-		},
+		piece: autoMergePiece,
+		start: () => [loop, waits, passes].forEach((each) => each?.start()),
 		stop: () => waits?.stop(),
 		setup(host) {
 			const back = handBack(host);
 			loop = back;
 			waits = ciWaits(host);
+			const { forward } = (passes = passForward(host));
 			const procedure = new URL("../roles/coordinator/review-limit.md", import.meta.url);
 			const always = options.review?.alwaysReview ?? ALWAYS_REVIEW;
 			const held = (path: string) => always.some((glob) => matchesGlob(path, glob));
@@ -82,9 +84,10 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL") || host.board.get(review.ticket)?.status === "dropped") return;
 				host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
 				if (verdict === "FAIL") return;
-				// The plugin that provides `github.push` (entry 58), when one is loaded, pushes the reviewed branch: its line goes to the log.
+				// `github.push` (entry 58), when a plugin provides it, pushes the reviewed branch, its line to the log; then the merge on its own (pass-forward.ts).
 				const branch = { project: host.jobs.list().find((job) => job.id === review.id)?.project ?? "", branch: review.branch };
 				void Promise.all(host.collect<Promise<string>>("github.push", branch)).then((lines) => lines.forEach((line) => console.log(line)));
+				forward(branch.project, review.branch.slice("arthur/".length), `Review ${review.id} says PASS on ${review.ticket}, ${review.branch} at ${review.commit.slice(0, 7)}.`, review.id);
 			});
 			host.events.on("stop-all", () => back.cancel());
 			host.events.on("ticket-moved", ({ data }) => {
@@ -109,11 +112,11 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url), held, options.merge?.stepSeconds ?? STEP_SECONDS));
 			host.commands.register(takeMainCommand(host));
 			host.commands.register(changelogCommand(host));
-			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
+			for (const file of ["./checks-extension.ts", "./processes-extension.ts"]) host.jobs.registerExtension(new URL(file, import.meta.url));
 			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.
 			host.provide("delivery.alwaysReview", ({ paths }: { readonly paths: readonly string[] }) => paths.filter(held));
 			// Asked by github's poll as a run ends on a branch: true when a CI wait woke the coordinator for it (ci-wait.ts).
-			host.provide("delivery.ciEnded", (end: CiEnd) => ciEnded(host, end));
+			host.provide("delivery.ciEnded", (end: CiEnd) => ciEnded(host, end, forward));
 			// `arthur doctor` and the start of `arthur run`: git's identity for a merge commit in each project's checkout, told before
 			// a review is paid for, not by `arthur merge` after it.
 			host.provide("doctor", () => host.board.projects().map(({ name, path }) => identityRequirement(name, path)));
@@ -151,46 +154,4 @@ function refusal(host: Host, task: string, tickets: readonly string[], project: 
 	return "a review's task is what arthur review writes; spawn it with arthur review <worker job>";
 }
 
-// What a review's wake reads: its record, its verdict, its project and whether that merges on its own, why its run ended,
-// and its place among the FAILs of its branch since the last PASS.
-type Seen = { readonly review: Omit<Review, "at">; readonly verdict: Verdict | undefined; readonly project: string; readonly autoMerge: boolean; readonly reason: string | undefined; readonly fails: () => number };
-
-function recorded(host: Host, review: Review): Seen {
-	const [verdict, job] = [settle(host, review), host.jobs.list().find((each) => each.id === review.id)];
-	const project = job?.project ?? "";
-	// Its own place among the FAILs since the last PASS, so a wake built later says what it said at the end.
-	return { review, verdict, project, autoMerge: entryOf(host, project)?.autoMerge === true, reason: job?.reason, fails: () => failsSincePass(host, review.branch).indexOf(review.id) + 1 };
-}
-
-// A review in no home (an eval's, docs/commands/review.md): the record its data names, `records.delivery`, `{ ticket, branch,
-// commit, autoMerge? }`, its verdict read from `result` as `settle` reads it, and no FAIL of its branch before it.
-function named(job: Readonly<Record<string, unknown>>, result: unknown): Seen | undefined {
-	const given = (job.records as { readonly delivery?: unknown } | undefined)?.delivery;
-	if (given === undefined) return undefined;
-	const { ticket, branch, commit, autoMerge } = (typeof given === "object" && given !== null ? given : {}) as Readonly<Record<string, unknown>>;
-	if (typeof ticket !== "string" || !/^[A-Z]+\d{4,}$/.test(ticket) || typeof branch !== "string" || !/^arthur\/\S+$/.test(branch) || typeof commit !== "string" || !/^[0-9a-f]{7,40}$/.test(commit) || (autoMerge !== undefined && typeof autoMerge !== "boolean"))
-		throw new Error(`review ${String(job.id)}: records.delivery: expected { ticket: <id>, branch: arthur/<worker job>, commit: <sha>, autoMerge?: true | false }, got ${JSON.stringify(given)}`);
-	const verdict = job.state === "ended" && job.reason === "finished" ? verdictOf(typeof result === "string" ? result : "") : "none";
-	return { review: { id: String(job.id), ticket, branch, commit }, verdict, project: String(job.project ?? ""), autoMerge: autoMerge === true, reason: typeof job.reason === "string" ? job.reason : undefined, fails: () => 1 };
-}
-
-// What the coordinator's wake adds for an ended review: its verdict and the ticket's move, how to file it, or for a FAIL that
-// delivery files it and below the limit hands the branch back (hand-back.ts), and at the limit the procedure.
-function wake({ review, verdict, project, autoMerge, reason, fails: place }: Seen, procedure: URL): string {
-	const worker = review.branch.slice("arthur/".length);
-	const file = `File it: arthur ticket file ${review.ticket} ${review.id}, commit it, then arthur prune ${review.id}.`;
-	if (verdict === "PASS") {
-		const auto = autoMerge ? ` ${project} merges on its own (autoMerge): after that commit, arthur merge --auto ${worker}.` : "";
-		return `Review verdict: PASS on ${review.branch} at ${review.commit.slice(0, 7)}; ${review.ticket} moves to done. ${file}${auto}`;
-	}
-	// Stopped by `arthur stop` or `stopall`, or by the hand-back as `stop-all` came: started again only on the owner's word.
-	if (verdict !== "FAIL" && (reason === "stopped" || reason === `user: ${CANCELLED}`))
-		return `Review ${review.id} was stopped, so it has no verdict, is never filed, and ${review.ticket} stays at review. Review again only when the owner asks: arthur review ${worker}; arthur prune ${review.id} frees it.`;
-	if (verdict !== "FAIL")
-		return `Review ${review.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone, or its run did not finish. It is never filed, and ${review.ticket} stays at review. Review again with arthur review ${worker}, then arthur prune ${review.id}.`;
-	const fails = place();
-	const filed = `Delivery files it as the next review-N.md in ${review.ticket}'s folder; commit that, then arthur prune ${review.id}.`;
-	const back = fails < LIMIT ? ` It hands the branch back: ${worker} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.` : " The hand-back stops at the limit.";
-	const line = `Review verdict: FAIL on ${review.branch} at ${review.commit.slice(0, 7)}, ${fails} since its last PASS; ${review.ticket} moves back to in-progress. ${filed}${back}`;
-	return fails >= LIMIT ? `${line}\n\n${readFileSync(procedure, "utf8").trim()}` : line;
-}
+delivery.project = (piece: DeliveryPiece) => ({ delivery: piece });

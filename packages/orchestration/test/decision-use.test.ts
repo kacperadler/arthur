@@ -3,8 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
 // AR0355: `arthur merge --unreviewed` (delivery's `decision.owner` call) and `--budget 0` of a spawn on a paid model (the
@@ -100,6 +99,22 @@ test("--unreviewed refuses a decision a class answered by policy; the owner's la
 	assert.equal(call({ id: policy, ticket: "AC0001", job: JOB }), "");
 });
 
+// The grant never answers a merge or a budget question (silent.ts); a record of one, as a hand left it, still lets nothing through.
+test("take-main, --unreviewed and --budget 0 refuse a decision answered by recommendation, the owner's grant", async (t) => {
+	const { decision, call, fake } = await setup(t);
+	const granted = async (...ask: string[]) => {
+		const id = await decision("ask", "--question", "Go?", ...ask);
+		await decision("answer", id, "--decided", "Go", "by recommendation: G7");
+		return id;
+	};
+	const take = await granted("--kind", "merge");
+	assert.equal(fake.host.call<string>("decision.owner", { id: take, what: "arthur take-main", kind: "merge", use: "take-main acme 0000abcd" }), `${take} was answered by recommendation (G7), the owner's grant, not by the owner`);
+	const unreviewed = await granted("--kind", "merge", "--ticket", "AC0001", "--what", "--unreviewed");
+	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), `${unreviewed} was answered by recommendation (G7), the owner's grant, not by the owner`);
+	const budget = await granted("--kind", "budget", "--ticket", "AC0001");
+	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${ONE}`, budgetUsd: 0, decision: budget }), { message: `refused by orchestration: ${budget} was answered by recommendation (G7), the owner's grant, not by the owner` });
+});
+
 test("a merge decision lets through only the flags its --what names: one for --unreviewed refuses --no-ci, one for both allows both", async (t) => {
 	const { owners, call, used, fake, root, printed } = await setup(t);
 	const asked = { ticket: "AC0001", job: JOB };
@@ -155,7 +170,7 @@ test("--budget 0 on a continue of a job of no ticket goes on only with the owner
 	const job = await fake.host.jobs.spawn({ task: "Go." });
 	const ended = async () => {
 		const state = join(dirname(fake.host.folder), "jobs", job.id, "state");
-		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${job.id} to end`);
+		await until(`${job.id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 	};
 	await ended();
 	const go = (decision: string) => fake.host.jobs.continue(job.id, "Go on.", 0, decision);

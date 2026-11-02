@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join, relative } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { pathToFileURL } from "node:url";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -46,10 +45,6 @@ async function load(t: TestContext, options: OrchestrationOptions, steps: AgentR
 
 // The model flags among an agent's arguments, each with its value.
 const modelFlags = (args: readonly string[]) => ["--model", "--thinking", "--smol"].flatMap((flag) => (args.includes(flag) ? [flag, args[args.indexOf(flag) + 1]] : []));
-
-async function until(what: string, holds: () => boolean, ms = 15_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 test("a spawn while maxAgents jobs are in a run is refused, naming them, before any record exists", async (t) => {
 	const { jobs, records, release, starts } = await load(t, { maxAgents: 2 });

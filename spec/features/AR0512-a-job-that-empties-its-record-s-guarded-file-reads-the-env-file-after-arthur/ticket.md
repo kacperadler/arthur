@@ -20,22 +20,28 @@ F1 of AR0508 (spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-ke
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A job's agent never reads the env file, also after `arthur continue`. Today the job's record is writable to its own sandbox, so a program the job runs can empty `$ARTHUR_JOB/guarded`; the next wrapper, started by `arthur continue`, reads an empty list and hides no env file, and the continued run reads every token in it (F1 of AR0508, reproduced in `packages/core/test/sandbox.test.ts`; the read is in `packages/core/src/job-sandbox.ts:99-111`, once per wrapper in `packages/core/src/wrapper.ts`).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- What the sandbox hides from a job (the env file) and the places the worktree guard names no longer depend on a file the job can write: the wrapper gets them from where the job's sandbox cannot write (the runner's own config, or a file outside every writable path), on this machine and on another one.
+- A test in `packages/core/test/sandbox.test.ts`: a job's agent empties its record's `guarded` file, the job is continued, and the continued run's read of the env file is still refused; it fails before the change.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts`: where the hidden env file comes from.
+- `packages/core/src/wrapper.ts`: what the wrapper reads at each start.
+- `packages/core/src/job-record.ts` or `packages/core/src/job-place.ts`, if `guarded` moves.
+- `packages/core/test/sandbox.test.ts`: the continue case above.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The network, and credentials outside `~/.ssh` and the env file: AR0513.
 
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0508
+- 2026-11-02: Approved: build AR0512 after AR0562, as part of Groups 1 and 2; report progress as tasks X/Y and new Z; the owner: "complete the AR0562, then go with Group 1 and Group 2, but mesure this changes i mean, whan you start, add to messages tasks: X/Y new: Z (tasks: X is completed / Y is todo; new: Z is how many new are created when you do the Y tasks)" (AR-D435)

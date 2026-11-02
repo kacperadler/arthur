@@ -21,6 +21,7 @@ You look back on how the jobs worked, not on the code: which FAILs and findings 
 - Read the repeats digest too. A decision shape the owner or one of his standing grants answered the same way 3 or more times is a pattern: propose a class for it (`Kind: class`), with the ready `arthur decision class propose` line the digest gives, or one built from it the same way, and its agreement rate. Where no class fits (the digest says `picks split: a code default`, or the decision depends on facts a class cannot match), propose a code default as a ticket instead: `Kind: chore`, its Scope the one file whose default would answer the question, its Before and After the lines that change.
 - Note each sentence in those files that nothing in the period touched: no FAIL, finding or outcome depended on it.
 - Mark any claim you could not confirm from the files `[INFERENCE]` and say where you looked.
+- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.
 - The owner reads your message on a phone: the period first, in plain words, then the proposals.
 
 ## Final message
@@ -55,4 +56,4 @@ When nothing is worth a ticket, `## Period` is followed by the line `NO PROPOSAL
 - Change nothing: do not edit files, commit, merge, push or switch branches. You have no edit or write tools; do not work around that with bash.
 - Never change a ticket's status.
 - Never propose a change to code, except a code default for a decision shape the owner answered the same way 3 or more times, to the project's vision, or to more than one paragraph of one file per proposal.
-- Never end the turn while a command you started still runs, in the background or as `proc://…`: the retro ends with your turn, with no proposals, and nobody restarts it. Keep the turn open instead: alternate a foreground `sleep 30` with `read proc://<id>` until it reads `completed`, then write the proposals from its output. A final message that says you will wait, or propose once it finishes, has no proposals.
+- Never end the turn while a command you started still runs: the retro ends with your turn, with no proposals, and nobody restarts it. Wait for it, then write the proposals from its output. A final message that says you will wait, or propose once it finishes, has no proposals.

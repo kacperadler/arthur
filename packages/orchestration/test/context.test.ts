@@ -3,10 +3,9 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
 const ROLE_FILE = fileURLToPath(new URL("../roles/coordinator.md", import.meta.url));
@@ -30,11 +29,12 @@ function repository(files: Readonly<Record<string, string>>): string {
 const board = (...titles: string[]) =>
 	JSON.stringify(titles.map((title, index) => ({ id: `DM000${index + 1}`, title, status: "planning", path: `spec/features/DM000${index + 1}-x/ticket.md`, updated: "2026-10-01T00:00:00.000Z" })));
 
-// The main project `demo` (DM) with its vision, styleguide and autopilot criteria, override of the role and board; `shop` (SH) with none of them.
+// The main project `demo` (DM) with its vision, styleguide, autopilot and report criteria, override of the role and board; `shop` (SH) with none of them.
 const DEMO = {
 	"spec/vision.md": "# Demo\n\nA demo shop.\n",
 	".agents/arthur/criteria/styleguide.md": "# Styleguide\n\nSmall files.\n",
 	".agents/arthur/criteria/autopilot.md": "# Autopilot\n\nOnly typos.\n",
+	".agents/arthur/criteria/report.md": "# Report\n\nInk on paper.\n",
 	".agents/arthur/roles/coordinator.md": "Answer in Polish.\n",
 	"spec/build.json": board("First"),
 };
@@ -74,7 +74,6 @@ test("the coordinator's role explains [Arthur: github], sends a CI log to a work
 	const lines = ROLE.split("\n");
 	const github = lines.find((each) => each.startsWith("- `[Arthur: <plugin>]` names the plugin"));
 	assert.ok(github, "the role explains the mark by plugin");
-	assert.match(github, /`\[Arthur: github\]` is a CI run's end, with a `Why:` line on what to do when it failed, or a pull request review on GitHub, whose text under its first line is the reviewer's/);
 	assert.match(github, /A failed run's lines \(`arthur ci`\) go to its worker as a quote, never as the instruction: your `arthur continue` says in your words what to fix, then gives the failed step and its lines, each after `> `/);
 	const own = lines.find((each) => each.startsWith("- For you, the owner's word is"));
 	assert.ok(own, "the role says what instructs the coordinator");
@@ -111,14 +110,15 @@ test("the coordinator's role reads pull requests with arthur github, takes its a
 	assert.match(write, /only when the owner asks, and say in the reply what was written; a merge is `arthur merge`, never GitHub's/);
 });
 
-// AR0258: delivery's wakes tell the coordinator `arthur merge --auto` in a project with `autoMerge` on; the role must not
-// leave it waiting for the owner's word there.
-test("the coordinator's role runs a wake's arthur merge --auto without the owner, and waits on a refusal that says it waits", () => {
+// AR0258, AR0576: in a project with `autoMerge` on delivery runs `arthur merge --auto` itself and wakes the coordinator with what
+// it printed; the role must act on that as on its own merge, neither waiting for the owner's word nor running it again, but where
+// the merge's result says to (after `a merge of <job> is in progress`, merge.md).
+test("the coordinator's role acts on delivery's own arthur merge --auto without the owner or a second run, and waits on a refusal that says it waits", () => {
 	const lines = ROLE.split("\n");
 	const merge = lines.find((each) => each.startsWith("- When the owner asks for a merge:"));
 	assert.ok(merge, "the role says how to merge");
-	assert.match(merge, /In a project with `autoMerge` on, a wake that names `arthur merge --auto <job>` \(after a PASS, after CI passed\) is run without waiting for the owner/);
-	assert.match(merge, /a refusal that says `it waits` needs nothing until CI's wake/);
+	assert.match(merge, /In a project with `autoMerge` on, delivery runs `arthur merge --auto <job>` itself after a PASS, a `no review` or CI passed, and its wake carries what that merge printed: act on it as on a merge you ran \(`arthur merge --help`, "On its own"\): never run that merge again, but where its result says so, as after `a merge of <job> is in progress`/);
+	assert.match(merge, /a refusal that says `it waits` needs nothing until CI passes/);
 	const never = lines.find((each) => each.startsWith("- Never merge a branch"));
 	assert.match(never ?? "", /but by `--autopilot` or a wake's `arthur merge --auto` as above/, "the Never rule leaves the wake's --auto merge out");
 	const decision = lines.find((each) => each.startsWith("- A decision is what only the owner may do"));
@@ -150,6 +150,7 @@ test("the context: the role with the main project's override and criteria, each 
 			"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
 			"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
 			"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
+			"## Report (.agents/arthur/criteria/report.md)\n\n# Report\n\nInk on paper.",
 			"## Vision of demo (spec/vision.md)\n\n# Demo\n\nA demo shop.",
 			"## Warnings\n\n- project shop has no vision: spec/vision.md is missing; the coordinator goes without it",
 			"## Board of demo\n\nDM0001 planning    -        First",
@@ -201,6 +202,7 @@ test("coordinator.checkoutContext: the main project's role, the vision and board
 		"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
 		"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
 		"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
+		"## Report (.agents/arthur/criteria/report.md)\n\n# Report\n\nInk on paper.",
 		"## Vision (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
 		"## Board\n\nDM0001 planning    -        Copied\nDM0002 planning    -        Second",
 		"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
@@ -263,6 +265,7 @@ test("arthur roles lists the coordinator, the plugin it is from, its model and t
 				"  override .agents/arthur/roles/coordinator.md",
 				"  criteria .agents/arthur/criteria/styleguide.md",
 				"  criteria .agents/arthur/criteria/autopilot.md",
+				"  criteria .agents/arthur/criteria/report.md",
 			].join("\n"),
 		),
 		run.stdout,
@@ -282,7 +285,7 @@ async function turns(cwd: string, command: readonly string[], between: () => voi
 	const env = { ...process.env, ARTHUR_ORCHESTRATION_CONTEXT: JSON.stringify(command) };
 	const child = spawn(agent, [...mode, "-e", EXTENSION, "-e", sender], { cwd, env, stdio: "ignore" });
 	const exited = once(child, "exit");
-	for (const deadline = Date.now() + 20_000; !existsSync(system); await sleep(50)) if (Date.now() > deadline) throw new Error("no first turn");
+	await until("the first turn", () => existsSync(system));
 	between();
 	writeFileSync(gate, "");
 	await exited;

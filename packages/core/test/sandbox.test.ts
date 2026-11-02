@@ -1,26 +1,25 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir, tmpdir, userInfo } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import { hidden, sandboxed, stepSandbox, writable } from "../src/job-sandbox.ts";
+import { hidden, misplaced, sandboxed, stepSandbox, writable } from "../src/job-sandbox.ts";
 import { guardedPlaces } from "../src/job-place.ts";
 import { jobRunner } from "../src/jobs.ts";
-import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
-// `script` run by `sh -c` in the sandbox over `paths`, reading every file but `hidden`, from `cwd`: its output, and the lines the log was told.
+// `script` run by `sh -c` in the sandbox over `paths`, reading every file but `hidden`, from `cwd`, or bare on a host without it: its output, and the lines the log was told.
 function inside(paths: readonly string[], script: string, cwd?: string, hidden: readonly string[] = []): { readonly out: string; readonly log: readonly string[] } {
 	const log: string[] = [];
-	const [command, args] = sandboxed(paths, hidden, "sh", (line) => log.push(line))(["-c", script]);
+	const [command, args] = sandboxed(paths, hidden, "sh", (line) => log.push(line), "the agent", true)(["-c", script]);
 	return { out: spawnSync(command, args, { cwd, encoding: "utf8" }).stdout, log };
 }
 
@@ -151,36 +150,52 @@ test("python3 loads no module of the agent's folder before the sandbox is set", 
 	assert.equal(existsSync(join(folder, "loaded")), false);
 });
 
-test("an agent the sandbox's shell does not find starts bare, so it fails to start as it would without a sandbox", { skip: bare }, () => {
+test("an agent the sandbox's shell does not find starts bare without the opt-in too, so it fails to start as it would without a sandbox", { skip: bare }, () => {
 	const lines: string[] = [];
 	const missing = join(temporaryFolder(), "omp");
 	assert.deepEqual(sandboxed(["/tmp"], [], missing, (line) => lines.push(line))(["-p"]), [missing, ["-p"]]);
 	assert.deepEqual(lines, [`no sandbox: the agent ${missing} is not there; the agent writes wherever Arthur's user can`]);
 });
 
-test("without python3, or where it cannot set up the sandbox, the agent runs as it is and the log says why", (t) => {
+test("a python3 that exits 127 itself, as a pyenv shim with no Python, is no missing agent: a real agent is refused, naming core.jobs.unsandboxed, unless opted in", (t) => {
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "python3"), "#!/bin/sh\necho 'pyenv: python3: command not found' >&2\nexit 127\n", { mode: 0o755 });
+	const path = process.env.PATH;
+	t.after(() => (process.env.PATH = path));
+	process.env.PATH = [bin, path].join(delimiter);
+	const why = process.platform === "linux" ? "pyenv: python3: command not found" : `${process.platform} has no Landlock`;
+	const lines: string[] = [];
+	assert.throws(() => sandboxed(["/tmp"], [], "sh", (line) => lines.push(line)), { message: `no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run the agent with the writes of Arthur's user` });
+	assert.deepEqual(sandboxed(["/tmp"], [], "sh", (line) => lines.push(line), "the agent", true)(["-c", "echo ran"]), ["sh", ["-c", "echo ran"]]);
+	assert.deepEqual(lines, [`no sandbox: ${why}; the agent writes wherever Arthur's user can`]);
+});
+
+test("without python3, or where it cannot set up the sandbox, the agent is refused, naming core.jobs.unsandboxed, unless opted in: then it runs as it is and the log says why", (t) => {
 	const bin = temporaryFolder();
 	const path = process.env.PATH;
 	t.after(() => (process.env.PATH = path));
 	process.env.PATH = bin;
 	const lines: string[] = [];
 	const note = (line: string) => lines.push(line);
-	assert.deepEqual(sandboxed(["/tmp"], [], "omp", note)(["-p", "task"]), ["omp", ["-p", "task"]]);
-	writeFileSync(join(bin, "python3"), "#!/bin/sh\necho 'Traceback (most recent call last):' >&2\necho 'Landlock: Operation not supported' >&2\nexit 1\n", { mode: 0o755 });
-	assert.deepEqual(sandboxed(["/tmp"], [], "omp", note)(["-p", "task"]), ["omp", ["-p", "task"]]);
-	writeFileSync(join(bin, "python3"), "#!/bin/sh\nexit 3\n", { mode: 0o755 });
-	assert.deepEqual(sandboxed(["/tmp"], [], "omp", note)(["-p", "task"]), ["omp", ["-p", "task"]]);
-	const why = process.platform === "linux" ? ["python3: spawnSync python3 ENOENT", "Landlock: Operation not supported", "python3 exited 3"] : Array(3).fill(`${process.platform} has no Landlock`);
-	assert.deepEqual(lines, why.map((reason) => `no sandbox: ${reason}; the agent writes wherever Arthur's user can`));
+	const refused = (why: string) => ({ message: `no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run the agent with the writes of Arthur's user` });
+	const why: string[] = process.platform === "linux" ? ["python3: spawnSync python3 ENOENT", "Landlock: Operation not supported", "python3 exited 3"] : Array(3).fill(`${process.platform} has no Landlock`);
+	const bare = ["", "#!/bin/sh\necho 'Traceback (most recent call last):' >&2\necho 'Landlock: Operation not supported' >&2\nexit 1\n", "#!/bin/sh\nexit 3\n"];
+	for (const [index, script] of bare.entries()) {
+		if (script !== "") writeFileSync(join(bin, "python3"), script, { mode: 0o755 });
+		assert.throws(() => sandboxed(["/tmp"], [], "omp", note), refused(why[index] ?? ""), why[index]);
+		assert.throws(() => sandboxed(["/tmp"], [], "omp", note, "the agent", false), refused(why[index] ?? ""), why[index]);
+		assert.deepEqual(sandboxed(["/tmp"], [], "omp", note, "the agent", true)(["-p", "task"]), ["omp", ["-p", "task"]]);
+	}
+	assert.deepEqual(lines, why.map((reason) => `no sandbox: ${reason}; the agent writes wherever Arthur's user can`), "a refusal logs nothing; the opt-in says why");
 });
 
-test("without python3, the install and each step of a plugin's sandbox run bare too, the install's log and the plugin told once why; a step's caches are still its own", (t) => {
+test("without python3, the install opted in and each step of a plugin's sandbox, which needs no opt-in, run bare, the install's log and the plugin told once why; a step's caches are still its own", (t) => {
 	const path = process.env.PATH;
 	t.after(() => (process.env.PATH = path));
 	process.env.PATH = temporaryFolder();
 	const lines: string[] = [];
 	const note = (line: string) => lines.push(line);
-	assert.deepEqual(sandboxed(["/tmp"], [], "sh", note, "the install")(["-c", "npm ci"]), ["sh", ["-c", "npm ci"]]);
+	assert.deepEqual(sandboxed(["/tmp"], [], "sh", note, "the install", true)(["-c", "npm ci"]), ["sh", ["-c", "npm ci"]]);
 	const cache = join(temporaryFolder(), "merge", "cache");
 	const step = stepSandbox("/tmp", cache, { envFile: "/nowhere/env", home: "/nowhere/home", config: "/nowhere/arthur.config.ts" }, note);
 	process.env.PATH = path;
@@ -188,6 +203,31 @@ test("without python3, the install and each step of a plugin's sandbox run bare 
 	assert.deepEqual([ran.stdout, existsSync(cache)], [`${[join(cache, "npm"), join(cache, "bun"), cache, join(cache, "pnpm-home"), join(cache, "composer")].join(" ")}\n`, true]);
 	const why = process.platform === "linux" ? "python3: spawnSync python3 ENOENT" : `${process.platform} has no Landlock`;
 	assert.deepEqual(lines, [`no sandbox: ${why}; the install writes wherever Arthur's user can`, `no sandbox: ${why}; each step writes wherever Arthur's user can`]);
+});
+
+test("a job on a host without the sandbox fails before its install or agent starts, naming core.jobs.unsandboxed; with the option on both run bare and the log says why", async () => {
+	const why = process.platform === "linux" ? "Landlock: Operation not supported" : `${process.platform} has no Landlock`;
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "python3"), "#!/bin/sh\necho 'Landlock: Operation not supported' >&2\nexit 1\n", { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-30T08:00:00Z"));
+	const run = async (unsandboxed: boolean, install: boolean) => {
+		const { root, home } = repository();
+		const [agent, installed] = [fakeAgent({ steps: [{ message: "Done." }] }), join(temporaryFolder(), "installed")];
+		const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed, ...jobSlice }, agent, time, eventBus(home), () => []);
+		jobs.prepare("test", () => ({ PATH: [bin, process.env.PATH].join(delimiter), ...(install ? { ARTHUR_INSTALL: `touch '${installed}'` } : {}) }));
+		const job = await jobs.spawn({ task: "Go." });
+		const ended = await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+		const started = existsSync(join(dirname(agent), "starts.jsonl"));
+		return { reason: (ended.data as { readonly reason: string }).reason, started, installed: existsSync(installed), log: readFileSync(join(home, "jobs", job.id, "log"), "utf8") };
+	};
+	const refused = (who: string) => `failed: no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run ${who} with the writes of Arthur's user`;
+	const agent = await run(false, false);
+	assert.deepEqual([agent.reason, agent.started], [refused("the agent"), false]);
+	const install = await run(false, true);
+	assert.deepEqual([install.reason, install.started, install.installed], [refused("the install"), false, false]);
+	const bare = await run(true, true);
+	assert.deepEqual([bare.reason, bare.started, bare.installed], ["finished", true, true]);
+	for (const who of ["the install", "the agent"]) assert.match(bare.log, new RegExp(`\\] no sandbox: ${why}; ${who} writes wherever Arthur's user can\n`), who);
 });
 
 // A repository `acme` with a job's worktree on its branch, and the job's record in a home folder beside it.
@@ -202,16 +242,42 @@ function repository(): { readonly folder: string; readonly root: string; readonl
 	return { folder, root, home: join(folder, "home") };
 }
 
-test("writable: the worktree, the record, the Git folders a commit writes, the temporary folder, /dev, omp's state, and each extension's folder, made", () => {
+test("writable: the worktree, the record, the Git folders a commit writes, taken from the root, the temporary folder, /dev, omp's state, and each extension's folder, made", () => {
 	const { folder, root, home } = repository();
 	const worktree = join(folder, ".arthur-worktrees", "2026-10-24-worker-0a1b2c3d");
 	git(root, "worktree", "add", "--quiet", "-b", "arthur/2026-10-24-worker-0a1b2c3d", worktree);
 	const record = join(home, "jobs", "2026-10-24-worker-0a1b2c3d");
 	const extension = join("..", "..", "delivery", "src", "checks-extension.ts");
 	const dotGit = join(root, ".git");
-	assert.deepEqual(writable(record, worktree, `${extension}\n`), [worktree, record, join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d"), join(dotGit, "objects"), join(dotGit, "refs"), join(dotGit, "logs"), tmpdir(), "/dev", join(homedir(), ".omp"), join(home, "delivery", "2026-10-24-worker-0a1b2c3d")]);
+	const expected = [worktree, record, join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d"), join(dotGit, "objects"), join(dotGit, "refs"), join(dotGit, "logs"), tmpdir(), "/dev", join(homedir(), ".omp"), join(home, "delivery", "2026-10-24-worker-0a1b2c3d")];
+	assert.deepEqual(writable(record, { root, worktree }, `${extension}\n`), expected);
 	assert.equal(existsSync(join(home, "delivery", "2026-10-24-worker-0a1b2c3d")), true);
-	assert.deepEqual(writable(record, join(folder, "gone"), ""), [join(folder, "gone"), record, tmpdir(), "/dev", join(homedir(), ".omp")], "no Git folder for a worktree Git does not know");
+	// The agent writes its worktree's `.git` and its own `worktrees/<id>`: a `gitdir` or `commondir` there naming another repository changes nothing.
+	const other = join(folder, "other");
+	git(folder, "init", "--quiet", other);
+	writeFileSync(join(worktree, ".git"), `gitdir: ${join(other, ".git")}\n`);
+	writeFileSync(join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d", "commondir"), `${join(other, ".git")}\n`);
+	assert.deepEqual(writable(record, { root, worktree }, `${extension}\n`), expected);
+	assert.deepEqual(writable(record, { root: join(folder, "gone"), worktree: join(folder, "gone") }, ""), [join(folder, "gone"), record, tmpdir(), "/dev", join(homedir(), ".omp")], "no Git folder for a root Git does not know");
+	assert.deepEqual(writable(record, { root: "", worktree }, ""), [worktree, record, tmpdir(), "/dev", join(homedir(), ".omp")], "none for no root, not the working folder's");
+});
+
+test("misplaced: a continue's record whose root or worktree is not the spawn's, or whose worktree Git did not add to the root's repository, is named; the spawn's is not (AR0597)", () => {
+	const { folder, root } = repository();
+	const id = "2026-10-24-worker-0a1b2c3d";
+	const worktree = join(folder, ".arthur-worktrees", id);
+	git(root, "worktree", "add", "--quiet", "-b", `arthur/${id}`, worktree);
+	const job = { project: "acme", root, worktree };
+	assert.equal(misplaced(id, job, root), undefined);
+	const where = `where a job of acme has ${root} and ${worktree}`;
+	assert.equal(misplaced(id, { ...job, root: join(folder, "other") }, root), `its record names the checkout ${join(folder, "other")} and the worktree ${worktree}, ${where}`);
+	assert.equal(misplaced(id, { ...job, worktree: join(folder, "other") }, root), `its record names the checkout ${root} and the worktree ${join(folder, "other")}, ${where}`);
+	assert.equal(misplaced(id, { ...job, worktree: `${worktree}/` }, root), `its record names the checkout ${root} and the worktree ${worktree}/, ${where}`);
+	// Another repository beside it, whose jobs' worktrees share `.arthur-worktrees`: Git added no worktree of this id to it.
+	const other = join(folder, "other");
+	git(folder, "init", "--quiet", other);
+	assert.equal(misplaced(id, { project: "other", root: other, worktree }, other), `Git added no worktree ${id} to the repository of ${other}`);
+	assert.equal(misplaced(id, { project: "gone", root: join(folder, "gone"), worktree }, join(folder, "gone")), `Git added no worktree ${id} to the repository of ${join(folder, "gone")}`);
 });
 
 test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's, where OpenSSH looks, and $HOME's too only when it is another absolute folder (AR0515)", (t) => {
@@ -219,12 +285,32 @@ test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's,
 	const [user, account] = [userInfo().homedir, join(userInfo().homedir, ".ssh")];
 	const saved = process.env.HOME;
 	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
-	writeFileSync(join(folder, "guarded"), `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`);
-	for (const [home, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
-		home === undefined ? delete process.env.HOME : (process.env.HOME = home);
-		assert.deepEqual(hidden(folder), [join(folder, "env"), ...expected], `HOME=${home}`);
-		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${home}`);
+	const record = join(folder, "jobs", "2026-10-24-worker-0a1b2c3d");
+	mkdirSync(record, { recursive: true });
+	writeFileSync(join(record, "guarded"), `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`);
+	// The rest of the list is the home's (AR0590): hidden whole, with the record and the projects plugin's lists shown.
+	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
+	for (const [where, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
+		where === undefined ? delete process.env.HOME : (process.env.HOME = where);
+		assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }), [join(folder, "env"), ...expected, ...home], `HOME=${where}`);
+		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${where}`);
 	}
+});
+
+test("hidden: the home whole, but shown the job's own record, its project's other records and the projects plugin's lists; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590)", () => {
+	const home = realpathSync(temporaryFolder());
+	const [own = "", sibling = "", theirs = "", none = "", unnamed = ""] = ["0a0a0001", "0a0a0002", "0b0b0001", "0c0c0001", "0c0c0002"].map((hex) => join(home, "jobs", `2026-10-30-worker-${hex}`));
+	// The job's own record names shop2, as its agent may have rewritten it: the project the wrapper was given counts (AR0597).
+	for (const [record, project] of [[own, "shop2"], [sibling, "shop1\n"], [theirs, "shop2"], [none, undefined], [unnamed, undefined]] as const) {
+		mkdirSync(record, { recursive: true });
+		writeFileSync(join(record, "kind"), "worker");
+		if (project !== undefined) writeFileSync(join(record, "project"), project);
+	}
+	const lists = [`+${join(home, "projects", "checkouts")}`, `+${join(home, "projects", "folders")}`];
+	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }).filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
+	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
+	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
+	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
 });
 
 test("a merge step writes main's checkout but not its Git config, hooks or info, Arthur's home, config or env file, a new top-level entry, nor through a link", { skip: bare }, (t) => {
@@ -278,15 +364,6 @@ test("a merge step writes main's checkout but not its Git config, hooks or info,
 	assert.deepEqual(lines, []);
 });
 
-// Waits until `predicate` holds, at most 20 seconds.
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
-
 test("a job's agent writes its worktree, a commit on its branch, its record and the temporary folder; never the main checkout, the shared Git config or hooks, nor the home folder", { skip: locked }, async () => {
 	const { folder, root, home } = repository();
 	const temporary = join(folder, "tmp");
@@ -305,7 +382,7 @@ test("a job's agent writes its worktree, a commit on its branch, its record and 
 	};
 	writeFileSync(agent, `#!/bin/sh\n{\n${tries(writes)}\n} > results\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ TMPDIR: temporary }));
 	const job = await jobs.spawn({ task: "Write." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -333,7 +410,7 @@ test("a sandboxed job's agent takes omp's session lock, so a review whose final 
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\npython3 '${lock}' job-${process.pid} || exit 1\nexec '${fakeAgent({ steps: [{ message: "Clean.\n\nPASS\n" }] })}' "$@"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.registerKind("delivery", { name: "judged", readOnly: true, role: "worker", verdicts: ["PASS", "FAIL"] });
 	const job = await jobs.spawn({ task: "Judge.", kind: "judged" });
 	const ended = await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -352,7 +429,7 @@ import { eventBus } from ${JSON.stringify(import.meta.resolve("../src/events.ts"
 import { jobRunner } from ${JSON.stringify(import.meta.resolve("../src/jobs.ts"))};
 const [home, root, agent, slice, env] = JSON.parse(process.argv[1]);
 const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-const jobs = jobRunner(home, root, root + "/env", { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), () => []);
+const jobs = jobRunner(home, root, root + "/env", { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...slice }, agent, time, eventBus(home), () => []);
 jobs.prepare("test", () => ({ RUNNER_PID: String(process.pid), ...env }));
 await jobs.spawn({ task: "Read." });
 process.stdin.resume();
@@ -478,7 +555,7 @@ test("a job's install, its agent across a continue that found the guarded list e
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n${read}\n: > "$ARTHUR_JOB/guarded"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ ARTHUR_INSTALL: read }));
 	const job = await jobs.spawn({ task: "Read." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -519,7 +596,7 @@ test("where the user's Git config signs with a key in ~/.ssh, a job's install an
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n{ ${commit("agent")}; } 2> "$ARTHUR_JOB/agent-err"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-27T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ ARTHUR_INSTALL: commit("install") }));
 	const job = await jobs.spawn({ task: "Commit." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -576,7 +653,7 @@ test("a sandboxed job reads no token of the env file: not by its path, a link, n
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n${Object.entries(reads).map(([name, command]) => `(${command}) > "$ARTHUR_JOB/${name}" 2>&1`).join("\n")}\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, envFile, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, envFile, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ TMPDIR: temporary }));
 	const job = await jobs.spawn({ task: "Read." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -594,4 +671,119 @@ test("a sandboxed job reads no token of the env file: not by its path, a link, n
 	const worktree = readFileSync(join(record, "worktree"), "utf8");
 	// The CLI names the value it prints (secret-names.ts), so the name shows the command read the token itself.
 	assert.equal(arthur(join(worktree, "own"), "leak").stdout, "leaked ARTHUR_SECRET_TOKEN\n", "outside the sandbox the same command reads the token");
+});
+
+test("a job of shop1 gets Permission denied on shop2's checkout, its project folder, other jobs' worktrees and the env file; it keeps its worktree, root, Git folder, record, install, config and own project folder (AR0593)", { skip: bare }, async () => {
+	const folder = temporaryFolder();
+	// shop1 and shop2 in one parent folder, so their jobs' worktrees share one `.arthur-worktrees`; shop1's Git folder beside its checkout.
+	const [shop1, shop2, arthur, home] = [join(folder, "shop1"), join(folder, "shop2"), join(folder, "arthur"), join(folder, "home")] as const;
+	for (const [root, more] of [[shop1, [`--separate-git-dir=${join(folder, "shop1.git")}`]], [shop2, []]] as const) {
+		mkdirSync(root);
+		git(root, "init", "--quiet", "--initial-branch=main", ...more);
+		writeFileSync(join(root, "README.md"), `${root}\n`);
+		git(root, "add", "--all");
+		git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "first");
+	}
+	const [theirs = "", sibling = "", later = ""] = ["5b0b2000", "5a0a1000", "5b0b3000"].map((hex) => join(folder, ".arthur-worktrees", `2026-10-30-worker-${hex}`));
+	for (const [root, worktree] of [[shop2, theirs], [shop1, sibling]] as const) git(root, "worktree", "add", "--quiet", "--detach", worktree);
+	for (const name of ["shop1", "shop2"]) {
+		mkdirSync(join(arthur, "projects", name), { recursive: true });
+		writeFileSync(join(arthur, "projects", name, "project.config.ts"), `export default [];\n`);
+	}
+	writeFileSync(join(arthur, "arthur.config.ts"), "export default {};\n");
+	writeFileSync(join(arthur, "env"), "ARTHUR_SECRET_TOKEN=s3cret-t0ken\n");
+	// The lists as the projects plugin writes them, each other line naming one place the job keeps: its root, Git folder, record, install and config.
+	const install = resolve(import.meta.dirname, "..", "..", "..");
+	mkdirSync(join(home, "projects"), { recursive: true });
+	writeFileSync(join(home, "projects", "checkouts"), `shop1 ${shop1}\nshop2 ${shop2}\narthur ${arthur}\n`);
+	writeFileSync(join(home, "projects", "folders"), [`shop1 ${join(arthur, "projects", "shop1")}`, `shop2 ${join(arthur, "projects", "shop2")}`, `twin ${shop1}`, `git ${join(folder, "shop1.git")}`, `jobs ${join(home, "jobs")}`, `install ${install}`, ""].join("\n"));
+	const reads = {
+		"shop2's checkout": join(shop2, "README.md"),
+		"shop2's folder": join(arthur, "projects", "shop2", "project.config.ts"),
+		"a shop2 job's worktree": join(theirs, "README.md"),
+		"another shop1 job's worktree": join(sibling, "README.md"),
+		"a shop2 job's worktree made during its install": join(later, "README.md"),
+		"the env file": join(arthur, "env"),
+		"its worktree": "README.md",
+		"its root": join(shop1, "README.md"),
+		"its Git folder": join(folder, "shop1.git", "HEAD"),
+		"its record": "$ARTHUR_JOB/task",
+		"its home": join(home, "projects", "checkouts"),
+		"the install": join(install, "package.json"),
+		"the config": join(arthur, "arthur.config.ts"),
+		"its project folder": join(arthur, "projects", "shop1", "project.config.ts"),
+	};
+	const lines = Object.entries(reads).map(([name, path]) => `if cat "${path}" >/dev/null 2>"$ARTHUR_JOB/err"; then echo "${name} read"; elif grep -q 'Permission denied' "$ARTHUR_JOB/err"; then echo "${name} denied"; else echo "${name} failed"; fi`);
+	const commit = "echo x > new.txt && git add new.txt && git -c user.name=test -c user.email=test@example.com -c commit.gpgsign=false commit --quiet -m sandboxed && echo 'a commit made'";
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n{\n${lines.join("\n")}\n${commit}\n} > "$ARTHUR_JOB/reads" 2>&1\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-30T08:00:00Z"));
+	const list = [{ name: "shop1", path: shop1, prefix: "SA" }, { name: "shop2", path: shop2, prefix: "SB" }];
+	const jobs = jobRunner(home, arthur, join(arthur, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), (name) => (name === "projects" ? [list] : []));
+	// An install that waits for the gate: the worktree made meanwhile is made after the hidden list was read, before the agent's sandbox.
+	const gate = join(folder, "gate");
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: `while [ ! -e '${gate}' ]; do sleep 0.05; done` }));
+	const job = await jobs.spawn({ task: "Read.", project: "shop1" });
+	await until("the install's sandbox", () => existsSync(join(home, "jobs", job.id, "log")) && readFileSync(join(home, "jobs", job.id, "log"), "utf8").includes("] sandbox: the install "));
+	git(shop2, "worktree", "add", "--quiet", "--detach", later);
+	writeFileSync(gate, "");
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	assert.deepEqual(readFileSync(join(home, "jobs", job.id, "reads"), "utf8").trim().split("\n"), [
+		...Object.keys(reads).map((name, at) => `${name} ${at < 6 ? "denied" : "read"}`),
+		"a commit made",
+	]);
+	assert.equal(git(shop1, "log", "--format=%s", "-1", `arthur/${job.id}`), "sandboxed");
+	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");
+	assert.equal(log.includes(`, ${home}, (shown: ${join(home, "jobs", job.id)}), `), true, "the log names the home hidden and its record shown");
+});
+
+test("a job whose agent rewrote its record's project, root and worktree is not continued; one continued while a process rewrites them still hides the other project and refuses writes outside its worktree (AR0597)", { skip: bare }, async () => {
+	const folder = temporaryFolder();
+	// shop1 and shop2 in one parent folder: their jobs' worktrees share one `.arthur-worktrees`, so shop2's place there is this job's.
+	const [shop1, shop2, arthur, home, outside, temporary] = ["shop1", "shop2", "arthur", "home", "outside", "tmp"].map((name) => join(folder, name)) as [string, string, string, string, string, string];
+	for (const root of [shop1, shop2]) {
+		mkdirSync(root);
+		git(root, "init", "--quiet", "--initial-branch=main");
+		writeFileSync(join(root, "README.md"), `${root}\n`);
+		git(root, "add", "--all");
+		git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "first");
+	}
+	for (const made of [arthur, outside, temporary]) mkdirSync(made);
+	mkdirSync(join(home, "projects"), { recursive: true });
+	writeFileSync(join(home, "projects", "checkouts"), `shop1 ${shop1}\nshop2 ${shop2}\n`);
+	// Each run: what it reads of shop2 and writes outside its worktree, then the record rewritten as shop2's job, writing `outside`.
+	const forge = (record: string, worktree: string) => `printf shop2 > "${record}/project"; printf '%s' '${shop2}' > "${record}/root"; printf '%s' '${worktree}' > "${record}/worktree"`;
+	const tries = [`if cat '${join(shop2, "README.md")}' >/dev/null 2>&1; then echo 'shop2 read'; else echo 'shop2 denied'; fi`, `if (echo x > '${join(outside, "file")}') 2>/dev/null; then echo 'outside written'; else echo 'outside refused'; fi`];
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n{\n${tries.join("\n")}\n} >> "$ARTHUR_JOB/marks"\n${forge("$ARTHUR_JOB", outside)}\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-31T08:00:00Z"));
+	const list = [{ name: "shop1", path: shop1, prefix: "SA" }, { name: "shop2", path: shop2, prefix: "SB" }];
+	const jobs = jobRunner(home, arthur, join(arthur, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), (name) => (name === "projects" ? [list] : []));
+	// A process the job left behind that rewrites the record once the continue checked it, before the wrapper starts; the job's
+	// temporary folder its own, not the one `outside` is in.
+	let late = "";
+	jobs.prepare("test", () => (late === "" || execFileSync("sh", ["-c", late]), { TMPDIR: temporary }));
+	const job = await jobs.spawn({ task: "Read.", project: "shop1" });
+	const record = join(home, "jobs", job.id);
+	const ended = (runs: number) => until(`${runs} job-ended`, () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === runs ? true : undefined));
+	await ended(1);
+	const marks = () => readFileSync(join(record, "marks"), "utf8");
+	assert.equal(marks(), "shop2 denied\noutside refused\n");
+	assert.deepEqual(["project", "root", "worktree"].map((name) => readFileSync(join(record, name), "utf8")), ["shop2", shop2, outside], "the agent rewrote its record");
+	const refused = (root: string, worktree: string, why: string) => ({ message: `${job.id}: its record names the checkout ${root} and the worktree ${worktree}, ${why}; its record was changed since the spawn: spawn a new job on its branch arthur/${job.id}` });
+	await assert.rejects(jobs.continue(job.id, "Go on."), refused(shop2, outside, `where a job of shop2 has ${shop2} and ${job.worktree}`));
+	// shop2's place, its worktree this job's own: Git added no worktree of this id to shop2's repository.
+	writeFileSync(join(record, "worktree"), job.worktree);
+	await assert.rejects(jobs.continue(job.id, "Go on."), { message: `${job.id}: Git added no worktree ${job.id} to the repository of ${shop2}; its record was changed since the spawn: spawn a new job on its branch arthur/${job.id}` });
+	writeFileSync(join(record, "root"), shop1);
+	await assert.rejects(jobs.continue(job.id, "Go on."), refused(shop1, job.worktree, `where a job of shop2 has ${shop2} and ${job.worktree}`));
+	assert.equal(marks(), "shop2 denied\noutside refused\n", "no run started");
+	// The spawn's place back; the process rewrites it after the check: the wrapper builds the sandbox from what the continue checked.
+	writeFileSync(join(record, "project"), "shop1");
+	late = forge(record, outside);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await ended(2);
+	assert.equal(readFileSync(join(record, "project"), "utf8"), "shop2", "the record was rewritten before the run");
+	assert.equal(marks(), "shop2 denied\noutside refused\n".repeat(2));
+	assert.equal(existsSync(join(outside, "file")), false);
 });

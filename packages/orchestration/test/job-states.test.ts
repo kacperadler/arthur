@@ -5,7 +5,7 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSyn
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { blockedNotice } from "../src/blocked-notice.ts";
 import { orchestration } from "../src/orchestration.ts";
 
@@ -14,10 +14,6 @@ import { orchestration } from "../src/orchestration.ts";
 
 const PATH = process.env.PATH ?? "";
 const ID = "2026-10-18-worker-0000abcd";
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // A Git repository with one commit.
 function repository(): string {

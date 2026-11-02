@@ -72,7 +72,7 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	try {
 		const config = await loadConfig("arthur.config.ts");
 		read = config;
-		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels, hide } = await loadPlugins(config, process.env, commands, insideJob(config.core.home) !== undefined);
+		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels, hide } = await loadPlugins(config, process.env, commands, insideJob(config.core.home));
 		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit, channels };
 		printNames(hide);
 		return { commands, project, home: config.core.home };
@@ -97,7 +97,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, con
 	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
 	commands.register("core", spawnCommand(jobs));
 	commands.register("core", sendCommand(need("the channels are plugins, and ", (app) => app.channels)));
-	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs)) commands.register("core", command);
+	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs, need("", (app) => app.emit))) commands.register("core", command);
 	commands.register("core", remoteJobCommand());
 	commands.register("core", { name: "version", doc: new URL("../docs/commands/version.md", import.meta.url), inJob: true, run: () => console.log(coreVersion()) });
 	commands.register("core", {

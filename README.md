@@ -8,7 +8,7 @@ Arthur lets one human direct many coding agents through one coordinator: the hum
 
 In short; the whole of it is [`spec/vision.md`](spec/vision.md).
 
-- One human directs many agents through one coordinator, who does not read code. The human talks to it through a channel plugin (Telegram today, Discord planned) or from the terminal (`arthur attach`).
+- One human directs many agents through one coordinator, who does not read code. The human talks to it through a channel plugin (Telegram or Discord) or from the terminal (`arthur attach`).
 - Work happens in isolated worktrees, on their own branches, on this machine or on another one reached over SSH on a private network.
 - Plain files in Git and in the home folder `.arthur/` are the truth: tickets, the board, job records. No database.
 - One config file, `arthur.config.ts`: the plugins, their options and every project. No secret in it: an option ending in `Env` names a variable, whose value stays in the shell or the env file.
@@ -24,9 +24,7 @@ In short; the whole of it is [`spec/vision.md`](spec/vision.md).
 
 ## Status
 
-**Status: in use on its own repository** (main on 2026-10-25). Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, with Telegram as its channel, and each ticket goes from its worker through a review and CI to its merge. [`docs/setup.md`](docs/setup.md) sets one up, each step with the command that checks it, such as `arthur config check`. Other projects follow; the order of the rest is [`spec/roadmap.md`](spec/roadmap.md), and the state of each entry is the board, [`spec/build.json`](spec/build.json).
-
-Next: an agent per project, with its own chat (roadmap entries 85 to 88), then the other plugins in the roadmap's order.
+**Status: in use on its own repository** (main on 2026-10-25). Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, with Telegram as its channel, and each ticket goes from its worker through a review and CI to its merge. [`docs/setup.md`](docs/setup.md) sets one up, each step with the command that checks it, such as `arthur config check`. Other projects follow; the order of the rest is [`spec/roadmap.md`](spec/roadmap.md), and the state of each entry is the board, [`spec/build.json`](spec/build.json). Next: an agent per project, with its own chat (roadmap entries 85 to 88), then the other plugins in the roadmap's order.
 
 ## Features
 
@@ -45,14 +43,16 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **findings**, built: the `findings.md` format, and what a merge makes of open findings ([findings](packages/findings/docs/findings.md)).
 - **uptime**, built: each project's sites checked over HTTP, a notice when one goes down and when it is back ([uptime](packages/uptime/docs/uptime.md)).
 - **telegram**, built: text, media and the phone menu ([telegram](packages/telegram/docs/telegram.md)).
+- **discord**, partly built: text in and out through the gateway, on one private server, a channel per project; media and the phone commands planned ([discord](packages/discord/docs/discord.md)).
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).
 - **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads pull requests ([github](packages/github/docs/github.md)).
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
+- **dokploy**, partly built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, each server's API key in a variable, for the coordinator only; upload and deploy planned ([dokploy](packages/dokploy/docs/dokploy.md)).
 - **manage**, built: health, stats, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
-- Planned: project agents, discord, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- Planned: project agents, discord's media and phone commands, dokploy's upload and deploy, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 
@@ -63,12 +63,12 @@ flowchart TD
     core[config, plugin host, events, ticket board<br/>jobs, guards and sandbox; cleanup hooks planned]
   end
   subgraph FIRST[First-version plugins: each talks only to the core]
-    chan[channels<br/>telegram; discord planned]
+    chan[channels<br/>telegram; discord text, its media planned]
     media[media: claim a channel's parts<br/>listen, video]
     coord[coordinator<br/>orchestration, session, schedule]
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker planned]
-    deliv[delivery and trackers<br/>delivery, github, youtrack]
+    deliv[delivery and trackers<br/>delivery, github, youtrack; dokploy reads, its deploys planned]
     self[Arthur itself<br/>manage, develop]
   end
   later[later plugins<br/>project agents, signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
@@ -79,26 +79,28 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class coord,proj,deliv,self,media built;
-  class core,chan,res partial;
+  class coord,proj,self,media built;
+  class core,chan,res,deliv partial;
   class later planned;
   class owner,repos outside;
 ```
 
 ## Try it
 
-Development needs Node 24: `npm ci`, then `npm run check` and `npm test`.
+Development needs Node 24: `npm ci`, then `npm run check` and `npm test`. On a branch with its work committed, `npm run mutate` names each mutant of the branch's change that no test catches (at most 25; `npm run mutate -- --max <n>` sets the cap).
 
-To run Arthur in a clone after `npm ci`, with `node_modules/.bin` on your `PATH`, write an `arthur.config.ts` (Git ignores it) with the two plugins that need nothing else:
+To run Arthur in a clone after `npm ci`, with `node_modules/.bin` on your `PATH`, write an `arthur.config.ts` with the two plugins that need nothing else, and the project's file (Git ignores both):
 
 ```ts
+// arthur.config.ts
 import { defineConfig } from "@arthur/core";
 import { orchestration } from "@arthur/orchestration";
 import { projects } from "@arthur/projects";
 
-export default defineConfig({
-	plugins: [orchestration({}), projects({ list: [{ name: "arthur", prefix: "AR", path: "." }] })],
-});
+export default defineConfig({ plugins: [orchestration({}), projects({ folders: ["projects/arthur"] })] });
+// projects/arthur/project.config.ts
+import { projects } from "@arthur/projects";
+export default [projects.project({ prefix: "AR", path: "../.." })];
 ```
 
 Then `arthur config check`, `arthur projects` and `arthur board` answer at once. `arthur run` starts the coordinator, which needs tmux and OMP, and `arthur attach` opens it. [`docs/setup.md`](docs/setup.md) sets Arthur up on a VPS as a systemd service, step by step.

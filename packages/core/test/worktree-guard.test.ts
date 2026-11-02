@@ -3,26 +3,16 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type Job, jobRunner } from "../src/jobs.ts";
-import { jobSlice, temporaryFolder } from "../src/testing.ts";
+import { jobSlice, temporaryFolder, until } from "../src/testing.ts";
 import { guardedPlaces, jobPlace } from "../src/job-place.ts";
 import worktreeGuard, { worktreeRefusal } from "../src/worktree-guard.ts";
 
 type Call = readonly [string, Record<string, unknown>];
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
-
-// Waits until `predicate` holds, at most 20 seconds.
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
 
 // A new repository `<temporary folder>/<name>` with one commit.
 function repository(name: string): string {
@@ -60,7 +50,7 @@ async function jobs(calls: readonly Call[] = []): Promise<{ readonly root: strin
 		writeFileSync(join(import.meta.dirname, basename(process.cwd()) + ".json"), JSON.stringify(refused));\n`,
 		{ mode: 0o755 },
 	);
-	const runner = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
+	const runner = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
 	const own = await runner.spawn({ task: "own" });
 	const other = await runner.spawn({ task: "other" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
@@ -544,6 +534,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `find ${main} -name '*.log' -delete` }, MAIN],
 		["bash", { command: `find ${otherJob} -name x -exec rm {} +` }, OTHER],
 		["bash", { command: `sh -c 'echo x > ${main}/f'` }, MAIN],
+		...["bash", "zsh", "dash", "ksh"].map((shell) => ["bash", { command: `${shell} -c 'rm ${main}/f'` }, MAIN] as const),
 		["bash", { command: `eval "rm ${main}/f"` }, MAIN],
 		["bash", { command: `echo $(cd ${main} && touch f)` }, MAIN],
 		["bash", { command: `true | tee ${main}/log` }, MAIN],
@@ -623,6 +614,68 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	assert.ok(reason.includes(`(${main}/README.md)`) && reason.includes(` own worktree ${own.worktree}`), reason);
 	const replaced = worktreeRefusal(place, "bash", { command: "git replace -d main" }) ?? "";
 	assert.ok(replaced.includes("into the main checkout (git replace -d main)"), replaced);
+});
+
+test("pkill and killall are refused wherever the guard finds a command, through a shell, eval, sudo or a wrapper too; kill <pid> and pgrep pass", async () => {
+	const { home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const KILL = "arthur: refused: pkill and killall pick processes by name, so they also stop other jobs' processes and Arthur's own; stop yours by its process id instead (kill <pid>, the pid from $! when you start it in the background)";
+	const refused = [
+		"pkill -f 'node --test'",
+		"killall node",
+		"/usr/bin/pkill node",
+		"npm test; pkill -9 -f vitest",
+		"bash -c 'pkill node'",
+		`sh -c "true && killall -9 node"`,
+		"eval 'pkill node'",
+		"sudo pkill node",
+		"sudo -u root killall node",
+		"timeout 5 env X=1 pkill node",
+		"(cd /tmp && pkill node)",
+		"echo $(pkill node)",
+		"find . -name x -exec pkill {} +",
+		"bash <<'EOF'\npkill node\nEOF",
+	];
+	for (const command of refused) assert.equal(worktreeRefusal(place, "bash", { command }), KILL, command);
+	for (const command of ["kill 12345", "kill -TERM $!", "sleep 60 & kill $!", "pgrep -f node", "echo pkill killall", "git commit -m 'no pkill'", "grep -r pkill src", "kill -9 -- -4242"]) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+});
+
+test("a write to a ticket's ticket.md in the job's worktree is refused, by edit, write or bash, a new ticket's and through a link too, saying what to do instead; findings.md, a plan and look-alikes pass", async () => {
+	const { home, own, other } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const TICKET = "arthur: refused: a ticket's ticket.md is the coordinator's, written on main, and the merge refuses a branch that changes one; write what you found in the ticket's findings.md, and what the ticket should say in your final message";
+	const ticket = "spec/features/AC0001-shop/ticket.md";
+	mkdirSync(join(own.worktree, dirname(ticket)), { recursive: true });
+	writeFileSync(join(own.worktree, ticket), "# AC0001 - Shop\n");
+	symlinkSync(ticket, join(own.worktree, "notes.md"));
+	const refused: Call[] = [
+		["write", { path: ticket, content: "x" }],
+		["write", { path: join(own.worktree, ticket), content: "x" }],
+		["write", { path: "spec/features/AC0002-new/ticket.md", content: "x" }],
+		["write", { path: "notes.md", content: "x" }],
+		["edit", { input: `[${ticket}#1A2B]\nPUT >1:\n+- 2026-10-30: decided` }],
+		["edit", { input: "[spec/features/AC0001-shop/findings.md#1A2B]\nMV spec/features/AC0001-shop/ticket.md" }],
+		["bash", { command: `echo '- 2026-10-30: decided' >> ${ticket}` }],
+		["bash", { command: `sed -i 's/Shop/Store/' ${ticket}` }],
+		["bash", { command: "cd spec/features/AC0001-shop && rm ticket.md" }],
+		["bash", { command: `mv findings.md ${ticket}` }],
+		["bash", { command: "printf x > ticket.md", cwd: "spec/features/AC0001-shop" }],
+		["bash", { command: `bash -c 'tee ${ticket} < /dev/null'` }],
+	];
+	for (const [toolName, input] of refused) assert.equal(worktreeRefusal(place, toolName, input), TICKET, JSON.stringify(input));
+	const passing: Call[] = [
+		["write", { path: "spec/features/AC0001-shop/findings.md", content: "x" }],
+		["write", { path: "spec/features/AC0001-shop/plan.md", content: "x" }],
+		["write", { path: "spec/features/AC0001-shop/notes/ticket.md", content: "x" }],
+		["bash", { command: `cat ${ticket} > ${ticket}.orig` }],
+		["write", { path: "spec/features/AC0001-shop/ticket.mdx", content: "x" }],
+		["write", { path: "spec/features/ticket.md", content: "x" }],
+		["write", { path: "ticket.md", content: "x" }],
+		["write", { path: join(temporaryFolder(), ticket), content: "x" }],
+		["bash", { command: `cat ${ticket} && cp ${ticket} ${join(temporaryFolder(), "copy.md")} && git diff -- ${ticket}` }],
+	];
+	for (const [toolName, input] of passing) assert.equal(worktreeRefusal(place, toolName, input), undefined, JSON.stringify(input));
+	assert.match(worktreeRefusal(place, "write", { path: join(other.worktree, ticket) }) ?? "", /into another job's worktree/, "another job's ticket.md is its worktree's");
 });
 
 test("git config that changes the config every worktree shares, the user's or the system's is refused naming its key; reads, a worktree's own and a file elsewhere pass", async () => {
@@ -1045,7 +1098,7 @@ test("a job of one project refuses writes into another project's main checkout a
 	const agent = join(temporaryFolder(), "omp");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [list] : []);
-	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	const theirs = await runner.spawn({ task: "theirs", project: "beta" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
@@ -1091,7 +1144,7 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 	const home = join(config, ".arthur");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
-	const runner = jobRunner(home, config, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, config, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);
@@ -1147,7 +1200,7 @@ test("a job of Arthur's own repository still builds a plugin in its worktree, ru
 	const arthur = repository("arthur");
 	const [home, secrets, agent] = [join(arthur, ".arthur"), join(arthur, "env"), join(temporaryFolder(), "omp")];
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
-	const runner = jobRunner(home, arthur, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
+	const runner = jobRunner(home, arthur, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);
@@ -1175,7 +1228,7 @@ test("a project declared while a job runs is refused to it at once; an unreadabl
 	const agent = join(temporaryFolder(), "omp");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
-	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);

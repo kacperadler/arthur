@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Retro 2026-10-30</title><style>body{margin:1em;font:16px/1.5 system-ui,sans-serif}p{white-space:pre-wrap;overflow-wrap:anywhere}</style></head>
+<body><h1>Retro 2026-10-30</h1><p>- Job: 2026-10-30-retro-e627058d
+- Merges up to: 3346f62e6815ea119e1705078b9bfb3bff60be45</p><h2>Final message</h2><h2>Period</h2><p>- No retro has run before, so this one covers the whole history: 478 tickets merged between 2026-10-15 and 10-30 (the retro counter says 440 merges). The work came in four waves:
+  - Roadmap build-out (core, jobs, board, orchestration, machines, resources, delivery, Telegram, YouTrack, GitHub, manage).
+  - The switch to running Arthur on the VPS (AR0307).
+  - A security wave built from the AR0311 audit's 18 confirmed findings (AR0329–AR0547).
+  - AR0561's "Defaults" tickets T1–T15, all in the last two days.
+- Reviews: 389 tickets were reviewed, 1.7 rounds on average, and 307 of them (79%) passed the first review. There were 121 FAIL reviews and 802 findings.
+- Cost: the most expensive tickets were AR0555 ($30.76), AR0496 ($26.99) and AR0518 ($25.84). 124 tickets have no known cost.
+- Went smoothly: the roadmap build-out, mostly 1–2 rounds at $2–15 each.
+- Went badly:
+  - The guard's shell-parser tickets ran 4–9 rounds each (AR0333, AR0420, AR0471, AR0493, AR0496).
+  - About 13 tickets only fixed flaky tests.
+  - At least 12 tickets only fixed docs that an earlier merge left saying the old thing.
+- Already handled, so not proposed here:
+  - Tests that miss a deliberate code change (the most common FAIL): AR0579 and AR0580 on the board.
+  - Flaky tests, check timeouts, guard bypasses and tests touching real files: fixed by merged AR0569, AR0572, AR0577 and AR0578.
+  - Line budgets: AR0495 on the board.
+- Autopilot pre-approved only 2 of the 478 tickets.</p><h2>1. A worker sent back after a FAIL fixes the cause, not only the reviewer's examples</h2><p>Kind: chore
+Evidence:
+- AR0564 review-2.md F1: the check passes a page before its images load, which review 1's finding 2 already reported for scripts.
+- AR0564 review-3.md F1: "Review 2's finding 2 is fixed for its six probes but not at its cause."
+- AR0532 review-2.md F1: "the same kind of gap review-1 reported for the bracket and quote characters, now for the whitespace class."
+- AR0555 review-3.md F1: "This is F1's problem in a new form"; the wake for a dropped ticket's review still names steps the round removed.
+- AR0335 review-3.md F1: "the same hole review 2 found, through a second spelling" (`--end-of-options` instead of `--`).
+- AR0420 review-2.md F1: a quoted or escaped `}` "reopens review 1's finding 1."
+- AR0493 review-3.md F2: "Finding 3 of review 2 was not addressed … The worker's final message does not mention them."
+- AR0496 review-6.md F1: "extglob patterns in a declared name still pass (review 5, finding 2, not fixed)."
+Why it matters: the hand-back tells the worker to "Fix every finding below" (`hand-back.ts:146`), and workers patched the example each finding gave, so the next review found the next example. Those rounds cost: AR0496 had 9 rounds ($26.99), AR0555 4 rounds ($30.76), AR0564 5 rounds ($21.31). AR0572's new review line now makes most guard bypasses a note, but AR0564, AR0532 and AR0555 are not guard tickets, so this still applies there.
+Scope: packages/core/roles/worker.md, the "How you work" bullet that starts "Try each invariant". The worker reads it when the hand-back continues its run after a FAIL.
+Before:
+&gt; - Try each invariant of the ticket against every way it could still break (a later unrelated call, a background process, a change undone before the next check), not only against the ticket's examples. A way that still breaks it misses the Goal: fix it, or ask, as below.
+After:
+&gt; - Try each invariant of the ticket against every way it could still break (a later unrelated call, a background process, a change undone before the next check), not only against the ticket's examples. A way that still breaks it misses the Goal: fix it, or ask, as below. When your task hands back a FAIL review, each finding is one example of its cause (one spelling, character, layer or path among others): fix the cause, try the other members of that class you can name, add a test row for each, and answer every finding by its number in the final message with the fix and the test that pins it, or the Decision or ticket that leaves it open.</p><h2>2. A change brings along every line it makes false, whichever file holds it</h2><p>Kind: chore
+Evidence:
+- AR0055 → AR0057: the vision's plugin table and two diagrams were left behind, because "AR0055's Scope names only `spec/roadmap.md` and `arthur.config.example.ts`".
+- AR0063 → AR0064: the same for the models plugin: "This ticket's Scope names only the roadmap and the example config".
+- AR0134 → AR0151: the example config and two diagrams still called Discord a later plugin; "its Scope names only those four files".
+- AR0044 → AR0050: roadmap entry 8 still described events before the replay AR0044 built.
+- AR0228 → AR0230: two code comments still described the host API before AR0228 froze it.
+- AR0307 → AR0408 and AR0409: `versions.mmd` and the example config's header still described the time before the switch.
+- AR0508 → AR0514: `spawn.md` still listed a limit that the hidden `~/.ssh` ended.
+- AR0554 → AR0568: the core's message still named the renamed voice plugin, "deferred as outside that ticket".
+- AR0339 review-1.md F3: doc pages printed by `--help` still described the old default.
+- AR0541 review-1.md F2: `spawn.md:76` claimed more than the fix did.
+- AR0335 review-1.md F2: `docs/deploy.md` claimed more than the code did.
+- AR0478 review-1.md F1: `plugin.md:30` gave the wrong condition for a conflict.
+Why it matters: each stale line costs a ticket of its own, with the owner's approval, a spawn and a merge, or a FAIL round. The worker role names only the usage line, the doc page and the example config, so workers file the rest as findings whenever the Scope does not list the file.
+Scope: packages/core/roles/worker.md, the "How you work" bullet that starts "Stay inside the task". The worker reads it before it commits.
+Before:
+&gt; - Stay inside the task. A new or changed command or option brings its usage line, its doc page and its line in the example config with it, whether the task names them or not.
+After:
+&gt; - Stay inside the task. A change brings with it every line it makes false, whether the task or the ticket's Scope names that file or not, unless the Scope's Out does: for a new or changed command or option, its usage line, its doc page and its line in the example config; for any behavior, name, number or message, each place the README, the docs, a diagram, the roadmap, a role or a code comment states it. Search the repository for each one you changed before the final message; a line of the vision, which is the owner's, goes into `findings.md` instead.</p><h2>3. The project's review criteria fail a branch that leaves docs saying the old thing</h2><p>Kind: chore
+Evidence:
+- AR0110 review (PASS) → AR0114: the review saw the README row still calling entries 24 and 26 not built, filed it as a finding and passed the branch.
+- AR0554 review-1.md (PASS): "F1 is filed correctly: the core's `NOT_TRANSCRIBED` … still says 'the voice plugin is not enabled'". That became AR0568.
+- AR0508 review 2026-10-27-review-bc8c068f (PASS) → AR0514: the stale `spawn.md:120` was filed and passed.
+- AR0307 review 2026-10-25-review-fce9638a (PASS) → AR0410: setup step 5 was noted and passed.
+- The shipped `packages/delivery/criteria/review.md` lists "A changed command, option or behavior whose docs still say the old thing" under "Fails the branch". The project's `.agents/arthur/criteria/review.md` has the doc rule only under "How code here should look", not in its FAIL list: the drift AR0297 warned of.
+Why it matters: reviewers here saw the stale lines and passed anyway, because nothing in the project's FAIL list covers them; each one then became a ticket. The reviewer reads this list before its verdict.
+Scope: .agents/arthur/criteria/review.md, the first bullet under "FAIL when any one holds", after proposal 2.
+Before:
+&gt; - A requirement is missing, stubbed, faked, or only claimed in the final message.
+After:
+&gt; - A requirement is missing, stubbed, faked, or only claimed in the final message; or a line of the docs, the README, a diagram, the roadmap, a role or a code comment still says what the branch changed (search for each name, number and message the diff changes), in a file the Scope's Out does not name.</p><h2>Dead sentences</h2><p>I looked for each sentence's subject in every `review-N.md`, `findings.md` and `outcome.md` of the period. No FAIL, finding or outcome depended on the sentences below. Each is `[INFERENCE]` from that search, not proven.
+- packages/orchestration/roles/plan-reviewer.md: the whole role. No `plan-review-N.md` exists under `spec/features/`.
+- packages/orchestration/roles/coordinator/plan-ended.md: "A plan review (kind `plan-review`), spawned only when the owner asks for one, …"
+- packages/projects/roles/onboarding.md: the "A vision already there" and "No check or test command" sections. No onboarding of a project ran during the period.
+- packages/projects/roles/coordinator/onboarding-ended.md: the "Ended with questions …" and "`Its ... new questions are cut`" bullets.
+- packages/orchestration/criteria/autopilot.md (and its project copy): "A refusal is not a reason to rewrite the ticket until it passes: it waits for the owner." Autopilot ran twice and no refusal is on record.
+- packages/core/roles/worker.md: "Never commit with `--no-verify`." and "…and never symlink another checkout into it."
+- packages/delivery/roles/reviewer.md: "Compare against the base and commit the task names, never `origin/*`, which can lag."
+- packages/orchestration/roles/coordinator.md: "Never write an id in a destructive command … from a variable set in an earlier tool call"; "Write to YouTrack … only when the owner asks"; "`arthur coordinator stop` … Run it only when the owner asks."
+- .agents/arthur/criteria/review.md: "Something listens on a public address, or a text that is not English reaches code, docs or the user." Reviews only list it as checked and clean (AR0196, AR0298).</p></body></html>

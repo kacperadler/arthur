@@ -63,16 +63,18 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job to its merge, each documented on its page:
 
 - `orchestration`, which every config needs: the coordinator, jobs and `maxAgents`, planning (`arthur coordinator --help`);
-- `projects`, with your projects (`arthur projects --help`). Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir`. Its `ci.workflow` names the workflow file the `github` plugin watches, in the GitHub repository of the checkout's `origin` remote (`git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`); a project with `ci.workflow` and no such `origin` refuses the setup (`packages/github/docs/github.md`);
+- `projects`, with your project folders (`arthur projects --help`): one folder per project, `~/arthur/projects/<name>/`, its `project.config.ts` holding everything about that project, each piece made by its plugin's helper. Its `projects.project(...)` names its repository: `path`, a clone already on this machine, counted from the project's folder, or `repo`, a Git URL Arthur clones into `reposDir`. Its `github.project({ workflow })` names the workflow file the `github` plugin watches, in the GitHub repository of the checkout's `origin` remote (`git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`); a project with one and no such `origin` refuses the setup (`packages/github/docs/github.md`);
 - `session`: the coordinator's conversation, compacted by day and fresh at night, `/restart`, and the restart guard (`packages/session/docs/session.md`);
 - `schedule`: actions and jobs at set times, and the entries other plugins register from their options, such as `manage`'s audit (`arthur schedule --help`);
 - `delivery`: the review of a worker's branch and `arthur merge` (`arthur review --help`, `arthur merge --help`);
 - `github`: the CI runs of the branches in play, and the push of a branch a review passed and of main after a merge (`packages/github/docs/github.md`);
-- `commit-rules`: each project's `commitRules` (`packages/commit-rules/docs/commit-rules.md`);
+- `commit-rules`: each project's `commitRules.project(...)` (`packages/commit-rules/docs/commit-rules.md`);
 - `findings`: what `arthur merge` makes of a ticket's open findings (`packages/findings/docs/findings.md`);
 - `manage`: health, stats, the audit, the retro and pruning (`packages/manage/docs/manage.md`).
 
-The channel, `telegram`, comes in step 13, and other machines for jobs with the `machines` plugin of step 11.
+The channels, `telegram` and `discord`, come in step 13, and other machines for jobs with the `machines` plugin of step 11.
+
+A project that runs on a Dokploy server of yours can add `dokploy`: `arthur dokploy apps|app|status` reads each server's projects, applications and deployments for the coordinator, never in a job; upload and deploy are planned (AR0588's second ticket). Each server is an entry of `instances`, its address in the config and its API key in a variable the env file of step 6 holds (`ARTHUR_DOKPLOY_TOKEN`, or `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one), and the project's application is its `dokploy.project({ instance?, app })`, as `packages/dokploy/docs/dokploy.md` says; it needs `projects`. Then `arthur config check` lists that variable too.
 
 ```ts
 import { defineConfig } from "@arthur/core";
@@ -91,7 +93,7 @@ export default defineConfig({
 		orchestration({}),
 		session({}),
 		schedule({}),
-		projects({ list: [{ name: "shop", prefix: "SH", path: "/home/<user>/shop", ci: { workflow: "ci.yml" } }] }),
+		projects({ folders: ["projects/shop"] }),
 		commitRules(),
 		findings({}),
 		delivery({}),
@@ -101,11 +103,20 @@ export default defineConfig({
 });
 ```
 
-Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/discord'`). Take a plugin from it once its roadmap entry is merged.
+Then `~/arthur/projects/shop/project.config.ts`, the project's pieces:
+
+```ts
+import { github } from "@arthur/github";
+import { projects } from "@arthur/projects";
+
+export default [projects.project({ prefix: "SH", path: "/home/<user>/shop" }), github.project({ workflow: "ci.yml" })];
+```
+
+Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/docker'`). Take a plugin from it once its roadmap entry is merged.
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 
-The config stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts` and `.arthur/` (`.gitignore`), so your project list never reaches the public repository, and `git pull` leaves both as they are.
+The config and the project folders stay in `~/arthur`, so their `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts`, `projects/` and `.arthur/` (`.gitignore`), so your projects never reach the public repository, and `git pull` leaves both as they are.
 
 **Check:** `arthur config check` refuses nothing and lists the one variable step 6 sets, which `github` names, as `missing`; until step 6 sets it, it exits 1, which here means that variable only, not a broken config:
 
@@ -212,7 +223,7 @@ sudo systemctl daemon-reload
 
 ## 10. CPU and memory for the jobs
 
-Each job runs under the same manager in a scope of its own, `arthur-job-<id>.scope`, inside `arthur-jobs.slice`, whose limits are `core.jobs.cpu` and `core.jobs.memory`, so all jobs together cannot starve the coordinator. A job's install runs in its scope, and each check of `arthur merge` on main in a scope of its own in the same slice (`arthur merge --help`). Whatever a job or a check leaves running is killed when it ends. The manager holds jobs to those limits only when the system delegates the CPU and memory controllers to it, as systemd 255 of Ubuntu 24.04 does by default. When the check below misses either, delegate them, then reboot so the manager starts with them:
+Each job runs under the same manager in a scope of its own, `arthur-job-<id>.scope` (`arthur-job-<id>.<ms>.scope` for a run `arthur continue` started), inside `arthur-jobs.slice`, whose limits are `core.jobs.cpu` and `core.jobs.memory`, so all jobs together cannot starve the coordinator. A job's install runs in its scope, and each check of `arthur merge` on main in a scope of its own in the same slice (`arthur merge --help`). Whatever a job or a check leaves running is killed when it ends. The manager holds jobs to those limits only when the system delegates the CPU and memory controllers to it, as systemd 255 of Ubuntu 24.04 does by default. When the check below misses either, delegate them, then reboot so the manager starts with them:
 
 ```sh
 printf '[Service]\nDelegate=cpu cpuset io memory pids\n' | sudo install -D -m 644 /dev/stdin /etc/systemd/system/user@.service.d/delegate.conf
@@ -277,9 +288,17 @@ import { telegram } from "@arthur/telegram";
 telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }] }),
 ```
 
-Then restart the service (step 9). Without a channel, the terminal of step 12 is the only way in.
+Discord does the same from a private server of your own, a main channel for the coordinator and one more per project (roadmap entry 89: text in and out; files and the phone commands come with entry 90). Make the server and its bot and give Arthur the bot's token, the server's id, your user id and the main channel's id, as `packages/discord/docs/discord.md`, "Setting it up", says; the invite link it gives asks for four permissions and no more. Never paste a secret in a channel: Discord keeps every message.
 
-**Check:** `arthur config check` says `set` for both variables, and a message you write to the bot gets the coordinator's answer within a minute.
+```ts
+import { discord } from "@arthur/discord";
+// in plugins:
+discord({ bots: [{ tokenEnv: "ARTHUR_DISCORD_BOT_TOKEN", guildIdEnv: "ARTHUR_DISCORD_GUILD_ID", userIdEnv: "ARTHUR_DISCORD_USER_ID", channelIdEnv: "ARTHUR_DISCORD_CHANNEL_ID" }] }),
+```
+
+Both can be on at once: a reply goes back to the channel its message came from, and every notice goes to both. Then restart the service (step 9). Without a channel, the terminal of step 12 is the only way in.
+
+**Check:** `arthur config check` says `set` for each channel's variables, a message you write to the bot gets the coordinator's answer within a minute, and for Discord each `discord bot` line of `arthur doctor` says `ok`.
 
 ## 14. Check everything with `arthur doctor`
 

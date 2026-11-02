@@ -26,6 +26,7 @@ export function schedule(options: ScheduleOptions = {}): Plugin {
 | `after` | The plugins whose `setup` runs first when they are loaded; one missing or disabled is no refusal. |
 | `check(options, core)` | Its own options, `enabled` left out, and the core's as loaded; it returns `{ path, problem }` for each wrong one, and every problem refuses the start. |
 | `doctor(options, core)` | Its requirements read from the same, without its setup or its env values, so `arthur doctor` and `arthur setup` check them while the load refuses. |
+| `piece(value, options)` | Its check of one project's piece, the value its `<name>.project(...)` helper made in that project's file, with its own options (`enabled` left out): a problem, or undefined. Having it declares the piece. Below, "Project pieces". |
 | `setup(host)` | Registers: commands, kinds, roles, checks, provided names, subscriptions. A `host.jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`. |
 | `start()` | Long-lived work (a poll, a timer); called only by `arthur run`, in setup order. |
 | `stop()` | Ends it; called by `arthur run` on SIGTERM, in reverse order. |
@@ -40,8 +41,9 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `options` | Its options as written, `enabled` left out. |
 | `env` | Its own `...Env` variables that are set, by variable name. A value never goes into an error or a log line. |
 | `secrets` | The values, never the names, of every enabled plugin's `...Env` variables that are set, from the shell or the env file, for redacting a text that may carry one (above, "Changes since entry 51"). |
-| `folder` | `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it. |
+| `folder` | `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it. Inside a job's sandbox it cannot be read (AR0590): a file of it that a `setup` or an in-job command reads there must count as none when the read fails. |
 | `agent` | `core.agent.command`, the agent a plugin starts outside a job (the coordinator). |
+| `job` | Inside a job (`arthur help --help`), `{ id, project }`: the job's id and the project its record in the home names, `""` for a record this home does not hold; undefined outside a job (`arthur run`, the coordinator). The projects plugin then serves that project alone. |
 | `sandbox(folder, cache, note)` | For branch code a plugin runs outside a job (delivery's checks on main): a function from a shell command to the command and arguments that run it by `sh -c` in a sandbox writing only in the checkout `folder` (each entry there is, but `.git`, Arthur's home, `arthur.config.ts` and the env file; of `.git` its `objects`, `refs`, `logs` and `index`, never its `config`, `hooks` or `info`; `arthur merge --help`, "Checks on main"), the folder `cache`, made if missing, where the package managers' caches go (`npm_config_cache`, `BUN_INSTALL_CACHE_DIR`, `XDG_CACHE_HOME`, `PNPM_HOME` and `COMPOSER_CACHE_DIR` point into it; the plugin's own, which it removes when done), the temporary folder and `/dev`, reading every file but the env file and `~/.ssh`, and no other process's environment (`arthur spawn --help`, "The sandbox"). Where it cannot be set up, `note` gets one line, `no sandbox: <why>; each step writes wherever Arthur's user can`, and the command runs bare, its caches in `cache` still (above, "Changes since entry 51"). |
 | `code` | The package folders this load runs: the core's, then each enabled plugin's around its `module`. |
 | `package` | This plugin's own package folder, when it names its `module`. |
@@ -122,7 +124,20 @@ Each decided in the ticket that made it.
 - AR0449 (AR0440's Risks and Open questions; its Done means: each check of a merge in a sandbox of its own, through what the core publishes): `sandbox(folder, note)`, the sandbox a job's install runs in, for branch code a plugin runs outside a job, with the core's env file hidden, which no member gave a plugin; delivery runs each step of `arthur merge` in it, inside the step's scope. A prepare's `ARTHUR_INSTALL` now runs in the job's sandbox too (`arthur spawn --help`, "The sandbox"). The test kit's host hides `<root>/env`, its jobs' env file.
 - AR0454 (F1 of AR0449; its Done means: the install and each merge step get a cache of their own, in a folder of that job or of that merge, removed after it): `sandbox(folder, cache, note)`, `cache` the folder the package managers' caches of those commands go to, in place of the shared ones every process of Arthur's user reads (`~/.npm`, whose `_npx` a later `npx` runs, `~/.bun/install/cache`, pnpm's, uv's and composer's), which the sandbox no longer lets them write. Delivery's `arthur merge` gives each merge its own in its folder, `<delivery folder>/cache-<random>`, and removes it after the last step. A job's install keeps its caches in its record's `cache` folder.
 - AR0518 (its Done means: no env file value in a job's record or log, an error or a channel's message): each value of an enabled plugin's `...Env` variable, from the shell or the env file, 8 characters or more, becomes its variable's name in what `events.emit` logs and delivers, in the task, instruction, reason and text of `jobs.spawn`, `jobs.continue`, `jobs.block` and the core's steer, in the record's prompt with the `prompt` sections, in the reply of `commands.route`, in the caption `channel.send` gets, in the error of a `setup` that throws, and in every text the CLI prints; a job's wrapper names the values of its env file in each file of the record it writes and its events. A plugin that needs a value keeps it from `env`. No host member changed.
+- AR0589 (AR-D391, its approved plan): `Plugin.piece(value, options)`, and each project's `pieces` and `folder` in what the projects plugin provides as `projects` (below, "Project pieces").
+- AR0593 (AR0589's approved plan, ticket 2): `host.job`, `{ id, project }` inside a job; the projects plugin serves the job's own project alone there, imports no other project's file, and outside a job keeps `<home>/projects/folders` beside `checkouts`, which a job's sandbox reads (`arthur spawn --help`, "The sandbox"). `loadPlugins` takes the job's id in place of a flag.
+- AR0590 (AR0589's approved plan, ticket 3): inside a job's sandbox a plugin reads nothing of its `folder` nor of the rest of the home but the job's own record, the records of its project and the projects plugin's lists; `host.jobs.list()` there gives those records alone (`arthur spawn --help`, "The sandbox").
 - AR0557 (AR0556's approved plan, Option 2; its Done means: `arthur github pr --help` prints `github-pr.md`): a command's group page, `<doc>-<word>.md` beside its `doc`, which `arthur <command> <word> … --help` prints when it exists and `<word>` is lowercase letters, digits and dashes, else the command's `doc` (`arthur help --help`). A plugin registers nothing more for it. No host member changed.
+
+### Project pieces
+
+Each project has a folder of its own with its `project.config.ts` (`arthur projects --help`, "A project's file"): a list of pieces, each made by a plugin's helper, `<plugin>.project(value)`, which only returns `{ <plugin name>: value }`; accounts and tokens stay in the plugin's own options in `arthur.config.ts`. A plugin with something per project:
+
+- exports the helper beside its function: `dokploy.project = (piece: DokployPiece) => ({ dokploy: piece })`, the key its own `name`;
+- declares `piece(value, options)`, its check of one project's piece. Before that plugin's `setup` the host runs it on every project's `pieces[<name>]` it gets from `collect("projects")`, and a problem refuses the load naming the project and the helper: `plugin dokploy: setup failed: project shop: dokploy.project(...): <problem>`. So a plugin with `piece` sets up after `projects` (`requires` or `after`), and its setup never sees a malformed piece. The test kit's fake host runs it the same way in `setup(plugin)`;
+- reads its piece in its setup, or later, from the projects it collects: `project.pieces.dokploy`. No plugin imports another, and the projects plugin checks none but its own, `projects.project(...)`.
+
+A piece that no loaded plugin with `piece` reads, a disabled plugin's or a key written by hand, is a line of `arthur doctor`, never critical (`arthur doctor --help`): inside a job a plugin whose variable is unset is not loaded, and its pieces must not break the job's commands, so its pieces are not checked there.
 
 ## Types
 
@@ -165,6 +180,7 @@ Emitted by the core, named `core` unless said otherwise; `data` holds the fields
 | `job-started` | `id`, `kind`, `project`, `root`, `branch`, `worktree`, `tickets`, `machine` | A spawn or `arthur continue`, as it starts the job's wrapper. |
 | `job-state` | `id`, `project`, `ticket` (the id its task names, or null), `machine`, `from`, `to`, `reason` | A job's state changed: `working`, `idle`, `blocked`, `ended`. |
 | `job-ended` | `id`, `kind`, `project`, `state` (`ended` or `blocked`), `reason`, `undelivered?` (the steers it never got) | A run ended. |
+| `job-steered` | `id`, `kind`, `text`, `via` (`steer` or `continue`) | `arthur steer` (or `/steer`) queued a correction, or `arthur continue` started a run; a plugin's `host.jobs.steer` or `continue` emits none. |
 | `stop-all` | `ids` | `arthur stopall`, before it stops them. |
 | `ticket-created` | `id`, `project`, `title`, `status`, `path` | A ticket was created; named by the plugin whose `host.board` created it, else `core`. |
 | `ticket-moved` | `id`, `project`, `from`, `to` | A ticket moved; named by the plugin whose `host.board` moved it, else `core` (`arthur ticket`, a worker's start). |
@@ -187,9 +203,9 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 
 | Name | Provided by | Asked by | The answer |
 | --- | --- | --- | --- |
-| `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
+| `projects` | projects | the core (`host.board`, a spawn's checkout, a plugin's `piece`, `arthur doctor`), plugins | The projects, inside a job only the job's own (`host.job`), each with its `folder`, the real path of its project folder, and its `pieces`, every other plugin's piece of its file by plugin name (above, "Project pieces"). |
 | `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
-| `doctor` | delivery, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
+| `doctor` | delivery, discord, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
 | `jobs.keep` | github, delivery | the core (`arthur prune`) | Whether an ended job's record is kept; asked once its worktree and branch are freed, so a provider also frees what it holds of the job: github deletes its branch on origin, delivery its folder of the job (AR0555). |
@@ -203,7 +219,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
-| `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |
+| `coordinator.silent` | orchestration | discord, telegram | Whether the silent mode holds a notice. |
 | `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |
 | `coordinator.checkoutContext` | orchestration | develop (`arthur eval`) | `{ root, at, context }`, a copy of the main project's repository, a `Date` and `{ <plugin>: <text> }`: the coordinator's context there at that instant, without the live jobs, open decisions and silent mode, each plugin's lines `context`'s instead of its live answer (above, "Changes since entry 51"). |
 | `models.lists` | orchestration | models | Every role's model list. |
@@ -214,7 +230,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `schedule.message` | schedule | develop (`arthur eval`) | `(id, message, procedure text)`: the text the coordinator gets for that action due on time, `[scheduled <id>] <message>` with the procedure's text under a blank line. |
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
-| `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
+| `merge.check` | projects, orchestration | delivery (`arthur merge`, `arthur review-needed`) | A check of a job's branch before its merge: a text answer refuses it. |
 | `decision.owner` | orchestration | delivery (`arthur merge --unreviewed` or `--no-ci`, `arthur take-main`) | `{ id, what, kind, ticket?, job?, use }`: `""` when `id` is the owner's own answered decision of that kind, ticket or job, not used by another use, which it then marks used; else the refusal, one line. |
 | `decision.entries` | orchestration | manage (`arthur repeats`, `/repeats`, a retro's prompt) | `{ project }`, a project's name: its decision log's records as `arthur decision` reads them, none without a log; an unknown project or a line broken by hand throws. |
 | `findings.onMerge` | findings | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
@@ -265,9 +281,9 @@ Exports: `configRefusal`.
 
 ### `@arthur/core/inside-job`
 
-Exports: `insideJob`.
+Exports: `JOB_SCOPE`, `insideJob`.
 
-`insideJob(home, cgroup?, env?)`: the id of the job of Arthur's home `home` this process runs in, undefined outside one. Under systemd it is the job's scope, `arthur-job-<id>.scope` on the last line of `/proc/self/cgroup` (`cgroup`), which no process of the job can change, when `<home>/jobs/<id>` exists; else, a job run bare, the folder name of the record `ARTHUR_JOB` names (`env`, default `process.env`), which a job's shell can clear. Each refusal of a command inside a job asks it, a plugin with its home as `dirname(host.folder)`. Why the scope: [`deploy.md`](deploy.md), "Threat model".
+`insideJob(home, cgroup?, env?)`: the id of the job of Arthur's home `home` this process runs in, undefined outside one. Under systemd it is the job's scope, `arthur-job-<id>.scope`, `arthur-job-<id>.<ms>.scope` for a continued run (`JOB_SCOPE`, the pattern that finds the id at a cgroup path's end), on the last line of `/proc/self/cgroup` (`cgroup`), which no process of the job can change, when `<home>/jobs/<id>` exists; else, a job run bare, the folder name of the record `ARTHUR_JOB` names (`env`, default `process.env`), which a job's shell can clear. Each refusal of a command inside a job asks it, a plugin with its home as `dirname(host.folder)`. Why the scope: [`deploy.md`](deploy.md), "Threat model".
 
 ### `@arthur/core/lock`
 
@@ -301,6 +317,6 @@ The plugin shape, the host and their types: "A plugin", "The host" and "Types" a
 
 ### `@arthur/core/testing`
 
-Exports: `AgentRun`, `AgentStep`, `FakeHost`, `fakeAgent`, `fakeHost`, `jobSlice`, `temporaryFolder`.
+Exports: `AgentRun`, `AgentStep`, `FakeHost`, `fakeAgent`, `fakeHost`, `jobSlice`, `temporaryFolder`, `until`.
 
-The test kit, which `npm test` loads into every test process as its safety net. `fakeHost({ name, options?, env?, timeZone?, quietHours?, now?, root?, code? })` is one plugin's host alone, its `secrets` the values of `env`, with what the plugin registered, called and emitted, and the test as another plugin, `test` (`call`, `collect`, `provide`, `emit`, and `beforeSpawn`, whose reason refuses as `refused by test: <reason>`), and `setNow` for its clock. `fakeAgent(run)` is an `omp` that plays an `AgentRun` of `AgentStep`s; `temporaryFolder()` a folder removed at exit; `jobSlice` the test's own systemd slice.
+The test kit, which `npm test` loads into every test process as its safety net. `fakeHost({ name, options?, env?, timeZone?, quietHours?, now?, root?, code? })` is one plugin's host alone, its `secrets` the values of `env`, with what the plugin registered, called and emitted, and the test as another plugin, `test` (`call`, `collect`, `provide`, `emit`, and `beforeSpawn`, whose reason refuses as `refused by test: <reason>`), and `setNow` for its clock. `fakeAgent(run)` is an `omp` that plays an `AgentRun` of `AgentStep`s; `temporaryFolder()` a folder removed at exit; `jobSlice` the test's own systemd slice. `until(what, predicate, { deadlineMs? })` is a test's one wait: it checks `predicate` every 20 ms and returns its first value other than `undefined` and `false`, and past `deadlineMs` (default 20 s) throws `waited <seconds> s for <what>`. `test/structure.test.ts` refuses a test file's own `until`, a loop that sleeps, and more fixed waits (`sleep`, `setTimeout`, `Atomics.wait`) than the file's baseline there.

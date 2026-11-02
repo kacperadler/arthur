@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { basename, delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { loadConfig } from "../src/config.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -13,7 +12,7 @@ import { insideJob } from "../src/inside-job.ts";
 import type { Caps, Slice } from "../src/job-scope.ts";
 import { oomFirst } from "../src/job-memory.ts";
 import { jobRunner, type Spawn } from "../src/jobs.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 // Every job here runs in the kit's slice, `jobSlice`, never Arthur's own, and the kit removes it when the process exits.
 const manager = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;
@@ -34,15 +33,7 @@ function setup(agent: string, slice: Slice = jobSlice, caps: (spawn: Spawn) => r
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
 	const collect = (name: string, [spawn]: readonly unknown[]) => (name === "jobs.limits" ? [...caps(spawn as Spawn)] : []);
-	return { home, jobs: jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), collect) };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
+	return { home, jobs: jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...slice }, agent, time, eventBus(home), collect) };
 }
 
 const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8").trim() || undefined : undefined);
@@ -108,6 +99,25 @@ test("a job that forks a daemon leaves nothing running once its state is final, 
 	assert.equal(readFileSync(join(home, "jobs", job.id, "state"), "utf8"), "ended");
 	assert.deepEqual(event.data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	await until("the scope's end", () => show(`arthur-job-${job.id}.scope`, "ActiveState") === "inactive");
+});
+
+test("a continued job runs in a scope of a new name, which names its job, and a daemon the run forks is gone once it ends", needsManager, async () => {
+	const folder = temporaryFolder();
+	const done = fakeAgent({ steps: [{ message: "Done." }] });
+	// The fake agent; started with `--continue`, it first forks a daemon, out of its process group, that notes its cgroup and pid.
+	const daemon = `setsid sh -c 'cat /proc/self/cgroup > "${folder}/cgroup"; echo $$ > "${folder}/daemon"; exec sleep 300' </dev/null >/dev/null 2>&1 &`;
+	const agent = join(folder, "omp");
+	writeFileSync(agent, `#!/bin/sh\ncase " $* " in *" --continue "*) ${daemon} while [ ! -s '${folder}/daemon' ]; do sleep 0.02; done ;; esac\nexec '${done}' "$@"\n`, { mode: 0o755 });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await until("the continued run's end", () => readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2);
+	const cgroup = read(join(folder, "cgroup")) ?? "";
+	assert.match(cgroup, new RegExp(`/${jobSlice.slice}\\.slice/arthur-job-${job.id}\\.\\d+\\.scope$`));
+	assert.equal(insideJob(home, cgroup, {}), job.id, "the continued run's cgroup names its job without ARTHUR_JOB");
+	const pid = Number(read(join(folder, "daemon")));
+	assert.ok(!running(pid), `the daemon ${pid} still runs`);
 });
 
 test("a prepare's install runs in the job's scope before the agent, and a daemon it forks is gone once the job ends", needsManager, async () => {
@@ -269,7 +279,10 @@ test("arthur continue sets the ticket's slice to the caps in force now, not to t
 	answer = { memory: "400M", feature: { name: "AC0001" } };
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	assert.deepEqual(limits.map((property) => show(slice, property)), ["infinity", "infinity", "infinity"]);
-	assert.equal(show(`arthur-job-${job.id}.scope`, "MemoryMax"), String(400 * 2 ** 20));
+	// The continued run's scope, named by the time it started: the one its wrapper runs in.
+	const unit = basename(cgroup(Number(read(join(home, "jobs", job.id, "pid")))) ?? "");
+	assert.match(unit, new RegExp(`^arthur-job-${job.id}\\.\\d+\\.scope$`));
+	assert.equal(show(unit, "MemoryMax"), String(400 * 2 ** 20));
 	assert.deepEqual(["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map((name) => read(join(home, "jobs", job.id, name)) ?? ""), ["", "400M", "AC0001", "", ""]);
 	writeFileSync(gate, "");
 	assert.equal(await endedWith(home, job.id), "finished");

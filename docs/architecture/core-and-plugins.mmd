@@ -9,7 +9,7 @@ flowchart TD
     telegram[telegram]
     whatsapp[whatsapp<br/>local bridge]
     signal[signal<br/>signal-cli]
-    discord[discord<br/>gateway, outbound]
+    discord[discord<br/>gateway, outbound<br/>text built, media planned]
     slack[slack<br/>Socket Mode, outbound]
     terminal ~~~ telegram ~~~ signal ~~~ discord ~~~ slack ~~~ whatsapp
   end
@@ -59,8 +59,9 @@ flowchart TD
     youtrack[youtrack]
     github[github<br/>polls CI and PRs<br/>arthur github: PR reads]
     delivery[delivery<br/>review, merge]
+    dokploy[dokploy<br/>the owner's Dokploy servers<br/>reads built, upload and deploy planned]
     commit[commit-rules<br/>regex, words, file]
-    projects ~~~ nvm ~~~ findings ~~~ youtrack ~~~ github ~~~ delivery ~~~ commit
+    projects ~~~ nvm ~~~ findings ~~~ youtrack ~~~ github ~~~ delivery ~~~ dokploy ~~~ commit
   end
 
   subgraph SELF[Arthur itself]
@@ -90,8 +91,9 @@ flowchart TD
   runner -->|spawns| omp[omp agent<br/>in a worktree]
   runner -->|SSH, private network| remote[other machines<br/>e.g. a Mac<br/>omp in a worktree]
   github -.->|polls| gh[(GitHub)]
+  dokploy -.->|calls its API| dk[(Dokploy servers)]
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,delivery,projects,nvm,findings,youtrack,github,commit,manage,develop,listen,video first;
+  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,delivery,dokploy,projects,nvm,findings,youtrack,github,commit,manage,develop,listen,video first;
   class whatsapp,signal,slack,agents,server later;

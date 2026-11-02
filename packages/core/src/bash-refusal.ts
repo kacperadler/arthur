@@ -24,7 +24,8 @@ const MADE = (at: string) => `arthur: refused: this git write goes through ${at}
 // `GIT_OBJECT_DIRECTORY=` or `GIT_COMMON_DIR=` before it or after `env`, an alias its `-c` gives, a link of its folders, or a path the call writes anywhere,
 // which may be a link made in it: a redirect, `mv`, `tee`, `sed -i`, `cp`, `ln`, `dd`, not `mkdir`, `touch`, a removal; `made`), any `git stash`, a `git config`
 // that changes the shared, the user's or the system's config, a git call that reads config the guard does not or writes an alias or include, one that may
-// point a checkout at a branch another worktree holds (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, one that rewrites
+// point a checkout at a branch another worktree holds (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list or a fetch or push
+// whose refspec may write under `refs/replace` (git-writes.ts), one that rewrites
 // the repository every worktree shares (`gc`, `prune`, `repack`, `reflog expire`, `maintenance`, `filter-repo`, `worktree prune`, `worktree add` or `move`
 // outside the worktrees folder, `gc.*` or `maintenance.*` config given or written), or one of these after a `cd` there. The command is the word after
 // assignments and wrappers (`sudo`, `timeout 60`, the words `env -S` splits), also in `bash -c`, a shell's heredoc, `eval`, a trap's command, a function's body where it is defined (`f() …`, `function f …`); each path is resolved from where the commands before it left

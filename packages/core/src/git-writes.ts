@@ -24,7 +24,7 @@ const CONFIG_SUBCOMMANDS = ["set", "unset", "rename-section", "remove-section", 
 // any, and whether such a `--worktree` or `--file` write may add an alias or include (`loads`); `points`, the ref it may
 // point a checkout at though another worktree holds it ("" when any); `replaces`, whether it writes a replacement under
 // `refs/replace` (`git replace` but a bare one, or one that lists: `-l`, a bundle with it, `--list` or an abbreviation,
-// before `--`; Git refuses any other word with those); `shared`, whether it rewrites the repository every worktree shares:
+// before `--`; Git refuses any other word with those; or a refspec of `intoReplace`); `shared`, whether it rewrites the repository every worktree shares:
 // `gc`, `prune`, `repack`, `maintenance`, `filter-repo`, `reflog expire`, `delete` or `drop`, `worktree prune`, or one given
 // or writing `gc.*` or `maintenance.*` config; `adds`, the words of `worktree add` or `move` but options; `alias`, the words
 // Git runs instead when `sub` is an alias given by `-c` (Git runs a builtin of that name first, so both are judged); `unread`,
@@ -65,7 +65,7 @@ export function gitCall(args: readonly string[], assignments: readonly string[] 
 	// Without its definitions, so an alias that names itself, or a loop of them, ends as Git's own loop check does.
 	const alias = value === undefined ? undefined : [...options.filter((_, at) => !defines(at) && !defines(at + 1)), ...aliasWords(value), ...rest];
 	const lists = rest.slice(0, rest.includes("--") ? rest.indexOf("--") : rest.length).some((word) => /^-[a-zA-Z]*l/.test(word) || (word.length > 2 && "--list".startsWith(word)));
-	const replaces = sub === "replace" && rest.length > 0 && !lists;
+	const replaces = (sub === "replace" && rest.length > 0 && !lists) || intoReplace(sub, rest);
 	// Config the `gc` Git runs by itself after a commit, merge or fetch reads (`gc.pruneExpire=now` drops unreachable commits).
 	const config = sub === "config" ? configWrite(rest) : undefined;
 	const tunes = [...options.filter((_, at) => options[at - 1] === "-c"), ...configEnv, ...(config ? rest : [])].some((word) => /^(?:gc|maintenance)(?:\.|$)/i.test(word));
@@ -95,6 +95,22 @@ function pointsAt(sub: string, rest: readonly string[]): string | undefined {
 	if (sub !== "symbolic-ref") return undefined;
 	const operands = rest.filter((word, index) => !word.startsWith("-") && !/^-[a-zA-Z]*m$/.test(rest[index - 1] ?? ""));
 	return operands.length < 2 ? undefined : operands[0] === "HEAD" ? operands[1] : "";
+}
+
+// Whether `git fetch`, `pull`, `push` or `send-pack` may write under `refs/replace` by a refspec in `rest` (a word, or an option's value after `=`):
+// a destination there in any case (one folder on a disk that ignores case) or a glob that may cover it (`refs/*`, `refs/rep*`, `*`); for a push also a word
+// without `:`, its own destination, and one Git completes with `refs/` (`replace/<commit>`, matched on the other side); `--mirror` (every ref) or an
+// abbreviation; `--stdin` on a fetch or `send-pack` (refspecs unseen). Not seen: the refspecs config defines (a remote's `fetch`, `push` or `mirror`, by `-c`
+// too, `push.default`), and a ref another repository names, such as its `HEAD` pointed under `refs/replace`, pushed from there.
+function intoReplace(sub: string, rest: readonly string[]): boolean {
+	const [pushes, reads] = [sub === "push" || sub === "send-pack", sub === "fetch" || sub === "send-pack"];
+	if (!pushes && !reads && sub !== "pull") return false;
+	if (rest.some((word) => (pushes && word.length > 2 && "--mirror".startsWith(word)) || (reads && word.length > 3 && "--stdin".startsWith(word)))) return true;
+	const covers = (ref: string, head = ref.toLowerCase().split("*")[0]!) =>
+		head.startsWith("refs/replace/") || (ref.includes("*") && "refs/replace/".startsWith(head));
+	const specs = rest.flatMap((word) => (!word.startsWith("-") ? [word] : word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : []));
+	const targets = specs.map((spec) => (spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : pushes ? spec.replace(/^\+/, "") : ""));
+	return targets.some((target) => covers(target) || (pushes && covers(`refs/${target}`)));
 }
 
 // What `git config <rest>` writes, or undefined when it only reads: an action that reads (`--get*`, `--list`, `-l`, the `get`

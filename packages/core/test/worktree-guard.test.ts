@@ -523,6 +523,32 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "git replace - main" }, MAIN],
 		["bash", { command: `git -C ${main} replace main HEAD` }, MAIN],
 		["bash", { command: "git -c alias.r=replace r main HEAD" }, MAIN],
+		// The same ref by a refspec of a fetch, pull, push or send-pack (AR0396): a destination there in any case, a glob that may cover it, for a push one
+		// without `:` or one Git completes with `refs/` (matched on the other side), every ref by `--mirror`, refspecs the guard does not see by `--stdin`.
+		...[
+			"git fetch . HEAD:refs/replace/0123abcd",
+			"git fetch . HEAD:refs/REPLACE/0123abcd",
+			"git fetch /tmp/other 'refs/*:refs/*'",
+			"git fetch /tmp/other '+refs/heads/*:refs/rep*'",
+			"git fetch /tmp/other 'refs/heads/*:*'",
+			"git fetch --refmap='+refs/*:refs/*' /tmp/other main",
+			"git fetch --refmap '+refs/*:refs/*' /tmp/other main",
+			"git fetch --stdin /tmp/other",
+			"git fetch --std /tmp/other",
+			"git pull --no-rebase . HEAD:refs/replace/0123abcd",
+			"git push . +HEAD:refs/replace/0123abcd",
+			"git push . :refs/replace/0123abcd",
+			"git push . HEAD:replace/0123abcd",
+			`git -C /tmp/other push ${main} refs/replace/0123abcd`,
+			`git -C /tmp/other push ${main} +refs/replace/0123abcd`,
+			`git -C /tmp/other push ${main} replace/0123abcd`,
+			`git -C /tmp/other push ${main} 'refs/*'`,
+			`git -C /tmp/other push --mirror ${main}`,
+			`git -C /tmp/other push --mi ${main}`,
+			`git -C /tmp/other send-pack ${main} refs/replace/0123abcd`,
+			`git -C /tmp/other send-pack --stdin ${main}`,
+			"git -c alias.f=fetch f . HEAD:refs/replace/0123abcd",
+		].map((command) => ["bash", { command }, MAIN] as const),
 		["bash", { command: `echo "gitdir: ${root}/.git" > .git` }, MAIN],
 		["bash", { command: "rm .git", cwd: "sub" }, LINK],
 		["bash", { command: "rm ../.git", cwd: "sub" }, MAIN],
@@ -575,6 +601,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "git config --get gc.auto; git config --worktree --get gc.pruneExpire; git -c user.name=x commit -m 'gc.auto'" }, undefined],
 		["bash", { command: "git remote add -f fork /tmp/fork.git && echo x > .gitignore && git checkout -- -B" }, undefined],
 		["bash", { command: `git replace && git replace -l && git replace --list 'v*' && git replace --li --format=medium && git -C ${main} replace -l` }, undefined],
+		["bash", { command: "git fetch . HEAD:refs/heads/topic && git fetch . HEAD:replace/0123abcd && git fetch /tmp/other refs/replace/0123abcd && git fetch origin '+refs/heads/*:refs/remotes/origin/*'" }, undefined],
+		["bash", { command: "git push . HEAD:refs/heads/topic && git push origin -- HEAD && git push --no-mirror origin HEAD:refs/heads/x && git pull --stat origin main" }, undefined],
 		["bash", { command: `echo 'rm ${main}/README.md' > notes.txt` }, undefined],
 		["bash", { command: `git commit -m "cd ${main} && rm README.md"` }, undefined],
 		["bash", { command: `cat > notes.md <<'EOF'\nrm -rf ${main}\necho x > ${main}/f\nEOF\nrm notes.md` }, undefined],
@@ -614,6 +642,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	assert.ok(reason.includes(`(${main}/README.md)`) && reason.includes(` own worktree ${own.worktree}`), reason);
 	const replaced = worktreeRefusal(place, "bash", { command: "git replace -d main" }) ?? "";
 	assert.ok(replaced.includes("into the main checkout (git replace -d main)"), replaced);
+	const fetched = worktreeRefusal(place, "bash", { command: "git fetch . HEAD:refs/replace/0123abcd" }) ?? "";
+	assert.ok(fetched.includes("into the main checkout (git fetch . HEAD:refs/replace/0123abcd)"), fetched);
 });
 
 test("pkill and killall are refused wherever the guard finds a command, through a shell, eval, sudo or a wrapper too; kill <pid> and pgrep pass", async () => {

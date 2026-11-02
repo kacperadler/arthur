@@ -77,12 +77,12 @@ export function worker(host: Host, name: string): JobRecord {
 // placement read the review's ticket alone; the hand-back's next review is built the same way.
 export function reviewTask(host: Host, job: JobRecord, round: number | undefined): { readonly task: string; readonly commit: string } {
 	const { folder, commit, base, head, git } = branchOf(host, job);
-	const gap = untested(host, job, { git, commit });
+	const [gap, range] = [untested(host, job, { git, commit }), `${base}..${commit}`];
 	if (gap !== undefined) throw new Error(gap);
 	const result = host.jobs.result(job.id).trim().replaceAll(/\bTicket:/g, "Ticket\\:");
 	const task = [
 		[`Ticket: ${folder}/ticket.md`, `Branch: ${job.branch}`, `Commit: ${commit}`, ...(round === undefined ? [] : [`Round: ${round}`])].join("\n"),
-		`Review the branch ${job.branch} at ${commit}: your worktree is a detached checkout of that commit. The range to judge is ${base}..${commit}: \`git diff ${base}..${commit}\` and \`git log --oneline ${base}..${commit}\`. Read the ticket as main holds it: \`git show ${head}:${folder}/ticket.md\`.`,
+		`Review the branch ${job.branch} at ${commit}: your worktree is a detached checkout of that commit. The range to judge is ${range}: \`git diff --text --no-ext-diff --no-textconv ${range}\` and \`git log --oneline ${range}\`. Read the ticket as main holds it: \`git show ${head}:${folder}/ticket.md\`.`,
 		`## The worker's final message (job ${job.id})\n\n${result === "" ? "None." : result}`,
 	].join("\n\n");
 	return { task, commit };

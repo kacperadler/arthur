@@ -63,14 +63,13 @@ export function models(options: ModelsOptions = {}): Plugin {
 				throw new Error(`no model available: ${skipped.map(([name, said]) => `${name}: ${said}`).join("; ")}`);
 			});
 
-			// The provider of a job's model in its own environment, under omp's provider of its kind; nothing for a built-in model.
-			// The agent resolves the name again, unchecked: resolved once more here, right before it starts, one outside the private network refuses it.
+			// The provider of a job's model in its own environment, under omp's provider of its kind; nothing for a built-in model. The agent
+			// resolves the name again, unchecked: it is resolved here once more, right before the agent starts, and one now outside the private network refuses it.
 			host.jobs.prepare(async (job) => {
 				const named = providerModel(providers, job.model ?? "");
 				const provider = named === undefined ? undefined : providers[named.provider];
 				if (named === undefined || provider === undefined) return undefined;
-				const server = hostOf(new URL(provider.url));
-				const outside = (await addresses(server)).find((address) => !isPrivate(address));
+				const server = hostOf(new URL(provider.url)), outside = (await addresses(server)).find((address) => !isPrivate(address));
 				if (outside !== undefined) throw new Error(`provider ${named.provider}: ${server} resolves to ${outside}, not a private address`);
 				const key = provider.keyEnv === undefined ? undefined : host.env[provider.keyEnv];
 				const prefix = provider.kind === "ollama" ? "OLLAMA" : "LM_STUDIO";

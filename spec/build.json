@@ -3050,9 +3050,9 @@
   {
     "id": "AR0395",
     "title": "A link to the repository made and used in one bash call still moves main",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
-    "updated": "2026-11-02T10:18:37.865Z",
+    "updated": "2026-11-02T18:30:12.830Z",
     "after": [
       "AR0392",
       "AR0402",
@@ -3092,9 +3092,9 @@
   {
     "id": "AR0398",
     "title": "A remote named as a machine's URL sends a job's push and fetch to another repository",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0398-a-remote-named-as-a-machine-s-url-sends-a-job-s-push-and-fetch-to-another-repository/ticket.md",
-    "updated": "2026-11-02T17:24:13.768Z",
+    "updated": "2026-11-02T18:36:54.933Z",
     "after": [
       "AR0348",
       "AR0402",

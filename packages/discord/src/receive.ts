@@ -103,7 +103,12 @@ export function receiver(host: Host, bot: Bot, send: Send, named: () => void, si
 			} else if (type.startsWith("CHANNEL_") && data.guild_id === bot.guild && channels !== undefined) {
 				if (type !== "CHANNEL_DELETE" && data.type === 0) channels.add(String(data.id));
 				else channels.delete(String(data.id));
-			} else if (type === "MESSAGE_CREATE") chain = chain.then(() => hear(data, true));
+			} else if (type === "MESSAGE_CREATE") {
+				// A message that fails (its seen.json not written) is said and dropped; those after it are still heard.
+				chain = chain
+					.then(() => hear(data, true))
+					.catch((error: Error) => console.error(`discord bot ${bot.label}: message ${String(data.id)} is not read: ${error.message}`));
+			}
 		},
 		idle: () => chain,
 	};

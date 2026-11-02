@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { once } from "node:events";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -86,6 +86,21 @@ test("dropped unanswered: another user, another server, the bot itself, a webhoo
 	await until("the last", () => received().length >= 1);
 	assert.deepEqual(received(), [{ channel: "discord", parts: said("Now.") }], "messages are heard in order, so every one before it was dropped");
 	assert.deepEqual(api.took, []);
+});
+
+test("a message that cannot be kept as heard is said on stderr and dropped; the messages after it are still heard", async (t) => {
+	const api = await fakeDiscord(t);
+	const { plugin, received, errors, folder } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	await until("identified", () => api.sent(2).length === 1);
+	// A folder where seen.json's temporary file goes: writing it fails.
+	mkdirSync(join(folder, "seen.json.tmp"));
+	const lost = api.message({ content: "Lost." });
+	await until("the failure said", () => errors.some((line) => line.startsWith(`discord bot (unnamed): message ${lost.id} is not read: EISDIR`)));
+	rmSync(join(folder, "seen.json.tmp"), { recursive: true });
+	api.message({ content: "Heard." });
+	await until("the next", () => received().length === 1);
+	assert.deepEqual(received(), [{ channel: "discord", parts: said("Heard.") }]);
 });
 
 test("a thread, a forum post or a voice channel's chat gets one line in the main channel; a sticker, or neither text nor file, a line where it came, its text still going", async (t) => {

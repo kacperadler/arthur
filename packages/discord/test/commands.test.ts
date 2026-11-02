@@ -106,3 +106,20 @@ test("a reply longer than one message goes in slices of at most 2000, in order, 
 	await until("two slices sent", () => api.took.length === 2 && queued().length === 0);
 	assert.deepEqual(api.took.map((each) => String(each.body.content)), [lines.slice(0, 19 * 101 - 1), lines.slice(19 * 101)]);
 });
+
+test("a stop waits for the command in hand, and its reply still goes before the stop ends", async (t) => {
+	const api = await fakeDiscord(t);
+	const { fake, plugin } = await load(t, { apiUrl: api.url });
+	const { promise: answer, resolve: release } = Promise.withResolvers<string>();
+	let asked = false;
+	phone(fake.host, "slow", () => ((asked = true), answer));
+	await plugin.start?.();
+	await until("identified", () => api.sent(2).length === 1);
+	api.message({ content: "/slow" });
+	await until("the command asked", () => asked);
+	const stopped = plugin.stop?.();
+	await until("the gateway closed", () => api.connections.at(-1)?.closed === 1000);
+	release("done at last");
+	await stopped;
+	assert.deepEqual(api.took, [sent(MAIN, "done at last")]);
+});

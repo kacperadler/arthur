@@ -358,6 +358,35 @@ test("refused at spawn before any record: every model unavailable; a single prov
 	}
 });
 
+test("a name that resolves outside the private network after the pick and before the spawn's prepare refuses the spawn; the agent never starts", async () => {
+	const mac = await ollama();
+	const { root, env } = repository({ steps: [{ message: "Done." }] });
+	const lookup = dns.lookup;
+	// Private until the pick's probe reached the server, `later` from then on: the prepare's own lookup sees the change.
+	let later = ["8.8.8.8"];
+	dns.lookup = (async () => (mac.seen.length === 0 ? ["127.0.0.1"] : later).map((address) => ({ address, family: 4 }))) as unknown as typeof dns.lookup;
+	syncBuiltinESMExports();
+	try {
+		const { fake } = await load({ providers: { mac: { kind: "ollama", url: mac.url.replace("127.0.0.1", "mac.tail1234.ts.net") } } }, {}, root);
+		const home = dirname(fake.host.folder);
+		await assert.rejects(fake.host.jobs.spawn({ task: "Build it.", model: "mac/qwen3-coder" }), {
+			message: "plugin models: prepare failed: provider mac: mac.tail1234.ts.net resolves to 8.8.8.8, not a private address; the job's worktree and record were removed",
+		});
+		assert.deepEqual(mac.seen.map((each) => each.path), ["/api/tags"], "the pick's probe reached the server over the private address");
+		const worktrees = execFileSync("git", ["-C", root, "worktree", "list"], { encoding: "utf8" }).trim().split("\n");
+		assert.deepEqual([readdirSync(join(home, "jobs")), worktrees.length], [[], 1], "no record, no worktree");
+		assert.throws(env, { code: "ENOENT" }, "the agent never started: its environment was never written");
+		later = ["127.0.0.1", "8.8.8.8"];
+		await assert.rejects(fake.host.jobs.spawn({ task: "Build it.", model: "mac/qwen3-coder" }), { message: /^plugin models: prepare failed: provider mac: mac\.tail1234\.ts\.net resolves to 8\.8\.8\.8, not a private address;/ }, "any address, not only the first");
+		assert.throws(env, { code: "ENOENT" }, "the agent never started");
+	} finally {
+		dns.lookup = lookup;
+		syncBuiltinESMExports();
+		mac.close();
+		process.env.PATH = PATH;
+	}
+});
+
 test("a model lost mid-job fails the job with the agent's reason; it is never switched to another model mid-run", async () => {
 	const mac = await ollama();
 	const { root, starts } = repository({ steps: [{ message: "", stopReason: "error", error: "Connection error: fetch failed (http://mac:11434)" }] });

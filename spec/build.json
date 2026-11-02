@@ -3050,9 +3050,9 @@
   {
     "id": "AR0395",
     "title": "A link to the repository made and used in one bash call still moves main",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
-    "updated": "2026-11-02T20:18:24.781Z",
+    "updated": "2026-11-02T20:25:31.954Z",
     "after": [
       "AR0392",
       "AR0402",

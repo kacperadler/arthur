@@ -1077,6 +1077,52 @@ test("a call writing a .git or commondir is refused, and a git write through one
 	}
 });
 
+test("a git write in or through a path the same call writes, before or after it, is refused, as it may be a link to main made there (AR0395); mkdir, touch, a removal, a read and a write beside it pass", async () => {
+	const { root, home, own, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
+	const elsewhere = temporaryFolder();
+	const [link, prep, plain, say] = [join(elsewhere, "l"), join(elsewhere, "prep"), join(elsewhere, "plain"), `echo "gitdir: ${root}/.git"`];
+	// A folder whose `.git` names main, as a program may leave it where no git call of a later call looks, and a file that is no link yet.
+	mkdirSync(join(prep, "sub"), { recursive: true });
+	writeFileSync(join(prep, ".git"), `gitdir: ${root}/.git\n`);
+	writeFileSync(plain, "x\n");
+	// Each with the subject its commit gives main when run, in this order (the `mv` moves what the `cp` made).
+	const refused: readonly (readonly [string, string])[] = [
+		[`${say} > ${link} && git --git-dir=${link} --work-tree=. commit --allow-empty -m redirect`, "redirect"],
+		[`${say} | tee ${link} && GIT_DIR=${link} git commit --allow-empty -m tee`, "tee"],
+		[`cp -r ${prep} ${elsewhere}/copy && git -C ${elsewhere}/copy/sub commit --allow-empty -m cp`, "cp"],
+		[`ln -s ${prep} ${elsewhere}/sym && git -C ${elsewhere}/sym commit --allow-empty -m ln`, "ln"],
+		[`sed -i "s|^x$|gitdir: ${root}/.git|" ${plain} && git --git-dir=${plain} --work-tree=. commit --allow-empty -m sed`, "sed"],
+		[`mv ${elsewhere}/copy ${elsewhere}/moved && git -C ${elsewhere}/moved commit --allow-empty -m mv`, "mv"],
+		[`${say} | dd of=${elsewhere}/dd status=none && git --git-dir=${elsewhere}/dd --work-tree=. commit --allow-empty -m dd`, "dd"],
+		[`bash -c '${say} > ${link}' && git --git-dir=${link} --work-tree=. commit --allow-empty -m shell`, "shell"],
+		// The write after the git call: a function's body, judged where it is defined, and a loop's next round run git after it.
+		[`f() { git --git-dir=${elsewhere}/f --work-tree=. commit --allow-empty -m function; }; ${say} > ${elsewhere}/f; f`, "function"],
+		[`for i in 1 2; do git --git-dir=${elsewhere}/loop --work-tree=. commit --allow-empty -m loop; ${say} > ${elsewhere}/loop; done`, "loop"],
+	];
+	for (const [command] of refused) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git write goes through .+, which this call writes/, command);
+	assert.equal(worktreeRefusal(place, "bash", { command: refused[0]![0] }), `arthur: refused: this git write goes through ${link}, which this call writes, so it may be a link to main; run git in a call of its own`);
+	// A file copied into the folder git runs in, or a work tree the call writes, as the call may have put a link there.
+	for (const command of [`cp ${plain} . && git commit --allow-empty -m here`, `${say} > ${elsewhere}/w && git --work-tree=${elsewhere}/w commit -m w`]) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /which this call writes/, command);
+	const passing = [
+		`echo x > notes.txt && git add notes.txt && git commit --quiet -m notes`,
+		`cp ${plain} copied.txt && git add copied.txt && git commit --quiet -m copied`,
+		`mkdir -p ${elsewhere}/fresh && touch ${elsewhere}/fresh/a && git -C ${elsewhere}/fresh init --quiet && git -C ${elsewhere}/fresh add a`,
+		`rm -rf ${elsewhere}/gone && git commit --allow-empty --quiet -m removed`,
+		`${say} > ${elsewhere}/read && git --git-dir=${elsewhere}/read log -1 --format=%s`,
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+	// Run, the passing calls leave main where it was; each refused one moves it.
+	const env = { ...process.env, GIT_AUTHOR_NAME: "x", GIT_AUTHOR_EMAIL: "x@example.com", GIT_COMMITTER_NAME: "x", GIT_COMMITTER_EMAIL: "x@example.com" };
+	const tip = git(root, "rev-parse", "main");
+	for (const command of passing) assert.equal(spawnSync("bash", ["-c", command], { cwd: own.worktree, env, stdio: "ignore" }).status, 0, command);
+	assert.deepEqual([git(root, "rev-parse", "main"), git(own.worktree, "log", "-1", "--format=%s")], [tip, "removed"]);
+	for (const [command, subject] of refused) {
+		spawnSync("bash", ["-c", command], { cwd: own.worktree, env, stdio: "ignore" });
+		assert.equal(git(root, "log", "-1", "--format=%s", "main"), subject, command);
+	}
+});
+
 test("the wrapper loads the guard into the job's agent, which then refuses its writes outside its worktree, into the env file its launch guards too (AR0512), and lets the rest through", async () => {
 	const calls: Call[] = [
 		["bash", { command: "echo x > ../../acme/README.md" }],

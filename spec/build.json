@@ -2839,9 +2839,9 @@
   {
     "id": "AR0369",
     "title": "The agent's own request to a provider is never checked against the private network",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
-    "updated": "2026-11-02T15:50:19.127Z",
+    "updated": "2026-11-02T15:58:20.940Z",
     "after": [
       "AR0402",
       "AR0403",

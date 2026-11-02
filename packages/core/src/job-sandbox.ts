@@ -85,8 +85,7 @@ export function misplaced(id: string, job: Pick<Job, "project" | "root" | "workt
 	return common !== "" && existsSync(join(common, "worktrees", id)) ? undefined : `Git added no worktree ${id} to the repository of ${root}`;
 }
 
-// What the agent of the job whose record is `record` may not read: the env file its `guarded` file names (job-place.ts), if any,
-// and the user's `~/.ssh` (AR0508, `sshFolders`), taken from no record, which the agent writes; job-place.ts and spawn.md say why.
+// What the agent of the job whose record is `record` may not read: the env file `guarded` names and the user's `~/.ssh` (AR0508), from no record (AR0512).
 // Then (AR0593), of the projects the projects plugin keeps in `<home>/projects/checkouts` and `folders`, which no job writes,
 // `<name> <path>` a line: each other project's checkout and folder, and every project's `.arthur-worktrees`, whole, so a worktree
 // made there later too; but `+<path>`, shown, the job's own worktree. Then (AR0590) its home, whole: the event log, the
@@ -94,9 +93,9 @@ export function misplaced(id: string, job: Pick<Job, "project" | "root" | "workt
 // entry made later; but shown the job's own record, each other record there now that names its project, and the projects
 // plugin's `checkouts` and `folders` (job-place.ts). Never a path that is or holds the job's root, Git folder, install or config,
 // nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
-export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">): string[] {
+export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string): string[] {
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
-	const [jobs, home, guarded] = [dirname(record), dirname(dirname(record)), read(join(record, "guarded"))];
+	const [jobs, home] = [dirname(record), dirname(dirname(record))];
 	const listed = (name: string) => read(join(home, "projects", name)).split("\n").flatMap((line) => (/^\S+ \//.test(line) ? [[line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)]] : []));
 	const checkouts = listed("checkouts");
 	const others = [...checkouts, ...listed("folders")].flatMap(([name = "", path = ""]) => (name === project ? [] : [path]));

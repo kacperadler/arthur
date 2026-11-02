@@ -73,7 +73,10 @@ const events = (home: string, name: string) => readEvents(home, 1).filter((event
 
 test("a worker on another machine runs there over SSH; the sweep copies its record and brings its branch back, running no hook of the checkout's config", async () => {
 	const gate = join(temporaryFolder(), "go");
-	const agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0.25 }] });
+	const fake = fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0.25 }] });
+	// The agent there notes the guarded list its launch gave it, then plays the fake agent.
+	const agent = join(dirname(fake), "guarded-omp");
+	writeFileSync(agent, `#!/bin/sh\nprintf '%s' "$ARTHUR_GUARDED" > '${agent}.part' && mv '${agent}.part' '${agent}.guarded'\nexec '${fake}' "$@"\n`, { mode: 0o755 });
 	const { root, home, there, jobs } = setup({ agent });
 	// Hooks that refuse every push and every ref update, named by the checkout's config as a job's program may have set them.
 	const hooks = temporaryFolder();
@@ -89,10 +92,11 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.equal(git(worktree, "rev-parse", "HEAD"), git(root, "rev-parse", "HEAD"));
 	assert.equal(read(home, job.id, "machine"), "gpu");
 	assert.equal(read(there, job.id, "root"), repository);
-	// There no config exists: its record guards Arthur's install there and the user's own files only.
+	// There no config exists: its launch guards Arthur's install there and the user's own files only, and no record holds the list.
 	// A second `systemd` and `gitxdg` line, for an `XDG_CONFIG_HOME` the tests run with, is the same key.
-	const keys = (folder: string) => [...new Set(read(folder, job.id, "guarded").split("\n").map((line) => line.split(" ")[0]))];
-	assert.deepEqual([keys(home), keys(there)], [["config", "env", "install", "ssh", "systemd", "gitconfig", "gitxdg"], ["install", "ssh", "systemd", "gitconfig", "gitxdg"]]);
+	await until("the agent's start there", () => existsSync(`${agent}.guarded`));
+	assert.deepEqual([...new Set(readFileSync(`${agent}.guarded`, "utf8").split("\n").map((line) => line.split(" ")[0]))], ["install", "ssh", "systemd", "gitconfig", "gitxdg"]);
+	assert.deepEqual([home, there].map((folder) => existsSync(join(folder, "jobs", job.id, "guarded"))), [false, false]);
 	for (const call of calls()) assert.match(call, /^-o BatchMode=yes -o StrictHostKeyChecking=yes .*gpu /, "every step runs through ssh's batch mode, host key checked");
 	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, 1);
 	assert.equal(events(home, "job-started")[0]?.machine, "gpu");

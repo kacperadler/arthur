@@ -64,12 +64,15 @@ test("arthur spawn prints the id of a worker on its own branch, with the record 
 	assert.deepEqual([started?.name, (started?.data as { id: string }).id], ["job-started", id]);
 });
 
-test("the record guards the config's folder and the env file core.envFile names, also outside that folder", () => {
-	const root = repository(CONFIG.replace('timeZone: "UTC"', 'timeZone: "UTC", envFile: "../secrets"'));
+test("the job's launch guards the config's folder and the env file core.envFile names, also outside that folder, never in its record (AR0512)", async () => {
+	const agent = join(temporaryFolder(), "agent");
+	writeFileSync(agent, `#!/bin/sh\nprintf '%s' "$ARTHUR_GUARDED" > '${agent}.part' && mv '${agent}.part' '${agent}.guarded'\n`, { mode: 0o755 });
+	const root = repository(CONFIG.replace('timeZone: "UTC"', `timeZone: "UTC", envFile: "../secrets", agent: { command: ${JSON.stringify(agent)} }`));
 	const run = arthur(root, "spawn", "Go.");
 	assert.equal(run.status, 0, run.stderr);
-	const guarded = readFileSync(join(root, ".arthur/jobs", run.stdout.trim(), "guarded"), "utf8").split("\n");
-	assert.deepEqual(guarded.slice(0, 2), [`config ${root}`, `env ${join(dirname(root), "secrets")}`]);
+	await until("job-ended", () => readEvents(join(root, ".arthur"), 1).find((event) => event.name === "job-ended"));
+	assert.deepEqual(readFileSync(`${agent}.guarded`, "utf8").split("\n").slice(0, 2), [`config ${root}`, `env ${join(dirname(root), "secrets")}`]);
+	assert.equal(existsSync(join(root, ".arthur/jobs", run.stdout.trim(), "guarded")), false);
 });
 
 test("arthur spawn returns while the agent of core.agent.command runs in the background; the job ends on its own", async () => {

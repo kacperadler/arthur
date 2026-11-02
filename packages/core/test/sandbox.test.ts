@@ -280,19 +280,21 @@ test("misplaced: a continue's record whose root or worktree is not the spawn's, 
 	assert.equal(misplaced(id, { project: "gone", root: join(folder, "gone"), worktree }, join(folder, "gone")), `Git added no worktree ${id} to the repository of ${join(folder, "gone")}`);
 });
 
-test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's, where OpenSSH looks, and $HOME's too only when it is another absolute folder (AR0515)", (t) => {
+test("the hidden ~/.ssh and the guarded list's ssh lines are the user account's, where OpenSSH looks, and $HOME's too only when it is another absolute folder (AR0515)", (t) => {
 	const folder = temporaryFolder();
 	const [user, account] = [userInfo().homedir, join(userInfo().homedir, ".ssh")];
 	const saved = process.env.HOME;
 	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
 	const record = join(folder, "jobs", "2026-10-24-worker-0a1b2c3d");
 	mkdirSync(record, { recursive: true });
-	writeFileSync(join(record, "guarded"), `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`);
+	// The env file is the launch's list's, never one a `guarded` file the job wrote in its record names (AR0512).
+	writeFileSync(join(record, "guarded"), `env ${join(folder, "planted-env")}\n`);
+	const guarded = `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`;
 	// The rest of the list is the home's (AR0590): hidden whole, with the record and the projects plugin's lists shown.
 	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
 	for (const [where, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
 		where === undefined ? delete process.env.HOME : (process.env.HOME = where);
-		assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }), [join(folder, "env"), ...expected, ...home], `HOME=${where}`);
+		assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }, guarded), [join(folder, "env"), ...expected, ...home], `HOME=${where}`);
 		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${where}`);
 	}
 });
@@ -307,7 +309,7 @@ test("hidden: the home whole, but shown the job's own record, its project's othe
 		if (project !== undefined) writeFileSync(join(record, "project"), project);
 	}
 	const lists = [`+${join(home, "projects", "checkouts")}`, `+${join(home, "projects", "folders")}`];
-	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }).filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
+	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }, "").filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
 	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
 	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
 	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
@@ -521,26 +523,9 @@ test("a job's agent that runs npm ci itself writes npm's cache in the record, th
 	assert.match(readFileSync(join(record, "log"), "utf8"), /\] sandbox: the agent writes only in /);
 });
 
-test("an install that empties the record's guarded list does not unhide the env file: the agent still cannot read it", { skip: bare }, async (t) => {
+test("a job's install, its agent across a continue after it emptied its record's guarded file, and a merge step cannot read the env file nor ~/.ssh, $HOME's nor the user account's where $HOME is elsewhere (AR0508, AR0512, AR0515)", { skip: bare }, async (t) => {
 	const { folder, root, home } = repository();
 	writeFileSync(join(root, "env"), "ARTHUR_SECRET_TOKEN=s3cret-t0ken\n");
-	const env = { ARTHUR_INSTALL: `for guarded in '${join(home, "jobs")}'/*/guarded; do : > "$guarded"; done` };
-	const agent = join(folder, "agent");
-	writeFileSync(agent, `#!/bin/sh\n{ cat '${join(root, "env")}' || echo refused; } > "$ARTHUR_JOB/read" 2>&1\n`, { mode: 0o755 });
-	const child = spawn(process.execPath, ["--input-type=module", "-e", runner, JSON.stringify([home, root, agent, jobSlice, env])], { stdio: ["pipe", "inherit", "inherit"] });
-	t.after(() => child.kill("SIGKILL"));
-	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
-	const [id = ""] = readdirSync(join(home, "jobs"));
-	const record = join(home, "jobs", id);
-	assert.equal(readFileSync(join(record, "guarded"), "utf8"), "", "the install emptied the guarded list");
-	assert.match(readFileSync(join(record, "read"), "utf8"), /Permission denied\nrefused\n$/);
-	for (const name of readdirSync(record, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile())) {
-		assert.doesNotMatch(readFileSync(join(name.parentPath, name.name), "utf8"), /s3cret-t0ken/, name.name);
-	}
-});
-
-test("a job's install, its agent across a continue that found the guarded list emptied, and a merge step cannot read ~/.ssh, $HOME's nor the user account's where $HOME is elsewhere (AR0508, AR0515)", { skip: bare }, async (t) => {
-	const { folder, root, home } = repository();
 	const user = join(folder, "user");
 	const key = join(user, ".ssh", "id_fake");
 	const account = join(userInfo().homedir, ".ssh");
@@ -551,7 +536,7 @@ test("a job's install, its agent across a continue that found the guarded list e
 	process.env.HOME = user;
 	// The account's own `~/.ssh` is the user's real one: the job only counts the bytes it reads of its files (the sandbox hides a
 	// file's content, not a folder's entries), never copies them, and reads none where it is hidden (or missing).
-	const read = `{ cat '${key}' || echo refused; } >> ssh-read 2>&1; cat '${account}'/* 2>/dev/null | wc -c >> account-read`;
+	const read = `{ cat '${key}' || echo refused; } >> ssh-read 2>&1; cat '${account}'/* 2>/dev/null | wc -c >> account-read; { cat '${join(root, "env")}' || echo refused; } >> env-read 2>&1`;
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n${read}\n: > "$ARTHUR_JOB/guarded"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
@@ -567,6 +552,12 @@ test("a job's install, its agent across a continue that found the guarded list e
 	const reads = readFileSync(join(worktree, "ssh-read"), "utf8");
 	assert.equal(reads.match(/Permission denied\nrefused\n/g)?.length, 4, "the install and the agent, in both runs");
 	assert.doesNotMatch(reads, /FAKE-PRIVATE-KEY/);
+	const envReads = readFileSync(join(worktree, "env-read"), "utf8");
+	assert.equal(envReads.match(/Permission denied\nrefused\n/g)?.length, 4, `the install and the agent, in both runs: ${envReads}`);
+	assert.doesNotMatch(envReads, /s3cret-t0ken/);
+	for (const name of readdirSync(record, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile())) {
+		assert.doesNotMatch(readFileSync(join(name.parentPath, name.name), "utf8"), /s3cret-t0ken/, name.name);
+	}
 	assert.deepEqual(readFileSync(join(worktree, "account-read"), "utf8").split(/\s+/).filter(Boolean), ["0", "0", "0", "0"], "the install and the agent, in both runs");
 	const log = readFileSync(join(record, "log"), "utf8");
 	for (const who of ["the install", "the agent"]) assert.match(log, new RegExp(`\\] sandbox: ${who} writes only in .*, reads every file but ${join(root, "env")}, ${account}, ${join(user, ".ssh")}, `), who);

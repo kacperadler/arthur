@@ -16,7 +16,7 @@ import { runRecord } from "./run-record.ts";
 import { envFileNames, namedChunks } from "./secret-names.ts";
 import { closeSteers } from "./steer-inbox.ts";
 
-// One background process per job, `node wrapper.ts <home> <id> <agent> <project> <root> <worktree>`, started in the job's scope by `launch` (job-scope.ts); what it writes and when: docs/commands/spawn.md. A pipe a process the agent left holds open is read 2 s past its exit, then closed.
+// One background process per job, `node wrapper.ts <home> <id> <agent> <project> <root> <worktree>`, started in the job's scope by `launch` (job-scope.ts) with `ARTHUR_GUARDED` (AR0512); what it writes and when: docs/commands/spawn.md. A pipe a process the agent left holds open is read 2 s past its exit, then closed.
 
 const WORKER_TOOLS = "read,edit,write,bash,grep,glob";
 const READ_ONLY_TOOLS = "read,bash,grep,glob";
@@ -62,7 +62,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	const names = ["kind", "model", "thinking", "branch", "base", "timeout", "budget", "resume-on-budget", "idle-minutes"];
 	const [kind = "", model = "", thinking = "", branch = "", base = "", timeout = "", budget = "", resumes = "", idle = ""] = names.map(field);
 	const { project, root, worktree } = place;
-	const secrets = hidden(folder, place), hide = envFileNames(secrets), bus = eventBus(home, hide), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
+	const secrets = hidden(folder, place, process.env.ARTHUR_GUARDED ?? ""), hide = envFileNames(secrets), bus = eventBus(home, hide), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
 	// A move from `from` to `to` (job-state.ts) only: a job a plugin holds stays `blocked` until its run ends, so it never moves here.
 	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.state === from ? [to, ""] : undefined)));
 	// The agent's output: `active` takes its time, an idle job works again, and it turns idle after `idle-minutes` without any.

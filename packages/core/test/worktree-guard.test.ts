@@ -26,9 +26,9 @@ function repository(name: string): string {
 }
 
 // The repository `acme` with its home folder `acme/.arthur`, and two worker jobs the runner spawned from it, `own` and
-// `other`, ended. Their agent is an `omp` stand-in that loads each `-e` extension as omp does, asks it about each of
-// `calls`, and writes what was refused, in order, to `<its worktree's name>.json` beside itself.
-async function jobs(calls: readonly Call[] = []): Promise<{ readonly root: string; readonly home: string; readonly own: Job; readonly other: Job; readonly agent: string }> {
+// `other`, ended, with `guarded`, the list their launch gave them. Their agent is an `omp` stand-in that loads each `-e`
+// extension as omp does, asks it about each of `calls`, and writes what was refused, in order, to `<its worktree's name>.json` beside itself.
+async function jobs(calls: readonly Call[] = []): Promise<{ readonly root: string; readonly home: string; readonly own: Job; readonly other: Job; readonly agent: string; readonly guarded: string }> {
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
 	mkdirSync(root);
@@ -54,12 +54,12 @@ async function jobs(calls: readonly Call[] = []): Promise<{ readonly root: strin
 	const own = await runner.spawn({ task: "own" });
 	const other = await runner.spawn({ task: "other" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
-	return { root, home, own, other, agent };
+	return { root, home, own, other, agent, guarded: guardedPlaces({ folder: root, envFile: join(root, "env") }) };
 }
 
 test("in a job, each call that writes into the main checkout, the home folder or another job's worktree is refused; the rest pass", async () => {
-	const { root, home, own, other } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { root, home, own, other, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const [main, otherJob] = [`../../acme`, `../${other.id}`];
 	writeFileSync(join(own.worktree, "notes.txt"), "notes\n");
 	// A symlink inside the worktree that points out of it, one whose target in the main checkout does not exist yet, and a
@@ -617,8 +617,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 });
 
 test("pkill and killall are refused wherever the guard finds a command, through a shell, eval, sudo or a wrapper too; kill <pid> and pgrep pass", async () => {
-	const { home, own } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { home, own, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const KILL = "arthur: refused: pkill and killall pick processes by name, so they also stop other jobs' processes and Arthur's own; stop yours by its process id instead (kill <pid>, the pid from $! when you start it in the background)";
 	const refused = [
 		"pkill -f 'node --test'",
@@ -641,8 +641,8 @@ test("pkill and killall are refused wherever the guard finds a command, through 
 });
 
 test("a write to a ticket's ticket.md in the job's worktree is refused, by edit, write or bash, a new ticket's and through a link too, saying what to do instead; findings.md, a plan and look-alikes pass", async () => {
-	const { home, own, other } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { home, own, other, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const TICKET = "arthur: refused: a ticket's ticket.md is the coordinator's, written on main, and the merge refuses a branch that changes one; write what you found in the ticket's findings.md, and what the ticket should say in your final message";
 	const ticket = "spec/features/AC0001-shop/ticket.md";
 	mkdirSync(join(own.worktree, dirname(ticket)), { recursive: true });
@@ -679,8 +679,8 @@ test("a write to a ticket's ticket.md in the job's worktree is refused, by edit,
 });
 
 test("git config that changes the config every worktree shares, the user's or the system's is refused naming its key; reads, a worktree's own and a file elsewhere pass", async () => {
-	const { root, home, own, other } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { root, home, own, other, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const [main, otherJob, elsewhere] = ["../../acme", `../${other.id}`, join(temporaryFolder(), "x.cfg")];
 	const [MAIN, OTHER] = ["the main checkout", "another job's worktree"];
 	// Each refused call, the place its refusal names and what it shows; undefined to show for a path resolved there.
@@ -749,8 +749,8 @@ test("git config that changes the config every worktree shares, the user's or th
 });
 
 test("a git write through an alias given by -c, or GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE or GIT_OBJECT_DIRECTORY set before git, is refused; config the guard does not read, or an alias or include written, refuses the call", async () => {
-	const { root, home, own, other } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { root, home, own, other, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const [main, otherJob] = ["../../acme", `../${other.id}`];
 	const [MAIN, OTHER] = ["the main checkout", "another job's worktree"];
 	// Each call refused naming a place, and what the refusal shows; undefined to show for a path resolved there.
@@ -832,8 +832,8 @@ test("a git write through an alias given by -c, or GIT_DIR, GIT_WORK_TREE, GIT_I
 });
 
 test("config set earlier in the same call (export, declare -x, a bare assignment, a prefix to a shell or eval) refuses each git call after it, as one set before git does", async () => {
-	const { home, own } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { home, own, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const unseen = [
 		"export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; git c a.c d",
 		"export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign GIT_CONFIG_VALUE_0=false; git commit -q -am x",
@@ -870,8 +870,8 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 });
 
 test("config a builtin sets without an assignment word (for, read, printf -v, mapfile, getopts, let, ((…)), $[…], a nameref, ${name:=…}) refuses each git call of the call, as one set before git does", async () => {
-	const { home, own } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { home, own, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const unseen = [
 		"for HOME in /tmp/h; do git status; done",
 		"select XDG_CONFIG_HOME in /tmp/h; do git status; break; done",
@@ -955,8 +955,8 @@ test("config a builtin sets without an assignment word (for, read, printf -v, ma
 });
 
 test("a function's body or a trap's command is judged with every config assignment of the call counted, also one after it, and a `function f { … }` body as an `f() { … }` one (AR0546)", async () => {
-	const { root, home, own } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { root, home, own, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const [UNSEEN, UNKNOWN, MAIN] = [/^arthur: refused: this git call reads config the guard does not/, /^arthur: refused: the guard cannot tell where this path leads/, /^arthur: refused: this call writes into the main checkout/];
 	const refused: (readonly [string, RegExp])[] = [
 		["f() { git c a.c d; }; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; f", UNSEEN],
@@ -983,8 +983,8 @@ test("a function's body or a trap's command is judged with every config assignme
 });
 
 test("a call writing a .git or commondir is refused, and a git write through one that links to the main checkout's repository; a worktree's own link and other repositories pass", async () => {
-	const { root, home, own } = await jobs();
-	const place = jobPlace(join(home, "jobs", own.id));
+	const { root, home, own, guarded } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id), guarded);
 	const [MAIN, LINK] = ["the main checkout", "a link"];
 	const elsewhere = temporaryFolder();
 	const plain = repository("plain");
@@ -1077,16 +1077,18 @@ test("a call writing a .git or commondir is refused, and a git write through one
 	}
 });
 
-test("the wrapper loads the guard into the job's agent, which then refuses its writes outside its worktree and lets the rest through", async () => {
+test("the wrapper loads the guard into the job's agent, which then refuses its writes outside its worktree, into the env file its launch guards too (AR0512), and lets the rest through", async () => {
 	const calls: Call[] = [
 		["bash", { command: "echo x > ../../acme/README.md" }],
 		["write", { path: "notes.txt", content: "x" }],
+		["bash", { command: "echo X=1 >> ../../acme/env" }],
 	];
 	const { agent, own, other } = await jobs(calls);
 	for (const job of [own, other]) {
 		const refused = JSON.parse(readFileSync(join(agent, "..", `${job.id}.json`), "utf8")) as (string | null)[];
 		assert.match(refused[0] ?? "", /^arthur: refused: this call writes into the main checkout \(\.\.\/\.\.\/acme\/README\.md\)/);
 		assert.equal(refused[1], null);
+		assert.match(refused[2] ?? "", /^arthur: refused: this call writes into Arthur's env file \(\.\.\/\.\.\/acme\/env\)/);
 	}
 });
 
@@ -1104,7 +1106,8 @@ test("a job of one project refuses writes into another project's main checkout a
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
 	assert.equal(dirname(theirs.worktree), join(dirname(beta), ".arthur-worktrees"));
 	const record = join(home, "jobs", own.id);
-	const place = jobPlace(record);
+	const guarded = guardedPlaces({ folder: alpha, envFile: join(alpha, "env") });
+	const place = jobPlace(record, guarded);
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["write", { path: join(beta, "README.md"), content: "x" }, "the main checkout of project beta"],
 		["edit", { input: `[${join(theirs.worktree, "README.md")}#1A2B]\nPUT 1.=1:\n+x` }, "a job worktree of project beta"],
@@ -1122,9 +1125,9 @@ test("a job of one project refuses writes into another project's main checkout a
 	}
 	// A record written before `projects` was, or one a human broke, names no other project.
 	writeFileSync(join(record, "projects"), `beta\nbeta relative/path\n`);
-	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
+	assert.equal(worktreeRefusal(jobPlace(record, guarded), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
 	rmSync(join(record, "projects"));
-	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
+	assert.equal(worktreeRefusal(jobPlace(record, guarded), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
 });
 
 test("a job refuses writes into Arthur's install, config folder and env file, and the user's SSH folder, systemd units and Git config", async (t) => {
@@ -1134,7 +1137,7 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 	// The user's home as the runner sees it is a link to the folder, as a home on another mount may be.
 	const linked = join(temporaryFolder(), "user");
 	symlinkSync(user, linked);
-	const saved = { HOME: process.env.HOME, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+	const saved = { HOME: process.env.HOME, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB: process.env.ARTHUR_JOB, ARTHUR_GUARDED: process.env.ARTHUR_GUARDED };
 	t.after(() => {
 		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
 	});
@@ -1148,7 +1151,9 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);
-	const place = jobPlace(record);
+	// The list the launch gives the job, made with the runner's config and environment.
+	const guarded = guardedPlaces({ folder: config, envFile: secrets });
+	const place = jobPlace(record, guarded);
 	// The clone that holds the core under test, as `arthur` runs from it.
 	const install = join(import.meta.dirname, "..", "..", "..");
 	// A link in the worktree to the user's `~/.ssh`, which does not exist yet.
@@ -1185,14 +1190,22 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 		value === undefined ? delete process.env.XDG_CONFIG_HOME : (process.env.XDG_CONFIG_HOME = value);
 		assert.deepEqual(guardedPlaces().split("\n").filter((line) => /^(?:systemd|gitxdg) /.test(line)), expected, `XDG_CONFIG_HOME=${value}`);
 	}
-	// A record written before `guarded` was, or a line a human broke (a relative path, taken from no folder; a key that is
-	// none, as an Object property is not), names no such place.
+	// A line broken (a relative path, taken from no folder; a key that is none, as an Object property is not), or no list, names no such place.
 	const ssh = { command: "echo key >> ~/.ssh/authorized_keys" };
-	writeFileSync(join(record, "guarded"), `ssh .ssh\nconstructor ${join(user, ".ssh")}\n`);
-	assert.equal(worktreeRefusal(jobPlace(record), "bash", ssh), undefined);
-	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(process.cwd(), ".ssh", "x"), content: "x" }), undefined);
-	rmSync(join(record, "guarded"));
-	assert.equal(worktreeRefusal(jobPlace(record), "bash", ssh), undefined);
+	for (const broken of [`ssh .ssh\nconstructor ${join(user, ".ssh")}\n`, ""]) assert.equal(worktreeRefusal(jobPlace(record, broken), "bash", ssh), undefined, broken);
+	assert.equal(worktreeRefusal(jobPlace(record, "ssh .ssh\n"), "write", { path: join(process.cwd(), ".ssh", "x"), content: "x" }), undefined);
+	// The extension takes the list from its launch, `ARTHUR_GUARDED`, never from a `guarded` file in the record, which the job writes (AR0512).
+	const refused = (): string | undefined => {
+		let handler: ((event: { toolName: string; input: Record<string, unknown> }) => { reason: string } | undefined) | undefined;
+		worktreeGuard({ on: (_, registered) => (handler = registered) });
+		return /writes into (.+?) \(/.exec(handler?.({ toolName: "bash", input: { command: `echo X=1 >> ${secrets}` } })?.reason ?? "")?.[1];
+	};
+	Object.assign(process.env, { ARTHUR_JOB: record, ARTHUR_GUARDED: guarded });
+	writeFileSync(join(record, "guarded"), "");
+	assert.equal(refused(), "Arthur's env file", "a guarded file the job emptied");
+	delete process.env.ARTHUR_GUARDED;
+	writeFileSync(join(record, "guarded"), guarded);
+	assert.equal(refused(), undefined, "a guarded file the job wrote, with no list from the launch");
 });
 
 test("a job of Arthur's own repository still builds a plugin in its worktree, running arthur plugin new from the checkout", async () => {
@@ -1204,8 +1217,8 @@ test("a job of Arthur's own repository still builds a plugin in its worktree, ru
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);
-	writeFileSync(join(record, "guarded"), readFileSync(join(record, "guarded"), "utf8").replace(/^install .*$/m, `install ${arthur}`));
-	const place = jobPlace(record);
+	// The list its launch gives the job, the install being the clone itself.
+	const place = jobPlace(record, guardedPlaces({ folder: arthur, envFile: secrets }).replace(/^install .*$/m, `install ${arthur}`));
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `cd ${arthur} && node_modules/.bin/arthur plugin new acme --budget 100 --root ${own.worktree}` }, undefined],
 		["write", { path: "packages/acme/src/acme.ts", content: "x" }, undefined],

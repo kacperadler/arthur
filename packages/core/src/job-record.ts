@@ -3,7 +3,6 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { taskTickets } from "./board-jobs.ts";
 import { branchExists } from "./git.ts";
-import { guardedPlaces } from "./job-place.ts";
 import type { Caps } from "./job-scope.ts";
 import type { Job, Spawn } from "./jobs.ts";
 import type { McpServers } from "./roles.ts";
@@ -20,10 +19,10 @@ export type Own = { readonly resumeOnBudget: boolean; readonly verdicts: readonl
 // `verdicts` the lines its final message may end on, empty for any; `extensions` one `extensionPath` per line, empty for none; the caps are the job's own and its ticket's slice's (job-scope.ts);
 // `cost` starts at 0, so a missing one is a broken record; `free` is `true` for a model that costs nothing (job-model.ts).
 // A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`, `unsandboxed` (`true` or `false`) its `jobs.unsandboxed`,
-// which lets the wrapper run the agent without a sandbox; `projects` is every project's main checkout, `checkouts` (job-checkout.ts), and `guarded` the places outside them (job-place.ts): Arthur's
-// install, the user's own files and, with `config`, the config's folder and env file; the worktree guard refuses them too.
+// which lets the wrapper run the agent without a sandbox; `projects` is every project's main checkout, `checkouts` (job-checkout.ts). The places outside
+// them the sandbox hides and the worktree guard refuses are not the record's, which the job writes: its launch gives them (`guardedPlaces`, job-place.ts).
 // With `mcp`, the role's MCP servers (`writeMcp`). `task`, what omp gets, has a word joiner before each `@` omp 18.3.0 reads a file for with no option to stop it (`@<path>` at the start or after whitespace or ( [ { < " ' `: its utils/file-mentions.ts), as orchestration's hand-over.ts does, so a final message the task quotes makes the job's session read no file (AR0537).
-export function writeRecord(home: string, job: Job, prompt: string, kind: Own, idleMinutes: number, unsandboxed: boolean, since: Date, projects: string, config: Parameters<typeof guardedPlaces>[0], mcp?: McpServers): void {
+export function writeRecord(home: string, job: Job, prompt: string, kind: Own, idleMinutes: number, unsandboxed: boolean, since: Date, projects: string, mcp?: McpServers): void {
 	const folder = join(home, "jobs");
 	const temporary = join(folder, `.${job.id}`);
 	mkdirSync(temporary, { recursive: true });
@@ -31,7 +30,7 @@ export function writeRecord(home: string, job: Job, prompt: string, kind: Own, i
 	const record = {
 		task: job.task.replace(/(?<=^|[\s([{<"'`])@/g, "\u2060@"), kind: job.kind, project: job.project, model: job.model ?? "", "model-why": job.modelWhy ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
 		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(kind.resumeOnBudget), verdicts: kind.verdicts.join("\n"), ...capFields(job), cost: "0.0000",
-		"idle-minutes": String(idleMinutes), unsandboxed: String(unsandboxed), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects, guarded: guardedPlaces(config), extensions: kind.extensions.join("\n"),
+		"idle-minutes": String(idleMinutes), unsandboxed: String(unsandboxed), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects, extensions: kind.extensions.join("\n"),
 		reason: "", since: since.toISOString(), state: "working",
 	};
 	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);

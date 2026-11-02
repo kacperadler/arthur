@@ -149,15 +149,15 @@ test("arthur continue runs the prepares again, told it is a continue: a provider
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "continue"), args().length], ["ended", "Go on.", 2], "a refused continue starts nothing and leaves the record");
 });
 
-test("no ARTHUR_ variable of Arthur's own environment reaches a job, ARTHUR_AGENT_MODEL and a ...Env secret among them; the prepares' variables and ARTHUR_JOB do", async () => {
+test("no ARTHUR_ variable of Arthur's own environment reaches a job, ARTHUR_AGENT_MODEL and a ...Env secret among them; the prepares' variables, ARTHUR_JOB and ARTHUR_GUARDED do", async () => {
 	const { root, home, agent, env, args } = setup();
 	const jobs = runner(home, root, agent);
-	jobs.prepare("models", () => ({ OLLAMA_API_KEY: "s3cr3t-key", ARTHUR_MODELS_HINT: "from-prepare" }));
+	jobs.prepare("models", () => ({ OLLAMA_API_KEY: "s3cr3t-key", ARTHUR_MODELS_HINT: "from-prepare", ARTHUR_GUARDED: "" }));
 	Object.assign(process.env, { ARTHUR_AGENT_MODEL: "evil/model", ARTHUR_TEST_TOKEN: "shell-t0ken" });
 	try {
 		const job = await jobs.spawn({ task: "Go.", model: "anthropic/opus" });
 		assert.equal(await ended(home, job.id), "finished");
-		assert.deepEqual(env().split("\n").filter((line) => /^(ARTHUR_|OLLAMA_)/.test(line)).sort(), ["ARTHUR_JOB=" + join(home, "jobs", job.id), "ARTHUR_MODELS_HINT=from-prepare", "OLLAMA_API_KEY=s3cr3t-key"]);
+		assert.deepEqual(env().split("\n").filter((line) => /^(ARTHUR_|OLLAMA_)/.test(line)).sort(), [`ARTHUR_GUARDED=config ${root}`, "ARTHUR_JOB=" + join(home, "jobs", job.id), "ARTHUR_MODELS_HINT=from-prepare", "OLLAMA_API_KEY=s3cr3t-key"]);
 	} finally {
 		for (const key of ["ARTHUR_AGENT_MODEL", "ARTHUR_TEST_TOKEN"]) delete process.env[key];
 	}

@@ -94,7 +94,7 @@ export function steerJob(home: string, id: string, text: string): string {
 // `prepare` runs the prepares told it is a continue, their variables going to the wrapper here, else on the stdin of `remote-job
 // continue` as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts). The record's `continue`, what omp gets, has a word joiner before each `@` omp would read a file for, as `task` (job-record.ts).
 // `root` names a project's checkout now, against which the record's place is checked, as its job writes it (`misplaced`, AR0597).
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps; readonly mcp?: McpServers }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>>; readonly root: (name: string) => string }, there?: Machine): Promise<string | undefined> {
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps; readonly mcp?: McpServers }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>>; readonly root: (name: string) => string; readonly config?: Parameters<typeof launch>[7] }, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));
@@ -134,7 +134,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		moveJob(home, id, bus, () => ["working", ""]);
 		release();
 		bus.emit("core", "job-started", { id, kind, project, root: job.root, branch, worktree, tickets, machine });
-		failed = there === undefined ? await launch(home, job, agent, slice, bus, uncapped, env) : startedThere;
+		failed = there === undefined ? await launch(home, job, agent, slice, bus, uncapped, env, steps.config) : startedThere;
 		// The wrapper there did not start: its end, here at once.
 		if (there !== undefined && failed !== undefined) await syncMachine(home, there, bus);
 		return failed;

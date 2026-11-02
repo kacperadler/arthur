@@ -2659,9 +2659,9 @@
   {
     "id": "AR0348",
     "title": "The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0348-the-answer-of-records-is-not-checked-and-one-job-s-bad-answer-stops-the-copy-of-the-machine-s-other-jobs/ticket.md",
-    "updated": "2026-10-26T10:52:16.151Z",
+    "updated": "2026-11-02T10:18:31.249Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2839,9 +2839,9 @@
   {
     "id": "AR0369",
     "title": "The agent's own request to a provider is never checked against the private network",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
-    "updated": "2026-10-26T10:52:16.666Z",
+    "updated": "2026-11-02T10:18:31.794Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2995,9 +2995,9 @@
   {
     "id": "AR0390",
     "title": "A job on another machine moves a Git LFS project's commits there and back without their LFS objects",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0390-a-job-on-another-machine-moves-a-git-lfs-project-s-commits-there-and-back-without-their-lfs-objects/ticket.md",
-    "updated": "2026-10-26T10:52:18.148Z",
+    "updated": "2026-11-02T10:18:39.446Z",
     "after": [
       "AR0398",
       "AR0402",
@@ -3023,9 +3023,9 @@
   {
     "id": "AR0392",
     "title": "A job's program can still plant a key between the config check and the git call",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0392-a-job-s-program-can-still-plant-a-key-between-the-config-check-and-the-git-call/ticket.md",
-    "updated": "2026-10-26T10:52:19.145Z",
+    "updated": "2026-11-02T10:18:32.330Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3050,9 +3050,9 @@
   {
     "id": "AR0395",
     "title": "A link to the repository made and used in one bash call still moves main",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
-    "updated": "2026-10-26T10:52:19.645Z",
+    "updated": "2026-11-02T10:18:37.865Z",
     "after": [
       "AR0392",
       "AR0402",
@@ -3064,9 +3064,9 @@
   {
     "id": "AR0396",
     "title": "A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0396-a-git-fetch-or-git-push-from-a-job-s-worktree-into-refs-replace-still-writes-a-replacement-every-worktree-reads/ticket.md",
-    "updated": "2026-10-26T10:52:20.150Z",
+    "updated": "2026-11-02T10:18:38.392Z",
     "after": [
       "AR0395",
       "AR0402",
@@ -3078,9 +3078,9 @@
   {
     "id": "AR0397",
     "title": "Arthur's other git reads in a main checkout still read through a replacement",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0397-arthur-s-other-git-reads-in-a-main-checkout-still-read-through-a-replacement/ticket.md",
-    "updated": "2026-10-26T10:52:20.652Z",
+    "updated": "2026-11-02T10:18:38.916Z",
     "after": [
       "AR0396",
       "AR0402",
@@ -3092,9 +3092,9 @@
   {
     "id": "AR0398",
     "title": "A remote named as a machine's URL sends a job's push and fetch to another repository",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0398-a-remote-named-as-a-machine-s-url-sends-a-job-s-push-and-fetch-to-another-repository/ticket.md",
-    "updated": "2026-10-26T10:52:21.147Z",
+    "updated": "2026-11-02T10:18:37.339Z",
     "after": [
       "AR0348",
       "AR0402",
@@ -4021,9 +4021,9 @@
   {
     "id": "AR0507",
     "title": "A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0507-a-branch-s-own-gitattributes-can-hide-a-text-file-s-lines-from-the-reviewer-s/ticket.md",
-    "updated": "2026-10-27T12:19:47.690Z"
+    "updated": "2026-11-02T10:19:03.040Z"
   },
   {
     "id": "AR0508",
@@ -4056,9 +4056,9 @@
   {
     "id": "AR0512",
     "title": "A job that empties its record's `guarded` file reads the env file after `arthur continue`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0512-a-job-that-empties-its-record-s-guarded-file-reads-the-env-file-after-arthur/ticket.md",
-    "updated": "2026-10-27T13:31:11.647Z"
+    "updated": "2026-11-02T10:19:03.564Z"
   },
   {
     "id": "AR0513",

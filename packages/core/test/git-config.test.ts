@@ -93,7 +93,10 @@ function environment(t: { after: (fn: () => void) => void }, vars: Readonly<Reco
 
 // The owner's config of a test: `user` as ~/.gitconfig, no system config, nothing from the command line or the env.
 const owner = (t: { after: (fn: () => void) => void }, user: string) =>
-	environment(t, { GIT_CONFIG_GLOBAL: user, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_COUNT: "0", GIT_CONFIG_KEY_0: undefined, GIT_CONFIG_VALUE_0: undefined, GIT_CONFIG_PARAMETERS: undefined, GIT_SSH: undefined, GIT_SSH_COMMAND: undefined });
+	environment(t, {
+		...{ GIT_CONFIG_GLOBAL: user, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_COUNT: "0", GIT_CONFIG_KEY_0: undefined, GIT_CONFIG_VALUE_0: undefined, GIT_CONFIG_PARAMETERS: undefined },
+		...{ GIT_SSH: undefined, GIT_SSH_COMMAND: undefined, GIT_ASKPASS: undefined, SSH_ASKPASS: undefined },
+	});
 const c = (...values: string[]) => values.flatMap((value) => ["-c", value]);
 
 test("a passed check pins each key Git reads by a fixed name to the owner's config, outside the repository's own, or to Git's default", (t) => {
@@ -101,25 +104,29 @@ test("a passed check pins each key Git reads by a fixed name to the owner's conf
 	const user = join(temporaryFolder(), "gitconfig");
 	writeFileSync(user, "");
 	owner(t, user);
-	const defaults = ["commit.gpgsign=false", "gpg.format=openpgp", "gpg.program=gpg", "gpg.ssh.program=ssh-keygen", "gpg.x509.program=gpgsm", "gpg.ssh.defaultkeycommand=", "protocol.ext.allow=never"];
-	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", ...defaults), "nothing set: Git's defaults");
+	const defaults = ["gpg.ssh.defaultkeycommand=", "commit.gpgsign=false", "gpg.format=openpgp", "gpg.program=gpg", "gpg.ssh.program=ssh-keygen", "gpg.x509.program=gpgsm", "protocol.ext.allow=never"];
+	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=", ...defaults), "nothing set: Git's defaults");
+	process.env.SSH_ASKPASS = "/usr/bin/ssh-askpass";
+	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=/usr/bin/ssh-askpass", ...defaults), "SSH_ASKPASS, which Git asks last");
+	delete process.env.SSH_ASKPASS;
 	// GIT_SSH names the program itself, which core.sshCommand, a shell's command, would otherwise override.
 	const folder = temporaryFolder();
 	const ssh = join(folder, "it's ssh");
 	writeFileSync(ssh, `#!/bin/sh\necho "$@" > '${join(folder, "ran")}'\nexit 1\n`, { mode: 0o755 });
 	process.env.GIT_SSH = ssh;
 	const { pins } = checkConfig(root);
-	assert.deepEqual(pins, c("credential.helper=", `core.sshcommand='${ssh.replaceAll("'", "'\\''")}'`, ...defaults), "GIT_SSH, quoted for the shell");
+	assert.deepEqual(pins, c("credential.helper=", `core.sshcommand='${ssh.replaceAll("'", "'\\''")}'`, "core.askpass=", ...defaults), "GIT_SSH, quoted for the shell");
 	spawnSync("git", ["-C", root, ...pins, "ls-remote", "ssh://example.invalid/x"]);
 	assert.match(readFileSync(join(folder, "ran"), "utf8"), /^example\.invalid git-upload-pack '\/x'$/m, "Git runs it");
-	const config = ["[credential]", "\thelper = first", "\thelper =", "\thelper = second", '[credential "https://example.com"]', "\thelper = url", "[core]", "\tsshCommand = user ssh", "[gpg]", "\tformat = ssh", "\tprogram = gpg one"];
+	const config = ["[credential]", "\thelper = first", "\thelper =", "\thelper = second", '[credential "https://example.com"]', "\thelper = url", "[core]", "\tsshCommand = user ssh", "\taskPass = asks"];
+	config.push("[gpg]", "\tformat = ssh", "\tprogram = gpg one");
 	const more = ['[gpg "openpgp"]', "\tprogram = gpg two", '[gpg "ssh"]', "\tprogram = keygen", "\tdefaultKeyCommand = key", '[gpg "x509"]', "\tprogram = gpgsm two", "[commit]", "\tgpgSign"];
 	writeFileSync(user, [...config, ...more, ""].join("\n"));
 	Object.assign(process.env, { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "core.sshCommand", GIT_CONFIG_VALUE_0: "command ssh" });
 	assert.deepEqual(
 		checkConfig(root).pins,
-		c(...["credential.helper=", "credential.helper=first", "credential.helper=", "credential.helper=second", "credential.https://example.com.helper=url", "core.sshcommand=command ssh"],
-			...["commit.gpgsign=true", "gpg.format=ssh", "gpg.program=gpg two", "gpg.ssh.program=keygen", "gpg.x509.program=gpgsm two", "gpg.ssh.defaultkeycommand=key", "protocol.ext.allow=never"]),
+		c(...["credential.helper=", "credential.helper=first", "credential.helper=", "credential.helper=second", "credential.https://example.com.helper=url", "core.sshcommand=command ssh", "core.askpass=asks"],
+			...["gpg.ssh.defaultkeycommand=key", "commit.gpgsign=true", "gpg.format=ssh", "gpg.program=gpg two", "gpg.ssh.program=keygen", "gpg.x509.program=gpgsm two", "protocol.ext.allow=never"]),
 		"the owner's, the last one of each, in the order Git reads them; gpg.openpgp.program is gpg.program; a key with no value is true",
 	);
 });
@@ -132,10 +139,10 @@ test("a key a job writes into the repository's config after the check runs no pr
 		return join(folder, name);
 	};
 	const [planted, own, user] = [script("planted"), script("own"), join(folder, "gitconfig")];
-	const owned = [`[credential]\n\thelper = !${own}`, `[core]\n\tsshCommand = ${own}`, `[gpg]\n\tprogram = ${own}`, `[gpg "x509"]\n\tprogram = ${own}`];
+	const owned = [`[credential]\n\thelper = !${own}`, `[core]\n\tsshCommand = ${own}\n\taskPass = ${own}`, `[gpg]\n\tprogram = ${own}`, `[gpg "x509"]\n\tprogram = ${own}`];
 	writeFileSync(user, [...owned, `[gpg "ssh"]\n\tprogram = ${own}\n\tallowedSignersFile = ${user}\n`].join("\n"));
 	owner(t, user);
-	environment(t, { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "" });
+	environment(t, { GIT_TERMINAL_PROMPT: "0" });
 	const { pins } = checkConfig(root);
 	const tree = git(root, "hash-object", "-w", "-t", "tree", "/dev/null");
 	const head = `tree ${tree}\nauthor a <a@example.com> 1 +0000\ncommitter a <a@example.com> 1 +0000\n`;
@@ -146,6 +153,7 @@ test("a key a job writes into the repository's config after the check runs no pr
 	// The keys planted, the git call, whether the owner's own program runs in it instead.
 	const rows: [string[][], string[], boolean][] = [
 		[[["credential.helper", `!${planted}`]], fill, true],
+		[[["core.askPass", planted]], fill, true],
 		[[["credential.https://example.com.helper", `!${planted}`]], fill, true],
 		[[["core.sshCommand", planted]], ["ls-remote", "ssh://example.invalid/x"], true],
 		[[["protocol.ext.allow", "always"]], ["ls-remote", `ext::${planted}`], false],

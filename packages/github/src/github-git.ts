@@ -58,9 +58,7 @@ function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv):
 // `ext::`, and a folder, whose hooks its receive-pack would run, are refused: `fatal: transport '<name>' not allowed`.
 const quiet = (): NodeJS.ProcessEnv => ({ ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never", GIT_PROTOCOL_FROM_USER: "0" });
 
-// Why the checkout at `path` may not reach origin, "" when it may: a key of its own config that may name a program Arthur's git
-// would run (`core.sshCommand`, a credential helper; @arthur/core/git-config), or no origin remote. `pins`: the `-c` arguments
-// of the call to origin, the owner's own value of each key Git reads by a fixed name, which a job may write after this (AR0392).
+// Before a call to origin: `refusal`, a key of the checkout's config that may name a program (@arthur/core/git-config) or no origin remote; `pins`, its `-c`.
 function originCheck(path: string): { readonly refusal: string; readonly pins: readonly string[] } {
 	const checked = checkConfig(path);
 	return checked.refusal !== "" || git(path, "remote", "get-url", "origin") !== undefined ? checked : { refusal: `${path} has no origin remote`, pins: [] };

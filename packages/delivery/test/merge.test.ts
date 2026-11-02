@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, jobSlice, plantAfterCheck, temporaryFolder, until } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, jobSlice, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -367,6 +367,19 @@ test("refused, main unchanged: the repository's own config sets a key that may n
 	assert.equal(merged.err, `arthur merge: check failed on main (npm test), and main could not be reset to ${before.slice(0, 7)}: ${said("credential.helper")}`);
 	assert.deepEqual([git(root, "rev-parse", "HEAD^2"), existsSync(ran)], [job.tip, false], "main keeps the merge");
 });
+
+// A `git` first on PATH until the test ends that writes `keys` into a repository's own config right after Arthur's config check
+// (@arthur/core/git-config) first lists it, as a job's program would between that check and the git call (AR0392).
+function plantAfterCheck(t: TestContext, keys: readonly (readonly [string, string])[]): void {
+	const folder = temporaryFolder();
+	const quote = (word: string) => `'${word.replaceAll("'", "'\\''")}'`;
+	const real = quote(execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim());
+	const plant = keys.map(([key, value]) => `${real} -C "$2" config ${quote(key)} ${quote(value)}\n`).join("");
+	const now = `[ "$3 $4 $5" = "config --list --show-scope" ] && mkdir ${quote(join(folder, "planted"))} 2>/dev/null`;
+	writeFileSync(join(folder, "git"), `#!/bin/sh\n${real} "$@"\ncode=$?\nif ${now}; then\n${plant}fi\nexit $code\n`, { mode: 0o755 });
+	process.env.PATH = [folder, process.env.PATH].join(delimiter);
+	t.after(() => void (process.env.PATH = process.env.PATH?.split(delimiter).filter((each) => each !== folder).join(delimiter)));
+}
 
 test("a signing program a job writes into main's config after the check runs not in the merge commit: Git signs as the owner's config says", async (t) => {
 	const { root, git, worker, review, merge } = await load(t);

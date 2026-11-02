@@ -37,19 +37,6 @@ export function temporaryFolder(): string {
 	return mkdtempSync(join(root, "tmp", "folder-"));
 }
 
-// A `git` first on PATH until the test ends: the first time Arthur's config check (git-config.ts) has listed a repository's own
-// config, it writes `keys` into that config, as a job's program would between the check and Arthur's git call (AR0392).
-export function plantAfterCheck(t: { after: (fn: () => void) => void }, keys: readonly (readonly [string, string])[]): void {
-	const folder = temporaryFolder();
-	const quote = (word: string) => `'${word.replaceAll("'", "'\\''")}'`;
-	const git = quote(spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim());
-	const plant = keys.map(([key, value]) => `${git} -C "$2" config ${quote(key)} ${quote(value)}\n`).join("");
-	const once = `[ "$3 $4 $5" = "config --list --show-scope" ] && mkdir ${quote(join(folder, "planted"))} 2>/dev/null`;
-	writeFileSync(join(folder, "git"), `#!/bin/sh\n${git} "$@"\ncode=$?\nif ${once}; then\n${plant}fi\nexit $code\n`, { mode: 0o755 });
-	process.env.PATH = [folder, process.env.PATH].join(delimiter);
-	t.after(() => void (process.env.PATH = process.env.PATH?.split(delimiter).filter((each) => each !== folder).join(delimiter)));
-}
-
 // A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends` messages throw, the next `dropSends` sent while idle
 // are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`; with `clock`, a file, `Date.now()` in the agent and its extensions answers the
 // time in ms it holds while it exists, so a test moves time. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag.

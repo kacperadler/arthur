@@ -25,38 +25,27 @@ const ALLOWED = new RegExp(
 	].join("|")})$`,
 );
 
-// The keys Git reads by a fixed name that name a program or turn signing on, each with the value Git takes when no config
-// sets it. A job's program may write one into the repository's own config between the check and the git call (AR0392), so a
-// git call that reads them sets each with `-c`, which Git reads after that config: the owner's own value, or this default.
-const PINNED: Readonly<Record<string, string>> = {
-	"commit.gpgsign": "false",
-	"gpg.format": "openpgp",
-	"gpg.program": "gpg",
-	"gpg.ssh.program": "ssh-keygen",
-	"gpg.x509.program": "gpgsm",
-	"gpg.ssh.defaultkeycommand": "",
-};
+// The keys Git reads by a fixed name that name a program or turn signing on, with Git's default: a job may write one between the check and the git call
+// (AR0392), so a call that reads them passes each with `-c`, read after the repository's config, as the owner's config sets it, else as this default.
+const PINNED = { "commit.gpgsign": "false", "gpg.format": "openpgp", "gpg.program": "gpg", "gpg.ssh.program": "ssh-keygen", "gpg.x509.program": "gpgsm" };
 
-// The check of the checkout or repository at `root` before an Arthur git call that may run a program. `refusal`: the first
-// key of its own config outside ALLOWED, with the file that sets it, "" when there is none (Git lists a section and a key in
-// lower case). `pins`: the `-c` arguments of that call, the keys of PINNED, `core.sshCommand` and the credential helpers (the
-// list reset by an empty one, then the owner's again) as the config outside the repository's own sets them, and no `ext::`.
+// Before an Arthur git call that may run a program at `root`: `refusal`, the first key of its own config outside ALLOWED with the file that sets it, "" when
+// none (Git lists a section and a key in lower case); `pins`, that call's `-c`: PINNED and the keys below, the credential helpers reset by an empty one and
+// then the owner's again, no `ext::`. Unset, Git runs GIT_SSH or ssh, SSH_ASKPASS or no askpass, no key command.
 export function checkConfig(root: string): { readonly refusal: string; readonly pins: readonly string[] } {
 	const listed = spawnSync("git", ["-C", root, "config", "--list", "--show-scope", "--show-origin", "-z"], { encoding: "utf8" });
 	if (listed.status !== 0) return { refusal: `git config --list in ${root}: ${listed.error?.message ?? (listed.stderr.trim().split("\n").at(-1) || `exit code ${listed.status}`)}`, pins: [] };
-	const ssh = process.env.GIT_SSH;
-	const owner = new Map([["core.sshcommand", ssh === undefined ? "ssh" : `'${ssh.replaceAll("'", "'\\''")}'`], ...Object.entries(PINNED)]);
+	const ssh = process.env.GIT_SSH === undefined ? "ssh" : `'${process.env.GIT_SSH.replaceAll("'", "'\\''")}'`;
+	const owner = new Map(Object.entries({ "core.sshcommand": ssh, "core.askpass": process.env.SSH_ASKPASS ?? "", "gpg.ssh.defaultkeycommand": "", ...PINNED }));
 	const helpers = ["-c", "credential.helper="];
-	// `<scope>\0<origin>\0<key>\n<value>\0`, each entry; a key with no value, `true`.
+	// `<scope>\0<origin>\0<key>\n<value>\0`, each entry; a key with no value is `true`. No key ALLOWED lets through is pinned.
 	const fields = listed.stdout.split("\0");
 	for (let at = 0; at + 2 < fields.length; at += 3) {
 		const [scope, origin = "", entry = ""] = [fields[at], fields[at + 1], fields[at + 2]];
-		const cut = entry.indexOf("\n");
-		const [key, value] = cut < 0 ? [entry, "true"] : [entry.slice(0, cut), entry.slice(cut + 1)];
-		if (scope === "local" || scope === "worktree") {
-			if (ALLOWED.test(key)) continue;
+		const key = entry.split("\n", 1)[0] ?? "";
+		if ((scope === "local" || scope === "worktree") && !ALLOWED.test(key))
 			return { refusal: `${resolve(root, origin.replace(/^file:/, ""))} sets ${key}, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`, pins: [] };
-		}
+		const value = entry.includes("\n") ? entry.slice(key.length + 1) : "true";
 		const name = key === "gpg.openpgp.program" ? "gpg.program" : key;
 		if (owner.has(name)) owner.set(name, value);
 		else if (/^credential\.(.+\.)?helper$/.test(key)) helpers.push("-c", `${key}=${value}`);

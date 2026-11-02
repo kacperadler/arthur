@@ -138,10 +138,9 @@ function failure(machine: Machine, argv: readonly string[], code: number | strin
 	return new Error(`machine ${machine.name}: ${argv.slice(0, 3).join(" ")}: ${said}`);
 }
 
-// `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement
-// (refs/replace), none of its keys that may name a program, and the owner's value of each Git reads by a fixed name
-// (git-config.ts). Git reads the URL first as a remote's name, whose `url` the config may set: GIT_PROTOCOL_FROM_USER=0
-// refuses any transport but those allowed always (ssh among them), so no helper and no folder (AR0393).
+// `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement (refs/replace), none of
+// its keys that may name a program, the owner's value of each Git reads by a fixed name (git-config.ts). Git reads the URL first as a remote's name,
+// whose `url` the config may set: GIT_PROTOCOL_FROM_USER=0 refuses any transport but those allowed always (ssh among them): no helper, no folder (AR0393).
 export function gitOver(root: string, args: readonly string[]): void {
 	const { refusal, pins } = checkConfig(root);
 	if (refusal !== "") throw new Error(`git ${args[0]}: ${refusal}`);

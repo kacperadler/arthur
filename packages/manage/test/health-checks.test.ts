@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { test } from "node:test";
+import { delimiter, join } from "node:path";
+import { type TestContext, test } from "node:test";
 import type { JobRecord, Ticket } from "@arthur/core/plugin";
 import { temporaryFolder } from "@arthur/core/testing";
 import { AUDITS } from "../src/audit.ts";
@@ -96,6 +96,38 @@ test("nothing to push to is no line: a branch without an upstream, a detached HE
 	git("checkout", "--quiet", "-b", "local");
 	assert.deepEqual(unpushed(project, NOW), [], "no upstream");
 	assert.deepEqual(unpushed({ ...project, path: temporaryFolder() }, NOW), []);
+});
+
+// A `git` first on PATH until the test ends that writes `keys` into a repository's own config right after Arthur's config check
+// (@arthur/core/git-config) lists it the `nth` time, as a job's program would between that check and the git call (AR0392).
+function plantAfterCheck(t: TestContext, keys: readonly (readonly [string, string])[], nth: number): void {
+	const folder = temporaryFolder();
+	const quote = (word: string) => `'${word.replaceAll("'", "'\\''")}'`;
+	const [real, count] = [quote(execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim()), quote(join(folder, "checks"))];
+	const plant = keys.map(([key, value]) => `${real} -C "$2" config ${quote(key)} ${quote(value)}\n`).join("");
+	const now = `[ "$3 $4 $5" = "config --list --show-scope" ] && echo >> ${count} && [ $(wc -l < ${count}) -eq ${nth} ]`;
+	writeFileSync(join(folder, "git"), `#!/bin/sh\n${real} "$@"\ncode=$?\nif ${now}; then\n${plant}fi\nexit $code\n`, { mode: 0o755 });
+	process.env.PATH = [folder, process.env.PATH].join(delimiter);
+	t.after(() => void (process.env.PATH = process.env.PATH?.split(delimiter).filter((each) => each !== folder).join(delimiter)));
+}
+
+test("a signature's checker a job writes into the checkout's config after the check runs not in the unpushed check's git log; the owner's does", (t) => {
+	const { project, git } = repository();
+	const folder = temporaryFolder();
+	const [planted, own, user] = [join(folder, "planted"), join(folder, "own"), join(folder, "gitconfig")];
+	for (const name of [planted, own]) writeFileSync(name, `#!/bin/sh\necho "$@" >> '${name}.ran'\nexit 1\n`, { mode: 0o755 });
+	writeFileSync(user, `[gpg]\n\tprogram = ${own}\n`);
+	const was = process.env.GIT_CONFIG_GLOBAL;
+	process.env.GIT_CONFIG_GLOBAL = user;
+	t.after(() => void (process.env.GIT_CONFIG_GLOBAL = was));
+	// A signed commit on main, ahead of origin/main: git log checks its signature once log.showSignature is on.
+	const head = `tree ${git("rev-parse", "HEAD^{tree}")}\nparent ${git("rev-parse", "HEAD")}\nauthor t <t@example.com> 1 +0000\ncommitter t <t@example.com> 1 +0000\n`;
+	const input = `${head}gpgsig -----BEGIN PGP SIGNATURE-----\n eA==\n -----END PGP SIGNATURE-----\n\nsigned\n`;
+	git("update-ref", "refs/heads/main", execFileSync("git", ["-C", project.path, "hash-object", "-w", "-t", "commit", "--stdin"], { encoding: "utf8", input }).trim());
+	// The third check of `unpushed`, the one before its git log.
+	plantAfterCheck(t, [["log.showSignature", "true"], ["gpg.program", planted]], 3);
+	assert.equal(unpushed(project, NOW).length, 1);
+	assert.deepEqual([git("config", "gpg.program"), existsSync(`${planted}.ran`), existsSync(`${own}.ran`)], [planted, false, true]);
 });
 
 test("the board's changes not committed for an hour, by its oldest file's time, untracked tickets included; a deletion has no time", () => {

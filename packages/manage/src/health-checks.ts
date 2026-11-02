@@ -27,8 +27,7 @@ export type Space = Pick<StatsFs, "blocks" | "bavail" | "bsize" | "files" | "ffr
 const hours = (ms: number) => `${Math.floor(ms / HOUR_MS)} h`;
 const free = (share: number) => `${Math.floor(share * 100)}%`;
 
-// Git's output, or undefined when it exits with an error; Git missing, or a config that may name a program (AR0488), throws.
-// The keys Git reads by a fixed name, a signature's checker that `log.showSignature` runs, take the owner's value (AR0392).
+// Git's output, or undefined on an error; Git missing, or a config that may name a program (AR0488), throws; the owner's keys pinned (AR0392).
 function git(path: string, args: readonly string[]): string | undefined {
 	const { refusal, pins } = checkConfig(path);
 	if (refusal !== "") throw new Error(refusal);

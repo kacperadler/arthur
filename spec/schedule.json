@@ -55,5 +55,12 @@
     "action": {
       "message": "AR-D430 (owner: plan it at Nov 4 10:30): run arthur usage (AR-D420); then arthur spawn --kind plan for AR0604, the docker plugin and core cleanup hook plan."
     }
+  },
+  {
+    "id": "telegram-off",
+    "at": "2026-11-09T12:00",
+    "action": {
+      "message": "Discord has been on since 2026-11-02 (all doctor lines ok). AR-D402: Telegram goes off one week after Discord is on. Ask the owner first whether Discord has worked well; on his yes, remove telegram() from arthur.config.ts, run arthur config check, restart the service."
+    }
   }
 ]

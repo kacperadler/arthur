@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-02
+
+### Added
+
+- AR0602 Discord T2: photos, files, voice and the phone commands in Discord (roadmap 90) (e4225ba9)
+
 ## 2026-11-01
 
 ### Fixed

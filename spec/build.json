@@ -4819,9 +4819,9 @@
   {
     "id": "AR0602",
     "title": "Discord T2: photos, files, voice and the phone commands in Discord (roadmap 90)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0602-discord-t2-photos-files-voice-and-the-phone-commands-in-discord-roadmap-90/ticket.md",
-    "updated": "2026-11-02T13:03:50.778Z"
+    "updated": "2026-11-02T13:08:49.115Z"
   },
   {
     "id": "AR0603",

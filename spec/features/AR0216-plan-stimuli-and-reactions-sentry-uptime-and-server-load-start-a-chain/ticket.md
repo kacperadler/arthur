@@ -35,7 +35,7 @@ A plan, written with the owner, that adds roadmap entries for:
 - the limits that keep a flood of stimuli from burning usage or flooding the owner with approvals: deduplication, a rate cap, quiet hours.
 
 - Kind: feat
-- Plan: tak
+- Plan: yes
 
 ## Done means
 

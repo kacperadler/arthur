@@ -17,7 +17,7 @@ Arthur has no release yet: `docs/setup.md` installs it with `git clone` and `npm
 People install and update Arthur in one known way, and Arthur can tell when two machines or a plugin run different versions.
 
 - Kind: feat
-- Plan: tak
+- Plan: yes
 
 ## Done means
 

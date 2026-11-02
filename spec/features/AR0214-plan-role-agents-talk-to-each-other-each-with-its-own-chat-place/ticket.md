@@ -27,7 +27,7 @@ A plan, written with the owner before anything is built, that settles the follow
 - how one Discord server per agent and shared group servers map onto the `chat` places of entries 85–86 and Discord (89–90).
 
 - Kind: feat
-- Plan: tak
+- Plan: yes
 
 ## Done means
 

@@ -4843,5 +4843,12 @@
     "status": "planning",
     "path": "spec/features/AR0605-arthur-config-check-type-checks-arthur-config-ts-and-every-project-file-with-tsc/ticket.md",
     "updated": "2026-11-02T17:49:45.623Z"
+  },
+  {
+    "id": "AR0606",
+    "title": "Discord T3: the phone commands as Discord application commands, suggested when the owner types /",
+    "status": "planning",
+    "path": "spec/features/AR0606-discord-t3-the-phone-commands-as-discord-application-commands-suggested-when-the/ticket.md",
+    "updated": "2026-11-02T17:54:01.265Z"
   }
 ]

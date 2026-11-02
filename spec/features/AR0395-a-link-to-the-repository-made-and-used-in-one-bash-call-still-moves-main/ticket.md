@@ -32,3 +32,4 @@ In:
 
 - 2026-10-25: Source: F1 of AR0383
 - 2026-11-02: Approved: build AR0395 after AR0562, as part of Groups 1 and 2; report progress as tasks X/Y and new Z; the owner: "complete the AR0562, then go with Group 1 and Group 2, but mesure this changes i mean, whan you start, add to messages tasks: X/Y new: Z (tasks: X is completed / Y is todo; new: Z is how many new are created when you do the Y tasks)" (AR-D437)
+- 2026-11-02: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)

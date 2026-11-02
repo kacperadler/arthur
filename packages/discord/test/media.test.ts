@@ -6,7 +6,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { type TestContext, test } from "node:test";
 import { temporaryFolder, until } from "@arthur/core/testing";
-import { FOREIGN, fakeDiscord, load, MAIN, PROJECT, TOKEN } from "./fake-discord.ts";
+import { FOREIGN, fakeDiscord, load, MAIN, message, NOW, PROJECT, snowflake, TOKEN } from "./fake-discord.ts";
 
 // Files both ways on Discord (spec/roadmap.md, entry 90): what the owner sends saved as parts, and `channel.send`.
 
@@ -87,6 +87,24 @@ test("a forward's files come with the mark; a stop during a download drops the m
 	await again.plugin.start?.();
 	await until("read again", () => again.received().length === 1);
 	assert.deepEqual(again.received(), [{ channel: "discord", parts: [{ kind: "file", path: join(folder, "media", "1800000000000000022-slow.png"), mime: "application/octet-stream" }, text("Held.")] }]);
+});
+
+test("the backlog is heard one message at a time, oldest first: a slow download holds the newer one, and seen.json keeps the newer id", async (t) => {
+	const api = await fakeDiscord(t);
+	const older = message(snowflake(NOW.getTime() - 60_000, 1), { content: "Older.", attachments: [api.attach("1800000000000000041", "old.png", null)] });
+	const newer = message(snowflake(NOW.getTime() - 30_000, 1), { content: "Newer." });
+	api.history = [older, newer];
+	const { plugin, received, folder } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	await until("the older one's download begun", () => existsSync(join(folder, "media", "1800000000000000041-old.png.tmp")));
+	api.attach("1800000000000000041", "old.png", "old");
+	await until("both", () => received().length === 2);
+	assert.deepEqual(received(), [
+		{ channel: "discord", parts: [{ kind: "file", path: join(folder, "media", "1800000000000000041-old.png"), mime: "application/octet-stream" }, text("Older.")] },
+		{ channel: "discord", parts: [text("Newer.")] },
+	]);
+	await plugin.stop?.();
+	assert.deepEqual(JSON.parse(readFileSync(join(folder, "seen.json"), "utf8")), { "": { [MAIN]: newer.id } });
 });
 
 // `arthur send` loads the plugin without starting it, so the sends below go without a gateway.

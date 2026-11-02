@@ -52,8 +52,10 @@ type Connection = { readonly url: string; readonly got: Readonly<Record<string, 
 export async function fakeDiscord(t: TestContext) {
 	const calls: Call[] = [];
 	const took: { channel: string; body: Readonly<Record<string, unknown>>; files?: Upload[] }[] = [];
-	// What the CDN serves by path; null sends the first bytes and holds the rest, as a download a stop cuts short.
+	// What the CDN serves by path; null sends the first bytes and holds the rest, as a slow download, until `attach` puts
+	// bytes at that path; `held` are those downloads.
 	const cdn = new Map<string, Buffer | null>();
+	const held: { path: string; response: ServerResponse }[] = [];
 	const connections: Connection[] = [];
 	const failures: { call: string; status: number; body: unknown }[] = [];
 	let [session, seq] = [0, 0];
@@ -69,7 +71,10 @@ export async function fakeDiscord(t: TestContext) {
 		const call = `${request.method} ${url.pathname}`;
 		if (url.pathname.startsWith("/attachments/")) {
 			const bytes = cdn.get(url.pathname);
-			if (bytes === null) return void response.writeHead(200, { "Content-Type": "application/octet-stream" }).write("first bytes");
+			if (bytes === null) {
+				response.writeHead(200, { "Content-Type": "application/octet-stream" }).write("first bytes");
+				return void held.push({ path: url.pathname, response });
+			}
 			return bytes === undefined ? response.writeHead(404, { "Content-Type": "text/plain" }).end("This content is no longer available.") : response.writeHead(200, { "Content-Type": "application/octet-stream" }).end(bytes);
 		}
 		if (![TOKEN, SECOND].map((token) => `Bot ${token}`).includes(String(request.headers.authorization))) return json(response, 401, { message: "401: Unauthorized", code: 0 });
@@ -192,11 +197,12 @@ export async function fakeDiscord(t: TestContext) {
 			return sent;
 		},
 		fail: (call: string, status: number, body: unknown) => void failures.push({ call, status, body }),
-		// An attachment as the gateway gives one, `bytes` on the CDN behind its signed link (null: never answered); `fields`
-		// change it, as `content_type`.
+		// An attachment as the gateway gives one, `bytes` on the CDN behind its signed link (null: held until a later `attach`
+		// of the same id and name gives its bytes); `fields` change it, as `content_type`.
 		attach(id: string, filename: string, bytes: string | null, fields: Readonly<Record<string, unknown>> = {}) {
 			const path = `/attachments/${MAIN}/${id}/${encodeURIComponent(filename)}`;
 			cdn.set(path, bytes === null ? null : Buffer.from(bytes));
+			if (bytes !== null) for (const each of held.filter((one) => one.path === path)) each.response.end(bytes);
 			const signed = `?ex=6724a000&is=67234e80&hm=${"0f".repeat(32)}&`;
 			return { id, filename, size: Buffer.byteLength(bytes ?? ""), url: `${api.url}${path}${signed}`, proxy_url: `${api.url}${path.replace("attachments", "media")}${signed}`, ...fields };
 		},

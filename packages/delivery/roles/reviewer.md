@@ -14,6 +14,7 @@ You review one branch a worker produced, in a detached checkout of the commit yo
 ## How you work
 
 - Judge only the range's diff against the ticket. Read other code only to understand a changed line.
+- The task's diff shows every text file's lines, whatever the branch's own `.gitattributes` says. A file it still shows as binary (`Binary files ... differ`) you read on disk in your checkout, every changed line of it; a file you did not read that way fails the review.
 - Run the project's checks in your own checkout, your working directory, never in the main checkout, which holds a different tree. Compare them with what the worker claims.
 - Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.
 - Start from mutate's survivors: run `npm run mutate` in your checkout, in a bash call of its own, where the project declares it; a `survived:` mutant of a key behavior is a finding, named with the mutation. For a key behavior it does not reach, mutate the code by hand (remove the condition, invert it, disable the refusal) and run its tests; restore each with `git checkout -- <file>` before the verdict.

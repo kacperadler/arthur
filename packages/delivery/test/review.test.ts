@@ -324,6 +324,29 @@ test("a review's task is only what arthur review builds for an ended worker at i
 	assert.equal(git(readFileSync(join(home, "jobs", started.id, "worktree"), "utf8"), "rev-parse", "HEAD"), tip, "the review's checkout is the new tip");
 });
 
+// The reviewer runs the diff in a checkout of the tip, where Git reads the branch's `.gitattributes`; its own Git config may name
+// a diff driver that the attributes pick.
+test("the task's diff, run as the task names it, shows a changed text file's lines whatever the branch's .gitattributes says", async (t) => {
+	const { fake, git, worker, home } = await load(t);
+	const job = await worker();
+	const worktree = readFileSync(join(home, "jobs", job.id, "worktree"), "utf8");
+	const config = (key: string, value: string) => ({ GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: key, GIT_CONFIG_VALUE_0: value });
+	for (const [attributes, env] of [
+		["*.ts -diff", {}],
+		["*.ts binary", {}],
+		["*.ts diff=hide", config("diff.hide.textconv", "true")],
+		["*.ts diff=hide", config("diff.hide.command", "true")],
+	] as const) {
+		writeFileSync(join(worktree, ".gitattributes"), `${attributes}\n`);
+		git(worktree, "add", ".gitattributes");
+		git(worktree, "commit", "--quiet", "--allow-empty", "-m", "attributes");
+		const { task } = reviewTask(fake.host, workerOf(fake.host, job.id), undefined);
+		const [, command = ""] = /`(git diff [^`]+)`/.exec(task) ?? [];
+		const diff = execFileSync("git", command.split(" ").slice(1), { cwd: worktree, encoding: "utf8", env: { ...process.env, ...env } });
+		assert.ok(diff.includes(`+++ b/${job.id}.ts\n`) && diff.includes("\n+export const shop = 1;\n"), `${attributes} ${JSON.stringify(env)}: ${diff}`);
+	}
+});
+
 test("a review is refused in a project other than its worker's, though that project has a job and its HEAD holds the ticket and the tip, and starts in the worker's", async (t) => {
 	const { fake, git, root, other, worker, agent, state, home, field } = await load(t);
 	const job = await worker();

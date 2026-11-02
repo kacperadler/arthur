@@ -130,7 +130,8 @@ test("repeated shapes: a ready class proposal, picks split as a code default, a 
 	const { out } = await (await load(t, [...ENTRIES, ...CLASSES, ...CLOSED, ...APART, ...policy, ...POLICY])).command();
 	const shapes = out.split("\n### ").slice(1).map((each) => each.split("\n\n## ")[0]?.trim());
 	assert.deepEqual(shapes.map((each) => each?.split("\n")[0]), ["1. `merge: merge / hold`: 4 asks", "2. `budget: raise it / refuse`: 3 asks", "3. `review: another round / fix or / drop the`: 3 asks", "4. `job: hold / continue`: 3 asks", "5. `question: yes / no`: 3 asks", "6. `budget: grow / shrink`: 3 asks"]);
-	assert.match(shapes[5] ?? "", /\n- Answered: policy 3, standing grant 0, owner 0, closed 0, open 0\n.*\n- Class: none\n- Candidate: no answer by the owner or a grant to back a class$/s, "answers by policy never back a class");
+	assert.match(shapes[5] ?? "", /\n- Answered: policy 3, standing grant 0, owner 0, closed 0, open 0\n.*\n- Class: none\n/s);
+	assert.ok(shapes[5]?.endsWith("\n- Candidate: no answer by the owner or a grant to back a class"), "answers by policy never back a class");
 	assert.equal(
 		shapes[1]?.split("\n\n")[1],
 		[
@@ -147,8 +148,8 @@ test("repeated shapes: a ready class proposal, picks split as a code default, a 
 	assert.match(shapes[2] ?? "", /\n- Picks: "another round" 2, "fix or" 1\n.*\n- Candidate: picks split: a code default$/s);
 	assert.match(shapes[0] ?? "", /\n- Answered: policy 3, standing grant 1, owner 0, closed 0, open 0\n/);
 	assert.match(shapes[0] ?? "", /\n- Class: AC-D3 approved, names 4 of 4\n- Candidate: covered by AC-D3$/, "the docs-only ask names both words apart, so the class's word rule names it too (the loose match)");
-	assert.match(shapes[3] ?? "", /\n- Candidate: no answer by the owner or a grant to back a class$/);
-	assert.match(shapes[4] ?? "", /\n- Candidate: no word common to every question: no class matches them all$/);
+	assert.ok(shapes[3]?.endsWith("\n- Candidate: no answer by the owner or a grant to back a class"), shapes[3]);
+	assert.ok(shapes[4]?.endsWith("\n- Candidate: no word common to every question: no class matches them all"), shapes[4]);
 	assert.match(out, /\n- Classes, as they stand now: AC-D3 approved, AC-D16 approved, AC-D17 refused, AC-D18 proposed\n/);
 	const two = await (await load(t, ENTRIES.filter((each) => !["AC-D7", "AC-D8"].includes(String(each.id))).concat([RAISE(7, 170), answer(7, "Raise it", "AC-D7 1", 1), RAISE(8, 180), answer(8, "Raise the web budget", "AC-D8 1", 1)]))).command();
 	assert.match(two.out, /\n- Candidate: decided texts differ: one fresh owner answer backs a class\n/, "3 asks with 3 different decisions is no class");

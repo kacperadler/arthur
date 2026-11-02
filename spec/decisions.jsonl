@@ -915,3 +915,4 @@
 {"record":"ask","id":"AR-D454","time":"2026-11-02T16:07:31+01:00","project":"arthur","kind":"merge","question":"AR0392 passed review (PASS at 1482cc0); it changes always-review packages/delivery/src/merge-command.ts. Merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0392"}
 {"record":"answer","id":"AR-D454","time":"2026-11-02T16:07:31+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D455","time":"2026-11-02T16:26:17+01:00","project":"arthur","kind":"budget","question":"AR0369 (security: the provider name is looked up again right before the agent starts) raises the models plugin line budget from 534 to 537 (+3). Accept?","options":["Accept","Shrink first"],"recommend":1,"ticket":"AR0369"}
+{"record":"close","id":"AR-D455","time":"2026-11-02T17:07:12+01:00","reason":"ticket merged"}

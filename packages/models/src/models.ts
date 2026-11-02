@@ -64,10 +64,14 @@ export function models(options: ModelsOptions = {}): Plugin {
 			});
 
 			// The provider of a job's model in its own environment, under omp's provider of its kind; nothing for a built-in model.
-			host.jobs.prepare((job) => {
+			// The agent resolves the name again, unchecked: resolved once more here, right before it starts, one outside the private network refuses it.
+			host.jobs.prepare(async (job) => {
 				const named = providerModel(providers, job.model ?? "");
 				const provider = named === undefined ? undefined : providers[named.provider];
 				if (named === undefined || provider === undefined) return undefined;
+				const server = hostOf(new URL(provider.url));
+				const outside = (await addresses(server)).find((address) => !isPrivate(address));
+				if (outside !== undefined) throw new Error(`provider ${named.provider}: ${server} resolves to ${outside}, not a private address`);
 				const key = provider.keyEnv === undefined ? undefined : host.env[provider.keyEnv];
 				const prefix = provider.kind === "ollama" ? "OLLAMA" : "LM_STUDIO";
 				return { [`${prefix}_BASE_URL`]: provider.url, ...(key === undefined ? {} : { [`${prefix}_API_KEY`]: key }), ARTHUR_AGENT_MODEL: `${OMP_PROVIDER[provider.kind]}/${named.name}` };

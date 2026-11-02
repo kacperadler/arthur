@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { configRefusal } from "@arthur/core/git-config";
+import { checkConfig } from "@arthur/core/git-config";
 import type { Run } from "./github-api.ts";
 
 // What the github plugin asks of a project's checkout (spec/roadmap.md, entries 57 and 58): the run that built a branch,
@@ -58,28 +58,28 @@ function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv):
 // `ext::`, and a folder, whose hooks its receive-pack would run, are refused: `fatal: transport '<name>' not allowed`.
 const quiet = (): NodeJS.ProcessEnv => ({ ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never", GIT_PROTOCOL_FROM_USER: "0" });
 
-// Why the checkout at `path` may not reach origin, "" when it may: a key of its own config that may name a program Arthur's git
-// would run (`core.sshCommand`, a credential helper; @arthur/core/git-config), or no origin remote.
-function originRefusal(path: string): string {
-	return configRefusal(path) || (git(path, "remote", "get-url", "origin") === undefined ? `${path} has no origin remote` : "");
+// Before a call to origin: `refusal`, a key of the checkout's config that may name a program (@arthur/core/git-config) or no origin remote; `pins`, its `-c`.
+function originCheck(path: string): { readonly refusal: string; readonly pins: readonly string[] } {
+	const checked = checkConfig(path);
+	return checked.refusal !== "" || git(path, "remote", "get-url", "origin") !== undefined ? checked : { refusal: `${path} has no origin remote`, pins: [] };
 }
 
 // `git push origin <branch>`, resolving to one line: `github: pushed ...`, or `github: <branch> not pushed to origin: <why>`.
-// No prompt and no program of the checkout's or origin's (`quiet`, `originRefusal`). No hook runs, so a branch whose
+// No prompt and no program of the checkout's or origin's (`quiet`, `originCheck`). No hook runs, so a branch whose
 // `.gitattributes` (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as Git LFS's pre-push hook would
 // (AR0379); git-lfs must be on PATH, as git would otherwise run a `lfs` alias of the config.
 export async function push(path: string, branch: string): Promise<string> {
 	const failed = (why: string) => `github: ${branch} not pushed to origin: ${why}`;
-	const refused = originRefusal(path);
+	const { refusal: refused, pins } = originCheck(path);
 	if (refused !== "") return failed(refused);
 	const ref = `refs/heads/${branch}`;
 	const env = quiet();
 	if (git(path, "grep", "--quiet", "--fixed-strings", "-e", "filter=lfs", ref, "--", ":(glob)**/.gitattributes") !== undefined) {
 		if (spawnSync("git-lfs", ["version"]).status !== 0) return failed("its .gitattributes names filter=lfs, and git-lfs is not installed");
-		const lfs = await gitAway(path, ["lfs", "push", "origin", ref], env);
+		const lfs = await gitAway(path, [...pins, "lfs", "push", "origin", ref], env);
 		if (lfs.code !== 0) return failed(`its LFS objects were not pushed: ${lfs.why}`);
 	}
-	const ran = await gitAway(path, ["push", "--porcelain", "origin", `${ref}:${ref}`], env);
+	const ran = await gitAway(path, [...pins, "push", "--porcelain", "origin", `${ref}:${ref}`], env);
 	// `<flag>\t<from>:<to>\t<summary>`, as `git push --porcelain` prints each ref.
 	const [flag, , summary = ""] = ran.out.split("\n").find((line) => line.includes(`\t${ref}:${ref}\t`))?.split("\t") ?? [];
 	if (ran.code === 0) return `github: pushed ${branch} to origin: ${summary || "done"}`;
@@ -89,9 +89,9 @@ export async function push(path: string, branch: string): Promise<string> {
 // Origin's branches under `prefix` (such as `arthur/`, or a full name), each with its tip, as `git ls-remote` lists them; a
 // refusal or a failure is its text, as `push` says it.
 export async function originBranches(path: string, prefix: string): Promise<ReadonlyMap<string, string> | string> {
-	const refused = originRefusal(path);
+	const { refusal: refused, pins } = originCheck(path);
 	if (refused !== "") return refused;
-	const ran = await gitAway(path, ["ls-remote", "--heads", "origin", `refs/heads/${prefix}${prefix.endsWith("/") ? "*" : ""}`], quiet());
+	const ran = await gitAway(path, [...pins, "ls-remote", "--heads", "origin", `refs/heads/${prefix}${prefix.endsWith("/") ? "*" : ""}`], quiet());
 	if (ran.code !== 0) return ran.why;
 	// `<sha>\trefs/heads/<branch>`, a line each; ls-remote's pattern also matches the end of a longer name, which the prefix check drops.
 	const pairs = ran.out.split("\n").flatMap((line) => (/^[0-9a-f]{40,64}\trefs\/heads\//.test(line) ? [[line.slice(line.indexOf("\t") + 12), line.slice(0, line.indexOf("\t"))] as const] : []));
@@ -101,9 +101,9 @@ export async function originBranches(path: string, prefix: string): Promise<Read
 // Each of `tips` (a branch and the tip origin had) deleted on origin in one push, only while origin still has that tip
 // (`--force-with-lease`), never with a prompt or a program (as `push`); resolves to each branch's refusal, "" for one deleted.
 export async function deleteOnOrigin(path: string, tips: ReadonlyMap<string, string>): Promise<ReadonlyMap<string, string>> {
-	const refused = originRefusal(path);
+	const { refusal: refused, pins } = originCheck(path);
 	const leases = [...tips].map(([branch, tip]) => `--force-with-lease=refs/heads/${branch}:${tip}`);
-	const ran = refused !== "" ? { out: "", why: refused } : await gitAway(path, ["push", "--porcelain", ...leases, "origin", ...[...tips.keys()].map((branch) => `:refs/heads/${branch}`)], quiet());
+	const ran = refused !== "" ? { out: "", why: refused } : await gitAway(path, [...pins, "push", "--porcelain", ...leases, "origin", ...[...tips.keys()].map((branch) => `:refs/heads/${branch}`)], quiet());
 	// `-\t:<ref>\t[deleted]` for a ref deleted, `!\t(delete):<ref>\t[rejected] (stale info)` for one whose tip moved.
 	const lines = ran.out.split("\n").map((line) => line.split("\t"));
 	return new Map(

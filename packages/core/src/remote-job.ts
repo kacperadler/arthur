@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs
 import { basename, isAbsolute, join } from "node:path";
 import type { Command } from "./commands.ts";
 import { eventBus } from "./events.ts";
-import { configRefusal } from "./git-config.ts";
+import { checkConfig } from "./git-config.ts";
 import { addWorktree, removeWorktree } from "./git.ts";
 import { insideJob } from "./inside-job.ts";
 import { continueJob, steerJob, stopJob } from "./job-control.ts";
@@ -35,7 +35,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		const root = join(home, "repos", `${project}.git`);
 		// Created once: `git init` again writes `core.bare` back into the shared config, after a `prepare` may have moved it out.
 		if (!existsSync(join(root, "HEAD"))) git(["init", "--quiet", "--bare", root]);
-		const refusal = configRefusal(root);
+		const refusal = checkConfig(root).refusal;
 		if (refusal !== "") throw new Error(`no push: ${refusal}`);
 		console.log(spawnSync("git", ["-C", root, "cat-file", "-e", `${commit}^{commit}`], { stdio: "ignore" }).status === 0 ? "present" : "missing");
 	},
@@ -83,7 +83,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		const [root, worktree, branch] = ["root", "worktree", "branch"].map(field(home, id)) as [string, string, string];
 		const present = existsSync(worktree);
 		// `git worktree remove` runs `git status` in the worktree, which runs a clean filter the shared config or the worktree's own names (AR0394).
-		const refusal = present ? configRefusal(worktree) : "";
+		const refusal = present ? checkConfig(worktree).refusal : "";
 		if (refusal !== "") throw new Error(`git worktree: ${refusal}`);
 		git(present ? ["worktree", "remove", worktree] : ["worktree", "prune"], root);
 		const done = present ? [`worktree ${worktree} removed there`] : [];

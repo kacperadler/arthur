@@ -128,6 +128,7 @@ Each decided in the ticket that made it.
 - AR0593 (AR0589's approved plan, ticket 2): `host.job`, `{ id, project }` inside a job; the projects plugin serves the job's own project alone there, imports no other project's file, and outside a job keeps `<home>/projects/folders` beside `checkouts`, which a job's sandbox reads (`arthur spawn --help`, "The sandbox"). `loadPlugins` takes the job's id in place of a flag.
 - AR0590 (AR0589's approved plan, ticket 3): inside a job's sandbox a plugin reads nothing of its `folder` nor of the rest of the home but the job's own record, the records of its project and the projects plugin's lists; `host.jobs.list()` there gives those records alone (`arthur spawn --help`, "The sandbox").
 - AR0557 (AR0556's approved plan, Option 2; its Done means: `arthur github pr --help` prints `github-pr.md`): a command's group page, `<doc>-<word>.md` beside its `doc`, which `arthur <command> <word> … --help` prints when it exists and `<word>` is lowercase letters, digits and dashes, else the command's `doc` (`arthur help --help`). A plugin registers nothing more for it. No host member changed.
+- AR0392 (F1 of AR0380; its Done means: the keys Git reads by a fixed name passed with `-c` as well): `@arthur/core/git-config`'s `configRefusal(root)` becomes `checkConfig(root)`, `{ refusal, pins }`, the check's line and the `-c` arguments of the git call after it, so the check and those values come from one read of the config. No host member changed.
 
 ### Project pieces
 
@@ -275,9 +276,9 @@ The env guard, an OMP extension, which the coordinator loads with `-e` like ever
 
 ### `@arthur/core/git-config`
 
-Exports: `configRefusal`.
+Exports: `checkConfig`.
 
-`configRefusal(root)`: `""` when the Git config of the repository at `root` itself, its `.git/config`, the main checkout's `config.worktree` (read once `extensions.worktreeConfig` is on) and any file they include, sets only keys that name no program; else one line naming the file and the first key that may (a filter, a merge driver, a credential helper, `core.sshCommand`, `gpg.program`, an alias, an include, any key outside the set), or Git's own line when it cannot read that config. A job can write that config and not the user's own, so a git call of Arthur's in a checkout that may run a program (a checkout, a merge, a reset, a push or fetch) asks first and runs nothing on a refusal. The allowed set and why: [`deploy.md`](deploy.md), "Threat model".
+`checkConfig(root)`: `{ refusal, pins }`. `refusal`: `""` when the Git config of the repository at `root` itself, its `.git/config`, the main checkout's `config.worktree` (read once `extensions.worktreeConfig` is on) and any file they include, sets only keys that name no program; else one line naming the file and the first key that may (a filter, a merge driver, a credential helper, `core.sshCommand`, `gpg.program`, an alias, an include, any key outside the set), or Git's own line when it cannot read that config. A job can write that config and not the user's own, so a git call of Arthur's in a checkout that may run a program (a checkout, a merge, a reset, a push or fetch) asks first and runs nothing on a refusal. `pins`, empty on a refusal: the `-c` arguments of a git call that reads a key Git reads by a fixed name (a push, a fetch, a commit, a `git log`), each such key as the config outside the repository's own sets it, or Git's default, so a key a job writes after the check names no program in that call. The allowed set, the pinned keys and why: [`deploy.md`](deploy.md), "Threat model".
 
 ### `@arthur/core/inside-job`
 

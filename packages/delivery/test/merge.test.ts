@@ -368,6 +368,34 @@ test("refused, main unchanged: the repository's own config sets a key that may n
 	assert.deepEqual([git(root, "rev-parse", "HEAD^2"), existsSync(ran)], [job.tip, false], "main keeps the merge");
 });
 
+// A `git` first on PATH until the test ends that writes `keys` into a repository's own config right after Arthur's config check
+// (@arthur/core/git-config) first lists it, as a job's program would between that check and the git call (AR0392).
+function plantAfterCheck(t: TestContext, keys: readonly (readonly [string, string])[]): void {
+	const folder = temporaryFolder();
+	const quote = (word: string) => `'${word.replaceAll("'", "'\\''")}'`;
+	const real = quote(execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim());
+	const plant = keys.map(([key, value]) => `${real} -C "$2" config ${quote(key)} ${quote(value)}\n`).join("");
+	const now = `[ "$3 $4 $5" = "config --list --show-scope" ] && mkdir ${quote(join(folder, "planted"))} 2>/dev/null`;
+	writeFileSync(join(folder, "git"), `#!/bin/sh\n${real} "$@"\ncode=$?\nif ${now}; then\n${plant}fi\nexit $code\n`, { mode: 0o755 });
+	process.env.PATH = [folder, process.env.PATH].join(delimiter);
+	t.after(() => void (process.env.PATH = process.env.PATH?.split(delimiter).filter((each) => each !== folder).join(delimiter)));
+}
+
+test("a signing program a job writes into main's config after the check runs not in the merge commit: Git signs as the owner's config says", async (t) => {
+	const { root, git, worker, review, merge } = await load(t);
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	const job = await worker({ "README.md": "# acme, signed\n" });
+	await review(job.id, "PASS");
+	// No commit.gpgSign from the env (a job's sandbox sets one), which Git would read after the repository's config.
+	const count = process.env.GIT_CONFIG_COUNT;
+	process.env.GIT_CONFIG_COUNT = "0";
+	t.after(() => void (count === undefined ? delete process.env.GIT_CONFIG_COUNT : (process.env.GIT_CONFIG_COUNT = count)));
+	plantAfterCheck(t, [["commit.gpgSign", "true"], ["gpg.program", program]]);
+	await merge(job.id);
+	assert.deepEqual([git(root, "rev-parse", "HEAD^2"), git(root, "config", "gpg.program"), existsSync(ran)], [job.tip, program, false], "merged unsigned, the key planted");
+});
+
 test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an older commit; --unreviewed lets it in with the owner's decision, and outcome.md says so", async (t) => {
 	const { root, commit, worker, review, merge, head, status, owner } = await load(t);
 	const job = await worker();

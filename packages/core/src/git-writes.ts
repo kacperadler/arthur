@@ -98,16 +98,16 @@ function pointsAt(sub: string, rest: readonly string[]): string | undefined {
 }
 
 // Whether `git fetch`, `pull`, `push` or `send-pack` may write under `refs/replace` by a refspec in `rest` (a word, or an option's value after `=`):
-// a destination there in any case (one folder on a disk that ignores case) or a glob that may cover it (`refs/*`, `refs/rep*`, `*`); for a push also a word
-// without `:`, its own destination, and one Git completes with `refs/` (`replace/<commit>`, matched on the other side); `--mirror` (every ref) or an
-// abbreviation; `--stdin` on a fetch or `send-pack` (refspecs unseen). Not seen: the refspecs config defines (a remote's `fetch`, `push` or `mirror`, by `-c`
-// too, `push.default`), and a ref another repository names, such as its `HEAD` pointed under `refs/replace`, pushed from there.
+// a destination there in any case (one folder on a disk that ignores case) or a glob that may cover it (`refs/*`, `refs/rep*`, `*`, a brace list bash expands
+// read as one); for a push also a word without `:`, its own destination, and one Git completes with `refs/` (`replace/<commit>`, matched on the other side);
+// `--mirror` or an abbreviation; `--stdin` on a fetch or `send-pack`. Not seen: a refspec built at run time (`HEAD:$ref`), those config defines (a remote's
+// `fetch`, `push` or `mirror`, by `-c` too, `push.default`), and a ref another repository names, such as its `HEAD` pointed under `refs/replace`.
 function intoReplace(sub: string, rest: readonly string[]): boolean {
 	const [pushes, reads] = [sub === "push" || sub === "send-pack", sub === "fetch" || sub === "send-pack"];
 	if (!pushes && !reads && sub !== "pull") return false;
 	if (rest.some((word) => (pushes && word.length > 2 && "--mirror".startsWith(word)) || (reads && word.length > 3 && "--stdin".startsWith(word)))) return true;
-	const covers = (ref: string, head = ref.toLowerCase().split("*")[0]!) =>
-		head.startsWith("refs/replace/") || (ref.includes("*") && "refs/replace/".startsWith(head));
+	const covers = (ref: string, head = ref.toLowerCase().replace(/\{.*\}/s, "*").split("*")[0]!) =>
+		head.startsWith("refs/replace/") || (/[*{]/.test(ref) && "refs/replace/".startsWith(head));
 	const specs = rest.flatMap((word) => (!word.startsWith("-") ? [word] : word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : []));
 	const targets = specs.map((spec) => (spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : pushes ? spec.replace(/^\+/, "") : ""));
 	return targets.some((target) => covers(target) || (pushes && covers(`refs/${target}`)));

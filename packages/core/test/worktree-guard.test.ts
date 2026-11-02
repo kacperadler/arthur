@@ -527,6 +527,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		// without `:` or one Git completes with `refs/` (matched on the other side), every ref by `--mirror`, refspecs the guard does not see by `--stdin`.
 		...[
 			"git fetch . HEAD:refs/replace/0123abcd",
+			"git fetch . HEAD:refs/{replace,heads}/0123abcd",
+			"git fetch . HEAD:refs/{re{p,x}lace,heads}/0123abcd",
 			"git fetch . HEAD:refs/REPLACE/0123abcd",
 			"git fetch /tmp/other 'refs/*:refs/*'",
 			"git fetch /tmp/other '+refs/heads/*:refs/rep*'",
@@ -601,7 +603,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "git config --get gc.auto; git config --worktree --get gc.pruneExpire; git -c user.name=x commit -m 'gc.auto'" }, undefined],
 		["bash", { command: "git remote add -f fork /tmp/fork.git && echo x > .gitignore && git checkout -- -B" }, undefined],
 		["bash", { command: `git replace && git replace -l && git replace --list 'v*' && git replace --li --format=medium && git -C ${main} replace -l` }, undefined],
-		["bash", { command: "git fetch . HEAD:refs/heads/topic && git fetch . HEAD:replace/0123abcd && git fetch /tmp/other refs/replace/0123abcd && git fetch origin '+refs/heads/*:refs/remotes/origin/*'" }, undefined],
+		["bash", { command: "git fetch . HEAD:refs/heads/topic && git fetch . HEAD:replace/0123abcd && git fetch /tmp/other refs/replace/0123abcd && git fetch origin '+refs/heads/*:refs/remotes/origin/*' && git fetch . HEAD:refs/heads/{a,b}" }, undefined],
 		["bash", { command: "git push . HEAD:refs/heads/topic && git push origin -- HEAD && git push --no-mirror origin HEAD:refs/heads/x && git pull --stat origin main" }, undefined],
 		["bash", { command: `echo 'rm ${main}/README.md' > notes.txt` }, undefined],
 		["bash", { command: `git commit -m "cd ${main} && rm README.md"` }, undefined],

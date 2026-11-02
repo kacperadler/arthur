@@ -4,7 +4,7 @@ import type { Bus } from "./events.ts";
 import { gitOver, type Machine, ssh, sshAsync, url } from "./job-machine.ts";
 import { capFields } from "./job-record.ts";
 import { sayUncapped, UNCAPPED } from "./job-scope.ts";
-import { current, field, inRun, jobIds, kept, moveJob, type State, write } from "./job-state.ts";
+import { current, field, inRun, jobIds, kept, moveJob, STATES, type State, write } from "./job-state.ts";
 
 // The sweep's copy of the records of jobs on another machine (spec/roadmap.md, entries 21 and 22), and what a machine that
 // does not answer does to them: docs/commands/spawn.md, "On another machine".
@@ -35,6 +35,24 @@ function followed(home: string, machine: Machine): string[] {
 	return jobIds(home).filter((id) => field(home, id)("machine") === machine.name && (inRun(current(home, id)) || field(home, id)("offline") !== ""));
 }
 
+// Why job `id`'s answer of `records`, read before anything of it is written, is refused: its branch here is not its own nor none, or
+// `copy` is not of the shape `Copy` names, each file's name a record key (it decides the path written here), its content text.
+function refusal(copy: unknown, id: string, branch: string): string | undefined {
+	if (branch !== "" && branch !== `arthur/${id}`) return `names the branch ${JSON.stringify(branch)} in its record here; expected arthur/${id} or none`;
+	if (copy === undefined) return undefined;
+	if (typeof copy !== "object" || copy === null) return `sent ${JSON.stringify(copy)} as its record; expected an object`;
+	const { state, reason, since, at, logFrom, logSize, logTo, files } = copy as Record<string, unknown>;
+	if (!STATES.some((known) => known === state)) return `sent the state ${JSON.stringify(state)}; expected one of ${STATES.join(", ")}`;
+	if (typeof reason !== "string") return `sent the reason ${JSON.stringify(reason)}; expected a text`;
+	if (typeof since !== "string" || Number.isNaN(Date.parse(since))) return `sent since ${JSON.stringify(since)}; expected a date`;
+	for (const [name, value] of Object.entries({ at, logFrom, logSize, logTo })) if (!Number.isFinite(value)) return `sent ${name} ${JSON.stringify(value)}; expected a finite number`;
+	if (typeof files !== "object" || files === null) return `sent the files ${JSON.stringify(files)}; expected an object of texts`;
+	for (const [name, text] of Object.entries(files)) {
+		if (!/^[a-z][a-z0-9-]*$/.test(name)) return `sent a record file ${JSON.stringify(name)}; expected a name of lowercase letters, digits and dashes`;
+		if (typeof text !== "string") return `sent the record file ${name} as ${JSON.stringify(text)}; expected a text`;
+	}
+}
+
 // The sweep's copy from each of `machines` at `at`, all at once; one that does not answer (ssh's exit 255, or no answer within
 // COPY_SECONDS or COPY_CHARS) holds its jobs, any other failure is named once every machine was tried.
 export async function syncMachines(home: string, machines: readonly Machine[], bus: Bus, at: Date, graceMinutes: number): Promise<void> {
@@ -46,37 +64,43 @@ export async function syncMachines(home: string, machines: readonly Machine[], b
 // rest asked again from the same time and byte, so a value a cut splits is named whole (all once the run ended there and its log came whole, or a cut holds no
 // line break); a run that ended there brings its branch into `root` before its state moves here, then `job-ended`. A job failed here while offline takes the
 // state there once that run ended; a log cut short, once the rest arrived. Each file and reason is named with the bus's `hide`: the record there guards no env file.
+// Each job is copied on its own: one that fails is named, by the machine and the job, once the others were copied.
 export async function syncMachine(home: string, machine: Machine, bus: Bus): Promise<void> {
 	const ids = followed(home, machine), { hide } = bus;
 	if (ids.length === 0) return;
 	const asked = ids.map((id) => `${id}=${field(home, id)("synced") || "0:0"}`);
-	const answer = JSON.parse(await sshAsync(machine, ["arthur", "remote-job", "records", machine.home, ...asked], "", COPY_SECONDS, COPY_CHARS)) as Record<string, Copy>;
-	// Before anything of the answer is written, each file's name is a record key (it decides the path written here), and a branch is the job's own or none.
-	for (const id of ids) for (const name of Object.keys(answer[id]?.files ?? {})) if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`machine ${machine.name}: job ${id} sent a record file ${JSON.stringify(name)}; expected a name of lowercase letters, digits and dashes`);
-	for (const [id, branch] of ids.map((id) => [id, field(home, id)("branch")])) if (branch !== "" && branch !== `arthur/${id}`) throw new Error(`machine ${machine.name}: job ${id} names the branch ${JSON.stringify(branch)} in its record here; expected arthur/${id} or none`);
+	const answer = JSON.parse(await sshAsync(machine, ["arthur", "remote-job", "records", machine.home, ...asked], "", COPY_SECONDS, COPY_CHARS)) as Record<string, unknown>;
+	const failed: string[] = [];
 	for (const [index, id] of ids.entries()) {
-		const [copy, folder, read] = [answer[id], join(home, "jobs", id), field(home, id)];
-		// Another copy (a stop's beside the sweep's) that wrote since this one asked has these bytes in already.
-		if (copy === undefined || asked[index] !== `${id}=${read("synced") || "0:0"}`) continue;
-		for (const [name, text] of Object.entries(copy.files)) if (RUN.includes(name) && read(name) !== hide(text)) write(folder, name, hide(text));
-		const ended = copy.state !== "working" && copy.state !== "idle", log = copy.files.log ?? "", rest = (ended && copy.logTo === copy.logSize) || (copy.logTo < copy.logSize && !log.includes("\n")) ? "" : log.slice(log.lastIndexOf("\n") + 1);
-		if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), hide(log.slice(0, log.length - rest.length)));
-		else if (copy.files.log !== undefined) write(folder, "log", hide(log.slice(0, log.length - rest.length)));
-		write(folder, "synced", rest === "" ? `${copy.at}:${copy.logTo}` : `${(read("synced") || "0:0").split(":")[0]}:${copy.logTo - Buffer.byteLength(rest)}`);
-		if (copy.logTo < copy.logSize) continue;
-		if (read("state") === "ended" && !ended) continue;
-		if (ended && read("branch") !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/arthur/${id}:refs/heads/arthur/${id}`]);
-		// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.
-		let [state, reason] = [copy.state, hide(copy.reason)];
-		moveJob(home, id, bus, (now) => {
-			if (now.hold !== "" && !ended) return ["blocked", kept(now) ?? `dependency: ${now.hold}`];
-			rmSync(join(folder, "hold"), { force: true });
-			[state, reason] = kept(now) === undefined ? [state, reason] : ["blocked", now.reason];
-			return [state as State, reason];
-		}, new Date(copy.since));
-		rmSync(join(folder, "offline"), { force: true });
-		if (ended) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state, reason });
+		const [copy, folder, read] = [answer[id] as Copy | undefined, join(home, "jobs", id), field(home, id)];
+		try {
+			const refused = refusal(copy, id, read("branch"));
+			if (refused !== undefined) throw new Error(refused);
+			// Another copy (a stop's beside the sweep's) that wrote since this one asked has these bytes in already.
+			if (copy === undefined || asked[index] !== `${id}=${read("synced") || "0:0"}`) continue;
+			for (const [name, text] of Object.entries(copy.files)) if (RUN.includes(name) && read(name) !== hide(text)) write(folder, name, hide(text));
+			const ended = copy.state !== "working" && copy.state !== "idle", log = copy.files.log ?? "", rest = (ended && copy.logTo === copy.logSize) || (copy.logTo < copy.logSize && !log.includes("\n")) ? "" : log.slice(log.lastIndexOf("\n") + 1);
+			if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), hide(log.slice(0, log.length - rest.length)));
+			else if (copy.files.log !== undefined) write(folder, "log", hide(log.slice(0, log.length - rest.length)));
+			write(folder, "synced", rest === "" ? `${copy.at}:${copy.logTo}` : `${(read("synced") || "0:0").split(":")[0]}:${copy.logTo - Buffer.byteLength(rest)}`);
+			if (copy.logTo < copy.logSize) continue;
+			if (read("state") === "ended" && !ended) continue;
+			if (ended && read("branch") !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/arthur/${id}:refs/heads/arthur/${id}`]);
+			// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.
+			let [state, reason] = [copy.state, hide(copy.reason)];
+			moveJob(home, id, bus, (now) => {
+				if (now.hold !== "" && !ended) return ["blocked", kept(now) ?? `dependency: ${now.hold}`];
+				rmSync(join(folder, "hold"), { force: true });
+				[state, reason] = kept(now) === undefined ? [state, reason] : ["blocked", now.reason];
+				return [state as State, reason];
+			}, new Date(copy.since));
+			rmSync(join(folder, "offline"), { force: true });
+			if (ended) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state, reason });
+		} catch (error) {
+			failed.push(`machine ${machine.name}: job ${id}: ${(error as Error).message}`);
+		}
 	}
+	if (failed.length > 0) throw new Error(failed.join("\n"));
 }
 
 // `machine` did not answer at `at`: each followed job is `blocked` on it from the first sweep that found it so, and ended

@@ -85,7 +85,7 @@ export async function syncMachine(home: string, machine: Machine, bus: Bus): Pro
 			write(folder, "synced", rest === "" ? `${copy.at}:${copy.logTo}` : `${(read("synced") || "0:0").split(":")[0]}:${copy.logTo - Buffer.byteLength(rest)}`);
 			if (copy.logTo < copy.logSize) continue;
 			if (read("state") === "ended" && !ended) continue;
-			if (ended && read("branch") !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/arthur/${id}:refs/heads/arthur/${id}`]);
+			if (ended && read("branch") !== "") gitOver(read("root"), "fetch", ["branch", "--force", "--no-track", `arthur/${id}`, gitOver(read("root"), "fetch", ["fetch-pack", "--quiet", "--no-progress", url(machine, read("project")), `refs/heads/arthur/${id}`]).split(" ")[0] ?? ""]);
 			// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.
 			let [state, reason] = [copy.state, hide(copy.reason)];
 			moveJob(home, id, bus, (now) => {

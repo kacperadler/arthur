@@ -2659,9 +2659,9 @@
   {
     "id": "AR0348",
     "title": "The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0348-the-answer-of-records-is-not-checked-and-one-job-s-bad-answer-stops-the-copy-of-the-machine-s-other-jobs/ticket.md",
-    "updated": "2026-11-02T15:02:17.962Z",
+    "updated": "2026-11-02T15:10:02.924Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2839,9 +2839,9 @@
   {
     "id": "AR0369",
     "title": "The agent's own request to a provider is never checked against the private network",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
-    "updated": "2026-11-02T10:18:31.794Z",
+    "updated": "2026-11-02T15:07:42.790Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3023,9 +3023,9 @@
   {
     "id": "AR0392",
     "title": "A job's program can still plant a key between the config check and the git call",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0392-a-job-s-program-can-still-plant-a-key-between-the-config-check-and-the-git-call/ticket.md",
-    "updated": "2026-11-02T15:07:25.180Z",
+    "updated": "2026-11-02T15:12:51.076Z",
     "after": [
       "AR0402",
       "AR0403",

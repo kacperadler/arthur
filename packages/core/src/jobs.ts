@@ -108,7 +108,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		slice: limits.slice,
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd, ignoreRestart = false, decision) =>
-			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true), root: (project) => where(project).root }, machines.of(id)),
+			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true), root: (project) => where(project).root, config: { folder, envFile } }, machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -147,7 +147,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [], extensions }, time.now()];
 					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: named, kind: own, idleMinutes: limits.idleMinutes, unsandboxed: limits.unsandboxed, since: since.toISOString() });
 					added = true;
-					writeRecord(home, job, named, own, limits.idleMinutes, limits.unsandboxed, since, checkouts(collect("projects", [])), { folder, envFile }, there === undefined ? preset.mcp : undefined);
+					writeRecord(home, job, named, own, limits.idleMinutes, limits.unsandboxed, since, checkouts(collect("projects", [])), there === undefined ? preset.mcp : undefined);
 					release();
 					env = await prepared(job, false);
 				} catch (error) {
@@ -157,7 +157,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 					throw new Error(`${error instanceof Error ? error.message : String(error)}; the job's worktree and record were removed`);
 				}
 				bus.emit("core", "job-started", { id: job.id, kind: name, project, root, branch: job.branch, worktree: job.worktree, tickets, machine: machine.name });
-				const failed = there === undefined ? await launch(home, job, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), env) : await launchThere(home, machine, job.id, agent, limits.slice, bus, env);
+				const failed = there === undefined ? await launch(home, job, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), env, { folder, envFile }) : await launchThere(home, machine, job.id, agent, limits.slice, bus, env);
 				return { ...job, warnings, failed };
 			} finally {
 				release();

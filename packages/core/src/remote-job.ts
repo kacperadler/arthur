@@ -44,7 +44,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		addWorktree(job.root, job.worktree, job.base, job.branch);
 		try {
 			// Every project's repository there is `<home>/repos/<project>.git`, with its jobs' worktrees, in the home folder the guard refuses.
-			writeRecord(home, job, prompt, kind, idleMinutes, unsandboxed, new Date(since), "", undefined);
+			writeRecord(home, job, prompt, kind, idleMinutes, unsandboxed, new Date(since), "");
 		} catch (error) {
 			removeWorktree(job.root, job.worktree, job.branch);
 			throw error;

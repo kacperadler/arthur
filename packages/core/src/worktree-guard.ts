@@ -6,9 +6,9 @@ import { refusal } from "./path-refusal.ts";
 
 // The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env guard, that refuses a tool call
 // writing into the main checkout, the home folder, another job's worktree, any project's checkout or job worktree, Arthur's install, config folder and env
-// file, or the user's `~/.ssh`, `~/.config/systemd` and Git config (job-place.ts), before the tool runs. `ARTHUR_JOB` names the job's record, which says where
-// they are, the other projects as declared now; the home folder holds the record, and a project's jobs' worktrees sit in `.arthur-worktrees` beside its
-// checkout. Reading passes everywhere; writing anywhere else (the job's own worktree, /tmp) passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
+// file, or the user's `~/.ssh`, `~/.config/systemd` and Git config (`ARTHUR_GUARDED`, never the record: AR0512), before the tool runs. `ARTHUR_JOB` names
+// the job's record, which says where its own places are, the other projects as declared now; the home folder holds the record, and a project's jobs'
+// worktrees sit in `.arthur-worktrees` beside its checkout. Reads pass; a write elsewhere (its worktree, /tmp) passes. Without `ARTHUR_JOB` it refuses nothing.
 
 type Verdict = { block: true; reason: string } | undefined;
 type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolName: string; readonly input: Readonly<Record<string, unknown>> }) => Verdict): void };
@@ -30,7 +30,7 @@ export function worktreeRefusal(place: Place, toolName: string, input: Readonly<
 export default function worktreeGuard(pi: ExtensionApi): void {
 	const record = process.env.ARTHUR_JOB;
 	if (record === undefined || record === "") return;
-	const place = jobPlace(record);
+	const place = jobPlace(record, process.env.ARTHUR_GUARDED ?? "");
 	let said = false;
 	// Said once, appended without creating `log`: a record a `rm -r` is emptying gets no new file, and the wrapper ends the job.
 	const fallback = (reason: string) => {

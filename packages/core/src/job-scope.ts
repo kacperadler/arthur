@@ -5,6 +5,7 @@ import { basename, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { Bus } from "./events.ts";
 import { JOB_SCOPE } from "./inside-job.ts";
+import { guardedPlaces } from "./job-place.ts";
 import { field, moveJob, write } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 
@@ -42,8 +43,8 @@ export function jobEnv(owner: string, value: unknown): Readonly<Record<string, s
 
 // Starts the wrapper of `job` (`agent`: `core.agent.command`) with `env`, the prepares' variables, over Arthur's environment but its
 // `ARTHUR_` ones, every `...Env` secret; returns why it did not start, which ended the job `failed`. A capped job run bare tells `uncapped` why.
-// The wrapper builds the sandbox from `job`'s project, root and worktree, given on its command line, never the record's (AR0597).
-export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project" | "root" | "worktree">, agent: string, jobs: Slice, bus: Bus, uncapped: (why: string) => void, env: Readonly<Record<string, string>> = {}): Promise<string | undefined> {
+// The wrapper builds the sandbox from `job`'s place on its command line (AR0597) and `guardedPlaces(config)` in `ARTHUR_GUARDED`, never the record's (AR0512).
+export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project" | "root" | "worktree">, agent: string, jobs: Slice, bus: Bus, uncapped: (why: string) => void, env: Readonly<Record<string, string>> = {}, config?: Parameters<typeof guardedPlaces>[0]): Promise<string | undefined> {
 	const { id } = job;
 	const wrapper = [process.execPath, join(import.meta.dirname, "wrapper.ts"), home, id, agent, job.project, job.root, job.worktree];
 	const [cpu = "", memory = "", feature = "", featureCpu = "", featureMemory = ""] = ["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map(field(home, id));
@@ -63,7 +64,7 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	const output = openSync(log, "a");
 	let child: ChildProcess;
 	try {
-		child = spawn(command, args, { detached: true, env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), ...env }, stdio: ["ignore", output, bare === undefined ? "pipe" : output] });
+		child = spawn(command, args, { detached: true, env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), ...env, ARTHUR_GUARDED: guardedPlaces(config) }, stdio: ["ignore", output, bare === undefined ? "pipe" : output] });
 	} finally {
 		closeSync(output);
 	}

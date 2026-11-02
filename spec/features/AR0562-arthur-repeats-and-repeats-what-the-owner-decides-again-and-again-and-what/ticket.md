@@ -48,3 +48,4 @@ Out:
 ## Decisions
 - 2026-10-29: AR0562 worker stays stopped at its $12 budget; its uncommitted work stays in its worktree; the owner: "AR-D346 2" (AR-D346)
 - 2026-11-01: Continue the AR0562 worker with a new budget after the usage reset (about 2026-11-04 08:00), then AR0584; the owner: "AR-D428 1" (AR-D428)
+- 2026-11-02: Accept the AR0562 line budget raises: manage 931 to 1262, orchestration 2434 to 2440; the owner: "AR-D444 1" (AR-D444)

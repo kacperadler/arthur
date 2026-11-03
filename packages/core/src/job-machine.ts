@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { checkConfig } from "./git-config.ts";
+import { namesLfs } from "./git.ts";
 import { field } from "./job-state.ts";
 import type { Added } from "./remote-job.ts";
 
@@ -152,8 +153,11 @@ export function gitOver(root: string, verb: string, args: readonly string[]): st
 // Before any record exists: `arthur` there of this version, the project's repository there, and `base` in it, pushed from
 // `root` to `refs/arthur/base` only when it is missing; so is a spawn's `fetch`, to `refs/arthur/fetch`. Returns the repository there.
 // The push's `git receive-pack` there runs no hook of that repository's config: a job's program there may have set them (AR0382);
-// `remote-job repo` refuses, before any push, while that config sets a key that may name another program (AR0394).
+// `remote-job repo` refuses, before any push, while that config sets a key that may name another program (AR0394). A Git LFS
+// project is refused before any SSH step: neither push nor fetch takes its LFS objects there and back (AR0390).
 export function reach(machine: Machine, project: string, root: string, base: string, fetch?: string): string {
+	const lfs = [base, fetch].find((commit) => commit !== undefined && namesLfs(root, commit));
+	if (lfs !== undefined) throw new Error(`machine ${machine.name}: a .gitattributes of ${lfs.slice(0, 7)} names filter=lfs: ${project} is a Git LFS project, whose jobs run on local only, as its LFS objects do not go to another machine and back (docs/deploy.md)`);
 	const [theirs, ours] = [ssh(machine, ["arthur", "version"]).trim(), coreVersion()];
 	if (theirs !== ours) throw new Error(`machine ${machine.name} runs arthur ${theirs}, this one is ${ours}; both need the same version`);
 	for (const [commit, ref] of fetch === undefined ? [[base, "base"]] : [[base, "base"], [fetch, "fetch"]]) {

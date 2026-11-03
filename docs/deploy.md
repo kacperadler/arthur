@@ -22,6 +22,8 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <host> arthur version
 
 The machine's `home`, as registered, holds the job records (`<home>/jobs/`), each project's repository (`<home>/repos/<project>.git`, created on first use) and the job worktrees (`<home>/repos/.arthur-worktrees/`).
 
+A Git LFS project, one whose base commit, or the commit a review's spawn sends with it, has a `.gitattributes` in any folder that names `filter=lfs`, runs its jobs on `local` only: the push of the base and the fetch of the job's branch carry no LFS object, so its large files would reach neither the worktree there nor origin from the branch that comes back. A spawn of it on another machine is refused before any SSH step: `machine <name>: a .gitattributes of <commit> names filter=lfs: <project> is a Git LFS project, whose jobs run on local only, as its LFS objects do not go to another machine and back (docs/deploy.md)`.
+
 A machine that stops answering (switched off, off the network) does not lose its jobs: they wait `blocked` here and go on there; back within `core.jobs.offlineGraceMinutes` (default 30) they go on here as there, and past it they end `failed: machine offline` here while their worktree there stays for you. A job that ended there meanwhile brings its end and branch once the machine answers again (see `arthur spawn --help`).
 
 ## Threat model

@@ -293,6 +293,33 @@ test("a spawn's fetch goes to the machine with its base, to refs/arthur/fetch, o
 	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, pushes, "neither is pushed again");
 });
 
+// AR0390: neither the base's push nor the branch's fetch takes LFS objects, so a Git LFS project's branch would come back without them.
+test("a Git LFS project, a .gitattributes in any folder of its base or of a spawn's fetch naming filter=lfs, is refused on another machine before any SSH step", async () => {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const { root, home, there, jobs } = setup({ agent });
+	const add = (path: string, text: string) => {
+		mkdirSync(dirname(join(root, path)), { recursive: true });
+		writeFileSync(join(root, path), text);
+		git(root, "add", path);
+		commit(root, path);
+		return git(root, "rev-parse", "HEAD");
+	};
+	const refused = (commitId: string) => ({ message: `machine gpu: a .gitattributes of ${commitId.slice(0, 7)} names filter=lfs: acme is a Git LFS project, whose jobs run on local only, as its LFS objects do not go to another machine and back (docs/deploy.md)` });
+	add(".gitattributes", "*.png binary\n");
+	git(root, "checkout", "--quiet", "-b", "side");
+	const art = add("art/.gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+	git(root, "checkout", "--quiet", "main");
+	await assert.rejects(jobs.spawn({ task: "Review it.", machine: "gpu", fetch: art }), refused(art));
+	assert.deepEqual([calls(), existsSync(join(home, "jobs")), existsSync(there)], [[], false, false], "no SSH step, no record");
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined, "a .gitattributes without filter=lfs goes there");
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	const top = add(".gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+	const before = calls().length;
+	await assert.rejects(jobs.spawn({ task: "Go.", machine: "gpu" }), refused(top));
+	assert.equal(calls().length, before, "no SSH step");
+});
+
 test("a prepare's variables reach the agent there through the launch's stdin, and again through a continue's, never an argument nor the record there or here", async () => {
 	const omp = fakeAgent({ steps: [{ message: "Done." }] });
 	const agent = join(dirname(omp), "env-omp");

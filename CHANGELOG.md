@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0390 A job on another machine moves a Git LFS project's commits there and back without their LFS objects (ba124480)
 - AR0396 A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads (cb5e5157)
+- AR0397 Arthur's other git reads in a main checkout still read through a replacement (67b7e607)
 
 ## 2026-11-02
 

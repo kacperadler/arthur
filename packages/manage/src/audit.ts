@@ -9,9 +9,8 @@ import { mergedSince, stats } from "./stats.ts";
 
 // The audit (spec/roadmap.md, entry 62): the kind `audit`, read-only, with the auditor role and the audit criteria; every audit's
 // prompt gets the commits since the last audit, the board digest, the stats, the open findings of its project and the deferred
-// ones of the tickets merged since the last audited commit; the schedule entry of `audit.at` and `audit.days`
-// (scheduled-kind.ts), which starts none with no commit since the last audit; the filing (report-file.ts) and the procedure its
-// end brings. docs/manage.md, "The audit".
+// ones of the tickets merged since; the schedule entry of `audit.at` and `audit.days` (scheduled-kind.ts), which starts none
+// with no commit since the last audit; the filing (report-file.ts) and the procedure its end brings. docs/manage.md, "The audit".
 
 const KIND = "audit";
 const ROLE = "auditor";
@@ -60,9 +59,8 @@ function findings(root: string, tickets: readonly Ticket[], status: RegExp, kind
 			.flatMap((entry) => {
 				const [, number, title = ""] = FINDING.exec(entry) ?? [];
 				if (number === undefined || !status.test(entry)) return [];
-				const where = /^- Where: (.*)$/m.exec(entry)?.[1]?.trim();
-				const type = kind ? /^- Kind: (.*)$/m.exec(entry)?.[1]?.trim() : undefined;
-				return [`- ${ticket.id} ${number}${type ? ` (${type})` : ""}: ${title.trim()}${where ? `. Where: ${where}` : ""}`];
+				const [where, type] = ["Where", "Kind"].map((key) => new RegExp(`^- ${key}: (.*)$`, "m").exec(entry)?.[1]?.trim());
+				return [`- ${ticket.id} ${number}${kind && type ? ` (${type})` : ""}: ${title.trim()}${where ? `. Where: ${where}` : ""}`];
 			});
 	});
 }

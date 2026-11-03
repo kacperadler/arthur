@@ -214,7 +214,7 @@ test("arthur prune keeps the worktree, branch and record of a job whose record n
 	write("worktree", job.worktree);
 	// Another repository, the job's worktree there, then gone, which `git worktree prune` would follow there.
 	write("root", repository);
-	const moved = kept(`its record names the checkout ${repository} and the worktree ${job.worktree}, where a job of acme has ${root} and ${job.worktree}`);
+	const moved = kept(`its record names the checkout ${repository}, where a job of acme has ${root}`);
 	assert.deepEqual(jobs.prune([job.id]), moved);
 	git(root, "worktree", "remove", job.worktree);
 	assert.deepEqual(jobs.prune([job.id]), moved);

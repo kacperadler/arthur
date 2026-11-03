@@ -4882,5 +4882,33 @@
     "status": "planning",
     "path": "spec/features/AR0609-a-personality-file-every-agent-reads-the-coordinator-included-as-tone-only/ticket.md",
     "updated": "2026-11-02T21:25:53.267Z"
+  },
+  {
+    "id": "AR0610",
+    "title": "arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names",
+    "status": "planning",
+    "path": "spec/features/AR0610-arthur-prune-and-a-dropped-ticket-remove-only-the-worktree-and-branch-the-spawn/ticket.md",
+    "updated": "2026-11-03T01:18:06.451Z"
+  },
+  {
+    "id": "AR0611",
+    "title": "The audit sees deferred findings, not only open ones, in a project whose findings mode is summary",
+    "status": "planning",
+    "path": "spec/features/AR0611-the-audit-sees-deferred-findings-not-only-open-ones-in-a-project-whose-findings/ticket.md",
+    "updated": "2026-11-03T01:18:07.030Z"
+  },
+  {
+    "id": "AR0612",
+    "title": "The /repeats page follows the report style (report.md)",
+    "status": "planning",
+    "path": "spec/features/AR0612-the-repeats-page-follows-the-report-style-report-md/ticket.md",
+    "updated": "2026-11-03T01:18:07.603Z"
+  },
+  {
+    "id": "AR0613",
+    "title": "docs/deploy.md security section covers every channel, Discord included",
+    "status": "planned",
+    "path": "spec/features/AR0613-docs-deploy-md-security-section-covers-every-channel-discord-included/ticket.md",
+    "updated": "2026-11-03T01:18:54.919Z"
   }
 ]

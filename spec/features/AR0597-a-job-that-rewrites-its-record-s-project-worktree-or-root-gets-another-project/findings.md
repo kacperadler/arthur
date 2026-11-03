@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/job-records.ts:142-166` (`git -C <root> worktree remove <worktree>`, `git branch -d <branch>`), `packages/core/src/remote-job.ts:82-91` (the same there)
 - What: prune reads `root`, `worktree` and `branch` from the record, which the job's agent writes, and runs Git outside any sandbox on them. A job whose agent rewrote them to another job's clean worktree and merged branch (its own project's or, in a repository its `root` names, another's) gets that worktree removed and that branch deleted by the owner's next `arthur prune`. [INFERENCE: read from the lines named; no forged record was pruned.] AR0597 checks these fields at `arthur continue` only (`misplaced`, `packages/core/src/job-sandbox.ts`).
 - Suggestion: before a prune's Git calls, check the record with the same `misplaced(id, record, <the project's checkout now>)` and the branch against `arthur/<id>`, keeping the record with the reason when it fails. Out: the record's other fields.
-- Status: deferred (client summary)
+- Status: ticket AR0610
 
 ## F2. A rewritten `extensions` makes the wrapper grant and create `<home>/<any name>/<id>`
 

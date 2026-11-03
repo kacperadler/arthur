@@ -590,6 +590,35 @@ test("a prune there reads past a replacement under refs/replace in the repositor
 	assert.deepEqual(jobs.prune([job.id]), [removed]);
 });
 
+test("a prune there keeps everything of a job whose record there names a branch or worktree its spawn did not make, and one here whose record names another checkout, saying why", async () => {
+	const { root, home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await endedThere(there, job.id);
+	await jobs.sweep();
+	const [repository, worktree, victim] = [join(there, "repos/acme.git"), join(there, "repos/.arthur-worktrees", job.id), join(there, "victim")];
+	// The owner's branch there at the job's tip, which `git update-ref -d` would delete, and its worktree, which `git worktree remove` would remove.
+	git(repository, "worktree", "add", "--quiet", victim, git(repository, "branch", "owner", `arthur/${job.id}`) || "owner");
+	const write = (record: string, name: string, value: string) => writeFileSync(join(record, "jobs", job.id, name), value);
+	const all = () => [existsSync(worktree), existsSync(victim), git(repository, "branch", "--list", "--format=%(refname:short)", "owner", `arthur/${job.id}`), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))];
+	const kept = `${job.id}: kept its worktree, branch and record: `;
+	write(there, "branch", "owner");
+	assert.deepEqual(jobs.prune([job.id]), [`${kept}machine gpu: arthur remote-job prune: its record names the branch owner, where the spawn made arthur/${job.id} or none`]);
+	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true, true]);
+	write(there, "branch", `arthur/${job.id}`);
+	write(there, "worktree", victim);
+	assert.deepEqual(jobs.prune([job.id]), [`${kept}machine gpu: arthur remote-job prune: its record names the checkout ${repository} and the worktree ${victim}, where a job of acme has ${repository} and ${worktree}`]);
+	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true, true]);
+	write(there, "worktree", worktree);
+	// Here, the record's checkout is checked; its worktree is the one there.
+	const elsewhere = temporaryFolder();
+	write(home, "root", elsewhere);
+	assert.deepEqual(jobs.prune([job.id]), [`${kept}its record names the checkout ${elsewhere}, where a job of acme has ${root}`]);
+	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true, true]);
+	write(home, "root", root);
+	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
+	assert.deepEqual(all(), [false, true, "owner", false, false]);
+});
+
 test("offline mid-job: stop, steer and continue are refused naming the machine; back before the grace, the job goes on as there", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] });

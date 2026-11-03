@@ -851,10 +851,10 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	assert.equal(said.some((line) => [orphan, loose, ...strangers].some((job) => line.includes(job.id))), false, "another project's job, a job of no ticket, another ticket's are not the ticket's");
 	assert.deepEqual(exists(), [[false, false], [false, false], ...Array(all.length - 2).fill([true, true])]);
 	assert.equal(existsSync(kept.worktree), false);
-	// The project's drop prunes its job; with the project gone from the list no branch is forced.
+	// The project's drop finds its job; with the project gone from the list, no checkout now to check its record against: everything kept, no branch forced.
 	said.length = 0;
 	drop("gone");
-	assert.match(said.join("\n"), new RegExp(`^delivery: AC0001 dropped: ${orphan.id}: kept branch ${orphan.branch} and the record: git branch: error: [^\n]*$`));
+	assert.equal(said.join("\n"), `delivery: AC0001 dropped: ${orphan.id}: kept its worktree, branch and record: unknown project gone; projects: acme`);
 	assert.deepEqual(exists()[4], [true, true]);
 	said.length = 0;
 	fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "review" });
@@ -866,6 +866,20 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	await ended(running.id);
 	await until("its prune at its end", () => said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${running.id}: worktree ${running.worktree} removed; branch ${running.branch} deleted; record deleted`)));
 	assert.deepEqual(exists()[7], [false, false]);
+});
+
+test("a dropped ticket's ended job whose record names another job's branch deletes no branch and says why", async (t) => {
+	const { root, fake, home, git, worker, aside } = await load(t);
+	const [liar, victim] = [await worker(), await aside("spec/features/AC0002-cart/ticket.md")];
+	// Neither worktree holds a branch any more, so only the record's branch name stands between `git branch -D` and the other job's work.
+	for (const job of [liar, victim]) git(root, "worktree", "remove", job.worktree);
+	writeFileSync(join(home, "jobs", liar.id, "branch"), victim.branch);
+	const said: string[] = [];
+	t.mock.method(console, "log", (text: string) => void said.push(text));
+	fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "dropped" });
+	t.mock.restoreAll();
+	assert.deepEqual(said, [`delivery: AC0001 dropped: ${liar.id}: kept its worktree, branch and record: its record names the branch ${victim.branch}, where the spawn made ${liar.branch} or none`]);
+	assert.deepEqual([git(root, "branch", "--list", victim.branch), git(root, "branch", "--list", liar.branch), existsSync(join(home, "jobs", liar.id))], [victim.branch, liar.branch, true]);
 });
 
 test("a merge ends the hand-backs of its ticket's jobs, a worker still in a run included, so none goes on to review a merged ticket", async (t) => {

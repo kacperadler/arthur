@@ -192,6 +192,39 @@ test("arthur prune keeps a job's worktree, branch and record while the worktree 
 	assert.deepEqual(all(), [false, `arthur/${job.id}`, true, false], "the unmerged branch kept, nothing run");
 });
 
+test("arthur prune keeps the worktree, branch and record of a job whose record names a branch, worktree or root its spawn did not make, saying why", async () => {
+	const { root, home, jobs } = setup();
+	const [job, other, repository] = [await worker(jobs, home), await worker(jobs, home), temporaryFolder()];
+	git(repository, "init", "--quiet");
+	git(root, "branch", "owner");
+	const write = (name: string, value: string) => writeFileSync(join(home, "jobs", job.id, name), value);
+	const kept = (why: string) => [`${job.id}: kept its worktree, branch and record: ${why}`];
+	const all = () => [existsSync(job.worktree), existsSync(other.worktree), git(root, "branch", "--list", "--format=%(refname:short)", "owner", `arthur/${job.id}`), existsSync(join(home, "jobs", job.id))];
+	// The owner's merged branch, which `git branch -d` would delete.
+	write("branch", "owner");
+	assert.deepEqual(jobs.prune([job.id]), kept(`its record names the branch owner, where the spawn made arthur/${job.id} or none`));
+	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true]);
+	write("branch", `arthur/${job.id}`);
+	// Another job's clean worktree, which `git worktree remove` would remove, and a path Git never added, not there.
+	for (const worktree of [other.worktree, join(root, "..", "gone")]) {
+		write("worktree", worktree);
+		assert.deepEqual(jobs.prune([job.id]), kept(`its record names the checkout ${root} and the worktree ${worktree}, where a job of acme has ${root} and ${job.worktree}`));
+		assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true], worktree);
+	}
+	write("worktree", job.worktree);
+	// Another repository, the job's worktree there, then gone, which `git worktree prune` would follow there.
+	write("root", repository);
+	const moved = kept(`its record names the checkout ${repository}, where a job of acme has ${root}`);
+	assert.deepEqual(jobs.prune([job.id]), moved);
+	git(root, "worktree", "remove", job.worktree);
+	assert.deepEqual(jobs.prune([job.id]), moved);
+	assert.deepEqual(all(), [false, true, `arthur/${job.id}\nowner`, true]);
+	// Its spawn's own place again, the worktree gone: the prune Git decides, as before.
+	write("root", root);
+	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: branch arthur/${job.id} deleted; record deleted`]);
+	assert.deepEqual(all(), [false, true, "owner", false]);
+});
+
 test("arthur prune keeps a branch that a replacement of main's tip under refs/replace makes look merged", async () => {
 	const { root, home, jobs } = setup();
 	const job = await worker(jobs, home);

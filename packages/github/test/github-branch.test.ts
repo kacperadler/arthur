@@ -29,7 +29,9 @@ async function world(t: TestContext) {
 		process.env[name] = value;
 		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
 	}
-	const [origin, path, received] = [temporaryFolder(), temporaryFolder(), join(temporaryFolder(), "received")];
+	// `path` in a folder of its own, its jobs' worktrees beside it, where a spawn puts them.
+	const [origin, path, received] = [temporaryFolder(), join(temporaryFolder(), "shop"), join(temporaryFolder(), "received")];
+	mkdirSync(path);
 	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
 	writeFileSync(join(origin, "hooks", "post-receive"), `#!/bin/sh\ncat >> '${received}'\n`, { mode: 0o755 });
 	git(path, "init", "--quiet", "--initial-branch=main");
@@ -51,7 +53,7 @@ async function world(t: TestContext) {
 	const home = dirname(fake.host.folder);
 	const job = (n: number) => {
 		const id = `2026-01-01-worker-${n.toString(16).padStart(8, "0")}`;
-		const [branch, worktree] = [`arthur/${id}`, join(temporaryFolder(), id)];
+		const [branch, worktree] = [`arthur/${id}`, join(dirname(path), ".arthur-worktrees", id)];
 		git(path, "worktree", "add", "--quiet", "-b", branch, worktree, "main");
 		git(worktree, "commit", "--quiet", "--allow-empty", "-m", `on ${id}`);
 		mkdirSync(join(home, "jobs", id), { recursive: true });

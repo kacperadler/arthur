@@ -26,7 +26,7 @@ function repository(): string {
 
 // Manage set up with `options` at NOW; `entries` what it registered with the schedule, `printed` what its run printed. The
 // run sweeps `os.tmpdir()`, so `TMPDIR` points at `temp`, a folder of the test's own, until the test ends: a run never
-// touches the system's temporary folder, where other processes' `arthur-*` folders are.
+// touches the system's temporary folder, where other processes' `arthur-*` folders are. `root` is project acme's checkout, which a prune checks a record against.
 async function load(t: TestContext, options: ManageOptions) {
 	const [temp, before] = [temporaryFolder(), process.env.TMPDIR];
 	process.env.TMPDIR = temp;
@@ -34,16 +34,19 @@ async function load(t: TestContext, options: ManageOptions) {
 	const fake = fakeHost({ name: "manage", options, now: NOW });
 	const entries: Record<string, unknown>[] = [];
 	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.map((entry) => ({ plugin, ...entry }))));
+	const root = repository();
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
 	await fake.setup(manage(options));
 	const printed: string[] = [];
 	t.mock.method(console, "log", (line: string) => printed.push(line));
-	return { fake, entries, printed, temp, home: dirname(fake.host.folder) };
+	return { fake, entries, printed, temp, root, home: dirname(fake.host.folder) };
 }
 
-// A job record as the core writes it, its state taken at `since`.
+// A job record as the core writes it, its state taken at `since`, its worktree where the spawn puts it beside its `root`.
 function record(home: string, id: string, fields: Readonly<Record<string, string>>): void {
 	mkdirSync(join(home, "jobs", id), { recursive: true });
-	for (const [name, value] of Object.entries({ kind: "review", project: "acme", task: "Review.", root: "", worktree: "", branch: "", reason: "", ...fields })) writeFileSync(join(home, "jobs", id, name), value);
+	const worktree = fields.root === undefined ? "" : join(dirname(fields.root), ".arthur-worktrees", id);
+	for (const [name, value] of Object.entries({ kind: "review", project: "acme", task: "Review.", root: "", worktree, branch: "", reason: "", ...fields })) writeFileSync(join(home, "jobs", id, name), value);
 }
 
 // A folder of `temp` last changed at `at`.
@@ -70,8 +73,7 @@ test("prune.keepJobsDays without the schedule plugin refuses the load, saying wh
 });
 
 test("the run frees each job that ended keepJobsDays days ago or longer, as arthur prune does; a newer, running or unreadable one stays", async (t) => {
-	const { entries, printed, home } = await load(t, { prune: { keepJobsDays: 7 } });
-	const root = repository();
+	const { entries, printed, home, root } = await load(t, { prune: { keepJobsDays: 7 } });
 	const worktree = join(dirname(root), ".arthur-worktrees", "2026-10-01-worker-0000000a");
 	git(root, "worktree", "add", "--quiet", "-b", "arthur/2026-10-01-worker-0000000a", worktree);
 	const ended = { state: "ended", reason: "finished", root };
@@ -95,8 +97,7 @@ test("the run frees each job that ended keepJobsDays days ago or longer, as arth
 });
 
 test("keepJobsDays 0 frees every ended job at the next run, never a running one", async (t) => {
-	const { entries, home } = await load(t, { prune: { keepJobsDays: 0 } });
-	const root = repository();
+	const { entries, home, root } = await load(t, { prune: { keepJobsDays: 0 } });
 	record(home, "2026-10-21-review-0000000a", { state: "ended", reason: "finished", since: NOW.toISOString(), root });
 	record(home, "2026-10-21-review-0000000b", { state: "idle", since: ago(DAY).toISOString(), root });
 	await (entries[0]?.run as () => Promise<void>)();
@@ -143,7 +144,7 @@ test("a folder made since a running job's current run began stays, however old; 
 });
 
 test("a folder another user owns is kept with a line; one that cannot be removed whole is named with the reason; the prune still runs", { skip: UID === 0 && "root removes anything" }, async (t) => {
-	const { fake, printed, home } = await load(t, {});
+	const { fake, printed, home, root } = await load(t, {});
 	const temp = temporaryFolder();
 	const theirs = folder(temp, "arthur-test-theirs", ago(2 * DAY));
 	assert.equal(await cleanup(fake.host, 7, temp, UID + 1), undefined);
@@ -159,7 +160,7 @@ test("a folder another user owns is kept with a line; one that cannot be removed
 	assert.equal(printed[0], `manage: removed 1 temporary folder of Arthur's from ${temp}`, "the folder kept before, its owner now Arthur's user");
 	assert.match(printed[1] ?? "", new RegExp(`^manage: kept ${locked}: EACCES`));
 	// The temporary folder gone: the prune still frees its job, and the run fails naming the part that did not.
-	record(home, "2026-10-01-review-0000000a", { state: "ended", reason: "finished", since: ago(20 * DAY).toISOString(), root: repository() });
+	record(home, "2026-10-01-review-0000000a", { state: "ended", reason: "finished", since: ago(20 * DAY).toISOString(), root });
 	await assert.rejects(cleanup(fake.host, 7, join(temp, "gone"), UID), { message: /^the temporary folders: ENOENT/ });
 	assert.equal(existsSync(join(home, "jobs", "2026-10-01-review-0000000a")), false);
 });

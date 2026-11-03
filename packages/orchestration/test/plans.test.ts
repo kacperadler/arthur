@@ -270,3 +270,23 @@ test("/plan: the status and plan.md, or no plan; the id as 1, AC1 or AC0001", as
 	for (const id of ["1", "AC1", "ac0001"]) assert.equal(await route(`/plan ${id}`), "AC0001 planned\n# AC0001 - Plan\n\nSmall.\n", id);
 	assert.equal(await route("/plan"), "usage: /plan <id>");
 });
+
+test("a replacement under refs/replace changes neither the ticket nor the plan.md the plan guard reads (AR0397)", async (t) => {
+	const { jobs, root, git, commit } = await load(t);
+	const task = `Ticket: ${TICKET}\nPlan: ${PLAN}`;
+	writeFileSync(join(root, TICKET), "# AC0001\n\n## Goal\n\n- Kind: feature\n");
+	const plain = commit("no plan line");
+	writeFileSync(join(root, TICKET), ticketText());
+	commit("plan line back");
+	// HEAD read as the commit whose ticket has no Plan: yes line.
+	git("replace", git("rev-parse", "HEAD"), plain);
+	await assert.rejects(jobs.spawn({ task }), { message: /AC0001 says "- Plan: yes" and has no committed plan\.md/ });
+	writeFileSync(join(root, PLAN), "# plan one\n");
+	const approved = commit("plan one");
+	writeFileSync(join(root, TICKET), ticketText(`- 2026-01-01: Plan approved by the owner: plan.md at ${approved}\n`));
+	writeFileSync(join(root, PLAN), "# plan two\n");
+	commit("plan two");
+	// The approved commit read as HEAD: its plan.md would be the one at HEAD.
+	git("replace", git("rev-parse", approved), "HEAD");
+	await assert.rejects(jobs.spawn({ task }), { message: /AC0001: its plan\.md at HEAD is not one the owner approved/ });
+});

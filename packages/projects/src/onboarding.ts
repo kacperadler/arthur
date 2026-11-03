@@ -68,7 +68,8 @@ function questions(host: Host, job: Ended, result: string): string[] {
 // What an onboarding's branch changes against the project's checkout (its HEAD, which the merge goes into): only the vision and
 // the criteria files, and no symlink, which could bring a file from outside the repository into a prompt.
 function outside(project: Project, branch: string): string | undefined {
-	const diff = spawnSync("git", ["-C", project.path, "diff", "--raw", "-z", "--no-renames", `HEAD...${branch}`, "--"], { encoding: "utf8" });
+	const words = ["--no-replace-objects", "-C", project.path, "diff", "--raw", "-z", "--no-renames", `HEAD...${branch}`, "--"];
+	const diff = spawnSync("git", words, { encoding: "utf8" });
 	if (diff.status !== 0) return `git diff HEAD...${branch}: ${diff.stderr.trim().split("\n").at(-1)}`;
 	const { vision, criteriaDir } = DRAFTED;
 	const [links, others]: [string[], string[]] = [[], []];

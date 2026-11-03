@@ -180,3 +180,17 @@ test("an audit whose task names a ticket is filed only with that ticket named, s
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "audit" }), [PROCEDURE, undefined], "the audit's procedure; the retro's provider answers nothing");
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined, undefined]);
 });
+
+test("a replacement under refs/replace does not hide the commits since the last audit (AR0397)", async (t) => {
+	const { night, commit, root, git, read } = await load(t);
+	const audited = commit("audited");
+	mkdirSync(join(root, "spec/quality"));
+	writeFileSync(join(root, "spec/quality/2026-10-20.md"), `# Audit 2026-10-20\n\n- Commit audited: ${audited}\n`);
+	commit("the report", null);
+	commit("new code");
+	// HEAD read as the audited commit: no commit since it.
+	git("replace", "HEAD", audited);
+	const job = await night();
+	assert.ok(job !== undefined, "an audit starts");
+	assert.match(read(job.id, "prompt"), /^[0-9a-f]+ new code$/m);
+});

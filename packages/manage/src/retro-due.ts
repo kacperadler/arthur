@@ -26,7 +26,7 @@ const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : 
 
 // Git's output, or undefined when it exits with an error; Git missing throws.
 function git(root: string, args: readonly string[]): string | undefined {
-	const ran = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+	const ran = spawnSync("git", ["--no-replace-objects", "-C", root, ...args], { encoding: "utf8" });
 	if (ran.error !== undefined) throw ran.error;
 	return ran.status === 0 ? ran.stdout : undefined;
 }

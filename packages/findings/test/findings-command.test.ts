@@ -116,6 +116,28 @@ test("/findings: the newest unmerged branch of a job of the ticket whose finding
 	assert.equal(await route("/findings 1"), "new, F1 ticketed\n", "a branch whose findings.md is main's");
 });
 
+test("/findings: a replacement under refs/replace does not change the branch's findings.md it shows (AR0397)", async () => {
+	const { route, demo, home } = await setup();
+	const git = (...args: string[]) => execFileSync("git", ["-C", demo, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args], { encoding: "utf8" }).trim();
+	const file = join(demo, "spec", "features", "DM0001-ticket", "findings.md");
+	tickets(demo, "DM", "in-progress", 1);
+	writeFileSync(file, "main\n");
+	git("init", "--quiet", "--initial-branch", "main");
+	git("add", "--all");
+	git("commit", "--quiet", "--message", "first");
+	for (const [name, text] of [["arthur/new", "new\n"], ["arthur/forged", "forged\n"]] as const) {
+		git("switch", "--quiet", "--create", name, "main");
+		writeFileSync(file, text);
+		git("commit", "--quiet", "--all", "--message", name);
+		git("switch", "--quiet", "main");
+	}
+	mkdirSync(join(home, "jobs", "2026-10-02-worker-0000000a"), { recursive: true });
+	for (const [key, value] of Object.entries({ kind: "worker", project: "demo", task: "Ticket: spec/features/DM0001-ticket/ticket.md", branch: "arthur/new" })) writeFileSync(join(home, "jobs", "2026-10-02-worker-0000000a", key), value);
+	// The job's branch tip read as another branch's.
+	git("replace", git("rev-parse", "arthur/new"), git("rev-parse", "arthur/forged"));
+	assert.equal(await route("/findings 1"), "findings from branch arthur/new (not merged)\nnew\n");
+});
+
 test("in the shell: arthur findings, its usage, an unknown --project, and --help; without the plugin there is no such command", () => {
 	const folder = temporaryFolder();
 	const plugin = fileURLToPath(new URL("../src/findings.ts", import.meta.url));

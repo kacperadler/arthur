@@ -18,7 +18,7 @@ const LOCKFILES: Readonly<Record<string, string>> = {
 // Two known lockfiles and no `install` are refused, naming the project and the files.
 export function installCommand(project: Installs, root: string, commit: string): string {
 	if (project.install !== undefined) return project.install;
-	const listed = spawnSync("git", ["-C", root, "ls-tree", "--name-only", commit], { encoding: "utf8" });
+	const listed = spawnSync("git", ["--no-replace-objects", "-C", root, "ls-tree", "--name-only", commit], { encoding: "utf8" });
 	const found = listed.status === 0 ? listed.stdout.split("\n").filter((name) => Object.hasOwn(LOCKFILES, name)) : [];
 	if (found.length > 1)
 		throw new Error(`project ${project.name}: two known lockfiles (${found.join(", ")}) and no install; set install in its projects.project(...)`);

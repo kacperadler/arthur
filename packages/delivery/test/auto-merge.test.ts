@@ -342,7 +342,7 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 });
 
 test("a run that hangs is cancelled 30 minutes after its start, once, across a restart; a refused cancel wakes the coordinator; a new commit or a pruned job ends the wait; a broken wait is said once", async (t) => {
-	const { fake, commit, worker, review, merge, answers, cancels, messages, waiting } = await load(t);
+	const { fake, commit, worker, review, merge, answers, cancels, messages, waiting, git, root } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
 	answers.ci = ciRun(job.tip, job.branch, { status: "in_progress", conclusion: null, startedAt: T0 });
@@ -367,6 +367,11 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	await waits.round();
 	assert.equal(cancels.length, 2, "a refused cancel is not asked again");
 
+	// The tip read as a tree through refs/replace, as a job's git could write it (AR0397): the wait still holds on its real tip.
+	git(root, "replace", "-f", job.tip, git(root, "rev-parse", `${job.tip}^{tree}`));
+	await waits.round();
+	assert.equal(waiting(job.id), true, "a replacement does not end the wait");
+	git(root, "replace", "-d", job.tip);
 	commit(job.worktree, { "late.ts": "export const late = 1;\n" });
 	assert.deepEqual(end(ciRun(job.tip, job.branch, { id: 10 })), [false], "its tip moved: no longer delivery's to tell, even before a round ends the wait");
 	mkdirSync(join(fake.host.folder, "2026-01-01-worker-0000dead"));

@@ -53,7 +53,7 @@ function reply({ board, jobs }: Host, words: readonly string[], project: string 
 function branchFindings(jobs: Host["jobs"], project: string, root: string, ticketPath: string, path: string, main: string | undefined): { readonly name: string; readonly text: string } | undefined {
 	const branches = jobs.list().flatMap((job) => (job.project === project && job.branch !== "" && job.tickets.includes(ticketPath) ? [job.branch] : []));
 	if (branches.length === 0) return undefined;
-	const git = (...args: readonly string[]) => spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+	const git = (...args: readonly string[]) => spawnSync("git", ["--no-replace-objects", "-C", root, ...args], { encoding: "utf8" });
 	const refs = git("for-each-ref", "--sort=-committerdate", "--format=%(refname:lstrip=2)", ...branches.map((name) => `refs/heads/${name}`));
 	if (refs.status !== 0) throw new Error(`git for-each-ref: ${refs.error?.message ?? refs.stderr.trim()}`);
 	// A pattern also lists the refs under it: only the records' own count.

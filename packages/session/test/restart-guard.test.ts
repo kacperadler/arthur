@@ -166,3 +166,13 @@ test("a broken note, or a commit noted that is gone, refuses every spawn, naming
 	await box.plugin.start?.();
 	assert.equal(await box.spawn(), "started");
 });
+
+test("a replacement under refs/replace does not hide a merge of loaded code (AR0397)", async (t) => {
+	const arthur = checkout("arthur");
+	const box = await load(t, arthur);
+	const loaded = git(arthur, "rev-parse", "HEAD");
+	const merged = merge(arthur, "AR0002", ["packages/session/src/session.ts"]);
+	// HEAD read as the commit arthur run loaded: no change since.
+	git(arthur, "replace", git(arthur, "rev-parse", merged), loaded);
+	assert.equal(await box.spawn(), due("AR0002", box.since));
+});

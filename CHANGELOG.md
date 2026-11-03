@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0610 arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names (e3deefdc)
+- AR0611 The audit sees deferred findings, not only open ones, in a project whose findings mode is summary (af539a19)
 
 ## 2026-11-03
 

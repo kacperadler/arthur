@@ -4905,9 +4905,9 @@
   {
     "id": "AR0611",
     "title": "The audit sees deferred findings, not only open ones, in a project whose findings mode is summary",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0611-the-audit-sees-deferred-findings-not-only-open-ones-in-a-project-whose-findings/ticket.md",
-    "updated": "2026-11-03T23:54:37.141Z",
+    "updated": "2026-11-03T23:59:29.940Z",
     "after": [
       "AR0390",
       "AR0397"

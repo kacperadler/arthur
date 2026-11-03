@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0390 A job on another machine moves a Git LFS project's commits there and back without their LFS objects (ba124480)
 - AR0396 A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads (cb5e5157)
 
 ## 2026-11-02

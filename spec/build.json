@@ -3078,9 +3078,9 @@
   {
     "id": "AR0397",
     "title": "Arthur's other git reads in a main checkout still read through a replacement",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0397-arthur-s-other-git-reads-in-a-main-checkout-still-read-through-a-replacement/ticket.md",
-    "updated": "2026-11-03T19:11:45.551Z",
+    "updated": "2026-11-03T22:01:45.450Z",
     "after": [
       "AR0396",
       "AR0402",

@@ -10,6 +10,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0396 A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads (cb5e5157)
 - AR0397 Arthur's other git reads in a main checkout still read through a replacement (67b7e607)
 
+### Changed
+
+- AR0613 docs/deploy.md security section covers every channel, Discord included (2ca886e9)
+
 ## 2026-11-02
 
 ### Added

@@ -44,4 +44,5 @@ Out:
 - Any change to how jobs compact.
 
 ## Decisions
+- 2026-11-03: AR0614 approved: a planner writes the plan first, after the usage reset; it joins the tasks counter (18 -> 19); the owner: "AR-D471 - 1" (AR-D471)
 

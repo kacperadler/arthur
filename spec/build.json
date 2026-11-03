@@ -4934,8 +4934,8 @@
   {
     "id": "AR0614",
     "title": "Session: compact the coordinator by schedule, by context use, or both, chosen in the session options",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0614-session-compact-the-coordinator-by-schedule-by-context-use-or-both-chosen-in-the/ticket.md",
-    "updated": "2026-11-03T14:48:48.687Z"
+    "updated": "2026-11-03T14:50:27.543Z"
   }
 ]

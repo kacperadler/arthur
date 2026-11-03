@@ -4894,9 +4894,9 @@
   {
     "id": "AR0610",
     "title": "arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0610-arthur-prune-and-a-dropped-ticket-remove-only-the-worktree-and-branch-the-spawn/ticket.md",
-    "updated": "2026-11-03T08:57:59.165Z",
+    "updated": "2026-11-03T23:28:40.989Z",
     "after": [
       "AR0390",
       "AR0397"
@@ -4905,9 +4905,9 @@
   {
     "id": "AR0611",
     "title": "The audit sees deferred findings, not only open ones, in a project whose findings mode is summary",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0611-the-audit-sees-deferred-findings-not-only-open-ones-in-a-project-whose-findings/ticket.md",
-    "updated": "2026-11-03T08:58:00.336Z",
+    "updated": "2026-11-03T23:18:51.339Z",
     "after": [
       "AR0390",
       "AR0397"

@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-04
+
+### Fixed
+
+- AR0610 arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names (e3deefdc)
+
 ## 2026-11-03
 
 ### Fixed

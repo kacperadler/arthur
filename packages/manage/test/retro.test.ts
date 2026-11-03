@@ -252,3 +252,12 @@ test("the wake of a retro carries its procedure, of no other kind", async (t) =>
 	assert.deepEqual(fake.collect("coordinator.wake", { id: "x", kind: "retro" }), [undefined, PROCEDURE]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: "x", kind: "audit" })[1], undefined);
 });
+
+test("a replacement under refs/replace does not hide the merges retro-due counts (AR0397)", async (t) => {
+	const env = await load(t);
+	const first = env.git("rev-parse", "HEAD");
+	env.merges(10, 1, 2, 0);
+	// HEAD read as the first commit, before any merge.
+	env.git("replace", "HEAD", first);
+	assert.match((await env.command("retro-due")).out, /^retro due: 10 merges, 2 FAIL reviews/);
+});

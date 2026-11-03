@@ -39,7 +39,7 @@ const BUDGETS = {
 
 	orchestration: 2739,
 
-	projects: 594,
+	projects: 595,
 
 	resources: 638,
 

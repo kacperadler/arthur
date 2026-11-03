@@ -150,3 +150,13 @@ test("projects.install answers the install a worktree of that commit gets: own, 
 	assert.throws(() => install("locked", "HEAD"), { message: "project locked: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its projects.project(...)" });
 	assert.throws(() => install("gone", "HEAD"), { message: "no project gone" });
 });
+
+test("a replacement under refs/replace does not change the lockfile the install reads at a commit (AR0397)", async () => {
+	const root = repository();
+	const first = git(root, "rev-parse", "HEAD");
+	commit(root, { "bun.lock": "{}" });
+	// HEAD read as the first commit, which has no lockfile.
+	git(root, "replace", "HEAD", first);
+	const fake = await load([{ name: "locked", prefix: "LO", path: root }]);
+	assert.deepEqual(fake.collect<string>("projects.install", { project: "locked", commit: "HEAD" }), ["bun install --frozen-lockfile"]);
+});

@@ -15,7 +15,7 @@ type Loaded = { readonly root: string; readonly commit: string; readonly at: str
 
 // `git -C <root> <args>`; an exit code not in `ok` throws, with git's first line.
 function git(root: string, args: readonly string[], ok: readonly (number | null)[] = [0]) {
-	const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+	const run = spawnSync("git", ["--no-replace-objects", "-C", root, ...args], { encoding: "utf8" });
 	if (!ok.includes(run.status)) throw new Error(`git ${args[0]} in ${root}: ${(run.error?.message ?? run.stderr).trim().split("\n")[0]}`);
 	return run;
 }

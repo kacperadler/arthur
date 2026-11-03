@@ -59,7 +59,7 @@ function unapproved(at: string, task: string, tickets: readonly string[], budget
 	const folders = new Map(tickets.map((path) => FEATURE.exec(path)?.slice(1, 3) ?? []).flatMap(([folder, id]) => (folder === undefined || id === undefined ? [] : [[folder, id] as const])));
 	const planned = new Set(Array.from(task.matchAll(/\bPlan:\s*`?([^\s`]+)/g), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, "")));
 	const refused = [...folders].flatMap(([folder, id]) => {
-		const shown = spawnSync("git", ["-C", at, "cat-file", "blob", `HEAD:${folder}/ticket.md`], { encoding: "utf8" });
+		const shown = spawnSync("git", ["--no-replace-objects", "-C", at, "cat-file", "blob", `HEAD:${folder}/ticket.md`], { encoding: "utf8" });
 		if (shown.status !== 0) return [];
 		const decisions = section(shown.stdout, "Decisions");
 		return [section(shown.stdout, "Goal").some((line) => MARK.test(line)) ? unplanned(at, folder, id, decisions, planned) : undefined, overBudget(id, decisions, budgetUsd, free)].flatMap((reason) => reason ?? []);
@@ -89,7 +89,7 @@ function overBudget(id: string, decisions: readonly string[], budgetUsd: number,
 
 // The object id of `path` in `commit`, undefined when it has none there.
 function blob(at: string, commit: string, path: string): string | undefined {
-	const parsed = spawnSync("git", ["-C", at, "rev-parse", "--verify", "--quiet", `${commit}:${path}`], { encoding: "utf8" });
+	const parsed = spawnSync("git", ["--no-replace-objects", "-C", at, "rev-parse", "--verify", "--quiet", `${commit}:${path}`], { encoding: "utf8" });
 	return parsed.status === 0 ? parsed.stdout.trim() : undefined;
 }
 

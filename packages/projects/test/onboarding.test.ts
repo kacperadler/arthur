@@ -166,3 +166,13 @@ test("merge.check lets in a draft of the vision and criteria, refuses one touchi
 	assert.deepEqual(check(drafts, "onboarding", "blog"), ["project blog is not in the list"]);
 	assert.match(String(check("arthur/gone")[0]), /^git diff HEAD\.\.\.arthur\/gone: fatal: /);
 });
+
+test("a replacement under refs/replace does not let in an onboarding branch that changes another file (AR0397)", async () => {
+	const { fake, shop } = await load();
+	const drafts = branch(shop, "arthur/drafts", () => writeFileSync(join(shop, "spec/vision.md"), "# Vision, drafted\n"));
+	const other = branch(shop, "arthur/other", () => writeFileSync(join(shop, "README.md"), "# Changed\n"));
+	// The branch's tip read as the drafts' tip.
+	git(shop, "replace", git(shop, "rev-parse", other), git(shop, "rev-parse", drafts));
+	const accepts = "an onboarding's merge accepts only spec/vision.md and .agents/arthur/criteria/*.md";
+	assert.deepEqual(fake.collect("merge.check", { id: "x", kind: "onboarding", project: "shop", branch: other }), [`arthur/other changes README.md; ${accepts}`]);
+});

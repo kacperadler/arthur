@@ -43,8 +43,8 @@ function read(host: Host, id: string): Wait | Error {
 function gone(host: Host, id: string, wait: Wait): string | undefined {
 	if (!host.jobs.list().some((job) => job.id === id)) return "its job was pruned";
 	const root = host.board.projects().find((project) => project.name === wait.project)?.path;
-	const tip = root && spawnSync("git", ["-C", root, "rev-parse", "--verify", "--quiet", `${wait.branch}^{commit}`], { encoding: "utf8" }).stdout.trim();
-	return tip === wait.tip ? undefined : `its tip is no longer ${wait.tip.slice(0, 7)}`;
+	const ran = root && spawnSync("git", ["--no-replace-objects", "-C", root, "rev-parse", "--verify", "-q", `${wait.branch}^{commit}`], { encoding: "utf8" });
+	return ran && ran.stdout.trim() === wait.tip ? undefined : `its tip is no longer ${wait.tip.slice(0, 7)}`;
 }
 
 // Written whole under a temporary name, then renamed; a second `--auto` refused the same way keeps what was told.

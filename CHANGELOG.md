@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-03
+
+### Fixed
+
+- AR0396 A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads (cb5e5157)
+
 ## 2026-11-02
 
 ### Added

@@ -3064,9 +3064,9 @@
   {
     "id": "AR0396",
     "title": "A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0396-a-git-fetch-or-git-push-from-a-job-s-worktree-into-refs-replace-still-writes-a-replacement-every-worktree-reads/ticket.md",
-    "updated": "2026-11-02T20:25:55.478Z",
+    "updated": "2026-11-03T15:45:11.924Z",
     "after": [
       "AR0395",
       "AR0402",

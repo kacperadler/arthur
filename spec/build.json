@@ -4930,5 +4930,12 @@
     "status": "planned",
     "path": "spec/features/AR0613-docs-deploy-md-security-section-covers-every-channel-discord-included/ticket.md",
     "updated": "2026-11-03T01:18:54.919Z"
+  },
+  {
+    "id": "AR0614",
+    "title": "Session: compact the coordinator by schedule, by context use, or both, chosen in the session options",
+    "status": "planning",
+    "path": "spec/features/AR0614-session-compact-the-coordinator-by-schedule-by-context-use-or-both-chosen-in-the/ticket.md",
+    "updated": "2026-11-03T14:48:48.687Z"
   }
 ]

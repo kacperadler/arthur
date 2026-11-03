@@ -85,10 +85,9 @@ export function misplaced(id: string, job: Pick<Job, "project" | "root" | "workt
 	return common !== "" && existsSync(join(common, "worktrees", id)) ? undefined : `Git added no worktree ${id} to the repository of ${root}`;
 }
 
-// Why a prune of `job`, as its record names it, may touch none of it (AR0610), undefined when it may: a branch but none or `arthur/<id>`, a
-// checkout but `root`, its project's now, and here a place `misplaced` refuses, but the spawn's worktree gone, which Git lists no more. `there`:
-// the job's worktree is on another machine, whose prune checks it.
-export function unpruned(id: string, job: Pick<Job, "project" | "root" | "worktree"> & { readonly branch: string }, root: string, there: boolean): string | undefined {
+// Why a prune may touch none of `job`, as its record names it (AR0610), undefined when it may: a branch but none or `arthur/<id>`, a checkout but `root`, and,
+// its worktree not on another machine (`there`), a place `misplaced` refuses, but the spawn's worktree gone, which Git lists no more.
+export function unpruned(id: string, job: { readonly [key in "project" | "root" | "worktree" | "branch"]: string }, root: string, there: boolean): string | undefined {
 	if (job.branch !== "" && job.branch !== `arthur/${id}`) return `its record names the branch ${job.branch}, where the spawn made arthur/${id} or none`;
 	if (job.root !== root) return `its record names the checkout ${job.root}, where a job of ${job.project} has ${root}`;
 	return there || (!existsSync(job.worktree) && job.worktree === join(dirname(root), ".arthur-worktrees", id)) ? undefined : misplaced(id, job, root);

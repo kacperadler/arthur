@@ -42,3 +42,4 @@ Out:
 
 - 2026-11-03: Source: audit spec/quality/2026-11-03.md
 - 2026-11-03: Pre-approved by policy: docs from audit spec/quality/2026-11-03.md, 1 Scope file, budget $1 of the $3 cap
+- 2026-11-03: AR0613 joins the tasks counter (17 -> 18) and the queue; it starts after the usage reset beside Group 2; the owner: "But if we wanna do it we ahve to add it to the queue" (AR-D470)

@@ -125,7 +125,7 @@ test("/findings: a replacement under refs/replace does not change the branch's f
 	git("init", "--quiet", "--initial-branch", "main");
 	git("add", "--all");
 	git("commit", "--quiet", "--message", "first");
-	for (const [name, text] of [["arthur/new", "new\n"], ["arthur/forged", "forged\n"]]) {
+	for (const [name, text] of [["arthur/new", "new\n"], ["arthur/forged", "forged\n"]] as const) {
 		git("switch", "--quiet", "--create", name, "main");
 		writeFileSync(file, text);
 		git("commit", "--quiet", "--all", "--message", name);

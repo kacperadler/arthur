@@ -54,3 +54,4 @@ Out:
 
 - 2026-11-03: Source: audit spec/quality/2026-11-03.md
 - 2026-11-03: Source: F1 of AR0597
+- 2026-11-03: AR0610 approved: prune and a dropped ticket remove only the worktree and arthur/<id> branch Arthur made for the job; after Group 2; the owner: "Sounds good, "remove only the ones Arthur created for that job"" (AR-D465)

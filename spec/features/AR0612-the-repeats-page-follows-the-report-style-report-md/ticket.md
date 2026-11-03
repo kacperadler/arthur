@@ -48,3 +48,4 @@ Out:
 ## Decisions
 
 - 2026-11-03: Source: audit spec/quality/2026-11-03.md
+- 2026-11-03: AR0612 approved: the /repeats page follows the report style; after Group 2; the owner: "ok" (AR-D467)

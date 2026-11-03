@@ -4851,9 +4851,13 @@
   {
     "id": "AR0606",
     "title": "Discord T3: the phone commands as Discord application commands, suggested when the owner types /",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0606-discord-t3-the-phone-commands-as-discord-application-commands-suggested-when-the/ticket.md",
-    "updated": "2026-11-02T17:54:01.265Z"
+    "updated": "2026-11-03T08:58:06.836Z",
+    "after": [
+      "AR0390",
+      "AR0397"
+    ]
   },
   {
     "id": "AR0607",
@@ -4879,30 +4883,46 @@
   {
     "id": "AR0609",
     "title": "A personality file every agent reads, the coordinator included, as tone only",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0609-a-personality-file-every-agent-reads-the-coordinator-included-as-tone-only/ticket.md",
-    "updated": "2026-11-02T21:25:53.267Z"
+    "updated": "2026-11-03T08:58:07.982Z",
+    "after": [
+      "AR0390",
+      "AR0397"
+    ]
   },
   {
     "id": "AR0610",
     "title": "arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0610-arthur-prune-and-a-dropped-ticket-remove-only-the-worktree-and-branch-the-spawn/ticket.md",
-    "updated": "2026-11-03T01:18:06.451Z"
+    "updated": "2026-11-03T08:57:59.165Z",
+    "after": [
+      "AR0390",
+      "AR0397"
+    ]
   },
   {
     "id": "AR0611",
     "title": "The audit sees deferred findings, not only open ones, in a project whose findings mode is summary",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0611-the-audit-sees-deferred-findings-not-only-open-ones-in-a-project-whose-findings/ticket.md",
-    "updated": "2026-11-03T01:18:07.030Z"
+    "updated": "2026-11-03T08:58:00.336Z",
+    "after": [
+      "AR0390",
+      "AR0397"
+    ]
   },
   {
     "id": "AR0612",
     "title": "The /repeats page follows the report style (report.md)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0612-the-repeats-page-follows-the-report-style-report-md/ticket.md",
-    "updated": "2026-11-03T01:18:07.603Z"
+    "updated": "2026-11-03T08:58:01.465Z",
+    "after": [
+      "AR0390",
+      "AR0397"
+    ]
   },
   {
     "id": "AR0613",

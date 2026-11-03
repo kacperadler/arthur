@@ -16,25 +16,28 @@ Today a project can add text to one role through its override, `.agents/arthur/r
 
 ## Goal
 
-One `personality.md` per project, read by the coordinator and every job's role, that shapes how they write and speak and can never override a rule.
+One `personality.md` per project, read only by the agents that talk with the owner (the coordinator, and each project agent once roadmap 85 to 88 builds them), that shapes how they write and speak and can never override a rule. Job roles (worker, reviewer, planner, auditor, retro, onboarding) never read it: the owner, 2026-11-03, AR-D464.
 
 - Kind: feat
 
 ## Done means
 
-- `<criteriaDir>/personality.md` (default `.agents/arthur/criteria/personality.md`), when present, is added to the prompt of every role, the coordinator included, after the role, its override and its criteria, under a heading that says it sets tone only and that every rule above wins over it; a project may also give one role its own with `<rolesDir>/<role>.personality.md`, which replaces the shared one for that role.
+- `<criteriaDir>/personality.md` (default `.agents/arthur/criteria/personality.md`), when present, is added to the coordinator's prompt after its role, its override and its criteria, under a heading that says it sets tone only and that every rule above wins over it; no job role's prompt holds it.
+- The place where it is added is the one the project agents' prompt will be built from, so a project agent (roadmap 85 to 88) reads the same file without new code; a project may give its agent its own with `<rolesDir>/project.personality.md`, which replaces the shared one for it.
 - A missing file adds nothing and warns nothing; an empty one adds nothing; a symlink is refused as for criteria files.
-- `arthur roles` lists the file for each role; `arthur init` writes no personality (the owner writes it).
-- Tests: each role's assembled prompt holds the file once, after the rules; a per-role file replaces the shared one; missing, empty and symlinked files.
+- `arthur roles` lists the file for the coordinator; `arthur init` writes no personality (the owner writes it).
+- Tests: the coordinator's assembled prompt holds the file once, after the rules; a worker's and a reviewer's prompt never hold it; missing, empty and symlinked files.
 - Docs: `arthur roles --help`, the vision's "Where the less obvious parts live".
 
 ## Scope
 
 In:
-- `packages/core/src/roles.ts` (prompt order), its test, `packages/core/docs/commands/roles.md`; orchestration's coordinator prompt if it is built apart; `spec/vision.md`.
+- `packages/core/src/roles.ts` (prompt order) or orchestration's coordinator prompt, wherever the coordinator's is built; its test; `packages/core/docs/commands/roles.md`; `spec/vision.md`.
 
 Out:
 - Writing the personality itself: the owner's.
-- Voice (AR0553) and per-project chat agents (roadmap 85 to 88), which will read the same file once they exist.
+- Every job role: they do not read it.
+- Voice (AR0553) and the project agents themselves (roadmap 85 to 88).
 
 ## Decisions
+- 2026-11-03: AR0609 approved, narrowed: the tone file is read only by agents that talk with the owner (the coordinator, and project agents once they exist), never by job roles; after Group 2; the owner: "Tone file is only for agents that can communicate with me, so only for you and project agent instance" (AR-D464)

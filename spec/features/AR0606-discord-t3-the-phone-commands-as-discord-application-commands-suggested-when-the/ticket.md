@@ -41,4 +41,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-11-03: AR0606 approved: its plan runs first (after the usage reset), the worker after Group 2; the owner: "you can run a plan" (AR-D468)

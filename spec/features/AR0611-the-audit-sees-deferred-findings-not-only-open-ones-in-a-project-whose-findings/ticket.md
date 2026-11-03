@@ -47,3 +47,4 @@ Out:
 ## Decisions
 
 - 2026-11-03: Source: audit spec/quality/2026-11-03.md
+- 2026-11-03: AR0611 approved: the audit also sees findings set aside for later (deferred); after Group 2; the owner: "audit should see findings that were set aside for later" (AR-D466)

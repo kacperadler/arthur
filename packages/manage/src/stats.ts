@@ -66,10 +66,15 @@ function row(host: Pick<Host, "clock">, ticket: Ticket, root: string): Row {
 	};
 }
 
+// The tickets of `project` merged at `since` or later, every merged one when undefined: the window of an audit's stats and its
+// deferred findings.
+export const mergedSince = (host: Pick<Host, "board">, project: string | undefined, since?: Date): Ticket[] =>
+	host.board.list(project).filter((ticket) => ticket.status === "merged" && (since === undefined || Date.parse(ticket.updated) >= since.getTime()));
+
 // The stats of `project`, the main one when undefined, of the tickets merged at `since` or later when given (an audit's);
 // `host.board.list` refuses an unknown project, so `where` is found.
 export function stats(host: Pick<Host, "board" | "clock">, project: string | undefined, since?: Date): string {
-	const merged = host.board.list(project).filter((ticket) => ticket.status === "merged" && (since === undefined || Date.parse(ticket.updated) >= since.getTime()));
+	const merged = mergedSince(host, project, since);
 	const projects = host.board.projects();
 	const where = (project === undefined ? projects[0] : projects.find((each) => each.name === project))!;
 	if (merged.length === 0) return `No merged ticket in ${where.name} ${since === undefined ? "yet" : `since ${host.clock.local(since).date} ${host.clock.local(since).time}`}.`;

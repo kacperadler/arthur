@@ -23,6 +23,7 @@ const findings = [
 	"## F1. The prune skips a link\n\n- Kind: bug\n- Where: `src/prune.ts:12`\n- Status: open\n",
 	"## F2. Fixed already\n\n- Kind: bug\n- Where: `src/a.ts:1`\n- Status: fixed in abc1234\n",
 	"## F3. No where\n\n- Kind: risk\n- Status: open\n",
+	"## F4. Deferred on a ticket not merged\n\n- Kind: security\n- Where: `src/b.ts:2`\n- Status: deferred (client summary)\n",
 ].join("\n");
 
 async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:00" } }, run: AgentRun = { steps: [{ message: "## 1. A bug\nKind: bug\n\nNO PROPOSALS is not this." }] }) {
@@ -31,6 +32,14 @@ async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:
 	writeFileSync(join(root, "spec/vision.md"), "# Vision\n");
 	writeFileSync(join(root, FOUND, "ticket.md"), "# AC0001 - One\n");
 	writeFileSync(join(root, FOUND, "findings.md"), findings);
+	// AC0002 merged before any audit, AC0003 after: a deferred finding each, and in AC0003 entries settled otherwise.
+	mkdirSync(join(root, "spec/features/AC0002-one"));
+	writeFileSync(join(root, "spec/features/AC0002-one/findings.md"), "# AC0002 - Findings\n\n## F1. Old risk\n\n- Kind: risk\n- Where: `src/old.ts:3`\n- Status: deferred (client summary)\n");
+	mkdirSync(join(root, "spec/features/AC0003-one"));
+	writeFileSync(
+		join(root, "spec/features/AC0003-one/findings.md"),
+		"# AC0003 - Findings\n\n## F1. Token in a log\n\n- Kind: security\n- Where: `src/log.ts:9`\n- Status: deferred (client summary)\n\n## F2. Ticketed\n\n- Kind: bug\n- Status: ticket AC0009\n\n## F3. No kind, no where\n\n- Status: deferred (client summary)\n",
+	);
 	const entry = (id: string, status: string, updated: string) => ({ id, title: `Ticket ${id}`, status, path: `spec/features/${id}-one/ticket.md`, updated });
 	writeFileSync(join(root, "spec/build.json"), JSON.stringify([entry("AC0001", "in-progress", "2026-01-01T00:00:00Z"), entry("AC0002", "merged", "2000-01-01T00:00:00Z"), entry("AC0003", "merged", "2999-01-01T00:00:00Z")]));
 	const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: root, encoding: "utf8" }).trim();
@@ -100,6 +109,7 @@ test("the night's audit is a read-only job with its budget and model, its prompt
 	assert.ok(section.includes("### Board\n\nAC0001 in-progress"), section);
 	assert.ok(section.includes("### Stats\n\nStats of acme: 2 merged tickets\n"), "no audit before: every merged ticket");
 	assert.ok(section.includes(`### Open findings\n\n- AC0001 F1: The prune skips a link. Where: \`src/prune.ts:12\`\n- AC0001 F3: No where\n\n`), section);
+	assert.ok(section.includes("### Deferred findings\n\n- AC0002 F1 (risk): Old risk. Where: `src/old.ts:3`\n- AC0003 F1 (security): Token in a log. Where: `src/log.ts:9`\n- AC0003 F3: No kind, no where\n\n### Vision"), "no audit before: every merged ticket's");
 	assert.ok(section.endsWith("### Vision\n\n`spec/vision.md`: read it first, and rank each proposal by how far it moves the project there.\n"), section);
 	assert.equal(existsSync(join(root, "spec/quality")), false, "nothing filed before the coordinator files it");
 });
@@ -121,6 +131,7 @@ test("filed as spec/quality/<date>.md with the commit audited; a second audit th
 	const section = read(second.id, "prompt");
 	assert.match(section, new RegExp(`### Commits since the last audit, ${base.slice(0, 12)} \\(spec/quality/2026-10-21\\.md\\)\n\n${third.slice(0, 7)}[0-9a-f]* third\n\n`), "the report's own commit is not listed");
 	assert.ok(section.includes("### Stats\n\nStats of acme: 1 merged ticket\nAC0003 "), "only the tickets merged since the last audited commit");
+	assert.ok(section.includes("### Deferred findings\n\n- AC0003 F1 (security): Token in a log. Where: `src/log.ts:9`\n- AC0003 F3: No kind, no where\n\n"), "only the tickets merged since the last audited commit");
 	await ended(second.id);
 	assert.equal(jobs.file(undefined, second.id), "spec/quality/2026-10-21-2.md");
 	assert.match(readFileSync(join(root, "spec/quality/2026-10-21-2.md"), "utf8"), new RegExp(`^# Audit 2026-10-21\n\n- Job: ${second.id}\n- Commit audited: ${third}\n`));
@@ -128,7 +139,7 @@ test("filed as spec/quality/<date>.md with the commit audited; a second audit th
 });
 
 test("no commit since the last audit's, or only the reports' and the board's, makes no job; a commit with any other file, or an audited commit Git lacks, makes one", async (t) => {
-	const { night, printed, commit, root } = await load(t);
+	const { night, printed, commit, root, read } = await load(t);
 	const audited = commit("audited");
 	mkdirSync(join(root, "spec/quality"));
 	commit("the report", "spec/quality/2026-10-20.md");
@@ -142,7 +153,9 @@ test("no commit since the last audit's, or only the reports' and the board's, ma
 	assert.deepEqual(printed, [`manage: audit: no job, no commit since the last audit's ${audited.slice(0, 12)}`]);
 	writeFileSync(join(root, "spec/vision.md"), "# Vision, changed\n");
 	commit("the vision and a ticket", "spec/features/AC0004-new/notes.md");
-	assert.notEqual(await night(), undefined, "spec/vision.md is neither a report nor the board");
+	const job = await night();
+	assert.ok(job !== undefined, "spec/vision.md is neither a report nor the board");
+	assert.ok(read(job.id, "prompt").includes("### Deferred findings\n\nnone\n\n### Vision"), "an empty board: no deferred finding");
 	writeFileSync(join(root, "spec/quality/2026-10-20.md"), "# Audit\n\n- Commit audited: 0123456789abcdef0123456789abcdef01234567\n");
 	commit("a commit Git lacks", "spec/quality/2026-10-20.md");
 	assert.notEqual(await night(), undefined, "taken as no audit before");

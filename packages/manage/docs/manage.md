@@ -62,6 +62,7 @@ Every audit's prompt, after the role and the project's sections, gets `## This a
 - `### Board`: the board digest (`arthur ticket --help`).
 - `### Stats`: `arthur stats` of the tickets merged since the last audited commit was made, every merged ticket when there is none.
 - `### Open findings`: every entry with `- Status: open` in the `findings.md` of a ticket on the project's board, `- <id> F<n>: <title>. Where: <where>`.
+- `### Deferred findings`: every entry with `- Status: deferred (client summary)` in the `findings.md` of a ticket merged since the last audited commit was made (the window of `### Stats`), `- <id> F<n> (<kind>): <title>. Where: <where>`; `none` when there is none. In a project whose findings mode is `summary`, where the merge defers every open entry (`packages/findings/docs/findings.md`), this is where its findings reach the audit.
 - `### Vision`: the project's vision's path, to read first (`arthur roles --help`).
 
 The auditor ends with at most 5 proposals, each in the form its role gives (`## <n>. <title>`, `Takes F<n> of <id>` when it takes up a finding, `Kind:`, `Budget:` when above the autopilot default, `Evidence:`, `Why it matters:`, `Scope:`), or the whole final message `NO PROPOSALS`.

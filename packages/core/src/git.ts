@@ -34,8 +34,7 @@ export function fileAt(root: string, commit: string, path: string): boolean {
 	return type.status === 0 && type.stdout.trim() === "blob";
 }
 
-// Whether a `.gitattributes` of `commit`, in any folder, names `filter=lfs`: a Git LFS project, whose LFS objects no push or
-// fetch of Arthur's takes to another machine and back (AR0390).
+// Whether a `.gitattributes` of `commit`, in any folder, names `filter=lfs`: a Git LFS project (AR0390).
 export function namesLfs(root: string, commit: string): boolean {
 	return yes(root, ["grep", "--quiet", "--fixed-strings", "-e", "filter=lfs", commit, "--", ":(glob)**/.gitattributes"]);
 }

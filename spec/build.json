@@ -4927,9 +4927,9 @@
   {
     "id": "AR0613",
     "title": "docs/deploy.md security section covers every channel, Discord included",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0613-docs-deploy-md-security-section-covers-every-channel-discord-included/ticket.md",
-    "updated": "2026-11-03T01:18:54.919Z"
+    "updated": "2026-11-03T22:15:38.725Z"
   },
   {
     "id": "AR0614",

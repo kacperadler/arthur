@@ -86,7 +86,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 	const [kinds, roles, machines] = [kindRegistry(), roleRegistry(), machineRegistry(home)];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
 	const [checks, prepares, extensions] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[]];
-	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
+	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of, (project) => where(project).root);
 	const prepared = async (job: Job, continued: boolean) => {
 		const env: Record<string, string> = {};
 		for (const { owner, fn } of prepares) Object.assign(env, jobEnv(owner, await pluginStep(owner, "prepare", () => fn(job, { ...env }, continued))));

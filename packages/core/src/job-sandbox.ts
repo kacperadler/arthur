@@ -85,6 +85,15 @@ export function misplaced(id: string, job: Pick<Job, "project" | "root" | "workt
 	return common !== "" && existsSync(join(common, "worktrees", id)) ? undefined : `Git added no worktree ${id} to the repository of ${root}`;
 }
 
+// Why a prune of `job`, as its record names it, may touch none of it (AR0610), undefined when it may: a branch but none or `arthur/<id>`, a
+// checkout but `root`, its project's now, and here a place `misplaced` refuses, but the spawn's worktree gone, which Git lists no more. `there`:
+// the job's worktree is on another machine, whose prune checks it.
+export function unpruned(id: string, job: Pick<Job, "project" | "root" | "worktree"> & { readonly branch: string }, root: string, there: boolean): string | undefined {
+	if (job.branch !== "" && job.branch !== `arthur/${id}`) return `its record names the branch ${job.branch}, where the spawn made arthur/${id} or none`;
+	if (job.root !== root) return `its record names the checkout ${job.root}, where a job of ${job.project} has ${root}`;
+	return there || (!existsSync(job.worktree) && job.worktree === join(dirname(root), ".arthur-worktrees", id)) ? undefined : misplaced(id, job, root);
+}
+
 // What the agent of the job whose record is `record` may not read: the env file `guarded` names and the user's `~/.ssh` (AR0508), from no record (AR0512).
 // Then (AR0593), of the projects the projects plugin keeps in `<home>/projects/checkouts` and `folders`, which no job writes,
 // `<name> <path>` a line: each other project's checkout and folder, and every project's `.arthur-worktrees`, whole, so a worktree

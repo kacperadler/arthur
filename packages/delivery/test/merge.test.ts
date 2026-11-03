@@ -851,10 +851,10 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	assert.equal(said.some((line) => [orphan, loose, ...strangers].some((job) => line.includes(job.id))), false, "another project's job, a job of no ticket, another ticket's are not the ticket's");
 	assert.deepEqual(exists(), [[false, false], [false, false], ...Array(all.length - 2).fill([true, true])]);
 	assert.equal(existsSync(kept.worktree), false);
-	// The project's drop prunes its job; with the project gone from the list no branch is forced.
+	// The project's drop finds its job; with the project gone from the list, no checkout now to check its record against: everything kept, no branch forced.
 	said.length = 0;
 	drop("gone");
-	assert.match(said.join("\n"), new RegExp(`^delivery: AC0001 dropped: ${orphan.id}: kept branch ${orphan.branch} and the record: git branch: error: [^\n]*$`));
+	assert.equal(said.join("\n"), `delivery: AC0001 dropped: ${orphan.id}: kept its worktree, branch and record: unknown project gone; projects: acme`);
 	assert.deepEqual(exists()[4], [true, true]);
 	said.length = 0;
 	fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "review" });

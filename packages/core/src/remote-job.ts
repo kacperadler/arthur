@@ -9,6 +9,7 @@ import { insideJob } from "./inside-job.ts";
 import { continueJob, steerJob, stopJob } from "./job-control.ts";
 import { type Own, writeRecord } from "./job-record.ts";
 import { jobCaps, jobEnv, launch, machineLimit, UNCAPPED } from "./job-scope.ts";
+import { unpruned } from "./job-sandbox.ts";
 import { current, field, ID, inRun, told } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 import { withLock } from "./lock.ts";
@@ -75,12 +76,15 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		if (failed !== undefined) console.log(failed);
 	},
 	// Removes the worktree, Git deciding, the branch when it is still at `tip`, the branch the main checkout holds, and the
-	// record; prints what it did. A record gone already leaves nothing to do.
+	// record; prints what it did. A record gone already leaves nothing to do; one whose job changed where its spawn put it
+	// (`unpruned`, AR0610), against the project's repository here, is refused, everything kept.
 	prune(home, [id = "", tip = ""]) {
 		if (!ID.test(id) || !existsSync(join(home, "jobs", id, "kind"))) return;
 		const now = current(home, id);
 		if (inRun(now)) throw new Error(`${id} is ${told(now)} there, in a run`);
-		const [root, worktree, branch] = ["root", "worktree", "branch"].map(field(home, id)) as [string, string, string];
+		const [root, worktree, branch, project] = ["root", "worktree", "branch", "project"].map(field(home, id)) as [string, string, string, string];
+		const moved = unpruned(id, { project, root, worktree, branch }, join(home, "repos", `${project}.git`), false);
+		if (moved !== undefined) throw new Error(moved);
 		const present = existsSync(worktree);
 		// `git worktree remove` runs `git status` in the worktree, which runs a clean filter the shared config or the worktree's own names (AR0394).
 		const refusal = present ? checkConfig(worktree).refusal : "";

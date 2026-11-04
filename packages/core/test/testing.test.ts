@@ -196,15 +196,16 @@ test("on the fake host, as in a real load, a plugin's own job-started handler ru
 });
 
 // A child process loads the kit with live-looking variables, prints what it sees, and exits as the script says.
-function child(script: string): { readonly seen: { arthur: [string, string][]; tmux: string | null; folder: string; slice: string }; readonly status: number | null } {
+function child(script: string): { readonly seen: { arthur: [string, string][]; tmux: string | null; replace: string | null; folder: string; slice: string }; readonly status: number | null } {
 	const kit = import.meta.resolve("@arthur/core/testing");
 	const code = `const { jobSlice, temporaryFolder } = await import(${JSON.stringify(kit)});
 		const folder = temporaryFolder();
-		console.log(JSON.stringify({ arthur: Object.entries(process.env).filter(([key]) => key.startsWith("ARTHUR_")), tmux: process.env.TMUX ?? process.env.TMUX_PANE ?? null, folder, socketDir: process.env.TMUX_TMPDIR, slice: jobSlice.slice }));
+		console.log(JSON.stringify({ arthur: Object.entries(process.env).filter(([key]) => key.startsWith("ARTHUR_")), tmux: process.env.TMUX ?? process.env.TMUX_PANE ?? null, replace: process.env.GIT_NO_REPLACE_OBJECTS ?? null, folder, socketDir: process.env.TMUX_TMPDIR, slice: jobSlice.slice }));
 		${script}`;
-	const env = { ...process.env, ARTHUR_TELEGRAM_BOT_TOKEN: "live-token", ARTHUR_HOME: "/live/.arthur", ARTHUR_JOB_SLICE: "live-slice", TMUX: "/tmp/tmux-1000/default,1,0", TMUX_PANE: "%1" };
+	// GIT_NO_REPLACE_OBJECTS as a job's environment sets it (AR0621): a test that reads a replacement on purpose would read past it.
+	const env = { ...process.env, ARTHUR_TELEGRAM_BOT_TOKEN: "live-token", ARTHUR_HOME: "/live/.arthur", ARTHUR_JOB_SLICE: "live-slice", TMUX: "/tmp/tmux-1000/default,1,0", TMUX_PANE: "%1", GIT_NO_REPLACE_OBJECTS: "1" };
 	const run = spawnSync(process.execPath, ["--input-type=module", "-e", code], { env, encoding: "utf8" });
-	const seen = JSON.parse(run.stdout.trim()) as { arthur: [string, string][]; tmux: string | null; folder: string; socketDir: string; slice: string };
+	const seen = JSON.parse(run.stdout.trim()) as { arthur: [string, string][]; tmux: string | null; replace: string | null; folder: string; socketDir: string; slice: string };
 	assert.equal(dirname(dirname(seen.folder)), seen.socketDir, "tmux's default socket lives in the kit's folder");
 	return { seen, status: run.status };
 }
@@ -226,12 +227,12 @@ test("until returns the first value other than undefined and false, 0, an empty 
 	assert.ok(once <= 2, `asked ${once} times`);
 });
 
-test("the kit clears every ARTHUR_ and tmux variable but names its own job slice in ARTHUR_JOB_SLICE, and removes its folders when the process exits, passed or failed", () => {
+test("the kit clears every ARTHUR_ and tmux variable and GIT_NO_REPLACE_OBJECTS but names its own job slice in ARTHUR_JOB_SLICE, and removes its folders when the process exits, passed or failed", () => {
 	for (const script of ["", "process.exitCode = 1;", 'throw new Error("a failed test");']) {
 		const { seen, status } = child(script);
 		assert.match(seen.slice, /^arthur_test_[0-9a-f]{8}$/);
 		assert.deepEqual(seen.arthur, [["ARTHUR_JOB_SLICE", seen.slice]]);
-		assert.equal(seen.tmux, null);
+		assert.deepEqual([seen.tmux, seen.replace], [null, null]);
 		assert.equal(existsSync(seen.folder), false, `${seen.folder} is left after: ${script || "a pass"}`);
 		assert.equal(status, script === "" ? 0 : 1);
 	}

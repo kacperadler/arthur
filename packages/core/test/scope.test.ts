@@ -220,6 +220,11 @@ test("a systemd-run missing while systemctl is there ends the job failed at spaw
 test("a wrapper that writes no pid within 10 s is killed, and the job ends failed at spawn", async (t) => {
 	const noted = join(temporaryFolder(), "pid");
 	onPath(t, { "systemd-run": `echo $$ > '${noted}'; exec sleep 300` });
+	// Pass or fail, the sleep goes at the test's end, as a kill the wrapper's limit missed would leave it.
+	t.after(() => {
+		const pid = Number(read(noted));
+		if (pid > 0 && running(pid)) process.kill(pid, "SIGKILL");
+	});
 	const start = Date.now();
 	const end = await endedAtSpawn(() => "the wrapper wrote no pid within 10 s and was killed");
 	assert.ok(end - start >= 10_000, `ended after ${end - start} ms`);

@@ -279,13 +279,14 @@ test("a review record kept before AR0474, with no cost, takes the cost from the 
 async function forkingTest(t: TestContext) {
 	const loaded = await load(t);
 	const noted = temporaryFolder();
+	// Pass or fail, the sleeper goes at the test's end; a merge that throws before it is read would leave it otherwise.
+	t.after(() => void (existsSync(join(noted, "sleeper")) && spawnSync("kill", ["-9", readFileSync(join(noted, "sleeper"), "utf8").trim()])));
 	const fork = `cat /proc/self/cgroup > '${noted}/cgroup' 2>/dev/null\nsetsid sh -c 'echo $$ > "${noted}/sleeper"; exec sleep 300' </dev/null >/dev/null 2>&1 &\nwhile [ ! -s '${noted}/sleeper' ]; do sleep 0.02; done\n`;
 	const job = await loaded.worker({ "fork.sh": fork, "package.json": JSON.stringify({ scripts: { test: "sh fork.sh" } }) });
 	await loaded.review(job.id, "Clean.\n\nPASS");
 	const merged = await loaded.merge(job.id);
 	assert.equal(merged.code, undefined, merged.err);
 	const sleeper = Number(readFileSync(join(noted, "sleeper"), "utf8"));
-	t.after(() => void spawnSync("kill", ["-9", String(sleeper)]));
 	return { merged, uncapped: loaded.uncapped, sleeper, cgroup: readFileSync(join(noted, "cgroup"), "utf8") };
 }
 // A process that runs, not gone and no zombie.

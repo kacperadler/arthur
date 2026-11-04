@@ -64,6 +64,13 @@ const alive = (pid: number) => {
 		return false;
 	}
 };
+// At the test's end, pass or fail, SIGKILL to the process whose pid `file` holds, if it still runs: its `sleep 300` goes with it.
+function reap(t: { after(fn: () => void): void }, file: string): void {
+	t.after(() => {
+		const pid = Number(read(file)?.trim());
+		if (pid > 0 && alive(pid)) process.kill(pid, "SIGKILL");
+	});
+}
 // A step the agent never gets past: only a stop ends it.
 const stuck = () => ({ waitFor: join(temporaryFolder(), "never") });
 
@@ -84,8 +91,9 @@ function spent(cost: number, stopReason = "toolUse"): string {
 	return JSON.stringify({ type: "message_end", message });
 }
 
-test("arthur stop ends a running job stopped: SIGTERM to the agent and the processes it started, then the end, state last", async () => {
+test("arthur stop ends a running job stopped: SIGTERM to the agent and the processes it started, then the end, state last", async (t) => {
 	const { agent, dir } = script((dir) => [`sleep 300 & echo $! > '${dir}/tool'`, "wait"]);
+	reap(t, join(dir, "tool"));
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	const tool = Number(await until("the tool's process", () => read(join(dir, "tool"))?.trim() || undefined));
@@ -113,8 +121,9 @@ test("arthur stop during the install a prepare asked for ends the job stopped: t
 	assert.doesNotMatch(field(home, job.id, "log") ?? "", /\] agent: /);
 });
 
-test("arthur stop once the install exited, while a process it forked still holds its output, ends the job stopped and starts no agent", async () => {
+test("arthur stop once the install exited, while a process it forked still holds its output, ends the job stopped and starts no agent", async (t) => {
 	const { agent, dir } = script((dir) => [`touch '${dir}/started'`]);
+	reap(t, join(dir, "forked"));
 	const { home, jobs } = setup(agent);
 	// The forked sleep keeps the install's stdout open after the install's own process exited; it outlives the bounded wait below,
 	// so only the stop ends it there.
@@ -163,6 +172,7 @@ test("arthur stop of an agent that ignores SIGTERM: SIGKILL to its group after t
 test("arthur stop once the install exited, bare, while a process it forked ignores SIGTERM: the job ends only after the SIGKILL of the install's group", async (t) => {
 	bare(t);
 	const { agent, dir } = script((dir) => [`touch '${dir}/started'`]);
+	reap(t, join(dir, "forked"));
 	const { home, jobs } = setup(agent);
 	// The forked process ignores SIGTERM, so only the SIGKILL after the grace ends it; it holds the install's output meanwhile.
 	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `(trap '' TERM; exec sleep 300) & echo $! > '${dir}/forked'; echo $$ > '${dir}/install'` }));
@@ -170,7 +180,6 @@ test("arthur stop once the install exited, bare, while a process it forked ignor
 	const install = Number(await until("the install's process", () => read(join(dir, "install"))?.trim() || undefined));
 	await until("the install's exit", () => !alive(install));
 	const forked = Number(read(join(dir, "forked"))?.trim());
-	t.after(() => void (alive(forked) && process.kill(forked, "SIGKILL")));
 	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
 	await until("the forked process's end", () => !alive(forked));
@@ -182,6 +191,7 @@ test("arthur stop once the install exited, bare, while a process it forked ignor
 test("arthur stop kills a process that left the agent's group, even where no scope holds the job", async (t) => {
 	bare(t);
 	const folder = temporaryFolder();
+	reap(t, join(folder, "daemon"));
 	const daemon = `setsid sh -c 'echo $$ > "${folder}/daemon"; exec sleep 300' </dev/null >/dev/null 2>&1 &`;
 	const { agent } = script((dir) => [daemon, `while [ ! -s '${folder}/daemon' ]; do sleep 0.02; done`, `while [ -d '${dir}' ]; do sleep 0.02; done`]);
 	const { home, jobs } = setup(agent);
@@ -205,9 +215,10 @@ test("a stop that comes while a limit stops the job leaves the limit's state, an
 	assert.equal(read(join(dir, "pid"))?.trim().split("\n").length, 1, "one start, no resume");
 });
 
-test("a stop that comes once the agent exited on its own leaves the job's own ending", async () => {
+test("a stop that comes once the agent exited on its own leaves the job's own ending", async (t) => {
 	// The agent exits at once; a process it left keeps its output open, so the wrapper is still reading it for a while.
-	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, "sleep 300 &", `echo $$ > '${dir}/pid'`, "exit 0"]);
+	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, `sleep 300 & echo $! > '${dir}/holder'`, `echo $$ > '${dir}/pid'`, "exit 0"]);
+	reap(t, join(dir, "holder"));
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
@@ -218,9 +229,10 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
 });
 
-test("a stop that comes once the agent exited on a provider error rules out the resume (AR0571)", async () => {
+test("a stop that comes once the agent exited on a provider error rules out the resume (AR0571)", async (t) => {
 	const overloaded = { ...JSON.parse(spent(0, "error")).message, errorMessage: "529 overloaded_error" };
-	const { agent, dir } = script((dir) => [`echo '${JSON.stringify({ type: "message_end", message: overloaded })}'`, "sleep 300 &", `echo $$ >> '${dir}/pid'`, "exit 1"]);
+	const { agent, dir } = script((dir) => [`echo '${JSON.stringify({ type: "message_end", message: overloaded })}'`, `sleep 300 & echo $! > '${dir}/holder'`, `echo $$ >> '${dir}/pid'`, "exit 1"]);
+	reap(t, join(dir, "holder"));
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
@@ -235,11 +247,11 @@ for (const scoped of [true, false])
 	test(`a process the agent left holding its output open delays the job's end by the grace only; ${scoped ? "its scope kills it" : "bare, it runs on"}`, { skip: scoped && !manager && "no systemd user manager" }, async (t) => {
 		if (!scoped) bare(t);
 		const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, `sleep 300 & echo $! > '${dir}/holder'`, `echo $$ > '${dir}/pid'`, "exit 0"]);
+		reap(t, join(dir, "holder"));
 		const { home, jobs } = setup(agent);
 		const job = await jobs.spawn({ task: "Go." });
 		const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
 		const holder = Number(read(join(dir, "holder")));
-		t.after(() => void (alive(holder) && process.kill(holder, "SIGKILL")));
 		await until("the agent's exit", () => !alive(pid));
 		const exited = Date.now();
 		assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);

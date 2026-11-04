@@ -7,8 +7,7 @@ import { readState, writeState } from "./uptime-state.ts";
 // called. A site is down after 2 failed checks in a row: one `notice` with its URL, the reason and since when, and the event
 // `uptime-down`; once it answers again, one notice with how long it was down, and `uptime-up`. When no site answers at all,
 // nor any probe outside the projects, this machine is taken as offline: one notice for it, none per site. What is down
-// survives a restart (uptime-state.ts).
-// docs/uptime.md.
+// survives a restart (uptime-state.ts). docs/uptime.md.
 
 export type { UptimeOptions };
 
@@ -78,8 +77,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 				} else if (checked.length === sites.length && silent(checks) && !reached && reaching(checked, checks) && telling()) {
 					offline = at;
 					for (const site of sites) if (site.down === undefined) [site.fails, site.first] = [0, undefined];
-					const asked = probes.length === 0 ? "" : `, nor ${probes.join(" nor ")}`;
-					notice(`none of the ${sites.length} sites answers (${checked[0]?.url}: ${failed(checks[0] as Check)?.reason})${asked}, so this machine looks offline and the checks cannot run; one notice follows when a site answers again`);
+					notice(`none of the ${sites.length} sites answers (${checked[0]?.url}: ${failed(checks[0] as Check)?.reason})${probes.length === 0 ? "" : `, nor ${probes.join(" nor ")}`}, so this machine looks offline and the checks cannot run; one notice follows when a site answers again`);
 					return save();
 				}
 				checked.forEach((site, index) => {
@@ -106,8 +104,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 				let [checked, checks, reached] = [due, await checkAll(due), false];
 				// Before a site goes down for want of an answer, every other site and each probe is asked too: when none answers, this
 				// machine is offline. While it is, the probes are asked when no site answers, so a site down meanwhile is still told.
-				const asking = offline === undefined ? reaching(checked, checks) && telling() : silent(checks);
-				if (asking) {
+				if (offline === undefined ? reaching(checked, checks) && telling() : silent(checks)) {
 					const rest = offline === undefined ? sites.filter((site) => !due.includes(site)) : [];
 					const [more, answers] = await Promise.all([checkAll(rest), Promise.all(probes.map((url) => probe(url, LIMIT_SECONDS)))]);
 					[checked, checks, reached] = [[...due, ...rest], [...checks, ...more], answers.includes(true)];

@@ -255,7 +255,7 @@ test("a retro whose decision log cannot be read still starts, the Repeats sectio
 		throw new Error("unknown project acme");
 	});
 	const job = await env.fake.host.jobs.spawn({ task: RETRO_TASK, kind: "retro" });
-	assert.ok(env.read(job.id, "prompt").includes("\n### Repeats\n\nnot read: unknown project acme\n\n### Board\n"));
+	assert.ok(env.read(job.id, "prompt").includes("\n### Repeats\n\nnot read: unknown project acme\n\n### Corrections\n"));
 });
 
 test("a retro after a filed one gets the digest from the day of that retro's commit", async (t) => {

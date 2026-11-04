@@ -21,6 +21,10 @@ export type Role = {
 export type PromptFiles = { readonly vision: string; readonly criteriaDir: string; readonly rolesDir: string };
 const PROJECT_FILES: PromptFiles = { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" };
 
+// The section every job's prompt holds once, after its criteria files, before the plugins' sections (jobs.ts); a role read
+// outside a spawn, as the coordinator's is, goes without it and states its own rules.
+export const EVERY_JOB = readFileSync(new URL("../roles/every-job.md", import.meta.url), "utf8").trim();
+
 // A project's `prompts` over the defaults, each absolute or a path inside its repository (the core reads it there), else refused.
 export function promptFiles(project: { readonly name: string; readonly prompts?: unknown }): PromptFiles {
 	const files: Readonly<Record<string, unknown>> = { ...PROJECT_FILES, ...(project.prompts ?? {}) };

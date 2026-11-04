@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { type TestContext, test } from "node:test";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { projects } from "../src/projects.ts";
@@ -9,6 +10,8 @@ import { type Listed, projectFolders } from "./folders.ts";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const SKELETON = (path: string) => readFileSync(new URL(`../skeleton/${path}`, import.meta.url), "utf8");
+// The core's package folder, first in a real load's `code`: it ships the worker's `criteria/verify.md`.
+const CORE = dirname(dirname(fileURLToPath(import.meta.resolve("@arthur/core/testing"))));
 const NODE = `${process.versions.node.split(".")[0]}\n`;
 const NEXT = "nothing committed: commit these files, then start the onboarding: arthur spawn --kind onboarding --project shop 'Onboard shop.'";
 
@@ -64,16 +67,18 @@ test("arthur init over an existing board is refused and writes nothing, a board 
 	}
 });
 
-test("an empty repository gets the vision and criteria skeletons, an .nvmrc and an empty board; a second init is refused", async (t) => {
+test("an empty repository gets the vision and criteria skeletons, the core's verify.md, an .nvmrc and an empty board; a second init is refused", async (t) => {
 	const shop = repository({}, false);
-	const fake = await load([{ name: "shop", prefix: "SH", path: shop }]);
-	const created = ["spec/vision.md", ".agents/arthur/criteria/styleguide.md", ".agents/arthur/criteria/autopilot.md", ".agents/arthur/criteria/report.md", ".nvmrc", "spec/build.json"];
+	const fake = await load([{ name: "shop", prefix: "SH", path: shop }], undefined, [CORE]);
+	const created = ["spec/vision.md", ".agents/arthur/criteria/styleguide.md", ".agents/arthur/criteria/verify.md", ".agents/arthur/criteria/autopilot.md", ".agents/arthur/criteria/report.md", ".nvmrc", "spec/build.json"];
 	const board = () => fake.collect<readonly { name: string; check: () => string }[]>("doctor")[0]?.find((each) => each.name === "shop board")?.check();
 	assert.equal(board(), "missing: no spec/build.json");
 	assert.deepEqual(await init(t, fake, ["shop"]), { code: undefined, out: [`created: ${created.join(", ")}`, "left as it was: nothing", NEXT].join("\n"), err: "" });
 	assert.equal(board(), "ok", "doctor finds the board init wrote");
 	const read = (path: string) => readFileSync(join(shop, path), "utf8");
-	assert.deepEqual(created.map(read), [SKELETON("vision.md"), SKELETON("criteria/styleguide.md"), SKELETON("criteria/autopilot.md"), SKELETON("criteria/report.md"), NODE, "[]\n"]);
+	const verify = readFileSync(join(CORE, "criteria/verify.md"), "utf8");
+	assert.deepEqual(created.map(read), [SKELETON("vision.md"), SKELETON("criteria/styleguide.md"), verify, SKELETON("criteria/autopilot.md"), SKELETON("criteria/report.md"), NODE, "[]\n"]);
+	assert.match(verify, /^# Verify\n\n(## .+\n\n)+## The report\n$/, "the verify criteria's headings, nothing under them");
 	assert.match(SKELETON("vision.md"), /^# Vision\n\n## Purpose\n/);
 	assert.match(SKELETON("criteria/report.md"), /^# Report\n\n## Palette\n\n(## .+\n\n)+## The check\n$/, "the page criteria's headings, nothing under them");
 	assert.deepEqual(fake.host.board.list("shop"), [], "the board reads as an empty one");
@@ -88,7 +93,7 @@ test("an empty repository gets the vision and criteria skeletons, an .nvmrc and 
 test("init writes a skeleton for each criteria file a registered role reads, its title alone when none is shipped", async (t) => {
 	const shop = repository({ "README.md": "# Shop\n" });
 	const fake = await load([{ name: "shop", prefix: "SH", path: shop }], ["code-review", "styleguide"]);
-	assert.equal((await init(t, fake, ["shop"])).out.split("\n")[0], "created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/code-review.md, .nvmrc, spec/build.json");
+	assert.equal((await init(t, fake, ["shop"])).out.split("\n")[0], "created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/verify.md, .agents/arthur/criteria/code-review.md, .nvmrc, spec/build.json");
 	assert.equal(readFileSync(join(shop, ".agents/arthur/criteria/code-review.md"), "utf8"), "# Code review\n");
 	assert.equal(existsSync(join(shop, ".agents/arthur/criteria/autopilot.md")), false, "no registered role reads autopilot here");
 });
@@ -101,7 +106,7 @@ test("a criteria file a package of the load ships is written as it ships it; thi
 	ship(manage, "audit", "# Audit\n\n## The question\n\nWhat would the owner want fixed?\n");
 	ship(later, "audit", "# Later audit\n");
 	const fake = await load([{ name: "shop", prefix: "SH", path: shop }], ["styleguide", "audit", "code-review"], [bare, theirs, manage, later]);
-	assert.equal((await init(t, fake, ["shop"])).out.split("\n")[0], "created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/audit.md, .agents/arthur/criteria/code-review.md, .nvmrc, spec/build.json");
+	assert.equal((await init(t, fake, ["shop"])).out.split("\n")[0], "created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/verify.md, .agents/arthur/criteria/audit.md, .agents/arthur/criteria/code-review.md, .nvmrc, spec/build.json");
 	const read = (name: string) => readFileSync(join(shop, ".agents/arthur/criteria", `${name}.md`), "utf8");
 	assert.deepEqual(["styleguide", "audit", "code-review"].map(read), [SKELETON("criteria/styleguide.md"), "# Audit\n\n## The question\n\nWhat would the owner want fixed?\n", "# Code review\n"]);
 });
@@ -125,7 +130,7 @@ test("an existing .nvmrc is kept unchanged, and so is the owner's vision, a syml
 	const { code, out } = await init(t, fake, ["shop"]);
 	assert.equal(code, undefined);
 	assert.deepEqual(out.split("\n").slice(0, 2), [
-		"created: .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/report.md, spec/build.json",
+		"created: .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/verify.md, .agents/arthur/criteria/report.md, spec/build.json",
 		"left as it was: spec/vision.md, .agents/arthur/criteria/autopilot.md, .nvmrc",
 	]);
 	assert.deepEqual([readFileSync(join(shop, ".nvmrc"), "utf8"), readFileSync(join(shop, "spec/vision.md"), "utf8")], ["18.20.0\n", "# Shop\n\nSells tools.\n"]);

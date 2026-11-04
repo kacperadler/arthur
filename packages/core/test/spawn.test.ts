@@ -51,7 +51,7 @@ const jobs = (root: string) => (existsSync(join(root, ".arthur/jobs")) ? readdir
 test("arthur spawn prints the id of a worker on its own branch, with the record and job-started", () => {
 	const root = repository();
 	const run = arthur(root, "spawn", "Ticket: spec/features/AC0001-one/ticket.md. Build it.", "--model", "anthropic/opus");
-	const warning = "warning: criteria file .agents/arthur/criteria/styleguide.md is missing; the worker goes without it\n";
+	const warning = ["styleguide", "verify"].map((name) => `warning: criteria file .agents/arthur/criteria/${name}.md is missing; the worker goes without it\n`).join("");
 	assert.deepEqual([run.status, run.stderr], [0, warning]);
 	const id = run.stdout.trim();
 	assert.match(run.stdout, /^\d{4}-\d\d-\d\d-worker-[0-9a-f]{8}\n$/);
@@ -243,7 +243,7 @@ test("two arthur spawn processes at once get distinct ids, branches and worktree
 test("a worker's start moves its ticket to in-progress, other kinds' do not", () => {
 	const root = repository();
 	const task = "Ticket: spec/features/AC0001-one/ticket.md. Build it.";
-	const warning = "warning: criteria file .agents/arthur/criteria/styleguide.md is missing; the worker goes without it\n";
+	const warning = ["styleguide", "verify"].map((name) => `warning: criteria file .agents/arthur/criteria/${name}.md is missing; the worker goes without it\n`).join("");
 	const status = () => JSON.parse(readFileSync(join(root, "spec/build.json"), "utf8"))[0].status;
 	assert.deepEqual(arthur(root, "spawn", "--kind", "review", task).stderr, "");
 	assert.equal(status(), "planned");

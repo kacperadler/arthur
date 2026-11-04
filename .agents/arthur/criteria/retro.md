@@ -16,13 +16,13 @@ Which sentence, had it been in a role, a procedure or a criteria file, would hav
 
 ## A good proposal
 
-- One paragraph of one file, a role, a procedure or a criteria file, quoted before and after.
-- The smallest change that would have prevented every FAIL and finding in its Evidence: a sentence added, sharpened, or moved to where the job reads it.
+- One paragraph or function of one file, a role, a procedure, a criteria file or the code, quoted before and after.
+- The highest layer that would have prevented every FAIL, finding and correction in its Evidence: code that makes the mistake impossible, then a check (a test, a guard, a `merge.check`), then a sentence added, sharpened, or moved to where the job reads it; a sentence only with the reason the other two cannot hold. A rule already written and still broken twice is a check, not a rewording.
 - It names which role would have read the sentence and when: a worker before it commits, a reviewer before its verdict.
 
 ## Leave alone
 
-- Code, tests and the project's vision: the audit proposes code, the owner owns the vision. The one exception is a code default for a decision shape the owner answered the same way 3 or more times, as above.
+- The project's vision: the owner owns it.
 - A paragraph that already says the right thing and was ignored once; a pattern needs two.
 - Rewording for taste, reordering, and churn that would not have changed a single verdict.
 - Anything a ticket on the board already covers.

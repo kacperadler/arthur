@@ -15,7 +15,7 @@ import type { Jobs } from "./host-jobs.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin-host.ts";
 import { spawnChecks } from "./spawn-check.ts";
-import { type Collect, describeRoles, prompt, type Role, roleModel, roleReads, roleRegistry, type RoleView } from "./roles.ts";
+import { type Collect, describeRoles, EVERY_JOB, prompt, type Role, roleModel, roleReads, roleRegistry, type RoleView } from "./roles.ts";
 import { type Caps, jobCaps, jobEnv, launch, type Slice, sayUncapped } from "./job-scope.ts";
 import { pickModel } from "./job-model.ts";
 import type { Board } from "./board.ts";
@@ -142,7 +142,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 				let [warnings, added, env] = [[] as string[], false, {} as Readonly<Record<string, string>>];
 				try {
 					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
-					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job])), named = bus.hide(built.prompt);
+					const built = prompt(role, there === undefined ? job.worktree : root, files, () => [EVERY_JOB, ...collect("prompt", [role.name, job])]), named = bus.hide(built.prompt);
 					warnings = [...built.warnings, ...(there !== undefined && preset.mcp ? [`MCP servers left out on ${machine.name}, which Arthur sends no MCP secret (arthur spawn --help, "On another machine"): ${Object.keys(preset.mcp).join(", ")}`] : [])];
 					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [], extensions }, time.now()];
 					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: named, kind: own, idleMinutes: limits.idleMinutes, unsandboxed: limits.unsandboxed, since: since.toISOString() });
@@ -165,6 +165,6 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		},
 	};
 	runner.registerKind("core", { name: "worker", readOnly: false, role: "worker" });
-	runner.registerRole("core", { name: "worker", file: new URL("../roles/worker.md", import.meta.url), criteria: ["styleguide"] });
+	runner.registerRole("core", { name: "worker", file: new URL("../roles/worker.md", import.meta.url), criteria: ["styleguide", "verify"] });
 	return runner;
 }

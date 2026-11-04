@@ -10,7 +10,7 @@ import { stats } from "./stats.ts";
 
 // The retro (spec/roadmap.md, entry 63): the kind `retro`, read-only, with the retro role and the retro criteria; every retro's
 // prompt gets the FAIL reviews, findings and outcomes of the merges since the last retro (retro-due.ts), the stats, the digest
-// of `arthur repeats` (repeats.ts), the board, and the roles and criteria; `arthur retro-due`, also the coordinator's context
+// of `arthur repeats` (repeats.ts), the jobs' corrections, the board, and the roles and criteria; `arthur retro-due`, also the coordinator's context
 // line; the schedule entry of `retro.day` and `retro.at`, which starts none while no retro is due; the filing with its phone page
 // (report-file.ts), `/retro` sending the newest page, and the procedure its end brings. docs/manage.md, "The retro".
 
@@ -105,8 +105,8 @@ function shipped(host: Host, root: string): string[] {
 	);
 }
 
-// The section every retro's prompt gets, from the project's checkout: the period, each merged ticket's files to read, the stats
-// and the repeats digest since the last retro's commit, the board, and the roles and criteria.
+// The section every retro's prompt gets, from the project's checkout: the period, each merged ticket's files to read, the stats,
+// the repeats digest and the corrections since the last retro's commit, the board, and the roles and criteria.
 function context(host: Host, job: Job): string {
 	const look = period(host, job.project, job.base);
 	const merged = look.merged.map((each) => {
@@ -119,6 +119,7 @@ function context(host: Host, job: Job): string {
 		`### Merges since ${look.since}\n\n${retroDue(look).line}\n\n${merged.join("\n") || "none"}`,
 		`### Stats\n\n${stats(host, job.project, look.made)}`,
 		repeatsOf(host, job.project, look.made),
+		corrections(host, job.project, look.made),
 		`### Board\n\n${host.board.digest(job.project)}`,
 		`### Roles and criteria\n\nThe files the plugins ship:\n${shipped(host, look.project.path).map((file) => `- ${file}`).join("\n") || "none"}\n\nThe project's own criteria files, beside the retro criteria above: ${host.jobs.criteria().join(", ")}.`,
 	].join("\n\n");
@@ -132,4 +133,18 @@ function repeatsOf(host: Host, project: string, made: Date | undefined): string 
 	} catch (error) {
 		return `### Repeats\n\nnot read: ${(error as Error).message.split("\n")[0]}`;
 	}
+}
+
+// The project's jobs' steers and continues since `made` (`job-started` names a job's project), by first sentence, most first.
+function corrections(host: Host, project: string, made: Date | undefined): string {
+	const [projects, counts] = [new Map<unknown, unknown>(), new Map<string, number>()];
+	for (const { name, time, data } of host.events.read(0)) {
+		const { id, project: of, text } = (data ?? {}) as Readonly<Record<string, unknown>>;
+		if (name === "job-started") projects.set(id, of);
+		if (name !== "job-steered" || typeof text !== "string" || projects.get(id) !== project || Date.parse(time) < (made?.getTime() ?? 0)) continue;
+		const first = text.trim().split(/(?<=[.!?])\s|\n/)[0]?.slice(0, 200) ?? "";
+		counts.set(first, (counts.get(first) ?? 0) + 1);
+	}
+	const lines = [...counts].sort(([, a], [, b]) => b - a).map(([first, count]) => `- ${count}: ${first}`);
+	return `### Corrections\n\nSteers and continues of the project's jobs, by first sentence, most frequent first:\n\n${lines.join("\n") || "none"}`;
 }

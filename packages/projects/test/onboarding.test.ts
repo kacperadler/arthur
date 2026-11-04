@@ -49,7 +49,7 @@ test("the kind onboarding has its own branch and role, and its prompt names the 
 	const { fake, home } = await load();
 	assert.deepEqual(fake.kinds, [{ name: "onboarding", readOnly: false, role: "onboarding" }]);
 	assert.deepEqual(fake.roles.map((role) => [role.name, role.criteria]), [["onboarding", ["styleguide"]]]);
-	const section = "## The files this onboarding drafts\n\n- The vision: `spec/vision.md`\n- The criteria: `.agents/arthur/criteria/styleguide.md`\n\nIts merge accepts only `spec/vision.md` and `.agents/arthur/criteria/*.md`.";
+	const section = "## The files this onboarding drafts\n\n- The vision: `spec/vision.md`\n- The criteria: `.agents/arthur/criteria/styleguide.md`, `.agents/arthur/criteria/verify.md`\n\nIts merge accepts only `spec/vision.md` and `.agents/arthur/criteria/*.md`.";
 	assert.deepEqual(fake.collect("prompt", "worker", { project: "shop" }), [undefined]);
 	const id = await onboard(t, fake, home, "## Repository\nA shop.\n");
 	const prompt = readFileSync(join(home, "jobs", id, "prompt"), "utf8");

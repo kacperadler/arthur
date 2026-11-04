@@ -71,8 +71,17 @@ test("at READY the phone commands become the server's / menu, each with its abou
 	for (const name of ["jobs", "board"]) phone(fourth.fake.host, name, () => "");
 	await fourth.plugin.start?.();
 	await until("set again after the broken record", () => puts(api).length === 3);
+	// The PUT is answered before the record is rewritten: wait for the record itself, a read of "{ broken" being not yet.
+	const record = () => {
+		try {
+			return JSON.parse(readFileSync(join(folder, "commands.json"), "utf8")) as Record<string, unknown>;
+		} catch {
+			return undefined;
+		}
+	};
+	await until("the record rewritten", record);
 	await fourth.plugin.stop?.();
-	assert.deepEqual(Object.keys(JSON.parse(readFileSync(join(folder, "commands.json"), "utf8"))), [`${BOT}/${GUILD}`]);
+	assert.deepEqual(Object.keys(record() ?? {}), [`${BOT}/${GUILD}`]);
 });
 
 test("no phone commands empties the menu; a refused PUT is one line without the token, the record unchanged, and the next start sets it", async (t) => {

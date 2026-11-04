@@ -39,3 +39,4 @@ Out:
 - Switching git to HTTPS: not needed, the key works when GitHub does.
 
 ## Decisions
+- 2026-11-04: AR0619 approved; the owner: "AR-D492 - approve" (AR-D492)

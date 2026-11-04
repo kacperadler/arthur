@@ -213,6 +213,8 @@ export default defineConfig({
 		// `turn failed on <host>: <reason>` for each coordinator turn that fails before any text.
 		session({
 			compactAt: ["08:00", "13:00", "18:00"], // "HH:MM" each; [] = never; running jobs do not hold a compaction back
+			compactOn: "schedule", // what compacts it: "schedule" (compactAt), "context" (compactAtPercent) or "both", whichever first
+			compactAtPercent: 80, // with "context" or "both": once a turn ends with the conversation at this % of its context window
 			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
 			freshAt: "23:00", // "HH:MM"; a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) runs
 			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15

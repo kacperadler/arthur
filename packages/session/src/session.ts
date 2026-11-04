@@ -1,4 +1,4 @@
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe } from "@arthur/core";
@@ -10,7 +10,8 @@ import { noteService, SERVICE, serviceRequirements } from "./service.ts";
 import { DEFAULTS, table, time } from "./session-options.ts";
 import { startNotice, turnFailures } from "./start-notice.ts";
 
-// The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, new at
+// The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, or once
+// a turn ends with it at `compactAtPercent` of its context window (`compactOn`), new at
 // `freshAt` once no job runs, restarted on `/restart`, each after a handoff the coordinator writes and the next conversation
 // reads first. `arthur run` asks for each in `<home>/session/request.json` and acts on its outcome (restart.ts for restarts);
 // the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part; the restart guard
@@ -22,6 +23,8 @@ import { startNotice, turnFailures } from "./start-notice.ts";
 export type SessionOptions = {
 	readonly enabled?: boolean;
 	readonly compactAt?: readonly string[];
+	readonly compactOn?: "schedule" | "context" | "both";
+	readonly compactAtPercent?: number;
 	readonly compactWaitSeconds?: number;
 	readonly freshAt?: string;
 	readonly freshRetryMinutes?: number;
@@ -31,6 +34,8 @@ export type SessionOptions = {
 };
 
 const EXTENSIONS = ["handoff-extension.ts", "turn-extension.ts"].map((file) => fileURLToPath(new URL(file, import.meta.url)));
+// The share of its context window the conversation used at its last turn's end, as the turn extension leaves it.
+const CONTEXT_USE = "context-use";
 const TICK_MS = 500;
 
 export function session(options: SessionOptions = {}): Plugin {
@@ -58,8 +63,8 @@ export function session(options: SessionOptions = {}): Plugin {
 		},
 		async start() {
 			if (host === undefined) return;
-			// One left by an `arthur run` before this one is not done late.
-			rmSync(join(host.folder, REQUEST), { force: true });
+			// One left by an `arthur run` before this one is not done late, nor a report it did not read.
+			for (const file of [REQUEST, CONTEXT_USE]) rmSync(join(host.folder, file), { force: true });
 			if (options.restartGuard ?? DEFAULTS.restartGuard) noteLoaded(host);
 			await noteService(host.folder);
 			stopProbe = startNotice(host, options.probeLlm ?? DEFAULTS.probeLlm, missing);
@@ -86,25 +91,40 @@ export function session(options: SessionOptions = {}): Plugin {
 }
 
 // Every 500 ms: the outcome of a compaction, printed once its agent wrote it; one no agent took within its wait, or whose agent
-// is gone, dropped without a word (no session ran); and at a slot, a request, unless one is still there.
+// is gone, dropped without a word (no session ran); and a request, unless one is still there: at a slot, and at a turn's report
+// of `compactAtPercent` or more, read once, which then asks again only after a compaction done or a report below it. The trigger
+// reads only its conversation's folder and the options, so another conversation can run its own on its own folder.
 function compactions(host: Host): () => void {
-	const { compactAt = DEFAULTS.compactAt, compactWaitSeconds = DEFAULTS.compactWaitSeconds } = host.options as SessionOptions;
-	const file = join(host.folder, REQUEST);
+	const { compactOn = DEFAULTS.compactOn, compactAtPercent = DEFAULTS.compactAtPercent, compactWaitSeconds = DEFAULTS.compactWaitSeconds } = host.options as SessionOptions;
+	const compactAt = compactOn === "context" ? [] : ((host.options as SessionOptions).compactAt ?? DEFAULTS.compactAt);
+	const [file, use] = [join(host.folder, REQUEST), join(host.folder, CONTEXT_USE)];
 	const upcoming = () => compactAt.map((time) => ({ time, at: host.clock.next(time) })).sort((a, b) => a.at.getTime() - b.at.getTime())[0];
 	let next = upcoming();
+	let armed = true;
+	// Slots passed together, or a trigger while a compaction or a restart is still asked for, ask for one, never queue a second.
+	const ask = (slot: string) => {
+		if (existsSync(file)) return false;
+		const asked: Request = { then: "compact", slot, asked: Date.now(), waitSeconds: compactWaitSeconds };
+		put(file, JSON.stringify(asked));
+		return true;
+	};
 	return () => {
 		const request = readRequest(host.folder);
 		if (request?.then === "compact" && (request.line !== undefined || (request.pid === undefined ? Date.now() - request.asked >= request.waitSeconds * 1000 : !alive(request.pid)))) {
 			rmSync(file, { force: true });
 			if (request.line !== undefined) console.log(`session: ${request.line}`);
+			if (request.line?.startsWith("compact: done")) armed = true;
+		}
+		const percent = existsSync(use) ? Number(readFileSync(use, "utf8")) : Number.NaN;
+		rmSync(use, { force: true });
+		if (compactOn !== "schedule" && Number.isFinite(percent)) {
+			if (percent < compactAtPercent) armed = true;
+			else if (armed && ask(`context ${percent}%`)) armed = false;
 		}
 		if (next === undefined || host.clock.now() < next.at) return;
-		// Slots passed together, or one while a compaction or a restart is still asked for, ask for one, never queue a second.
 		const slot = next.time;
 		next = upcoming();
-		if (existsSync(file)) return;
-		const asked: Request = { then: "compact", slot, asked: Date.now(), waitSeconds: compactWaitSeconds };
-		put(file, JSON.stringify(asked));
+		ask(slot);
 	};
 }
 

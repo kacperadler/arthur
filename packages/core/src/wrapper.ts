@@ -121,15 +121,16 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 		overCap = what;
 		halt("memory");
 	});
-	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, place, extensions), secrets, "env", note, "the install", unsandboxed === "true")(cached(join(folder, "cache"), command)), note, (chunk) => installed.push(chunk), (running) => (child = running)).catch((error: Error) => error).finally(installed.end).finally(() => stopping); // The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, its sandbox's refusal (`no sandbox: ...`) included, or a stop or a limit during it, starts no agent, and the job ends only once the stop of the install's group is over (AR0481).
+	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, place, extensions), secrets, "env", note, "the install", unsandboxed === "true")(["GIT_NO_REPLACE_OBJECTS=1", ...cached(join(folder, "cache"), command)]), note, (chunk) => installed.push(chunk), (running) => (child = running)).catch((error: Error) => error).finally(installed.end).finally(() => stopping); // The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, its sandbox's refusal (`no sandbox: ...`) included, or a stop or a limit during it, starts no agent, and the job ends only once the stop of the install's group is over (AR0481).
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over; its npm's cache is the install's, the record's, never the shared one (AR0456).
+	// Its git, as the install's, reads past a replacement (refs/replace) whatever core.useReplaceRefs a program of the job sets (AR0621).
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
 		note(`agent: ${agent} ${argv.join(" ")}`);
 		let command: [string, string[]];
 		try { command = sandboxed(writable(folder, place, extensions), secrets, agent, note, "the agent", unsandboxed === "true")(argv); } catch (error) { failure = error as Error; return [null, null]; } // `no sandbox: ...` starts no agent.
 		const stream = agentStream(), errors = namedChunks(hide, (text) => save("log", text, true));
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-		const running = oomFirst(() => spawn(...command, { cwd: worktree, env: { ...process.env, ...unsigned(process.env), npm_config_cache: join(folder, "cache", "npm"), ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
+		const running = oomFirst(() => spawn(...command, { cwd: worktree, env: { ...process.env, ...unsigned(process.env), GIT_NO_REPLACE_OBJECTS: "1", npm_config_cache: join(folder, "cache", "npm"), ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
 		[child, playing] = [running, true];
 		for (const pipe of [running.stdout, running.stderr]) pipe.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {

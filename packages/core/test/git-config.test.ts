@@ -96,7 +96,7 @@ test("a replacement a mirror push writes is read past once the check ran, which 
 	assert.equal(checkConfig(m).refusal, "");
 	git(other, "push", "--quiet", "--mirror", m);
 	assert.equal(git(m, "rev-parse", `refs/replace/${tip}`), planted, "the push wrote it");
-	const reads = (root: string) => [git(root, "status", "--porcelain"), git(root, "log", "-1", "--format=%s")];
+	const reads = (root: string, pins: readonly string[] = []) => [git(root, ...pins, "status", "--porcelain"), git(root, ...pins, "log", "-1", "--format=%s")];
 	assert.deepEqual(reads(m), ["", "tip"]);
 	const linked = join(temporaryFolder(), "linked");
 	git(m, "worktree", "add", "--quiet", "-b", "job", linked);
@@ -111,8 +111,13 @@ test("a replacement a mirror push writes is read past once the check ran, which 
 	for (const [root, where, write] of undo) {
 		write();
 		assert.deepEqual(reads(root), ["D  planted.txt", "planted"], `${where}: read again`);
-		assert.equal(checkConfig(root).refusal, "", where);
+		const { refusal, pins } = checkConfig(root);
+		assert.equal(refusal, "", where);
 		assert.deepEqual(reads(root), ["", "tip"], `${where}: read past again`);
+		// Undone again between the check and the call: the call's pins read past all the same (AR0621).
+		write();
+		assert.deepEqual(reads(root, pins), ["", "tip"], `${where}: undone after the check, read past by the pins`);
+		assert.equal(checkConfig(root).refusal, "", `${where}: set to false again for the next row`);
 	}
 	git(m, "config", "--worktree", "core.useReplaceRefs", "true");
 	chmodSync(join(m, ".git"), 0o555);
@@ -145,7 +150,7 @@ test("a passed check pins each key Git reads by a fixed name to the owner's conf
 	const user = join(temporaryFolder(), "gitconfig");
 	writeFileSync(user, "");
 	owner(t, user);
-	const defaults = ["gpg.ssh.defaultkeycommand=", "commit.gpgsign=false", "gpg.format=openpgp", "gpg.program=gpg", "gpg.ssh.program=ssh-keygen", "gpg.x509.program=gpgsm", "protocol.ext.allow=never"];
+	const defaults = ["gpg.ssh.defaultkeycommand=", "commit.gpgsign=false", "gpg.format=openpgp", "gpg.program=gpg", "gpg.ssh.program=ssh-keygen", "gpg.x509.program=gpgsm", "protocol.ext.allow=never", "core.useReplaceRefs=false"];
 	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=", ...defaults), "nothing set: Git's defaults");
 	process.env.SSH_ASKPASS = "/usr/bin/ssh-askpass";
 	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=/usr/bin/ssh-askpass", ...defaults), "SSH_ASKPASS, which Git asks last");
@@ -167,7 +172,7 @@ test("a passed check pins each key Git reads by a fixed name to the owner's conf
 	assert.deepEqual(
 		checkConfig(root).pins,
 		c(...["credential.helper=", "credential.helper=first", "credential.helper=", "credential.helper=second", "credential.https://example.com.helper=url", "core.sshcommand=command ssh", "core.askpass=asks"],
-			...["gpg.ssh.defaultkeycommand=key", "commit.gpgsign=true", "gpg.format=ssh", "gpg.program=gpg two", "gpg.ssh.program=keygen", "gpg.x509.program=gpgsm two", "protocol.ext.allow=never"]),
+			...["gpg.ssh.defaultkeycommand=key", "commit.gpgsign=true", "gpg.format=ssh", "gpg.program=gpg two", "gpg.ssh.program=keygen", "gpg.x509.program=gpgsm two", "protocol.ext.allow=never", "core.useReplaceRefs=false"]),
 		"the owner's, the last one of each, in the order Git reads them; gpg.openpgp.program is gpg.program; a key with no value is true",
 	);
 });

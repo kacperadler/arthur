@@ -606,6 +606,22 @@ test("where the user's Git config signs with a key in ~/.ssh, a job's install an
 	assert.deepEqual([outside.status, /failed to write commit object/.test(outside.stderr)], [128, true], outside.stderr);
 });
 
+test("a job's install and agent read past a replacement (refs/replace) that a program of the job writes after the spawn, with core.useReplaceRefs set to true (AR0621)", async () => {
+	const { folder, root, home } = repository();
+	// The replacement and the setting, then what `git log` reads with the job's environment, and without GIT_NO_REPLACE_OBJECTS.
+	const plant = (name: string) =>
+		`planted=$(git commit-tree "HEAD^{tree}" -m planted) && git replace -f HEAD "$planted" && git config core.useReplaceRefs true && { git log -1 --format=%s; env -u GIT_NO_REPLACE_OBJECTS git log -1 --format=%s; } > ${name}.read 2>&1`;
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n${plant("agent")}\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-11-04T08:00:00Z"));
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: plant("install") }));
+	const job = await jobs.spawn({ task: "Plant." });
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const worktree = readFileSync(join(home, "jobs", job.id, "worktree"), "utf8");
+	for (const name of ["install", "agent"]) assert.equal(readFileSync(join(worktree, `${name}.read`), "utf8"), "first\nplanted\n", name);
+});
+
 // A config in `folder` with the env file `envFile` and the home `home`: orchestration, `secret`, whose `leak` prints its token,
 // and `plain`, whose `plain` needs none; both commands run inside a job.
 function tokenConfig(folder: string, envFile: string, home: string): string {

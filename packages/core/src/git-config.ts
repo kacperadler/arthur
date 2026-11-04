@@ -31,8 +31,9 @@ const PINNED = { "commit.gpgsign": "false", "gpg.format": "openpgp", "gpg.progra
 
 // Before an Arthur git call that may run a program at `root`: `refusal`, the first key of its own config outside ALLOWED with the file that sets it, "" when
 // none (Git lists a section and a key in lower case); `pins`, that call's `-c`: PINNED and the keys below, the credential helpers reset by an empty one and
-// then the owner's again, no `ext::`. Unset, Git runs GIT_SSH or ssh, SSH_ASKPASS or no askpass, no key command. In a repository, it sets core.useReplaceRefs
-// to false again where the last value is not: Git then reads past a replacement (refs/replace) a job wrote by any refspec, its config's too (AR0615).
+// then the owner's again, no `ext::`, and core.useReplaceRefs=false, which a job may set to true between the check and the call (AR0621). Unset, Git runs
+// GIT_SSH or ssh, SSH_ASKPASS or no askpass, no key command. In a repository, it sets core.useReplaceRefs to false again where the last value is not: Git
+// then reads past a replacement (refs/replace) a job wrote by any refspec, its config's too (AR0615).
 export function checkConfig(root: string): { readonly refusal: string; readonly pins: readonly string[] } {
 	const listed = spawnSync("git", ["-C", root, "config", "--list", "--show-scope", "--show-origin", "-z"], { encoding: "utf8" });
 	if (listed.status !== 0) return { refusal: `git config --list in ${root}: ${listed.error?.message ?? (listed.stderr.trim().split("\n").at(-1) || `exit code ${listed.status}`)}`, pins: [] };
@@ -55,5 +56,5 @@ export function checkConfig(root: string): { readonly refusal: string; readonly 
 	const set = target.length > 0 && spawnSync("git", ["-C", root, "config", ...target, "--replace-all", "core.useReplaceRefs", "false"], { encoding: "utf8" });
 	if (set && set.status !== 0 && spawnSync("git", ["-C", root, "rev-parse"]).status === 0)
 		return { refusal: `git config core.useReplaceRefs false in ${root}: ${set.error?.message ?? set.stderr.trim().split("\n").at(-1)}`, pins: [] };
-	return { refusal: "", pins: [...helpers, ...[...owner].flatMap(([key, value]) => ["-c", `${key}=${value}`]), "-c", "protocol.ext.allow=never"] };
+	return { refusal: "", pins: [...helpers, ...[...owner].flatMap(([key, value]) => ["-c", `${key}=${value}`]), "-c", "protocol.ext.allow=never", "-c", "core.useReplaceRefs=false"] };
 }

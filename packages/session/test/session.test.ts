@@ -406,6 +406,15 @@ test("the options: compactAt times, compactOn, compactAtPercent, compactWaitSeco
 	]);
 });
 
+test("arthur.config.example.ts gives session every option of its table, each one it accepts", () => {
+	const example = readFileSync(new URL("../../../arthur.config.example.ts", import.meta.url), "utf8");
+	const call = /\n\t\tsession\((\{[\s\S]*?\n\t\t\})\),\n/.exec(example);
+	assert.ok(call, "the example calls session({ ... })");
+	const options = Function(`return (${call[1]});`)() as Record<string, unknown>;
+	assert.deepEqual(checkOptions(options), []);
+	assert.deepEqual(Object.keys(options), Object.keys(table));
+});
+
 // Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
 // words for a person, left out.
 function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {

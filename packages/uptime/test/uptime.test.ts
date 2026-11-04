@@ -306,56 +306,80 @@ test("each failure has its reason: a wrong status, the text missing, connection 
 	assert.match(reasons[3] ?? "", /^TLS error \(ERR_SSL_[A-Z_]+\)$/);
 });
 
-// With the probes off, as before them; with the default ones, which do not answer either, the notice names them too.
-for (const probes of [[], undefined]) test(`this machine offline: no site answers, one notice that the checks cannot run, none per site, none again after a restart, ${probes === undefined ? "with the default probes" : "with probes: []"}`, async (t) => {
+test("this machine offline: no notice and no site down, one log line; no site requested, only the probes, a restart too; a probe answering resumes the checks silently", async (t) => {
 	// Both answer once, then a never answers and b's server is gone. b is due only every minute: it is asked again as a goes
-	// down, so both fail at once.
+	// down, so both fail at once, and the probes with them.
+	const logs = t.mock.method(console, "log", () => {});
+	const said = () => logs.mock.calls.map((call) => String(call.arguments[0])).filter((line) => line.startsWith("uptime:"));
 	const [site, other] = [await server(t), await server(t)];
 	Object.assign(site.answers, { "/a": ok });
 	Object.assign(other.answers, { "/b": ok });
 	const [a, b] = [site.url("/a"), other.url("/b")];
 	const sites = { acme: [{ url: a, everySeconds: 1 }], beta: [{ url: b }] };
 	network.up = false;
-	const { fake, plugin, notices, events } = await started(t, sites, host(sites), { probes });
+	const { fake, plugin, notices, events } = await started(t, sites);
 	await until("the first checks", () => site.seen("/a") === 1 && other.seen("/b") === 1);
 	site.answers["/a"] = hang;
 	other.close();
-	await until("the offline notice", () => notices().length === 1);
-	const [nor, or] = probes === undefined ? [", nor https://1.1.1.1/ nor https://dns.google/", " or a probe"] : ["", ""];
-	assert.deepEqual(notices(), [`uptime: none of the 2 sites answers (${a}: no answer within 1 s)${nor}, so this machine looks offline and the checks cannot run; one notice follows when a site${or} answers again`]);
+	await until("the offline log line", () => said().length === 1);
+	assert.deepEqual(said(), ["uptime: none of the 2 sites answers, nor https://1.1.1.1/ nor https://dns.google/, so this machine looks offline: no site is checked, only the probes, until one answers"]);
+	assert.equal(readState(fake.host.folder).offline, START.toISOString());
+	// While offline, each check interval asks the probes and no site.
+	let [checks, asked] = [site.seen("/a"), network.asked.length];
+	await until("the probes asked twice more", () => network.asked.length >= asked + 4);
+	assert.equal(site.seen("/a"), checks, "no site requested while offline");
 	await plugin.stop?.();
-	const restarted = await started(t, sites, fake, { probes });
-	const checks = site.seen("/a");
-	await until("three more checks", () => site.seen("/a") >= checks + 3);
-	assert.equal(restarted.notices().length, 1, "no second offline notice, after a restart too");
+	const restarted = await started(t, sites, fake);
+	[checks, asked] = [site.seen("/a"), network.asked.length];
+	await until("the probes asked twice after the restart", () => network.asked.length >= asked + 4);
+	assert.equal(site.seen("/a"), checks, "no site requested after a restart while offline");
+	assert.deepEqual([notices(), events("uptime-down"), said().length], [[], [], 1]);
+	// Once a probe answers, the checks run again; a, still failing, is down after 2 more failed checks, the only notice.
 	fake.setNow(new Date("2026-01-01T00:05:00Z"));
-	site.answers["/a"] = ok;
-	await until("the notice that the checks run again", () => notices().length === 2);
-	assert.equal(notices()[1], "uptime: a site answers again, so the checks run again, after 5 min without an answer from any site");
-	assert.deepEqual([events("uptime-down"), events("uptime-up")], [[], []]);
-	assert.equal(network.asked.length > 0, probes === undefined, "the probes asked only when there are any");
+	network.up = true;
+	await until("the down notice", () => restarted.notices().length === 1);
+	assert.deepEqual(notices(), [`uptime: ${a} (project acme) is down since 00:05 on thu 2026-01-01 (UTC): no answer within 1 s`]);
+	assert.deepEqual(said().slice(1), ["uptime: a probe answers again, so the site checks run again, after 5 min offline"]);
+	assert.equal(readState(fake.host.folder).offline, undefined);
 });
 
-test("one site and the default probes, none answering: this machine offline, no site down; once a probe answers, the site still failing is down after 2 more failed checks", async (t) => {
+test("one site and the default probes, none answering: offline, nothing sent; once a probe answers, the site still failing needs 2 new failed checks", async (t) => {
+	const logs = t.mock.method(console, "log", () => {});
 	const closed = createServer();
 	await once(closed.listen(0, "127.0.0.1"), "listening");
 	const url = `http://127.0.0.1:${(closed.address() as AddressInfo).port}/`;
 	closed.close();
 	network.up = false;
-	const { fake, notices, events } = await started(t, { acme: [{ url, everySeconds: 1 }] });
-	await until("the offline notice", () => notices().length === 1);
-	assert.deepEqual(notices(), [`uptime: none of the 1 sites answers (${url}: connection refused), nor https://1.1.1.1/ nor https://dns.google/, so this machine looks offline and the checks cannot run; one notice follows when a site or a probe answers again`]);
-	// While offline, the probes are asked again at each check the site fails.
-	const asked = network.asked.length;
-	await until("the probes asked twice more", () => network.asked.length >= asked + 4);
-	assert.deepEqual([notices().length, events("uptime-down")], [1, []]);
+	const { fake, notices } = await started(t, { acme: [{ url, everySeconds: 1 }] });
+	await until("the offline log line", () => logs.mock.callCount() === 1);
 	fake.setNow(new Date("2026-01-01T00:05:00Z"));
 	network.up = true;
-	await until("the down notice", () => notices().length === 3);
-	assert.deepEqual(notices().slice(1), [
-		"uptime: a probe answers again, so the checks run again, after 5 min without an answer from any site",
-		`uptime: ${url} (project acme) is down since 00:05 on thu 2026-01-01 (UTC): connection refused`,
-	]);
+	await until("the down notice", () => notices().length === 1);
+	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since 00:05 on thu 2026-01-01 (UTC): connection refused`]);
+});
+
+test("with probes: [] an offline stored before (as AR0620 could save it) is ignored and cleared: the site is checked and down after 2 failed checks", async (t) => {
+	const site = await server(t);
+	site.answers["/"] = broken;
+	const url = site.url("/");
+	const sites = { acme: [{ url, everySeconds: 1 }] };
+	const fake = host(sites);
+	writeFileSync(join(fake.host.folder, "state.json"), JSON.stringify({ down: {}, offline: START.toISOString() }));
+	const { notices } = await started(t, sites, fake, { probes: [] });
+	await until("the down notice", () => notices().length === 1);
+	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since ${SINCE}: answered 500, expected a 2xx status`]);
+	assert.ok(site.seen("/") >= 2);
+	assert.equal(readState(fake.host.folder).offline, undefined);
+});
+
+test("with probes: [] nothing tells this machine offline apart: two sites with no answer are each down, no probe asked", async (t) => {
+	const site = await server(t);
+	Object.assign(site.answers, { "/a": hang, "/b": hang });
+	const [a, b] = [site.url("/a"), site.url("/b")];
+	const { notices } = await started(t, { acme: [{ url: a, everySeconds: 1 }], beta: [{ url: b, everySeconds: 1 }] }, undefined, { probes: [] });
+	await until("both down notices", () => notices().length === 2);
+	assert.deepEqual(notices().toSorted(), [`uptime: ${a} (project acme) is down since ${SINCE}: no answer within 1 s`, `uptime: ${b} (project beta) is down since ${SINCE}: no answer within 1 s`]);
+	assert.deepEqual(network.asked, []);
 });
 
 for (const probes of [undefined, []]) test(`one site with no answer is down after 2 failed checks, ${probes === undefined ? "when a probe answers, even with a redirect" : "with probes: [], none asked"}`, async (t) => {
@@ -372,8 +396,11 @@ test("a probe with no answer is cut after 10 s, and none answering is this machi
 	const site = await server(t);
 	site.answers["/"] = hang;
 	network.hang = true;
+	const logs = t.mock.method(console, "log", () => {});
 	const { notices } = await started(t, { acme: [{ url: site.url("/"), everySeconds: 1 }] }, undefined, { probes: ["https://probe.example/"] });
-	await until("the offline notice", () => notices().length === 1);
+	await until("the offline log line", () => logs.mock.callCount() === 1);
+	assert.match(String(logs.mock.calls[0]?.arguments[0]), /^uptime: none of the 1 sites answers, nor https:\/\/probe\.example\/, so this machine looks offline/);
+	assert.deepEqual(notices(), []);
 	// Within a timer's few ms early or late, never 10 ms short of the 10 s.
 	assert.equal(network.cuts.length, 1);
 	assert.ok((network.cuts[0] ?? 0) >= 9_995 && (network.cuts[0] ?? 0) < 10_500, `cut after ${network.cuts[0]} ms`);

@@ -273,8 +273,9 @@ export default defineConfig({
 		// usage). A site is down after 2 failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text
 		// missing): one notice with its URL, the reason and since when, and `uptime-down`; one more with how long when it
 		// answers, and `uptime-up`. When no site answers, nor any of `probes` (https URLs outside the projects, each a public
-		// host; default https://1.1.1.1/ and https://dns.google/, [] for none), one notice that this machine looks offline, none
-		// per site: so even one site is never down for this machine's own lost connection. packages/uptime/docs/uptime.md.
+		// host; default https://1.1.1.1/ and https://dns.google/, [] for none), this machine looks offline: no notice, no site
+		// checked, only the probes until one answers, so no site is ever down for this machine's own lost connection.
+		// packages/uptime/docs/uptime.md.
 		uptime({ probes: ["https://1.1.1.1/", "https://dns.google/"] }),
 
 		// One entry per YouTrack server. The names are the variables, not their values. The unnamed one uses

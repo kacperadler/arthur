@@ -35,4 +35,5 @@ Out:
 - Refspecs from config (AR0615) and `git fast-import` (AR0616).
 
 ## Decisions
+- 2026-11-04: Merge AR0617 into main; the owner: "AR-D497 - 1" (AR-D497)
 

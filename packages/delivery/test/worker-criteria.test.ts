@@ -37,6 +37,16 @@ test("a worker's spawned prompt holds the project's review criteria once, under 
 	assert.equal(section("planner"), undefined);
 });
 
+test("the reviewer's prompt holds the project's styleguide, review and verify criteria, in that order", async () => {
+	const files = { ".agents/arthur/criteria/styleguide.md": "# Styleguide\n", [PATH]: CRITERIA, ".agents/arthur/criteria/verify.md": "# Verify\n\nRun the tests.\n" };
+	const { fake } = await load(files);
+	const { prompt, warnings } = fake.host.jobs.prompt("reviewer");
+	const headings = prompt.split("\n").filter((line) => line.startsWith("## ") && line.includes("(.agents/arthur/criteria/"));
+	assert.deepEqual(headings, ["## Styleguide (.agents/arthur/criteria/styleguide.md)", `## Review (${PATH})`, "## Verify (.agents/arthur/criteria/verify.md)"]);
+	assert.ok(prompt.includes("## Verify (.agents/arthur/criteria/verify.md)\n\n# Verify\n\nRun the tests."), prompt);
+	assert.deepEqual(warnings, []);
+});
+
 test("missing or empty review criteria add nothing and warn nothing", async () => {
 	assert.equal((await load({})).section("worker"), undefined);
 	assert.equal((await load({ [PATH]: " \n\n" })).section("worker"), undefined);
@@ -48,6 +58,10 @@ test("the review criteria are read in the worktree here, in the main checkout fo
 	mkdirSync(join(worktree, dirname(PATH)), { recursive: true });
 	writeFileSync(join(worktree, PATH), "# Review\n\nThe worktree's.\n");
 	assert.equal(section("worker", worktree), `## The review criteria your branch is judged by (${PATH})\n\n# Review\n\nThe worktree's.`);
+	// A checkout reached through a symlinked path, as a home under a linked folder is: its plain file is still read.
+	const linked = join(temporaryFolder(), "linked");
+	symlinkSync(worktree, linked);
+	assert.equal(section("worker", linked), `## The review criteria your branch is judged by (${PATH})\n\n# Review\n\nThe worktree's.`);
 	assert.equal(section("worker", "/srv/remote/worktree", "mac"), SECTION, "a worktree on another machine: the main checkout's");
 	assert.equal(section("worker", worktree, "mac", root), SECTION);
 	const folder = temporaryFolder();

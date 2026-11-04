@@ -358,6 +358,20 @@ test("one site and the default probes, none answering: offline, nothing sent; on
 	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since 00:05 on thu 2026-01-01 (UTC): connection refused`]);
 });
 
+test("with probes: [] an offline stored before (as AR0620 could save it) is ignored and cleared: the site is checked and down after 2 failed checks", async (t) => {
+	const site = await server(t);
+	site.answers["/"] = broken;
+	const url = site.url("/");
+	const sites = { acme: [{ url, everySeconds: 1 }] };
+	const fake = host(sites);
+	writeFileSync(join(fake.host.folder, "state.json"), JSON.stringify({ down: {}, offline: START.toISOString() }));
+	const { notices } = await started(t, sites, fake, { probes: [] });
+	await until("the down notice", () => notices().length === 1);
+	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since ${SINCE}: answered 500, expected a 2xx status`]);
+	assert.ok(site.seen("/") >= 2);
+	assert.equal(readState(fake.host.folder).offline, undefined);
+});
+
 test("with probes: [] nothing tells this machine offline apart: two sites with no answer are each down, no probe asked", async (t) => {
 	const site = await server(t);
 	Object.assign(site.answers, { "/a": hang, "/b": hang });

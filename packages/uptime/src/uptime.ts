@@ -112,10 +112,10 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 				}
 				if (running) apply(checked, checks);
 			};
-			// What was down at the last stop stays down, told once; a site no longer listed is forgotten at the next save.
+			// What was down at the last stop stays down, told once; a site no longer listed, or offline without probes, is dropped at the next save.
 			begin = () => {
 				const state = readState(host.folder);
-				offline = state.offline === undefined ? undefined : new Date(state.offline);
+				offline = state.offline === undefined || probes.length === 0 ? undefined : new Date(state.offline);
 				for (const site of sites) { const down = state.down[key(site)]; if (down !== undefined) [site.down, site.reason, site.fails] = [new Date(down.since), down.reason, FAILS]; }
 			};
 		},

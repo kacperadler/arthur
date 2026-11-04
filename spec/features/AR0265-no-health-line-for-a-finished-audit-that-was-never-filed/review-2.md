@@ -20,7 +20,7 @@ Checks run (in this worktree):
 - `npm ci`: added 22 packages, no errors.
 - `npm run check`: `tsc`, no errors.
 - `npm test`: 948 tests, 948 pass, 0 fail, 0 cancelled, 0 skipped (run via the tool's async backgrounding to avoid truncation).
-- `git log -1 --format=%B`: contains `Signed-off-by: Kacper (agent) <kontakt@kacperadler.pl>`.
+- `git log -1 --format=%B`: contains `Signed-off-by: Kacper (agent) <kontakt@landing.example>`.
 
 All matches the worker's final-message claims exactly; no scope creep beyond the requested merge/conflict-resolution/checks.
 

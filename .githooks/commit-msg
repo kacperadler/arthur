@@ -1,0 +1,3 @@
+#!/bin/sh
+# Arthur's own repository (AR0627): a commit whose message or files name another project of projects/ is refused (test/other-projects.ts).
+exec node "$(dirname "$0")/../test/other-projects.ts" "$1"

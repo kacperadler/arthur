@@ -50,13 +50,6 @@
     }
   },
   {
-    "id": "s01e05-reclaim",
-    "at": "2026-11-02T15:02",
-    "action": {
-      "message": "S01E05: send claim-challenge again (uuid c0000000-0000-4000-8000-0000005e01e5, receipts {}, answer {url: https://rig.kacperadler.pl}); first check ~/mega/s01e05/log.md and the Dokploy app status, then report to the owner."
-    }
-  },
-  {
     "id": "ar0607-plan",
     "at": "2026-11-04T10:45",
     "action": {

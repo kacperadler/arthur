@@ -25,7 +25,7 @@ Verified the merge commit `eb233aa` in isolation (new work since the prior PASS 
 - `npm ci` — ok.
 - `npm run check` — `tsc`, no output, exit clean.
 - `npm test` — 922 tests, 922 pass, 0 fail (duration ~284s), including "the repository keeps every rule" (budgets) and "the README's mermaid block is arthur.mmd, unchanged" — both pass.
-- Signed-off-by present on `eb233aa` (`git log -1 --format=%B` shows `Signed-off-by: Kacper (agent) <kontakt@kacperadler.pl>`).
+- Signed-off-by present on `eb233aa` (`git log -1 --format=%B` shows `Signed-off-by: Kacper (agent) <kontakt@landing.example>`).
 
 Worker's final message claims match observed reality exactly: conflict handling, budget numbers, check/test results, commit hash.
 

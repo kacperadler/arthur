@@ -118,6 +118,8 @@ Every option the core and each built plugin take, with its meaning and its defau
 
 The config and the project folders stay in `~/arthur`, so their `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts`, `projects/` and `.arthur/` (`.gitignore`), so your projects never reach the public repository, and `git pull` leaves both as they are.
 
+Arthur's own repository checks that nothing of yours reaches it (`test/other-projects.ts`): `npm test`, and so `arthur merge` on main, fails on a tracked file or a commit message the merge brings that names a folder of `projects/` but `arthur` (in a path or a content, in any case or as a ticket folder's slug; a `Signed-off-by:` line's address that is the commit's own author's or committer's aside), and names the file and the project; `git -C ~/arthur config core.hooksPath .githooks` makes every commit there refuse one too, the coordinator's and each job's, as a job's worktree runs the repository's hooks (after its commit rule, `packages/commit-rules/docs/commit-rules.md`).
+
 **Check:** `arthur config check` refuses nothing and lists the one variable step 6 sets, which `github` names, as `missing`; until step 6 sets it, it exits 1, which here means that variable only, not a broken config:
 
 ```

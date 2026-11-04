@@ -38,5 +38,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
 - 2026-11-04: AR0621 approved: run after AR0617, outside the 22-task counter; the owner: "AR-D494 - approve" (AR-D494)

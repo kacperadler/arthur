@@ -4983,9 +4983,9 @@
   {
     "id": "AR0621",
     "title": "Every git call of Arthur and every job reads past refs/replace, not only after a config check",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0621-every-git-call-of-arthur-and-every-job-reads-past-refs-replace-not-only-after-a/ticket.md",
-    "updated": "2026-11-04T15:10:35.176Z",
+    "updated": "2026-11-04T15:11:58.287Z",
     "after": [
       "AR0617"
     ]

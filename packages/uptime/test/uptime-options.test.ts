@@ -18,9 +18,13 @@ test("refused: any option but probes, the old sites among them; sites that are n
 
 test("probes pass: the default ones, none, a public address or name; refused at load: no list, a URL not https, a loopback, link-local or private host", () => {
 	assert.deepEqual(PROBES, ["https://1.1.1.1/", "https://dns.google/"]);
-	for (const probes of [PROBES, [], ["https://203.0.113.5/", "https://[2001:db8::1]/", "https://example.com:8443/up", "https://localhost.example/"]]) assert.deepEqual(checkOptions({ probes }), [], String(probes));
+	// Just past each refused range, at both ends where there is one: public.
+	const outside = ["1.0.0.0", "126.255.255.255", "128.0.0.0", "169.253.255.255", "169.255.0.0", "9.255.255.255", "11.0.0.0", "172.15.255.255", "172.32.0.0", "192.167.255.255", "192.169.0.0", "100.63.255.255", "100.128.0.0", "[::2]", "[fe7f::1]", "[fec0::1]", "[fbff::1]", "[fe00::1]"];
+	for (const probes of [PROBES, [], ["https://203.0.113.5/", "https://[2001:db8::1]/", "https://example.com:8443/up", "https://localhost.example/", "https://dns.google./"], outside.map((host) => `https://${host}/`)])
+		assert.deepEqual(checkOptions({ probes }), [], String(probes));
 	assert.deepEqual(checkOptions({ probes: "https://1.1.1.1/" }), [{ path: "probes", problem: 'expected a list of https URLs, [] for none, got "https://1.1.1.1/"' }]);
-	const hosts = ["127.0.0.1", "127.8.0.1", "localhost", "api.localhost", "[::1]", "0.0.0.0", "169.254.169.254", "10.0.0.1", "172.16.5.4", "192.168.1.1", "100.100.100.200", "[fe80::1]", "[fd00::1]", "[::ffff:127.0.0.1]"];
+	// Each refused range at its first and last address, and localhost however it is spelled.
+	const hosts = ["0.0.0.0", "0.255.255.255", "127.0.0.1", "127.255.255.254", "127.1", "169.254.0.0", "169.254.255.255", "10.0.0.0", "10.255.255.255", "172.16.0.0", "172.31.255.255", "192.168.0.0", "192.168.255.255", "100.64.0.0", "100.127.255.255", "[::]", "[::1]", "[fe80::]", "[febf:ffff::1]", "[fc00::]", "[fdff:ffff::1]", "[::ffff:127.0.0.1]", "localhost", "LOCALHOST", "localhost.", "localhost..", "api.localhost.", "127.0.0.1."];
 	const problem = (probe: unknown, at = 1) => ({ path: `probes[${at}]`, problem: `expected an https URL of a public host, not a loopback, link-local or private address, got ${JSON.stringify(probe)}` });
 	for (const host of hosts) assert.deepEqual(checkOptions({ probes: ["https://1.1.1.1/", `https://${host}/`] }), [problem(`https://${host}/`)], host);
 	for (const probe of ["http://1.1.1.1/", "1.1.1.1", ""]) assert.deepEqual(checkOptions({ probes: ["https://1.1.1.1/", probe] }), [problem(probe)], probe);

@@ -27,7 +27,7 @@ for (const [address, prefix] of [["0.0.0.0", 8], ["127.0.0.0", 8], ["169.254.0.0
 // Addresses outside the projects, asked with the other sites before a site with no answer is down (AR0620).
 export const PROBES: readonly string[] = ["https://1.1.1.1/", "https://dns.google/"];
 const probe = (value: unknown, at: number): OptionProblem[] => {
-	const host = typeof value === "string" && URL.canParse(value) && new URL(value).protocol === "https:" ? new URL(value).hostname.replace(/^\[(.*)\]$/, "$1") : "localhost";
+	const host = typeof value === "string" && URL.canParse(value) && new URL(value).protocol === "https:" ? new URL(value).hostname.replace(/^\[(.*)\]$/, "$1").replace(/\.+$/, "") : "localhost";
 	const refused = /(^|\.)localhost$/i.test(host) || (isIP(host) !== 0 && PRIVATE.check(host, isIP(host) === 6 ? "ipv6" : "ipv4"));
 	return refused ? [{ path: `probes[${at}]`, problem: `expected an https URL of a public host, not a loopback, link-local or private address, got ${describe(value)}` }] : [];
 };

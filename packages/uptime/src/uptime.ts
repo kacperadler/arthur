@@ -77,7 +77,8 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 				} else if (checked.length === sites.length && silent(checks) && !reached && reaching(checked, checks) && telling()) {
 					offline = at;
 					for (const site of sites) if (site.down === undefined) [site.fails, site.first] = [0, undefined];
-					notice(`none of the ${sites.length} sites answers (${checked[0]?.url}: ${failed(checks[0] as Check)?.reason})${probes.length === 0 ? "" : `, nor ${probes.join(" nor ")}`}, so this machine looks offline and the checks cannot run; one notice follows when a site answers again`);
+					const [nor, or] = probes.length === 0 ? ["", ""] : [`, nor ${probes.join(" nor ")}`, " or a probe"];
+					notice(`none of the ${sites.length} sites answers (${checked[0]?.url}: ${failed(checks[0] as Check)?.reason})${nor}, so this machine looks offline and the checks cannot run; one notice follows when a site${or} answers again`);
 					return save();
 				}
 				checked.forEach((site, index) => {

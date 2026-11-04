@@ -73,15 +73,21 @@ function outside(t: TestContext, name: string): number[] {
 	return ports;
 }
 
-// The probes' fake fetch, for their hosts only, the default ones and probe.example: while `network.up`, the answer 1.1.1.1
-// gives, a 301 to one.one.one.one; else what a real fetch without a network rejects with, a TypeError caused by ENOTFOUND.
-// `network.asked` holds each URL asked. Every test starts with the network up.
-const network = { up: true, asked: [] as string[] };
+// The probes' fake fetch, for their hosts only, the default ones and probe.example: while `network.hang`, no answer until the
+// signal aborts, then its reason, as a real fetch rejects, with the time it waited in `network.cuts`; while `network.up`, the
+// answer 1.1.1.1 gives, a 301 to one.one.one.one; else what a real fetch without a network rejects with, a TypeError caused by
+// ENOTFOUND. `network.asked` holds each URL asked. Every test starts with the network up.
+const network = { up: true, hang: false, asked: [] as string[], cuts: [] as number[] };
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
 	const url = new URL(input instanceof Request ? input.url : input);
 	if (!["1.1.1.1", "dns.google", "probe.example"].includes(url.hostname)) return realFetch(input, init);
 	network.asked.push(url.href);
+	if (network.hang) {
+		const [{ promise, reject }, from, signal] = [Promise.withResolvers<Response>(), Date.now(), init?.signal];
+		signal?.addEventListener("abort", () => (network.cuts.push(Date.now() - from), reject(signal.reason)));
+		return promise;
+	}
 	if (network.up) return new Response("<html><head><title>301 Moved Permanently</title></head></html>", { status: 301, headers: { location: "https://one.one.one.one/", "content-type": "text/html" } });
 	const cause = Object.assign(new Error(`getaddrinfo ENOTFOUND ${url.hostname}`), { errno: -3008, code: "ENOTFOUND", syscall: "getaddrinfo", hostname: url.hostname });
 	throw new TypeError("fetch failed", { cause });
@@ -104,7 +110,7 @@ async function started(t: TestContext, sites: Sites, fake: FakeHost = host(sites
 	await fake.setup(plugin);
 	await plugin.start?.();
 	t.after(() => plugin.stop?.());
-	t.after(() => void Object.assign(network, { up: true, asked: [] }));
+	t.after(() => void Object.assign(network, { up: true, hang: false, asked: [], cuts: [] }));
 	const notices = () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text);
 	const events = (name: string) => fake.emitted.filter((event) => event.name === name).map((event) => event.data);
 	return { fake, plugin, notices, events };
@@ -315,8 +321,8 @@ for (const probes of [[], undefined]) test(`this machine offline: no site answer
 	site.answers["/a"] = hang;
 	other.close();
 	await until("the offline notice", () => notices().length === 1);
-	const nor = probes === undefined ? ", nor https://1.1.1.1/ nor https://dns.google/" : "";
-	assert.deepEqual(notices(), [`uptime: none of the 2 sites answers (${a}: no answer within 1 s)${nor}, so this machine looks offline and the checks cannot run; one notice follows when a site answers again`]);
+	const [nor, or] = probes === undefined ? [", nor https://1.1.1.1/ nor https://dns.google/", " or a probe"] : ["", ""];
+	assert.deepEqual(notices(), [`uptime: none of the 2 sites answers (${a}: no answer within 1 s)${nor}, so this machine looks offline and the checks cannot run; one notice follows when a site${or} answers again`]);
 	await plugin.stop?.();
 	const restarted = await started(t, sites, fake, { probes });
 	const checks = site.seen("/a");
@@ -338,7 +344,7 @@ test("one site and the default probes, none answering: this machine offline, no 
 	network.up = false;
 	const { fake, notices, events } = await started(t, { acme: [{ url, everySeconds: 1 }] });
 	await until("the offline notice", () => notices().length === 1);
-	assert.deepEqual(notices(), [`uptime: none of the 1 sites answers (${url}: connection refused), nor https://1.1.1.1/ nor https://dns.google/, so this machine looks offline and the checks cannot run; one notice follows when a site answers again`]);
+	assert.deepEqual(notices(), [`uptime: none of the 1 sites answers (${url}: connection refused), nor https://1.1.1.1/ nor https://dns.google/, so this machine looks offline and the checks cannot run; one notice follows when a site or a probe answers again`]);
 	// While offline, the probes are asked again at each check the site fails.
 	const asked = network.asked.length;
 	await until("the probes asked twice more", () => network.asked.length >= asked + 4);
@@ -360,6 +366,17 @@ for (const probes of [undefined, []]) test(`one site with no answer is down afte
 	await until("the down notice", () => notices().length === 1);
 	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since ${SINCE}: no answer within 1 s`]);
 	assert.deepEqual(network.asked, probes === undefined ? ["https://1.1.1.1/", "https://dns.google/"] : [], "asked once, as the site was about to go down");
+});
+
+test("a probe with no answer is cut after 10 s, and none answering is this machine offline", async (t) => {
+	const site = await server(t);
+	site.answers["/"] = hang;
+	network.hang = true;
+	const { notices } = await started(t, { acme: [{ url: site.url("/"), everySeconds: 1 }] }, undefined, { probes: ["https://probe.example/"] });
+	await until("the offline notice", () => notices().length === 1);
+	// Within a timer's few ms early or late, never 10 ms short of the 10 s.
+	assert.equal(network.cuts.length, 1);
+	assert.ok((network.cuts[0] ?? 0) >= 9_995 && (network.cuts[0] ?? 0) < 10_500, `cut after ${network.cuts[0]} ms`);
 });
 
 test("one site with no answer while another answers is down, not offline", async (t) => {

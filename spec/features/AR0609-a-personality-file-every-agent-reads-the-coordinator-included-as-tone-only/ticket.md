@@ -41,3 +41,4 @@ Out:
 
 ## Decisions
 - 2026-11-03: AR0609 approved, narrowed: the tone file is read only by agents that talk with the owner (the coordinator, and project agents once they exist), never by job roles; after Group 2; the owner: "Tone file is only for agents that can communicate with me, so only for you and project agent instance" (AR-D464)
+- 2026-11-04: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

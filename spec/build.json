@@ -4883,9 +4883,9 @@
   {
     "id": "AR0609",
     "title": "A personality file every agent reads, the coordinator included, as tone only",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0609-a-personality-file-every-agent-reads-the-coordinator-included-as-tone-only/ticket.md",
-    "updated": "2026-11-04T00:25:12.871Z",
+    "updated": "2026-11-04T00:51:17.013Z",
     "after": [
       "AR0390",
       "AR0397"

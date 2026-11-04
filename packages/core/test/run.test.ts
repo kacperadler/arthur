@@ -189,6 +189,7 @@ test("SIGINT stops like SIGTERM; a stop that throws is named, the other plugins 
 });
 
 // AR0622: a Discord gateway close its peer never answered held `arthur run`, after its own restart's SIGTERM, forever.
+// The stops come from SIGTERM, as the restart's did, so only the stop past its bound can make the exit code 1.
 test("a stop that has not ended 30 s on is named, the plugins before it still stop, and the run ends with 1", async (t) => {
 	t.mock.timers.enable({ apis: ["setTimeout"] });
 	t.mock.method(console, "log", () => {});
@@ -200,10 +201,13 @@ test("a stop that has not ended 30 s on is named, the plugins before it still st
 	t.after(() => hold.resolve());
 	const a = { name: "a", setup() {}, stop: () => void stopped.push("a") };
 	const hung = { name: "discord", setup() {}, stop() { stopped.push("discord"); return hold.promise; } };
-	const b = { name: "b", setup() {}, start() { throw new Error("no socket"); } };
 	let code: number | undefined;
-	void runPlugins([a, hung, b], home, () => () => {}, async () => {}, async () => [], () => {}).then((exit) => (code = exit));
+	void runPlugins([a, hung], home, () => () => {}, async () => {}, async () => [], () => {}).then((exit) => (code = exit));
 	const settle = async () => { for (let each = 0; each < 20; each++) await new Promise(setImmediate); };
+	await settle();
+	assert.deepEqual([stopped, code], [[], undefined], "running until the signal");
+	// runPlugins listens too, so the test kit's own listener does not end this process.
+	process.emit("SIGTERM");
 	await settle();
 	t.mock.timers.tick(29_999);
 	await settle();
@@ -212,7 +216,7 @@ test("a stop that has not ended 30 s on is named, the plugins before it still st
 	await settle();
 	assert.deepEqual([stopped, code], [["discord", "a"], 1]);
 	assert.ok(!existsSync(join(home, "run.pid")));
-	assert.deepEqual(failed.mock.calls.map((call) => String(call.arguments[0])), ["arthur run: plugin b: start failed: no socket", "arthur run: plugin discord: stop did not end within 30 s; going on without it"]);
+	assert.deepEqual(failed.mock.calls.map((call) => String(call.arguments[0])), ["arthur run: plugin discord: stop did not end within 30 s; going on without it"]);
 });
 
 test("a timer or a socket a stop left behind holds arthur run one second at most after its stops", async (t) => {

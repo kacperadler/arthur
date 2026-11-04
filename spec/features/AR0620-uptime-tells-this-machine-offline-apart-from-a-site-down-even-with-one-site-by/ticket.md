@@ -36,3 +36,4 @@ Out:
 - Ping or DNS-only probes: an HTTP answer is the same proof the sites use.
 
 ## Decisions
+- 2026-11-04: AR0620 approved with the default probes https://1.1.1.1/ and https://dns.google/; the owner: "AR-D493 - 1" (AR-D493)

@@ -4983,9 +4983,9 @@
   {
     "id": "AR0621",
     "title": "Every git call of Arthur and every job reads past refs/replace, not only after a config check",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0621-every-git-call-of-arthur-and-every-job-reads-past-refs-replace-not-only-after-a/ticket.md",
-    "updated": "2026-11-04T19:55:16.097Z",
+    "updated": "2026-11-04T20:22:58.795Z",
     "after": [
       "AR0617"
     ]
@@ -5003,9 +5003,9 @@
   {
     "id": "AR0623",
     "title": "Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0623-uptime-this-machine-offline-sends-no-notice-and-checks-no-site-only-the-probes/ticket.md",
-    "updated": "2026-11-04T19:39:47.221Z"
+    "updated": "2026-11-04T20:17:02.241Z"
   },
   {
     "id": "AR0624",

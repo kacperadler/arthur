@@ -26,7 +26,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: risk
 - Found by: 2026-11-04-worker-331520f3 (worker), 2026-11-04
-- Where: `test/other-projects.ts:39`
+- Where: `test/other-projects.ts:49`
 - What: a name is matched as a substring, in any case. A user who follows `docs/setup.md` literally has `projects/shop`, and Arthur's tracked tests and docs name `shop` hundreds of times, so `npm test` in that clone fails on `test/other-projects.test.ts` [INFERENCE: from the matching code; not run on such a clone].
 - Suggestion: run the repository-wide test only where `origin` is Arthur's own repository, or let `projects/<name>/` hold a marker that excludes a name; the owner decides which.
 - Status: open
@@ -38,7 +38,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `CONTRIBUTING.md:5`
 - What: the owner's email domain is the folder name of one of his projects. `CONTRIBUTING.md` asks for a `Signed-off-by:` line on every commit, and older commits carry it with that address (`git log --format=%B | grep -ciF <the domain>` counted 184 lines); with `.githooks` on, the hook refuses a commit that signs off so, and `npm test` fails on a merge whose branch does. Arthur's recent commits carry no sign-off.
 - Suggestion: the owner picks a sign-off address that names no project, or the check leaves a `Signed-off-by:` trailer's address out; the owner decides.
-- Status: open
+- Status: fixed in 67a5d3d7
 
 ## F5. A plan names the addresses of two servers
 
@@ -53,7 +53,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: risk
 - Found by: 2026-11-04-worker-331520f3 (worker), 2026-11-04
-- Where: `test/other-projects.ts:22`
+- Where: `test/other-projects.ts:23`
 - What: the names are read from `projects/` beside the repository's Git folder. A job on another machine runs in a worktree of `<home>/repos/arthur.git`, beside which no `projects/` lies, so its `npm test` and its hook check nothing [INFERENCE: from `docs/deploy.md`, "Another machine for jobs"; not run there]. The merge on main, here, still checks.
 - Suggestion: none needed while the merge gate holds; or send the names with the job.
 - Status: open

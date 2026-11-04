@@ -11,16 +11,15 @@ import { RETRO_TASK, sendFile } from "./retro.ts";
 
 const USAGE = "usage: arthur repeats [--project <name>] [--since <date|decision id>], or arthur repeats [--project <name>] --retro ['<focus>']";
 const SINCE = /^(?:\d{4}-\d{2}-\d{2}|[A-Z]+-D\d+)$/;
-// The base style of .agents/arthur/criteria/report.md (AR-D298) the page needs: palette, header, `main`, `code`; red only on RED's lines.
+// The rules this page uses of .agents/arthur/criteria/report.md's base style (AR-D298); its header never holds a code span.
 const STYLE = [
-	":root{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000;--muted:#555555}*{box-sizing:border-box}",
+	":root{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000}*{box-sizing:border-box}",
 	'body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif}',
 	"header{background:var(--ink);color:var(--paper);padding:32px 18px 24px;text-align:center;border-bottom:6px solid var(--blue)}",
 	"header h1{margin:0 auto;max-width:860px;font-size:30px;line-height:1.1;font-weight:800}header p{margin:12px auto 0;max-width:720px;color:#cfcfcf}",
 	"main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}.red{color:var(--red)}",
 	"h2{font-size:22px;line-height:1.2;font-weight:800;margin:40px 0 6px;padding-bottom:6px;border-bottom:3px solid var(--ink);text-align:center}",
 	"code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);padding:1px 4px;overflow-wrap:anywhere}",
-	"header code{background:var(--paper);color:var(--ink)}",
 ].join("");
 
 export function repeatsCommand(host: Host): void {

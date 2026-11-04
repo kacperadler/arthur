@@ -212,7 +212,7 @@ test("/repeats sends the digest as a page in the report style from manage's own 
 	assert.deepEqual(sent, [{ files: [file], place: "7" }]);
 	assert.deepEqual(readdirSync(fake.host.folder).filter((name) => name.startsWith("repeats")), ["repeats-2026-10-21.html"], "written whole, no temporary file left");
 	const page = readFileSync(file, "utf8");
-	assert.match(page, /^<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Repeats of acme<\/title><style>:root\{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000;/);
+	assert.match(page, /^<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Repeats of acme<\/title><style>:root\{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000\}/);
 	const style = /<style>(.*)<\/style>/.exec(page)?.[1] ?? "";
 	for (const rule of ["body{margin:0;background:var(--paper);color:var(--ink);", "main{max-width:900px;margin:0 auto;", "code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);", ".red{color:var(--red)}"]) assert.ok(style.includes(rule), rule);
 	assert.doesNotMatch(style, /#000[;}]|#1d4ed8|#b91c1c|46em|prefers-color-scheme/, "none of the old colours or layout");

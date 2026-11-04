@@ -13,8 +13,8 @@ export const PLAN_BUDGET = 5;
 // The ticket a task's `Ticket:` path lies in, and its folder: `spec/features/<id>-<slug>/...`.
 const FEATURE = /(?:^|\/)(spec\/features\/([A-Z]+\d{4,})-[^/]+)\//;
 const TICKET = /^spec\/features\/[A-Z]+\d{4,}-[^/]+\/ticket\.md$/;
-// Under a ticket's Goal: it gets a plan the owner approves before a worker.
-const MARK = /^- Plan: yes\s*$/;
+// Under a ticket's Goal: it gets a plan the owner approves before a worker; any spelling, case or language but `- Plan: yes` is refused.
+const MARK = /^\s*(?:[-*+–]|\d+[.)])\s*\**plan\**\s*:/i;
 // Under its Decisions: the owner's approval of the plan.md that commit holds.
 const APPROVED = /^- \d{4}-\d\d-\d\d: Plan approved by the owner: plan\.md at ([0-9a-f]{7,40})\b/;
 // Under its Decisions: autopilot's record (autopilot.ts) with the budget it checked, and an approval the owner gave after it.
@@ -51,9 +51,8 @@ function planTicket(host: Host, kind: string, at: () => string, tickets: readonl
 	return undefined;
 }
 
-// A worker on a ticket with `- Plan: yes` under its Goal needs the plan the owner approved: committed at HEAD, the same plan.md
-// as at the commit a Decisions line names, and named on the task's `Plan:` line, so the worker follows it. A worker, or a
-// continue, on a ticket pre-approved by policy is held to its budget (overBudget) until the owner approves it.
+// A worker, or a continue, on a ticket with a Plan line under its Goal needs the plan the owner approved: committed at HEAD as at the
+// commit a Decisions line names, and on the task's `Plan:` line; one pre-approved by policy, its budget (overBudget) until the owner's ok.
 function unapproved(at: string, task: string, tickets: readonly string[], budgetUsd: number, free: boolean): string | undefined {
 	// Each ticket's folder once, with its id.
 	const folders = new Map(tickets.map((path) => FEATURE.exec(path)?.slice(1, 3) ?? []).flatMap(([folder, id]) => (folder === undefined || id === undefined ? [] : [[folder, id] as const])));
@@ -61,14 +60,15 @@ function unapproved(at: string, task: string, tickets: readonly string[], budget
 	const refused = [...folders].flatMap(([folder, id]) => {
 		const shown = spawnSync("git", ["--no-replace-objects", "-C", at, "cat-file", "blob", `HEAD:${folder}/ticket.md`], { encoding: "utf8" });
 		if (shown.status !== 0) return [];
-		const decisions = section(shown.stdout, "Decisions");
-		return [section(shown.stdout, "Goal").some((line) => MARK.test(line)) ? unplanned(at, folder, id, decisions, planned) : undefined, overBudget(id, decisions, budgetUsd, free)].flatMap((reason) => reason ?? []);
+		const decisions = section(shown.stdout, "Decisions"), marks = section(shown.stdout, "Goal").filter((line) => MARK.test(line));
+		return [marks.length > 0 ? unplanned(at, folder, id, decisions, planned, marks) : undefined, overBudget(id, decisions, budgetUsd, free)].flatMap((reason) => reason ?? []);
 	});
 	return refused.length > 0 ? refused.join("; ") : undefined;
 }
 
-// Why a worker may not start yet on a `- Plan: yes` ticket, if it may not.
-function unplanned(at: string, folder: string, id: string, decisions: readonly string[], planned: ReadonlySet<string>): string | undefined {
+// Why a worker may not start yet on a ticket with Plan lines (`marks`) under its Goal, if it may not; any but `- Plan: yes` first (AR0608).
+function unplanned(at: string, folder: string, id: string, decisions: readonly string[], planned: ReadonlySet<string>, marks: string[]): string | undefined {
+	for (const line of marks) if (line.trimEnd() !== "- Plan: yes") return `${id}: its Goal line "${line.trim()}" is not "- Plan: yes", the one accepted form`;
 	const plan = `${folder}/plan.md`;
 	const now = blob(at, "HEAD", plan);
 	if (now === undefined) return `${id} says "- Plan: yes" and has no committed plan.md; plan it first: arthur spawn --kind plan 'Ticket: ${folder}/ticket.md', then the owner's ok`;

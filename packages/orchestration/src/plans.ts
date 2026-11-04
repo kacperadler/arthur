@@ -14,7 +14,7 @@ export const PLAN_BUDGET = 5;
 const FEATURE = /(?:^|\/)(spec\/features\/([A-Z]+\d{4,})-[^/]+)\//;
 const TICKET = /^spec\/features\/[A-Z]+\d{4,}-[^/]+\/ticket\.md$/;
 // Under a ticket's Goal: it gets a plan the owner approves before a worker; any spelling, case or language but `- Plan: yes` is refused.
-const MARK = /^\s*[-*+]\s*plan\s*:/i;
+const MARK = /^\s*(?:[-*+–]|\d+[.)])\s*\**plan\**\s*:/i;
 // Under its Decisions: the owner's approval of the plan.md that commit holds.
 const APPROVED = /^- \d{4}-\d\d-\d\d: Plan approved by the owner: plan\.md at ([0-9a-f]{7,40})\b/;
 // Under its Decisions: autopilot's record (autopilot.ts) with the budget it checked, and an approval the owner gave after it.

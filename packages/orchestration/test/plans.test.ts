@@ -193,7 +193,8 @@ test("the plan guard reads only the Goal: a Plan: yes line elsewhere, a ticket w
 
 test("a Plan line under the Goal that is not exactly - Plan: yes is refused, whatever its spelling, case or language", async (t) => {
 	const { jobs, root, commit } = await load(t);
-	for (const line of ["- Plan: tak", "- Plan: Yes", "- Plan: no", "- Plan:", "- plan: yes", "* Plan: yes", "  -  Plan : yes"]) {
+	const lines = ["- Plan: tak", "- Plan: Yes", "- Plan: no", "- Plan:", "- plan: yes", "* Plan: yes", "+ Plan: yes", "– Plan: yes", "1. Plan: yes", "2) Plan: yes"];
+	for (const line of [...lines, "- **Plan**: yes", "  -  Plan : yes"]) {
 		writeFileSync(join(root, TICKET), ticketText().replace("- Plan: yes", line));
 		commit(line);
 		await assert.rejects(jobs.spawn({ task: `Ticket: ${TICKET}\nPlan: ${PLAN}` }), {

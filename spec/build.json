@@ -4993,9 +4993,9 @@
   {
     "id": "AR0622",
     "title": "arthur run hangs after its own restart SIGTERM: a plugin stop never resolves, so the service never restarts and every plugin stays stopped",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0622-arthur-run-hangs-after-its-own-restart-sigterm-a-plugin-stop-never-resolves-so/ticket.md",
-    "updated": "2026-11-04T19:23:40.131Z",
+    "updated": "2026-11-04T19:42:10.810Z",
     "after": [
       "AR0617"
     ]
@@ -5003,9 +5003,9 @@
   {
     "id": "AR0623",
     "title": "Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0623-uptime-this-machine-offline-sends-no-notice-and-checks-no-site-only-the-probes/ticket.md",
-    "updated": "2026-11-04T19:23:47.761Z"
+    "updated": "2026-11-04T19:39:47.221Z"
   },
   {
     "id": "AR0624",

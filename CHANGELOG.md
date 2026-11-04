@@ -14,6 +14,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0610 arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names (e3deefdc)
 - AR0611 The audit sees deferred findings, not only open ones, in a project whose findings mode is summary (af539a19)
+- AR0619 A branch delete on origin that fails for a network or GitHub error is retried, not left behind (c9f19211)
 
 ### Changed
 

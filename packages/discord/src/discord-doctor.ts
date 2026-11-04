@@ -1,11 +1,13 @@
 import type { Requirement } from "@arthur/core/plugin";
+import type { MenuCommand } from "./menu.ts";
 import { type ApiError, type Bot, rest } from "./rest.ts";
 
-// One bot's requirements for `arthur doctor` (spec/roadmap.md, entries 80 and 89): the token works and the MESSAGE_CONTENT
+// One bot's requirements for `arthur doctor` (spec/roadmap.md, entries 80, 89 and 90): the token works and the MESSAGE_CONTENT
 // intent is on (`GET /applications/@me`), the server requires 2FA for moderation and has no member but the owner and the bot
-// (`GET /guilds/{id}?with_counts=true`). None is critical (AR0592): a Discord that refused the token must not keep the
-// coordinator down, and a Discord that does not answer is `ok (Discord not reached: ...)`, never a miss. Each call is asked once
-// per doctor run: packages/discord/docs/discord.md, "Setting it up".
+// (`GET /guilds/{id}?with_counts=true`), and the server's `/` menu holds the phone commands `want` names, by name and
+// description (`GET /applications/{id}/guilds/{id}/commands`). None is critical (AR0592): a Discord that refused the token must
+// not keep the coordinator down, and a Discord that does not answer is `ok (Discord not reached: ...)`, never a miss. Each call is
+// asked once per doctor run: packages/discord/docs/discord.md, "Setting it up".
 
 // GATEWAY_MESSAGE_CONTENT (1 << 18), for a bot in 100 servers or more; GATEWAY_MESSAGE_CONTENT_LIMITED (1 << 19), under 100.
 const CONTENT = (1 << 18) | (1 << 19);
@@ -15,12 +17,21 @@ const CALL_MS = 5000;
 
 type Answer = Readonly<Record<string, unknown>> | ApiError;
 
-export function requirements(bot: Bot): Requirement[] {
+export function requirements(bot: Bot, want: () => readonly MenuCommand[], record: string): Requirement[] {
 	const ask = (path: string) => {
 		let asked: Promise<Answer> | undefined;
 		return () => (asked ??= rest(bot, "GET", path, undefined, new AbortController().signal, CALL_MS).then((found): Answer => (typeof found === "object" && found !== null ? (found as Answer) : {}), (error: ApiError) => error));
 	};
 	const [application, guild] = [ask("/applications/@me"), ask(`/guilds/${bot.guild}?with_counts=true`)];
+	let menu: Promise<Answer> | undefined;
+	const commands = () => (menu ??= application().then((found) => (found instanceof Error ? found : ask(`/applications/${String(found.id)}/guilds/${bot.guild}/commands`)())));
+	// The commands the menu lacks, or lists with another description, and those it lists that no plugin registered.
+	const differ = (found: Readonly<Record<string, unknown>>) => {
+		const listed = (Array.isArray(found) ? (found as readonly Readonly<Record<string, unknown>>[]) : []).map((each) => [String(each.name), String(each.description)]);
+		const wanted = want().map((each) => [each.name, each.description]);
+		const off = [...wanted.filter(([name, about]) => !listed.some((each) => each[0] === name && each[1] === about)), ...listed.filter(([name]) => !wanted.some((each) => each[0] === name))];
+		return off.length === 0 ? undefined : `missing: Discord's / menu differs from the phone commands at ${off.map(([name]) => `/${name}`).join(", ")}`;
+	};
 	// The check's line from an answer: `holds` a miss's reason or undefined; a 401 or 403 a definite miss, any other failure not reached.
 	const line = async (answer: () => Promise<Answer>, holds: (found: Readonly<Record<string, unknown>>) => string | undefined, refused: string) => {
 		const found = await answer();
@@ -50,6 +61,12 @@ export function requirements(bot: Bot): Requirement[] {
 			check: () => line(guild, (found) => (found.approximate_member_count === 2 ? undefined : `missing: ${String(found.approximate_member_count)} members, not 2 (you and the bot)`), server),
 			costs: "someone else in the server reads what the coordinator writes there",
 			fix: "remove every member but you and the bot in the server's Members settings",
+		},
+		{
+			name: name("commands"),
+			check: () => line(commands, differ, "Discord refused to list the / commands"),
+			costs: "Discord's / menu does not list the phone commands; typed /name text still works",
+			fix: `invite the bot again with scope=bot+applications.commands (packages/discord/docs/discord.md, step 4), remove ${record} and restart Arthur`,
 		},
 	];
 }

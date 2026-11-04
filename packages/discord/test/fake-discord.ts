@@ -37,6 +37,10 @@ const guild = (members: number, mfa: number) => ({
 	preferred_locale: "en-US", public_updates_channel_id: null, nsfw_level: 0, premium_progress_bar_enabled: false, safety_alerts_channel_id: null, incidents_data: null, approximate_member_count: members, approximate_presence_count: 1,
 });
 const application = (flags: number) => ({ id: BOT, name: "Arthur", icon: null, description: "", bot_public: false, bot_require_code_grant: false, verify_key: "a".repeat(64), team: null, flags });
+// A command or option as Discord's documentation allows one: a name of 1 to 32 lowercase letters, digits, - and _, a description of 1 to 100.
+const named = (each: Readonly<Record<string, unknown>>) => typeof each.name === "string" && /^[-_\p{Ll}\p{N}]{1,32}$/u.test(each.name) && typeof each.description === "string" && each.description.length >= 1 && each.description.length <= 100;
+const valid = (body: unknown) =>
+	Array.isArray(body) && body.length <= 100 && body.every((each) => named(each) && [undefined, 1].includes(each.type) && (each.options ?? []).length <= 25 && (each.options ?? []).every((one: Readonly<Record<string, unknown>>) => named(one) && Number.isInteger(one.type) && [undefined, true, false].includes(one.required as boolean)));
 
 export type FakeMessage = { readonly id: string; readonly channel_id: string } & Readonly<Record<string, unknown>>;
 export type Call = { readonly method: string; readonly path: string; readonly headers: IncomingMessage["headers"]; readonly body: unknown; readonly at: number };
@@ -48,7 +52,9 @@ type Connection = { readonly url: string; readonly got: Readonly<Record<string, 
 // with 4004), Resume with RESUMED and each heartbeat with its ACK but the next `unacked`; `dispatch` sends an event, `drop` closes
 // from Discord's side. REST answers what the documentation shows; `fail` scripts the next answer of a call, `history` is what
 // `GET /channels/{id}/messages` reads. `took` is every message Discord took, a multipart one (`payload_json`, `files[n]`) with
-// its `files`. The CDN, under `/attachments/`, asks no token and serves what `attach` put there, else 404.
+// its `files`. The CDN, under `/attachments/`, asks no token and serves what `attach` put there, else 404. `commands` are the
+// server's guild commands, which a valid PUT replaces; `interaction` dispatches a picked command, whose one answer lands in
+// `callbacks` (a second, or one for no dispatched interaction, is refused) and whose follow-ups in `followups`.
 export async function fakeDiscord(t: TestContext) {
 	const calls: Call[] = [];
 	const took: { channel: string; body: Readonly<Record<string, unknown>>; files?: Upload[] }[] = [];
@@ -58,6 +64,10 @@ export async function fakeDiscord(t: TestContext) {
 	const held: { path: string; response: ServerResponse }[] = [];
 	const connections: Connection[] = [];
 	const failures: { call: string; status: number; body: unknown }[] = [];
+	const callbacks: { id: string; token: string; body: Readonly<Record<string, unknown>> }[] = [];
+	const followups: { token: string; body: Readonly<Record<string, unknown>> }[] = [];
+	// The token of each interaction dispatched, by its id; the ids of those answered.
+	const [open, answered] = [new Map<string, string>(), new Set<string>()];
 	let [session, seq] = [0, 0];
 	const json = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
 	const server = createServer(async (request, response) => {
@@ -105,6 +115,27 @@ export async function fakeDiscord(t: TestContext) {
 		if (id !== undefined && request.method === "GET") {
 			const since = BigInt(url.searchParams.get("after") ?? "0");
 			return json(response, 200, api.history.filter((each) => each.channel_id === id && BigInt(each.id) > since).map(({ guild_id: _, ...each }) => each).toSorted((a, b) => (BigInt(b.id) > BigInt(a.id) ? 1 : -1)).slice(0, Number(url.searchParams.get("limit") ?? 50)));
+		}
+		if (call === `GET /applications/${BOT}/guilds/${GUILD}/commands`) return json(response, 200, api.commands);
+		if (call === `PUT /applications/${BOT}/guilds/${GUILD}/commands`) {
+			if (!valid(body)) return json(response, 400, { message: "Invalid Form Body", code: 50035, errors: { _errors: [{ code: "BASE_TYPE_BAD_LENGTH", message: "Must be between 1 and 100 in length." }] } });
+			api.commands = (body as Readonly<Record<string, unknown>>[]).map((each, at) => ({ id: snowflake(NOW.getTime(), at), application_id: BOT, version: snowflake(NOW.getTime(), 100 + at), default_member_permissions: null, type: 1, name: each.name, name_localizations: null, description: each.description, description_localizations: null, guild_id: GUILD, options: each.options ?? [], nsfw: false }));
+			return json(response, 200, api.commands);
+		}
+		const answer = /^\/interactions\/(\d+)\/([^/]+)\/callback$/.exec(url.pathname);
+		if (answer !== null && request.method === "POST") {
+			const [, id = "", token = ""] = answer;
+			if (answered.has(id)) return json(response, 400, { message: "Interaction has already been acknowledged.", code: 40060 });
+			if (open.get(id) !== token) return json(response, 404, { message: "Unknown interaction", code: 10062 });
+			answered.add(id);
+			callbacks.push({ id, token, body });
+			return void response.writeHead(204).end();
+		}
+		const webhook = new RegExp(`^/webhooks/${BOT}/([^/]+)$`).exec(url.pathname)?.[1];
+		if (webhook !== undefined && request.method === "POST") {
+			if (![...open.values()].includes(webhook)) return json(response, 404, { message: "Unknown Webhook", code: 10015 });
+			followups.push({ token: webhook, body });
+			return json(response, 200, message(snowflake(Date.now()), { channel_id: MAIN, guild_id: undefined, author: user(BOT, "arthur", true), content: body.content ?? "", flags: 0, webhook_id: BOT, application_id: BOT, type: 20 }));
 		}
 		json(response, 404, { message: "404: Not Found", code: 0 });
 	});
@@ -173,6 +204,9 @@ export async function fakeDiscord(t: TestContext) {
 		calls,
 		took,
 		connections,
+		callbacks,
+		followups,
+		commands: [] as Readonly<Record<string, unknown>>[],
 		history: [] as FakeMessage[],
 		extra: [] as string[],
 		// How many heartbeats from now on get no ACK.
@@ -205,6 +239,19 @@ export async function fakeDiscord(t: TestContext) {
 			if (bytes !== null) for (const each of held.filter((one) => one.path === path)) each.response.end(bytes);
 			const signed = `?ex=6724a000&is=67234e80&hm=${"0f".repeat(32)}&`;
 			return { id, filename, size: Buffer.byteLength(bytes ?? ""), url: `${api.url}${path}${signed}`, proxy_url: `${api.url}${path.replace("attachments", "media")}${signed}`, ...fields };
+		},
+		// The owner picking `/name` with `text` as its option (none when undefined) in the main channel, dispatched as
+		// INTERACTION_CREATE in the documented shape; `fields` change it, as `member` or `channel_id`.
+		interaction(name: string, text?: string, fields: Readonly<Record<string, unknown>> = {}) {
+			const sent = {
+				id: snowflake(NOW.getTime(), 500 + ++id), application_id: BOT, type: 2, guild_id: GUILD, channel_id: MAIN, token: `aW50ZXJhY3Rpb246${id}${"Q".repeat(40)}`, version: 1,
+				data: { id: snowflake(NOW.getTime(), 900), name, type: 1, guild_id: GUILD, ...(text === undefined ? {} : { options: [{ name: "text", type: 3, value: text }] }) },
+				member: { user: user(OWNER, "kacper"), nick: null, avatar: null, roles: [], joined_at: "2026-10-30T10:00:00.000000+00:00", premium_since: null, deaf: false, mute: false, flags: 0, pending: false, permissions: "2251799813685247" },
+				app_permissions: "2251799813685247", locale: "en-US", guild_locale: "en-US", entitlements: [], authorizing_integration_owners: { "0": GUILD }, context: 0, attachment_size_limit: 10_485_760, ...fields,
+			};
+			open.set(sent.id, sent.token);
+			api.dispatch("INTERACTION_CREATE", sent);
+			return sent;
 		},
 	};
 	return api;

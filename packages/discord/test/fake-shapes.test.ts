@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { until } from "@arthur/core/testing";
-import { fakeDiscord, GUILD, MAIN, message, NOW, snowflake, TOKEN } from "./fake-discord.ts";
+import { BOT, fakeDiscord, GUILD, MAIN, message, NOW, snowflake, TOKEN } from "./fake-discord.ts";
 
 // The fields of each object a fake answer holds, recorded in discord-shapes.json from the field tables of Discord's documentation
 // (its `source`, read on its `recorded` day). The fake changes shape only through a reviewed change of that file.
@@ -76,12 +76,25 @@ test("every answer of the fake, REST and gateway, holds the fields Discord's doc
 	await until("Hello again", () => got.length === 6);
 	second.send(JSON.stringify({ op: 6, d: { token: TOKEN, session_id: "session-1", seq: 3 } }));
 	await until("RESUMED", () => got.length === 7);
-	const of: Readonly<Record<string, string>> = { READY: "ready", GUILD_CREATE: "guild create", MESSAGE_CREATE: "message create" };
+	// A picked command, its deferred answer and its follow-up; the server's guild commands, set and read.
+	const picked = api.interaction("jobs", "all");
+	await until("the interaction", () => got.length === 8);
+	const ask = async (path: string, method: string, body: unknown) =>
+		(await fetch(`${api.url}${path}`, { method, headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify(body) })).text();
+	assert.equal(await ask(`/interactions/${picked.id}/${picked.token}/callback`, "POST", { type: 5 }), "");
+	problems.push(...drift(JSON.parse(await ask(`/webhooks/${BOT}/${picked.token}`, "POST", { content: "jobs: all" })), "message", "POST follow-up"));
+	const commands = `/applications/${BOT}/guilds/${GUILD}/commands`;
+	const set = [{ type: 1, name: "jobs", description: "the jobs", options: [{ type: 3, name: "text", description: "the text after the command", required: false }] }];
+	problems.push(...drift(JSON.parse(await ask(commands, "PUT", set)), "array of application command objects", `PUT ${commands}`));
+	const listed = await fetch(`${api.url}${commands}`, { headers: { Authorization: `Bot ${TOKEN}` } });
+	problems.push(...drift(await listed.json(), "array of application command objects", `GET ${commands}`));
+	const of: Readonly<Record<string, string>> = { READY: "ready", GUILD_CREATE: "guild create", MESSAGE_CREATE: "message create", INTERACTION_CREATE: "interaction" };
 	for (const [index, payload] of got.entries()) {
 		const at = `gateway[${index}] ${String(payload.t ?? payload.op)}`;
 		problems.push(...drift(payload, "payload", at), ...drift(payload.d, payload.op === 10 ? "hello" : (of[String(payload.t)] ?? ""), `${at}.d`));
 	}
-	assert.deepEqual(got.map((payload) => payload.t ?? payload.op), [10, "READY", "GUILD_CREATE", 11, "MESSAGE_CREATE", 10, "RESUMED"]);
+	assert.deepEqual(got.map((payload) => payload.t ?? payload.op), [10, "READY", "GUILD_CREATE", 11, "MESSAGE_CREATE", 10, "RESUMED", "INTERACTION_CREATE"]);
+	assert.equal(api.commands.length, 1);
 	assert.deepEqual(problems, []);
 });
 

@@ -288,7 +288,7 @@ import { telegram } from "@arthur/telegram";
 telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }] }),
 ```
 
-Discord does the same from a private server of your own, a main channel for the coordinator and one more per project (roadmap entries 89 and 90: text, files, voice messages and the phone commands, typed as `/name text`). Make the server and its bot and give Arthur the bot's token, the server's id, your user id and the main channel's id, as `packages/discord/docs/discord.md`, "Setting it up", says; the invite link it gives asks for four permissions and no more. Never paste a secret in a channel: Discord keeps every message.
+Discord does the same from a private server of your own, a main channel for the coordinator and one more per project (roadmap entries 89 and 90: text, files, voice messages and the phone commands, picked from Discord's `/` menu or typed as `/name text`). Make the server and its bot and give Arthur the bot's token, the server's id, your user id and the main channel's id, as `packages/discord/docs/discord.md`, "Setting it up", says; the invite link it gives asks for four permissions and no more. Never paste a secret in a channel: Discord keeps every message.
 
 ```ts
 import { discord } from "@arthur/discord";

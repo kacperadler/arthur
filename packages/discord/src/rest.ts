@@ -1,7 +1,7 @@
 // Discord's REST API (spec/roadmap.md, entries 89 and 90): one call to `<apiUrl><path>` with the bot's token in the Authorization
 // header, never in the URL, and the User-Agent Discord asks of a bot, sending JSON or a multipart form, answered JSON or a refusal
 // `{ code, message }` (a 429: `{ message, retry_after, global }`). A failure is one line naming the bot and the call, the token
-// replaced wherever it shows.
+// replaced wherever it shows, and an interaction's token in a callback or follow-up path by `{token}`.
 
 export type Bot = {
 	// The name, absent for the unnamed bot; `label` is how errors say it: the name, or `(unnamed)`.
@@ -25,8 +25,8 @@ export const failure = (bot: Bot, call: string, code: number, text: string, retr
 	Object.assign(new Error(`discord bot ${bot.label}: ${call}: ${text.replaceAll(bot.token, "[token]").replace(/\s+/g, " ").slice(0, 300)}`), { code, retryAfter });
 
 // `ms` bounds the call, 30 s unless the caller needs an answer sooner.
-export async function rest(bot: Bot, method: "GET" | "POST", path: string, body: unknown, signal: AbortSignal, ms = CALL_MS): Promise<unknown> {
-	const call = `${method} ${path.replace(/\?.*$/, "")}`;
+export async function rest(bot: Bot, method: "GET" | "POST" | "PUT", path: string, body: unknown, signal: AbortSignal, ms = CALL_MS): Promise<unknown> {
+	const call = `${method} ${path.replace(/\?.*$/, "").replace(/^\/(interactions|webhooks)\/([^/]+)\/[^/]+/, "/$1/$2/{token}")}`;
 	const within = AbortSignal.any([signal, AbortSignal.timeout(ms)]);
 	const json = body !== undefined && !(body instanceof FormData);
 	const headers = { Authorization: `Bot ${bot.token}`, "User-Agent": AGENT, ...(json ? { "Content-Type": "application/json" } : {}) };

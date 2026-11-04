@@ -1,7 +1,9 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
+import { interaction } from "./interaction.ts";
 import { attachments } from "./media-in.ts";
+import { setMenu } from "./menu.ts";
 import { type Bot, rest } from "./rest.ts";
 
 // What one bot hears through the gateway (spec/roadmap.md, entries 89 and 90): the server's text channels, from GUILD_CREATE and
@@ -13,11 +15,12 @@ import { type Bot, rest } from "./rest.ts";
 // channel instead; a sticker, or a message of neither text nor files, a line where it came. One the owner forwarded is marked
 // `[forwarded from <author>]` and never a command. An edit is no new message, so it is never heard. Each GUILD_CREATE (a new
 // session) also reads what the owner wrote in each text channel since the last message heard there, at most 10 minutes back,
-// kept in `<folder>/seen.json`, so what he wrote while Arthur was away comes once: docs/discord.md.
+// kept in `<folder>/seen.json`, so what he wrote while Arthur was away comes once: docs/discord.md. Each READY sets the bot's `/`
+// menu (menu.ts); a command picked there, an INTERACTION_CREATE, is answered beside the messages, never behind them (interaction.ts).
 
 export type Send = (bot: Bot, text: string, place: string | undefined) => void;
 // What a bot hears: `known` its server's text channels, undefined until GUILD_CREATE named them; `on` takes each dispatch;
-// `idle` is the end of the messages in hand.
+// `idle` is the end of the messages, the menu and the picked commands in hand.
 export type Ear = { known(): ReadonlySet<string> | undefined; on(type: string, data: Readonly<Record<string, unknown>>): void; idle(): Promise<void> };
 type Message = Readonly<Record<string, unknown>> & { readonly id?: unknown; readonly channel_id?: unknown; readonly content?: unknown };
 
@@ -37,6 +40,11 @@ export function receiver(host: Host, bot: Bot, send: Send, named: () => void, si
 	let channels: Set<string> | undefined;
 	// Messages are handled one after another, a backlog before what came after it.
 	let chain = Promise.resolve();
+	const pending = new Set<Promise<void>>();
+	const track = (work: Promise<void>) => {
+		pending.add(work);
+		void work.then(() => pending.delete(work));
+	};
 	const file = join(host.folder, "seen.json");
 	// The whole file, every bot's: a broken or hand-edited one counts as empty, and is written whole again at the next message.
 	const load = () => {
@@ -108,9 +116,17 @@ export function receiver(host: Host, bot: Bot, send: Send, named: () => void, si
 				chain = chain
 					.then(() => hear(data, true))
 					.catch((error: Error) => console.error(`discord bot ${bot.label}: message ${String(data.id)} is not read: ${error.message}`));
+			} else if (type === "READY") {
+				const { id } = record(data.application);
+				if (typeof id === "string" && /^\d{1,20}$/.test(id)) track(setMenu(host, bot, id, signal));
+			} else if (type === "INTERACTION_CREATE") {
+				track(interaction(host, bot, data, channels, send).catch((error: Error) => console.error(`discord bot ${bot.label}: a / command failed: ${error.message}`)));
 			}
 		},
-		idle: () => chain,
+		idle: async () => {
+			await chain;
+			await Promise.all(pending);
+		},
 	};
 }
 

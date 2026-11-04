@@ -1,6 +1,6 @@
 # The discord plugin
 
-Roadmap entries 89 and 90: the owner talks to the coordinator from a private Discord server. Each bot keeps one outbound connection to Discord's gateway, so nothing listens on the internet; the owner's text, photos, videos, voice messages and files in the server's text channels reach the coordinator, `/name text` runs a phone command, and the coordinator's replies and Arthur's notices come back through an outbox that survives Discord being away and a restart; `arthur send` sends files. It has no command of its own.
+Roadmap entries 89 and 90: the owner talks to the coordinator from a private Discord server. Each bot keeps one outbound connection to Discord's gateway, so nothing listens on the internet; the owner's text, photos, videos, voice messages and files in the server's text channels reach the coordinator, `/name text` typed or picked from Discord's `/` menu runs a phone command, and the coordinator's replies and Arthur's notices come back through an outbox that survives Discord being away and a restart; `arthur send` sends files. It has no command of its own.
 
 ```ts
 plugins: [orchestration({}), discord({ bots: [{ tokenEnv: "ARTHUR_DISCORD_BOT_TOKEN", guildIdEnv: "ARTHUR_DISCORD_GUILD_ID", userIdEnv: "ARTHUR_DISCORD_USER_ID", channelIdEnv: "ARTHUR_DISCORD_CHANNEL_ID" }] })],
@@ -67,7 +67,7 @@ Every file is checked before anything goes, and each problem is one line of the 
 
 ## Phone commands
 
-A message that starts with `/name` (1 to 32 letters, digits and underscores, then a space, a line break or its end), written by the owner, not forwarded and without a file, is a phone command, not a message to the coordinator: the plugin hands `/name` and the rest of the text to the host's command registry (`arthur help --help`, "Phone commands"), with `channel: "discord"`, its `place` for a message in a project channel and its `instance`, the bot's name, for a message to a named bot. The reply goes back by the same bot to the same channel, through the outbox like any reply, so one longer than a message goes in slices of at most 2000, in order. Discord shows no menu of them: they are typed as text.
+A message that starts with `/name` (1 to 32 letters, digits and underscores, then a space, a line break or its end), written by the owner, not forwarded and without a file, is a phone command, not a message to the coordinator: the plugin hands `/name` and the rest of the text to the host's command registry (`arthur help --help`, "Phone commands"), with `channel: "discord"`, its `place` for a message in a project channel and its `instance`, the bot's name, for a message to a named bot. The reply goes back by the same bot to the same channel, through the outbox like any reply, so one longer than a message goes in slices of at most 2000, in order.
 
 - A name no phone command has gets the registry's line, `unknown command /<name>; phone commands: /a, /b`; the case counts, so `/Jobs` is unknown too.
 - A text where the slash starts no such name (`/tmp/x is full`, `/ hi`, a name over 32 characters, a space before the slash) reaches the coordinator as any text, and so does `/name` in a message with a file.
@@ -75,9 +75,22 @@ A message that starts with `/name` (1 to 32 letters, digits and underscores, the
 - A command written while Arthur was away, at most 10 minutes back, runs once at the start; it counts as heard before it runs, so a restart never runs it twice.
 - A command is handled in its turn among the messages: those after it wait for its reply.
 
+### The `/` menu
+
+Typing `/` in the server lists the phone commands, each with its `about`, as Telegram's command menu does. At each READY (the start, and each new gateway session) each bot sets them as its server's guild commands (`PUT /applications/{application id}/guilds/{server}/commands`), each with one optional string option, `text`, for what follows the name. An `about` over Discord's 100 characters is cut to 99 with `…` after it. The set is sent only when it differs from what `.arthur/discord/commands.json` records for that application and server, so an unchanged start sends nothing; a broken record counts as empty. A refusal is one line on stderr, `discord bot <name>: PUT ...: <status>: <message>; the / commands are set again at the next start`, and leaves the record as it was.
+
+A command picked there comes over the same gateway connection (an `INTERACTION_CREATE`), and every answer to it is an outgoing call, so nothing listens:
+
+- From the owner, in the bot's server and one of its text channels, it is answered at once with a deferred answer (Discord shows the bot thinking), then runs exactly as `/name text` typed in that channel, with the same `channel`, `place` and `instance`. The reply fills the deferred answer, in slices of at most 2000 as follow-ups (`POST /webhooks/{application id}/{token}`); a blank reply says `/name gave no reply`.
+- From anyone else, another server, a DM, a thread or another channel that is not one of the server's text channels, or before the bot knows its server's channels, it gets a refusal only the picker sees, `only the owner's commands in the server's text channels run`, and runs nothing.
+- A deferred answer Discord refuses (it came after Discord's 3 s, or the interaction was replayed after a resume) runs nothing, said on stderr, so a command never runs twice; Discord shows that the application did not respond.
+- A follow-up Discord refuses (its 15 minutes passed, or Discord is away) sends what was not sent through the outbox to the channel the command was picked in.
+- A picked command does not wait behind the messages; a stop waits for it and its reply.
+- The interaction's token never shows in a line on stderr: the call names it `{token}`.
+
 ## Doctor
 
-`arthur doctor` shows four lines per bot, each `discord bot <name>: <requirement>`, none critical, so a token Discord reset never keeps the coordinator from starting: `token` and `Message Content Intent` (`GET /applications/@me`: its `flags` hold GATEWAY_MESSAGE_CONTENT or GATEWAY_MESSAGE_CONTENT_LIMITED), `server 2FA` (`mfa_level` 1) and `server members` (exactly 2, you and the bot, from `GET /guilds/{id}?with_counts=true`), each with its fix. A 401, 403 or 404 is `missing: ...`; a Discord that does not answer within 5 s, or answers anything else, is `ok (Discord not reached: ...)`.
+`arthur doctor` shows five lines per bot, each `discord bot <name>: <requirement>`, none critical, so a token Discord reset never keeps the coordinator from starting: `token` and `Message Content Intent` (`GET /applications/@me`: its `flags` hold GATEWAY_MESSAGE_CONTENT or GATEWAY_MESSAGE_CONTENT_LIMITED), `server 2FA` (`mfa_level` 1) and `server members` (exactly 2, you and the bot, from `GET /guilds/{id}?with_counts=true`), and `commands` (`GET /applications/{id}/guilds/{id}/commands` lists each phone command with the description the plugin sets, and no other), each with its fix. A 401, 403 or 404 is `missing: ...`; a Discord that does not answer within 5 s, or answers anything else, is `ok (Discord not reached: ...)`. `commands` is `missing` when the record says the menu is set but Discord lost it (the bot was removed and invited again): its fix is to invite the bot again with `applications.commands`, remove `.arthur/discord/commands.json` and restart Arthur.
 
 ## Setting it up
 
@@ -86,11 +99,11 @@ About 15 minutes, once:
 1. **Server.** In Discord, use "+" and "Create My Own" to make a server, then its main text channel (for example `#arthur`). Make one more text channel per project by hand when you want it.
 2. **2FA.** Turn on two-factor login (an authenticator app) on your own account, then "Require 2FA for moderator actions" in the server's Safety Setup.
 3. **Bot.** At discord.com/developers/applications make a New Application. On its Bot page use Reset Token and put the token in `ARTHUR_DISCORD_BOT_TOKEN` in the env file; switch on "Message Content Intent" (a bot in fewer than 100 servers needs only this switch) and switch off "Public Bot".
-4. **Invite.** Open `https://discord.com/oauth2/authorize?client_id=<Application ID>&scope=bot&permissions=101376` and pick your server. 101376 is View Channels (1024), Send Messages (2048), Attach Files (32768) and Read Message History (65536), and no other.
+4. **Invite.** Open `https://discord.com/oauth2/authorize?client_id=<Application ID>&scope=bot+applications.commands&permissions=101376` and pick your server. `applications.commands` lets the bot set its `/` menu; Discord includes it with `bot` today, so a bot invited earlier with `scope=bot` needs nothing new. 101376 is View Channels (1024), Send Messages (2048), Attach Files (32768) and Read Message History (65536), and no other.
 5. **The ids.** In User Settings, Advanced, turn on Developer Mode, then right-click (long-press on the phone) each and use Copy ID: the server into `ARTHUR_DISCORD_GUILD_ID`, your own name into `ARTHUR_DISCORD_USER_ID`, the main channel into `ARTHUR_DISCORD_CHANNEL_ID`.
 6. **Config.** Add `discord({ bots: [...] })` as above to `arthur.config.ts` and run `arthur config check`: the four variables say `set`.
 7. **Phone.** Set the server's notifications to "All Messages" on your phone.
-8. **Check.** Restart the service, run `arthur doctor` (each Discord line `ok`), then write "hi" in the main channel, and `/board`, which Arthur answers at once.
+8. **Check.** Restart the service, run `arthur doctor` (each Discord line `ok`), then write "hi" in the main channel, and `/board`, which Arthur answers at once. Type `/` in the channel: the phone commands are listed, and picking `/board` answers the same way.
 
 Never paste a secret in a channel: Discord keeps every message on its servers.
 

@@ -124,3 +124,21 @@ test("stop closes the connection with 1000, so the bot shows offline; a plugin n
 	const idle = await load(t, { apiUrl: api.url });
 	await idle.plugin.stop?.();
 });
+
+test("a close the gateway never answers, as over a dead network path, ends 5 s on: a heartbeat's close resumes, and a stop ends", async (t) => {
+	const api = await fakeDiscord(t);
+	api.heartbeat = 50;
+	api.deaf = true;
+	const { plugin } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	await until("identified", () => api.sent(2).length === 1);
+	api.unacked = 1;
+	await until("closed for the missing ACK", () => api.connections[0]?.closed !== undefined);
+	const closed = Date.now();
+	await until("resumed on a new connection", () => api.sent(6).length === 1);
+	assert.ok(Date.now() - closed >= 4900, `resumed ${Date.now() - closed} ms after the close, not before the 5 s`);
+	const stopping = Date.now();
+	await plugin.stop?.();
+	assert.equal(api.connections[1]?.closed, 1000);
+	assert.ok(Date.now() - stopping < 6000, `stopped ${Date.now() - stopping} ms on`);
+});

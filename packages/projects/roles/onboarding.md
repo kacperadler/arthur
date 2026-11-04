@@ -22,6 +22,7 @@ Commit nothing. Your final message, and nothing else in it:
 A follow-up carries the owner's answers, by question number. Commit the drafts on your branch:
 
 - The vision: short, the owner's words where they gave them, under the skeleton's headings: purpose, for whom, what stays true, where it is going now, what is not the goal. Under the title, one quoted line: owned by the owner, drafted by onboarding on the date.
+- `verify.md`: how a change is proved here, under the skeleton's headings: the real check and test commands, each run before you write it, how to rerun one failing test alone, how a mutation of the code is checked when the repository has a way, how its commands are tried the way a user meets them, and what the final message reports.
 - `styleguide.md`: how code is written and checked here; it points to `CLAUDE.md` and `AGENTS.md`, by path and section, instead of copying them, and adds only what they do not say. Under `Checks and tests`: the real commands, each run before you write it.
 - `autopilot.md`: pre-approves nothing, so every ticket waits for the owner; only an answer of the owner's that names what may be pre-approved changes that.
 - `report.md`: only what the owner said about the pages he gets (colours, layout, what each shows); the headings alone when he said nothing.

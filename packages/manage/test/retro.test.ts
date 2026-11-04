@@ -200,7 +200,34 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	);
 	assert.ok(section.includes("### Stats\n\nStats of acme: 2 merged tickets\n"), "no retro yet: every merged ticket");
 	assert.ok(section.includes("### Board\n\n"), section);
-	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, audit, report, retro.\n`), section);
+	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, verify, audit, report, retro.\n`), section);
+});
+
+test("a retro's prompt lists the corrections of the project's jobs since the last retro, grouped by their first sentence, the most frequent first", async (t) => {
+	const env = await load(t);
+	for (const [id, project] of [["w1", "acme"], ["w2", "acme"], ["b1", "beta"]]) env.fake.emit("job-started", { id, kind: "worker", project });
+	const steered = (id: string, text: unknown, via = "steer") => env.fake.emit("job-steered", { id, kind: "worker", text, via });
+	steered("w1", "Never pkill.\nIt stops other jobs' tests.");
+	steered("w1", "Use a timeout of 1800. Always.");
+	steered("w2", "Use a timeout of 1800.\nThe suite needs it.", "continue");
+	steered("w2", "  Use a timeout of 1800!  ");
+	steered("b1", "Use a timeout of 1800.", "steer");
+	steered("gone", "A job whose start the log does not hold.");
+	steered("w1", 42);
+	steered("w1", "x".repeat(300));
+	const corrections = async () => {
+		const job = await env.jobs.spawn({ task: RETRO_TASK, kind: "retro" });
+		const prompt = env.read(job.id, "prompt");
+		return prompt.slice(prompt.indexOf("### Corrections"), prompt.indexOf("### Board"));
+	};
+	const lead = "### Corrections\n\nThe steers and continues this project's jobs got in the period, grouped by their first sentence, the most frequent first:\n\n";
+	assert.equal(await corrections(), `${lead}- 2: Use a timeout of 1800.\n- 1: Never pkill.\n- 1: Use a timeout of 1800!\n- 1: ${"x".repeat(200)}\n\n`);
+	// A last retro whose commit is dated after every one of them: none is of the period.
+	mkdirSync(join(env.root, "spec/retro"));
+	execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "--allow-empty", "-m", "later"], { cwd: env.root, env: { ...process.env, GIT_COMMITTER_DATE: "2030-01-01T00:00:00Z" } });
+	writeFileSync(join(env.root, "spec/retro/2026-10-20.md"), `# Retro 2026-10-20\n\n- Merges up to: ${env.git("rev-parse", "HEAD")}\n`);
+	env.commit("the last retro");
+	assert.equal(await corrections(), `${lead}none\n\n`);
 });
 
 test("retro.day and retro.at register one weekly entry; it starts a retro only while one is due, and none on another day", async (t) => {

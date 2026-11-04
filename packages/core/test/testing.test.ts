@@ -120,7 +120,7 @@ test("the fake host records the kinds and roles a plugin registers and spawns on
 	assert.equal(readFileSync(join(job.worktree, "REVIEW"), "utf8"), job.id);
 	assert.deepEqual(job.warnings, ["criteria file .agents/arthur/criteria/review.md is missing; the reviewer goes without it"]);
 	const prompt = readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "prompt"), "utf8");
-	assert.equal(prompt, "# Reviewer\n\nJudge the branch.\n\nCommit rules for the reviewer.\n");
+	assert.match(prompt, /^# Reviewer\n\nJudge the branch.\n\n## Every job\n\n[^]*\n\nCommit rules for the reviewer.\n$/);
 	assert.equal(readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "task"), "utf8"), "Review.");
 	const alone = fakeHost({ name: "delivery" });
 	await assert.rejects(alone.host.jobs.spawn({ task: "Review." }), { message: /is not in a Git repository/ });

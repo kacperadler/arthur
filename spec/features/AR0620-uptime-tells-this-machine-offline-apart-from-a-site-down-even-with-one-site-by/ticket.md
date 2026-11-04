@@ -14,7 +14,7 @@ Today the uptime plugin decides "this machine is offline" only by asking the oth
 
 ## Goal
 
-The owner, 2026-11-04: "uptime -> we have to fix this bcs the diff is when you on machine do not have access to the internet and the diff is when the site is down". Evidence: `packages/uptime/docs/uptime.md`, "This machine offline": "With one site, or one left that is not down, a site with no answer is down, as nothing tells the two apart." The owner's config watches one site (`projects/kacperadler.pl`), so on 2026-11-04 11:41 Warsaw the notice `https://kacperadler.pl/ (project kacperadler.pl) is down ... no answer within 10 s` could not say which side failed; it answered again 15 min later.
+The owner, 2026-11-04: "uptime -> we have to fix this bcs the diff is when you on machine do not have access to the internet and the diff is when the site is down". Evidence: `packages/uptime/docs/uptime.md`, "This machine offline": "With one site, or one left that is not down, a site with no answer is down, as nothing tells the two apart." The owner's config watches one site (`projects/landing.example`), so on 2026-11-04 11:41 Warsaw the notice `https://landing.example/ (project landing.example) is down ... no answer within 10 s` could not say which side failed; it answered again 15 min later.
 
 - Kind: fix
 

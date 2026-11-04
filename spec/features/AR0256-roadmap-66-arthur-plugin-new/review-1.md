@@ -29,7 +29,7 @@ Worktree clean, all mutations restored.
 - Verified `develop`'s line budget: `wc -l packages/develop/src/*.ts` = 198, matches the recorded comment and the worker's claim (107+58+18+15).
 - Verified no core/`docs/plugin-api.md` change needed: `host.board.projects()` used by `pluginCommand` is already published (checked `docs/plugin-api.md` line 74); diff touches no file in `packages/core`.
 - Verified shape rules: no `dependencies` in `packages/develop/package.json`, no `index.ts`/`types.ts`/`utils.ts`, no class/enum, each new file well under 200 lines, English only, no secrets, nothing listening on a network address.
-- Verified commit signoffs: `git log --format='%B'` on all three commits in range shows `Signed-off-by: Kacper (agent) <kontakt@kacperadler.pl>`.
+- Verified commit signoffs: `git log --format='%B'` on all three commits in range shows `Signed-off-by: Kacper (agent) <kontakt@landing.example>`.
 - Verified README/`arthur.mmd` changes: develop moved from `planned` to `partial`, table row shows "1 of 3 entries" / "66 built; 67, 68", mermaid class list updated; both files already covered by the passing `npm test` run ("the README's mermaid block is arthur.mmd, unchanged" and the README status-line test both passed).
 
 PASS

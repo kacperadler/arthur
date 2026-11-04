@@ -40,7 +40,7 @@ A separate hook is smaller than reshaping `jobs.keep`. Either way prune has to b
 **Docker on the owner's machines today: none of the owner's projects runs Docker in a job, on any machine.**
 - **Machines:** `arthur.config.ts` has no `machines` plugin, so `local` (the VPS) is the only machine and has no `tools` labels. `core.jobs.unsandboxed` is not set.
 - **arthur:** no Docker; its tests fake every outside service.
-- **kacperadler.pl:** its checkout `/home/kacper/kacperadler.pl` has a `Dockerfile`, `.dockerignore` and `docker-start.sh`, used for its deploy image [INFERENCE: built on Dokploy, whose host is 89.117.53.129; this VPS is 217.173.5.23]. Its `package.json`, CI workflows and `AGENTS.md` do not mention Docker.
+- **landing.example:** its checkout `/home/kacper/landing.example` has a `Dockerfile`, `.dockerignore` and `docker-start.sh`, used for its deploy image [INFERENCE: built on Dokploy, whose host is 89.117.53.129; this VPS is 217.173.5.23]. Its `package.json`, CI workflows and `AGENTS.md` do not mention Docker.
 - **web-shop.example:** only `spec/`, `.agents/` and `.nvmrc`.
 - I could not read either project's `project.config.ts`: the sandbox refused it (Permission denied).
 - **What Docker is on the VPS:** client 29.9.2, Compose v5.6.1, buildx 0.38.1. There are 11 Docker bridges and three running containers that are not Arthur's: MySQL on 3306, Mailpit on 1025/8025, Postgres on 127.0.0.1:5436 [INFERENCE: dev stacks of the owner's other repositories in `/home/kacper`].

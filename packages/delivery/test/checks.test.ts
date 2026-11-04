@@ -76,6 +76,16 @@ test("commands joined by ;, && or | give one line each, in their order; any othe
 	assert.equal(load(t).run({ toolName: "read", input: { path: "package.json" }, output: "npm test" }), "", "another tool");
 });
 
+test("a run behind NAME=value assignments, or through bun run, counts; bun test and one that only names it in text, none", (t) => {
+	assert.equal(load(t).run(bash("TMPDIR=$PWD/node_modules/.tmp npm run check 2>&1; echo check=$?", "check=0\n")), "check pass <commit> clean\n");
+	assert.equal(load(t).run(bash(`A=1 B='x y' C="z; w" npm test`, SUMMARY(3, 0))), "test pass 3/3 <commit> clean\n");
+	const all = bash("bun run check && CI=1 bun run test && bun run mutate", `${SUMMARY(2, 0)}${MUTATED(0)}`);
+	assert.equal(load(t, ALL).run(all), "check pass <commit> clean\ntest pass 2/2 <commit> clean\nmutate pass <commit> clean\n");
+	assert.deepEqual(load(t).begin("toolu_1", bash("CI=1 bun run check")), [{ input: { command: "CI=1 bun run check", timeout: 1800 } }]);
+	const texts = ["bun test", "bun run checkout", "echo bun run check", "echo TMPDIR=x npm run check", "git commit -m 'CI=1 npm test'", `A="x; npm run check"`, "A=1 echo npm test", "A=1"];
+	for (const command of texts) assert.equal(load(t).run(bash(command, SUMMARY(3, 0))), "", command);
+});
+
 test("a script the package.json does not declare, or a missing or broken package.json, gives no line", (t) => {
 	assert.equal(load(t, JSON.stringify({ scripts: { test: "node --test" } })).run(bash("npm run check && npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\n");
 	for (const text of [null, "{ broken", "null", JSON.stringify({ scripts: { check: 1, test: ["x"] } })]) assert.equal(load(t, text).run(bash("npm run check && npm test", SUMMARY(3, 0))), "", String(text));

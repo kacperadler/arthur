@@ -98,7 +98,7 @@ function pointsAt(sub: string, rest: readonly string[]): string | undefined {
 }
 
 // Whether `git fetch`, `pull`, `push` or `send-pack` may write under `refs/replace` by a refspec in `rest` (a word, or an option's value after `=`):
-// a destination there in any case (one folder on a disk that ignores case) or a glob that may cover it (`refs/*`, `refs/rep*`, `*`, a brace list bash expands
+// a destination there in any case (one folder on a disk that ignores case) or a glob that may cover it (`refs/*`, `refs/rep*`, `*`, a quoted brace list
 // read as one); for a push also a word without `:`, its own destination, and one Git completes with `refs/` (`replace/<commit>`, matched on the other side);
 // `--mirror` or an abbreviation; `--stdin` on a fetch or `send-pack`. A refspec built at run time (`HEAD:$ref`), one config defines (a remote's `fetch`,
 // `push` or `mirror`, by `-c` too) or another repository names still writes one, which core.useReplaceRefs=false, kept by git-config.ts, reads past (AR0615).

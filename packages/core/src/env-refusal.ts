@@ -1,5 +1,6 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
+import { braces } from "./shell-braces.ts";
 import { decodeEscapes, literal } from "./shell-escapes.ts";
 import { shellWords } from "./shell-words.ts";
 
@@ -28,26 +29,6 @@ function setsOneKey(command: string): boolean {
 	const text = command.trim();
 	const delimiter = SET_KEY.exec(text)?.[1];
 	return delimiter !== undefined && text.slice(text.indexOf("'") + 1, text.lastIndexOf("'")).split(delimiter).length === 4;
-}
-
-// What bash's brace expansion makes of the comma lists in a word, `.{env,}` being `.env` and `.`; an escaped brace or comma
-// is not one. A word whose lists make more than 256 words is kept as it is; sequences (`{a..z}`) are not expanded.
-function braces(word: string): string[] {
-	let found = [word];
-	for (let changed = true; changed; ) {
-		changed = false;
-		const next = found.flatMap((item) => {
-			const list = /(?<!\\)(?:\\\\)*\{((?:\\.|[^{}\\])*,(?:\\.|[^{}\\])*)\}/.exec(item);
-			if (list === null) return [item];
-			changed = true;
-			const start = list.index + list[0].indexOf("{");
-			const alternatives = list[1]!.replace(/\\.|,/gs, (token) => (token === "," ? "\0" : token)).split("\0");
-			return alternatives.map((alternative) => item.slice(0, start) + alternative + item.slice(list.index + list[0].length));
-		});
-		if (next.length > 256) return [word];
-		found = next;
-	}
-	return found;
 }
 
 // The secrets file `text` names as written, or undefined: a path whose last part is a secrets name, or one that goes on
@@ -86,13 +67,13 @@ function namedGlob(word: string): string | undefined {
 }
 
 // The secrets file one argument of a call names, or undefined: as written; for bash also in each word as the shell reads
-// it, brace lists expanded and globs matched; for eval also with escapes decoded and quotes dropped; for every other
+// it, brace lists expanded (shell-braces.ts; a word whose lists make more than 256 is kept as it is) and globs matched; for eval also with escapes decoded and quotes dropped; for every other
 // tool also through a glob in its value.
 function named(toolName: string, value: string, cwd: string): string | undefined {
 	const written = namedFile(value, cwd);
 	if (written !== undefined || toolName === "eval") return written ?? namedFile(decodeEscapes(value).replace(/['"\\]/g, ""), cwd);
 	for (const word of toolName === "bash" ? shellWords(value) : [value]) {
-		for (const expanded of braces(word)) {
+		for (const expanded of braces(word) ?? [word]) {
 			const file = namedFile(literal(expanded), cwd) ?? namedGlob(expanded);
 			if (file !== undefined) return file;
 		}

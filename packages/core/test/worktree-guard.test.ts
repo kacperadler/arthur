@@ -79,7 +79,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly`, `local`, `env` or `sudo` sets is named other than by a plain name (letters, digits and `_`, not first a digit, written as is); or the string `env -S` splits holds a backslash, a backtick, a `$`, a `~`, a line break or one of `;&|<>()`, which env reads apart from bash; name the folder instead, on one line";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry), or by brace lists that make more than 256 words; or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly`, `local`, `env` or `sudo` sets is named other than by a plain name (letters, digits and `_`, not first a digit, written as is); or the string `env -S` splits holds a backslash, a backtick, a `$`, a `~`, a line break or one of `;&|<>()`, which env reads apart from bash; name the folder instead, on one line";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -309,7 +309,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `export $(echo HOME=${main}); bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `f() { local \`echo PWD\`=${main}; rm $PWD/README.md; }; f` }, UNKNOWN],
 		["bash", { command: `declare -x "\`echo HOME\`=${main}"; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
-		// Only a plain name (letters, digits and `_`, not first a digit, written as is) passes where a declaration, `env` or `sudo` sets one (AR-D245): a brace list, a glob, an extglob, an index, a quoted or escaped special character is refused.
+		// Only a plain name (letters, digits and `_`, not first a digit, written as is) passes where a declaration, `env` or `sudo` sets one (AR-D245): a glob, an extglob, an index, a quoted or escaped special character is refused, and a brace list sets each name it makes, HOME here.
 		["bash", { command: `export {HOME,X}=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `export HOM{E,}=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `declare -x {HOME,X}=${main}; rm ~/README.md` }, UNKNOWN],
@@ -345,6 +345,23 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `export Y={a,b} Z=* _x1+=2 "W"=3 -- V; declare +x -a arr=(1 2); env -u X FOO=1 BAR+=2 ls $v "$w" \${x:-y}; sudo -u root ls $v` }, undefined],
 		["bash", { command: `export FOO=$x BAR="$(pwd)" > $log; declare -r v=\${x:-1}; readonly "w=$v"` }, undefined],
 		["bash", { command: `echo HOME=${main} PWD=${main} > notes.txt; HOMEX=${main} PWDX=1 bash -c 'rm $HOME/README.md'` }, undefined],
+		// AR0617: an unquoted brace list, comma list or sequence, is each word bash makes of it, in a path, a `-C` folder, nested, in a redirect's target, a shell's
+		// command, or with a part known only at run time; quoted or escaped it is one word. Lists that make 256 words pass, more are unknown. `git -C ../../{acme,x} commit`
+		// is `git -C ../../acme ../../x commit`, which git refuses, `../../x` being no git command; a list that makes the folder and the subcommand is refused.
+		["bash", { command: "rm ../../{acme,x}/README.md" }, MAIN],
+		["bash", { command: "git -C {../../acme,commit} -m x" }, MAIN],
+		["bash", { command: "git {-C,../../acme} commit -m x" }, MAIN],
+		["bash", { command: "git -C ../../ac{m..m}e commit -m x" }, MAIN],
+		["bash", { command: "rm ../../{x,{y,ac{z,me}}}/README.md" }, MAIN],
+		["bash", { command: "rm ../../ac{l..n}e/README.md" }, MAIN],
+		["bash", { command: "echo x > ../../ac{m..m}e/README.md" }, MAIN],
+		["bash", { command: "bash -c 'rm ../../{x,acme}/README.md'" }, MAIN],
+		["bash", { command: "rm ../../{$x,acme}/README.md" }, MAIN],
+		["bash", { command: `rm ../../'{acme,x}'/README.md ../../"{acme,x}"/README.md ../../\\{acme,x}/README.md ../../{acme\\,x}/README.md ../../ac'{m..m}'e/README.md` }, undefined],
+		["bash", { command: "touch x{1..256}" }, undefined],
+		["bash", { command: "touch x{1..257}" }, UNKNOWN],
+		["bash", { command: `touch x{${"a,".repeat(15)}b}{${"a,".repeat(15)}b}` }, undefined],
+		["bash", { command: `rm ../../{${"x,".repeat(256)}acme}/README.md` }, UNKNOWN],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.
 		["bash", { command: `echo x > \${ARTHUR_JOB%/*}/${other.id}/result` }, UNKNOWN],
 		["bash", { command: `echo x > \${x:-\${ARTHUR_JOB%/*}}/${other.id}/result` }, UNKNOWN],

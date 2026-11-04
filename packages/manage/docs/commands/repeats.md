@@ -34,7 +34,7 @@ With no decision in the period the decisions are `None in the log.`, the issues 
 
 ## The page
 
-`/repeats` writes the main project's digest as one self-contained page, `.arthur/manage/repeats-<date>.html` (`<date>` today in `core.timeZone`, written to a temporary name and renamed), and sends it as a file through the channel the command came from, to its place, as `/retro` sends a page (`arthur retro --help`): `repeats-<date>.html: <channel>: <what the channel said>`, or why it was not sent. The page is the report style: black on white, centred and at most 46em wide, blue headings and code, each list a list, and red only for the lines of the overrides and the loose matches.
+`/repeats` writes the main project's digest as one self-contained page, `.arthur/manage/repeats-<date>.html` (`<date>` today in `core.timeZone`, written to a temporary name and renamed), and sends it as a file through the channel the command came from, to its place, as `/retro` sends a page (`arthur retro --help`): `repeats-<date>.html: <channel>: <what the channel said>`, or why it was not sent. The page follows the base style of `.agents/arthur/criteria/report.md`: ink `#0a0a0a` on white with blue `#0033ff` as the accent, one light colour scheme, a black header holding the title and the `Since` line, then the sections in a centred `main` at most 900 px wide, their headings centred, each backticked span as `code` on grey, each list a list, and red `#d40000` only for the lines of the overrides and the loose matches.
 
 ## The decisions retro
 

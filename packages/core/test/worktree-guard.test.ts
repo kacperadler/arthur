@@ -362,6 +362,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "touch x{1..257}" }, UNKNOWN],
 		["bash", { command: `touch x{${"a,".repeat(15)}b}{${"a,".repeat(15)}b}` }, undefined],
 		["bash", { command: `rm ../../{${"x,".repeat(256)}acme}/README.md` }, UNKNOWN],
+		["bash", { command: `echo x > ../../{${"x,".repeat(256)}acme}/README.md` }, UNKNOWN],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.
 		["bash", { command: `echo x > \${ARTHUR_JOB%/*}/${other.id}/result` }, UNKNOWN],
 		["bash", { command: `echo x > \${x:-\${ARTHUR_JOB%/*}}/${other.id}/result` }, UNKNOWN],

@@ -23,21 +23,23 @@ F6 of AR0404 (spec/features/AR0404-security-review-of-our-own-code-part-3-channe
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Only a CI run of the branch itself counts as its CI: today any run on the tip's sha wins, whatever its event, branch or repository (Description: `github-git.ts:21-27`, `github-api.ts:70`, `:92`).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The CI result of a branch counts only runs whose `head_branch` is that branch, whose head repository is the project's repository and whose event is `push`; any other run on the same sha is ignored.
+- Tests with a fork's `pull_request` run, a `workflow_dispatch` and a run on another branch at the same sha each show it ignored; each fails without its check.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/github/src/github-git.ts`, `packages/github/src/github-api.ts` and their tests.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Which workflow a project watches (its `ci` option).
 
 ## Decisions
 

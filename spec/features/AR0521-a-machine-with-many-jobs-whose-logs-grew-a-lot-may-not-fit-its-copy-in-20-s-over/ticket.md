@@ -20,21 +20,23 @@ F2 of AR0509 (spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A slow link to another machine must not make it count as offline: the sweep's copy of job records is bounded per answer, not per job, so a machine with many jobs behind is still copied within the time limit (evidence in the Description: `remote-job.ts:23`, `machine-sync.ts:29`).
 
 - Kind: fix
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The bytes one copy answer carries are capped in total (not only per job), so the answer fits the copy's time limit on a slow link; what does not fit comes in the next sweep.
+- A test with many jobs whose logs grew past the cap sees one bounded answer, `synced` moving forward, and no job failed as offline; it fails without the change.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/remote-job.ts`, `packages/core/src/machine-sync.ts` and their tests.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other parts of the machine sweep.
 
 ## Decisions
 

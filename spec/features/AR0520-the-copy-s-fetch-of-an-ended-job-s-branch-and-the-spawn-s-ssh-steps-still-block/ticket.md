@@ -20,21 +20,23 @@ F1 of AR0509 (spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The fetch of an ended job's branch from another machine and the spawn's SSH steps must not block `arthur run` with no time limit (Description: `machine-sync.ts:66`, `job-machine.ts:114-122`, `:143-149`).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- Every `ssh` and git-over-ssh call in `job-machine.ts` has a time limit and a bounded output; one that passes it fails with a message naming the machine and the step, and the sweep goes on.
+- A test with a machine whose ssh never answers shows the sweep and the spawn step end within the limit; it fails without the limit.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-machine.ts`, `packages/core/src/machine-sync.ts` and their tests.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The bound on the copy itself (AR0509, done) and its size per answer (AR0521).
 
 ## Decisions
 

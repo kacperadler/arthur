@@ -26,7 +26,7 @@ Each bot asks `GET /gateway/bot` with `Authorization: Bot <token>` and Discord's
 - op 9 with `d: false`, and the closes 4007 and 4009, start a new session: op 9 after 1 to 5 s. A connection that never got to READY or RESUMED waits before the next try, 1 s doubling to 60 s; a failed `GET /gateway/bot` too, or the seconds its 429 gives, with one line on stderr said once: `discord bot <name>: GET /gateway/bot: <status>: <message>; the gateway connects again in <seconds> s`.
 - A new session never identifies while `GET /gateway/bot` gives fewer than 50 session starts left: Discord resets the token after 1000 in a day. The bot says `discord bot <name>: only <n> of Discord's daily session starts are left, ...; the bot connects again once they reset, in <seconds> s` once and waits for `reset_after`, so a crash loop of restarts cannot burn the token.
 - The closes Discord says not to retry end the bot's connection until the next start, said once on stderr and in a `notice` (which Telegram or the terminal shows): 4004, `Discord refused the token in <tokenEnv> (4004 Authentication failed): reset it on the Bot page of the application at discord.com/developers/applications, put the new one in <tokenEnv> and restart Arthur`; 4014, `Discord refused the MESSAGE_CONTENT intent (4014 Disallowed intents): switch on Message Content Intent on the Bot page ...`; 4010 to 4013, each named. Neither prints the token.
-- A stop closes with 1000, so the bot shows offline.
+- A stop closes with 1000, so the bot shows offline. A close Discord does not answer within 5 s, as over a dead network path, counts as lost (1006): a stop ends, and a heartbeat's close resumes.
 
 ## Receiving
 

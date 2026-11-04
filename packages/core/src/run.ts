@@ -13,6 +13,9 @@ const KEEP_ALIVE_MS = 2 ** 30;
 // How often the log is checked for lines another process wrote: one `fstat`, and a read only when it grew.
 const FOLLOW_MS = 500;
 const SWEEP_MS = 30_000;
+// How long one plugin's `stop` may take: a socket or a request with no time limit would hold the process, its restart and every
+// plugin after it forever (AR0622). As long as a Discord or Telegram message's send may take, so one under way ends.
+const STOP_MS = 30_000;
 
 // `plugins` in setup order, as `loadPlugins` returns them, with its `follow`, `doctor` and `emit`; `sweep` is the job runner's.
 // Resolves to the exit code: 1 when a critical requirement is missing (doctor.ts), or a `start` or a `stop` failed. Throws,
@@ -75,11 +78,18 @@ export async function runPlugins(
 			started.reverse();
 			console.log(`arthur run: ${signalled ?? "a start failed"}: stopping ${started.map((plugin) => plugin.name).join(", ") || "nothing"}`);
 			for (const plugin of started) {
+				let timer: NodeJS.Timeout | undefined;
+				const late = new Promise<"late">((resolve) => (timer = setTimeout(resolve, STOP_MS, "late")));
 				try {
-					await plugin.stop?.();
+					if ((await Promise.race([Promise.try(() => plugin.stop?.()), late])) === "late") {
+						console.error(`arthur run: plugin ${plugin.name}: stop did not end within ${STOP_MS / 1000} s; going on without it`);
+						code = 1;
+					}
 				} catch (error) {
 					console.error(`arthur run: plugin ${plugin.name}: stop failed: ${error instanceof Error ? error.message : String(error)}`);
 					code = 1;
+				} finally {
+					clearTimeout(timer);
 				}
 			}
 			console.log("arthur run: stopped");

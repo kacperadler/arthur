@@ -185,6 +185,37 @@ test("a coordinator that ends is started again after restartDelaySeconds, and on
 	assert.ok(out.some((line) => line.text === "orchestration: the coordinator ended; starting it again in 1 s"));
 });
 
+// AR0622: the restart guard ended the coordinator and sent arthur run SIGTERM; this plugin's stop came later, the agent meanwhile
+// started again. A tmux that fails every call, so each start fails and is tried again after the delay, until the signal.
+test("from arthur run's SIGTERM or SIGINT on, the coordinator is not started again; its stop leaves no listener", async (t) => {
+	const said: string[] = [];
+	for (const method of ["log", "error"] as const) t.mock.method(console, method, (text: string) => void said.push(text));
+	const agent = fakeAgent({ steps: [] });
+	writeFileSync(join(dirname(agent), "tmux"), `#!/bin/sh\necho "stub tmux: no server" >&2\nexit 1\n`, { mode: 0o755 });
+	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;
+	t.after(() => void (process.env.PATH = PATH));
+	const failed = (seconds: number) => `orchestration: coordinator start failed: tmux new-session: stub tmux: no server; trying again in ${seconds} s`;
+	const count = (seconds: number) => said.filter((line) => line === failed(seconds)).length;
+	const watch = (seconds: number) => {
+		const supervisor = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket: `arthur-test-${process.pid}` }, restartDelaySeconds: seconds } }), temporaryFolder(), "omp");
+		t.after(() => supervisor.stop());
+		return supervisor;
+	};
+	const before = [process.listenerCount("SIGTERM"), process.listenerCount("SIGINT")];
+	for (const signal of ["SIGTERM", "SIGINT"] as const) {
+		const supervisor = watch(1);
+		await until("a start, and one a second later", () => count(1) === 2);
+		process.emit(signal);
+		// The clock, started after the signal: its second start comes 2 s on, past the 1 s and the poll a third of the first would take.
+		const clock = watch(2);
+		await until("the clock's second start", () => count(2) === 2);
+		assert.equal(count(1), 2, signal);
+		await Promise.all([supervisor.stop(), clock.stop()]);
+		assert.deepEqual([process.listenerCount("SIGTERM"), process.listenerCount("SIGINT")], before, signal);
+		said.splice(0);
+	}
+});
+
 test("arthur run's start sends the notice of a job's question that a crash left unsent (job-states.test.ts has its cases)", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);

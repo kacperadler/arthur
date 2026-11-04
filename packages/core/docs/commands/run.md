@@ -27,6 +27,7 @@ When something fails:
 
 - A plugin whose `start` throws: `arthur run: plugin <name>: start failed: <message>`. The plugins started before it are stopped, in reverse, the plugins after it are not started, and the exit code is 1.
 - A plugin whose `stop` throws: `arthur run: plugin <name>: stop failed: <message>`. The other plugins are still stopped, and the exit code is 1.
+- A plugin whose `stop` has not ended 30 s on: `arthur run: plugin <name>: stop did not end within 30 s; going on without it`. The other plugins are still stopped, the exit code is 1, and whatever that `stop` still holds (a socket, a timer) ends with the process, one second after `arthur run: stopped`.
 - SIGTERM while a plugin's `start` runs: that `start` finishes, then that plugin and those before it are stopped, in reverse; the rest are not started.
 
 Warnings, and it goes on from the log's end:

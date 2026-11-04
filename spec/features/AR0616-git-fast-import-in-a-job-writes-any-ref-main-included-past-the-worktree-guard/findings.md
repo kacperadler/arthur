@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: one of the tests that start `sleep 300` (`packages/core/test/job-control.test.ts:88`, `:121`, `:168`, `:185`, `:210`, `:223`, `:237`; `packages/core/test/scope.test.ts:51`, `:108`, `:126`, `:222`; `packages/delivery/test/merge.test.ts:282`); which one is not known
 - What: after `npm run mutate -- --max 4` ended, two `sleep 300` processes started about three minutes before its end were still running, each in a process group of its own and reparented to `systemd --user` (`ps -o pid,ppid,pgid,etime,args`). The job's end check reported them; they were stopped with `kill`.
 - Suggestion: run each candidate test file alone under `npm run mutate`'s conditions and see which leaves a `sleep 300`, then have that test kill the process it noted (its pid file) in a `t.after`. Out: the guard.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. F1 is still open: `npm run mutate` leaves `sleep 300` processes running after it ends
+
+- Kind: fix
+- Found by: 2026-11-04-review-991ae53c (review), 2026-11-04
+- Where: `spec/features/AR0616-…/findings.md`
+- What: It is filed by the branch and is outside this range's code.
+- Status: deferred (client summary)

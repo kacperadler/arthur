@@ -563,6 +563,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 			`git -C ${otherJob} fast-import`,
 			"git -c alias.fi=fast-import fi",
 		].map((command) => ["bash", { command }, MAIN] as const),
+		// Run outside every project, it still writes the file its `--export-marks` names.
+		["bash", { command: `git -C /tmp/other fast-import --export-marks=${root}/marks` }, MAIN],
 		["bash", { command: `echo "gitdir: ${root}/.git" > .git` }, MAIN],
 		["bash", { command: "rm .git", cwd: "sub" }, LINK],
 		["bash", { command: "rm ../.git", cwd: "sub" }, MAIN],

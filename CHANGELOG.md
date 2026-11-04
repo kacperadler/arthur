@@ -16,6 +16,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0584 Defaults T16: verify.md criteria for workers and reviewers, one Every job rule, and the retro sees the corrections (67edcac6)
 - AR0612 The /repeats page follows the report style (report.md) (9c7f172d)
 
 ## 2026-11-03

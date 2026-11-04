@@ -4675,9 +4675,9 @@
   {
     "id": "AR0584",
     "title": "Defaults T16: verify.md criteria for workers and reviewers, one Every job rule, and the retro sees the corrections",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0584-defaults-t16-verify-md-criteria-for-workers-and-reviewers-one-every-job-rule-and/ticket.md",
-    "updated": "2026-11-04T10:14:42.085Z",
+    "updated": "2026-11-04T10:35:02.626Z",
     "after": [
       "AR0570",
       "AR0571",

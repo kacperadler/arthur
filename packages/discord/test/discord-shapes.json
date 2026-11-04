@@ -2,7 +2,7 @@
 	"source": "https://github.com/discord/discord-api-docs/tree/main/developers",
 	"version": "API v10",
 	"recorded": "2026-10-31",
-	"how": "the field table of each object a fake answer holds, from the docs' Markdown: a key ending ? is optional, a type starting ? is nullable (written nullable); guild create and message create are the guild and message objects plus the extra fields of those events; unavailable guild and error are written from the docs' examples (Unavailable Guild Object; Example JSON Error Response), which have no table",
+	"how": "the field table of each object a fake answer holds, from the docs' Markdown: a key ending ? is optional, a type starting ? is nullable (written nullable); guild create and message create are the guild and message objects plus the extra fields of those events; unavailable guild and error are written from the docs' examples (Unavailable Guild Object; Example JSON Error Response), which have no table; application command, application command option, interaction, application command data, application command interaction data option and guild member were read on 2026-11-04, interaction's data recorded as the application command data, the only interaction data the fake sends",
 	"types": {
 		"payload": {
 			"op": {
@@ -1234,6 +1234,321 @@
 			"errors": {
 				"type": "object",
 				"optional": true
+			}
+		},
+		"application command": {
+			"id": {
+				"type": "snowflake"
+			},
+			"type": {
+				"type": "one of command types",
+				"optional": true
+			},
+			"application_id": {
+				"type": "snowflake"
+			},
+			"guild_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"name": {
+				"type": "string"
+			},
+			"name_localizations": {
+				"type": "dictionary with keys in available locales",
+				"optional": true,
+				"nullable": true
+			},
+			"description": {
+				"type": "string"
+			},
+			"description_localizations": {
+				"type": "dictionary with keys in available locales",
+				"optional": true,
+				"nullable": true
+			},
+			"options": {
+				"type": "array of application command option objects",
+				"optional": true
+			},
+			"default_member_permissions": {
+				"type": "string",
+				"nullable": true
+			},
+			"dm_permission": {
+				"type": "boolean",
+				"optional": true
+			},
+			"default_permission": {
+				"type": "boolean",
+				"optional": true,
+				"nullable": true
+			},
+			"nsfw": {
+				"type": "boolean",
+				"optional": true
+			},
+			"integration_types": {
+				"type": "list of integration types",
+				"optional": true
+			},
+			"contexts": {
+				"type": "list of interaction context types",
+				"optional": true,
+				"nullable": true
+			},
+			"version": {
+				"type": "snowflake"
+			},
+			"handler": {
+				"type": "one of command handler types",
+				"optional": true
+			}
+		},
+		"application command option": {
+			"type": {
+				"type": "one of application command option type"
+			},
+			"name": {
+				"type": "string"
+			},
+			"name_localizations": {
+				"type": "dictionary with keys in available locales",
+				"optional": true,
+				"nullable": true
+			},
+			"description": {
+				"type": "string"
+			},
+			"description_localizations": {
+				"type": "dictionary with keys in available locales",
+				"optional": true,
+				"nullable": true
+			},
+			"required": {
+				"type": "boolean",
+				"optional": true
+			},
+			"choices": {
+				"type": "array of application command option choice objects",
+				"optional": true
+			},
+			"options": {
+				"type": "array of application command option objects",
+				"optional": true
+			},
+			"channel_types": {
+				"type": "array of channel types",
+				"optional": true
+			},
+			"min_value": {
+				"type": "integer for INTEGER options, double for NUMBER options",
+				"optional": true
+			},
+			"max_value": {
+				"type": "integer for INTEGER options, double for NUMBER options",
+				"optional": true
+			},
+			"min_length": {
+				"type": "integer",
+				"optional": true
+			},
+			"max_length": {
+				"type": "integer",
+				"optional": true
+			},
+			"autocomplete": {
+				"type": "boolean",
+				"optional": true
+			},
+			"file_types": {
+				"type": "array of strings",
+				"optional": true
+			}
+		},
+		"interaction": {
+			"id": {
+				"type": "snowflake"
+			},
+			"application_id": {
+				"type": "snowflake"
+			},
+			"type": {
+				"type": "interaction type"
+			},
+			"data": {
+				"type": "application command data object",
+				"optional": true
+			},
+			"guild": {
+				"type": "partial guild object",
+				"optional": true
+			},
+			"guild_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"channel": {
+				"type": "partial channel object",
+				"optional": true
+			},
+			"channel_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"member": {
+				"type": "guild member object",
+				"optional": true
+			},
+			"user": {
+				"type": "user object",
+				"optional": true
+			},
+			"token": {
+				"type": "string"
+			},
+			"version": {
+				"type": "integer"
+			},
+			"message": {
+				"type": "message object",
+				"optional": true
+			},
+			"app_permissions": {
+				"type": "string"
+			},
+			"locale": {
+				"type": "string",
+				"optional": true
+			},
+			"guild_locale": {
+				"type": "string",
+				"optional": true
+			},
+			"entitlements": {
+				"type": "array of entitlement objects"
+			},
+			"authorizing_integration_owners": {
+				"type": "dictionary with keys of application integration types"
+			},
+			"context": {
+				"type": "interaction context type",
+				"optional": true
+			},
+			"attachment_size_limit": {
+				"type": "integer"
+			}
+		},
+		"application command data": {
+			"id": {
+				"type": "snowflake"
+			},
+			"name": {
+				"type": "string"
+			},
+			"type": {
+				"type": "integer"
+			},
+			"resolved": {
+				"type": "resolved data",
+				"optional": true
+			},
+			"options": {
+				"type": "array of application command interaction data option objects",
+				"optional": true
+			},
+			"guild_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"target_id": {
+				"type": "snowflake",
+				"optional": true
+			}
+		},
+		"application command interaction data option": {
+			"name": {
+				"type": "string"
+			},
+			"type": {
+				"type": "integer"
+			},
+			"value": {
+				"type": "string, integer, double, or boolean",
+				"optional": true
+			},
+			"options": {
+				"type": "array of application command interaction data option objects",
+				"optional": true
+			},
+			"focused": {
+				"type": "boolean",
+				"optional": true
+			}
+		},
+		"guild member": {
+			"user": {
+				"type": "user object",
+				"optional": true
+			},
+			"nick": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"avatar": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"banner": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"roles": {
+				"type": "array of snowflakes"
+			},
+			"joined_at": {
+				"type": "ISO8601 timestamp",
+				"nullable": true
+			},
+			"premium_since": {
+				"type": "ISO8601 timestamp",
+				"optional": true,
+				"nullable": true
+			},
+			"deaf": {
+				"type": "boolean"
+			},
+			"mute": {
+				"type": "boolean"
+			},
+			"flags": {
+				"type": "integer"
+			},
+			"pending": {
+				"type": "boolean",
+				"optional": true
+			},
+			"permissions": {
+				"type": "string",
+				"optional": true
+			},
+			"communication_disabled_until": {
+				"type": "ISO8601 timestamp",
+				"optional": true,
+				"nullable": true
+			},
+			"avatar_decoration_data": {
+				"type": "avatar decoration data object",
+				"optional": true,
+				"nullable": true
+			},
+			"collectibles": {
+				"type": "collectibles object",
+				"optional": true,
+				"nullable": true
 			}
 		}
 	}

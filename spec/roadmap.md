@@ -871,7 +871,7 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 ### 90. Discord: media and phone commands
 
 - Package: discord.
-- Delivers: attachments become `parts` (49), saved under `.arthur/discord/`; media goes out as multipart `files[n]`, up to 10 files per message, each at most 20 MiB (Discord's "Uploading Files" reference, AR0592), and at most 25 MiB per request; `/name text` typed as plain text in the owner's own message, never a forwarded one or an edit (89), is routed to the command registry and the reply sent to its channel. No application commands, so there is no interaction to answer.
+- Delivers: attachments become `parts` (49), saved under `.arthur/discord/`; media goes out as multipart `files[n]`, up to 10 files per message, each at most 20 MiB (Discord's "Uploading Files" reference, AR0592), and at most 25 MiB per request; `/name text` typed as plain text in the owner's own message, never a forwarded one or an edit (89), is routed to the command registry and the reply sent to its channel. The phone commands are also the server's guild commands, set at each start from the registry, so Discord lists them when the owner types `/`; a picked one arrives as `INTERACTION_CREATE` over the same gateway connection and is answered by outgoing calls (a deferred answer, then follow-ups), so nothing listens (AR0606).
 - Done means: refused before any send: 11 files, a file over 20 MiB, a request over 25 MiB. Edge cases: a message of only an attachment; an unknown command gets the registry's line; a reply longer than 2000 characters is sliced.
 - Depends on: 89.
 - Size: a day.

@@ -298,7 +298,7 @@ async function doctor(t: TestContext, apiUrl: string, env = ENV) {
 	return Promise.all(list.map(async (each) => [each.name, await each.check(), each.critical === true, each.fix] as const));
 }
 
-test("doctor: the token, the Message Content Intent, the server's 2FA and its two members, each ok or missing with its fix; none critical; Discord not reached is ok", async (t) => {
+test("doctor: the token, the Message Content Intent, the server's 2FA and its two members, the / commands, each ok or missing with its fix; none critical; Discord not reached is ok", async (t) => {
 	const api = await fakeDiscord(t);
 	const lines = await doctor(t, api.url);
 	assert.deepEqual(lines.map(([name, line, critical]) => [name, line, critical]), [
@@ -306,8 +306,9 @@ test("doctor: the token, the Message Content Intent, the server's 2FA and its tw
 		["bot (unnamed): Message Content Intent", "ok", false],
 		["bot (unnamed): server 2FA", "ok", false],
 		["bot (unnamed): server members", "ok", false],
+		["bot (unnamed): commands", "ok", false],
 	]);
-	assert.equal(api.calls.length, 2, "each call once per doctor run");
+	assert.equal(api.calls.length, 3, "each call once per doctor run");
 	[api.flags, api.mfa, api.members] = [1 << 18, 0, 3];
 	const [, intent, mfa, members] = await doctor(t, api.url);
 	assert.equal(intent?.[1], "ok", "GATEWAY_MESSAGE_CONTENT, for 100 servers or more, counts too");
@@ -336,6 +337,7 @@ test("doctor: the token, the Message Content Intent, the server's 2FA and its tw
 		"ok (Discord not reached: discord bot (unnamed): GET /applications/@me: cannot reach Discord's API)",
 		`ok (Discord not reached: discord bot (unnamed): GET /guilds/${GUILD}: cannot reach Discord's API)`,
 		`ok (Discord not reached: discord bot (unnamed): GET /guilds/${GUILD}: cannot reach Discord's API)`,
+		"ok (Discord not reached: discord bot (unnamed): GET /applications/@me: cannot reach Discord's API)",
 	]);
 });
 

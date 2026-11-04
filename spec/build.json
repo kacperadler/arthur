@@ -3009,15 +3009,11 @@
   {
     "id": "AR0391",
     "title": "The 60 s limit of a push also bounds its LFS upload",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0391-the-60-s-limit-of-a-push-also-bounds-its-lfs-upload/ticket.md",
-    "updated": "2026-10-26T10:52:18.649Z",
+    "updated": "2026-11-04T20:40:52.804Z",
     "after": [
-      "AR0390",
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
+      "AR0625"
     ]
   },
   {
@@ -3106,15 +3102,11 @@
   {
     "id": "AR0399",
     "title": "`git lfs push origin` reads origin's URL outside Git's transport policy",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0399-git-lfs-push-origin-reads-origin-s-url-outside-git-s-transport-policy/ticket.md",
-    "updated": "2026-10-26T10:52:21.651Z",
+    "updated": "2026-11-04T20:40:54.013Z",
     "after": [
-      "AR0391",
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
+      "AR0521"
     ]
   },
   {
@@ -3965,9 +3957,12 @@
   {
     "id": "AR0500",
     "title": "The reviewer reads the diff through replacements under `refs/replace` that any job may write",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0500-the-reviewer-reads-the-diff-through-replacements-under-refs-replace-that-any-job/ticket.md",
-    "updated": "2026-10-27T12:19:47.664Z"
+    "updated": "2026-11-04T20:40:54.584Z",
+    "after": [
+      "AR0399"
+    ]
   },
   {
     "id": "AR0501",
@@ -4000,9 +3995,12 @@
   {
     "id": "AR0504",
     "title": "Any run of the workflow on the tip's sha counts as the branch's CI, whatever its event, branch or repository",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0504-any-run-of-the-workflow-on-the-tip-s-sha-counts-as-the-branch-s-ci-whatever-its/ticket.md",
-    "updated": "2026-10-27T12:19:47.679Z"
+    "updated": "2026-11-04T20:40:55.153Z",
+    "after": [
+      "AR0500"
+    ]
   },
   {
     "id": "AR0505",
@@ -4119,16 +4117,22 @@
   {
     "id": "AR0520",
     "title": "The copy's fetch of an ended job's branch, and the spawn's SSH steps, still block `arthur run` with no time limit",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0520-the-copy-s-fetch-of-an-ended-job-s-branch-and-the-spawn-s-ssh-steps-still-block/ticket.md",
-    "updated": "2026-10-27T15:51:09.260Z"
+    "updated": "2026-11-04T20:40:55.717Z",
+    "after": [
+      "AR0504"
+    ]
   },
   {
     "id": "AR0521",
     "title": "A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0521-a-machine-with-many-jobs-whose-logs-grew-a-lot-may-not-fit-its-copy-in-20-s-over/ticket.md",
-    "updated": "2026-10-27T15:51:09.265Z"
+    "updated": "2026-11-04T20:40:53.364Z",
+    "after": [
+      "AR0391"
+    ]
   },
   {
     "id": "AR0522",
@@ -4164,9 +4168,12 @@
   {
     "id": "AR0525",
     "title": "The CLI and a plugin's task name only enabled plugins' env values, while a job names every value in the env file",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0525-the-cli-and-a-plugin-s-task-name-only-enabled-plugins-env-values-while-a-job/ticket.md",
-    "updated": "2026-10-27T18:21:12.565Z"
+    "updated": "2026-11-04T20:40:56.278Z",
+    "after": [
+      "AR0520"
+    ]
   },
   {
     "id": "AR0526",
@@ -4448,7 +4455,7 @@
     "path": "spec/features/AR0558-github-t2-create-comment-on-and-close-pull-requests/ticket.md",
     "updated": "2026-10-29T14:33:13.845Z",
     "after": [
-      "AR0581"
+      "AR0560"
     ]
   },
   {
@@ -4468,8 +4475,7 @@
     "path": "spec/features/AR0560-github-t4-list-and-delete-branches-on-origin/ticket.md",
     "updated": "2026-10-29T14:33:14.909Z",
     "after": [
-      "AR0557",
-      "AR0555"
+      "AR0605"
     ]
   },
   {
@@ -4844,8 +4850,7 @@
     "path": "spec/features/AR0605-arthur-config-check-type-checks-arthur-config-ts-and-every-project-file-with-tsc/ticket.md",
     "updated": "2026-11-02T18:03:04.057Z",
     "after": [
-      "AR0390",
-      "AR0397"
+      "AR0525"
     ]
   },
   {
@@ -4876,8 +4881,7 @@
     "path": "spec/features/AR0608-the-plan-guard-ignores-a-plan-line-it-cannot-read-so-a-misspelt-one-lets-a/ticket.md",
     "updated": "2026-11-02T21:14:34.669Z",
     "after": [
-      "AR0390",
-      "AR0397"
+      "AR0627"
     ]
   },
   {
@@ -4964,7 +4968,10 @@
     "title": "The checks extension misses a check run behind an env assignment or through bun run",
     "status": "planned",
     "path": "spec/features/AR0618-the-checks-extension-misses-a-check-run-behind-an-env-assignment-or-through-bun/ticket.md",
-    "updated": "2026-11-04T10:08:52.759Z"
+    "updated": "2026-11-04T10:08:52.759Z",
+    "after": [
+      "AR0608"
+    ]
   },
   {
     "id": "AR0619",
@@ -5010,29 +5017,38 @@
   {
     "id": "AR0624",
     "title": "git fast-import with --allow-unsafe-features and a feature export-marks line on stdin writes a file anywhere past the worktree guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0624-git-fast-import-with-allow-unsafe-features-and-a-feature-export-marks-line-on/ticket.md",
-    "updated": "2026-11-04T18:00:39.549Z"
+    "updated": "2026-11-04T20:40:51.619Z",
+    "after": [
+      "AR0626"
+    ]
   },
   {
     "id": "AR0625",
     "title": "A git program called by its path (/usr/lib/git-core/git-*) passes the worktree guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0625-a-git-program-called-by-its-path-usr-lib-git-core-git-passes-the-worktree-guard/ticket.md",
-    "updated": "2026-11-04T18:00:40.280Z"
+    "updated": "2026-11-04T20:40:52.248Z",
+    "after": [
+      "AR0624"
+    ]
   },
   {
     "id": "AR0626",
     "title": "Two tests fail now and then under the full suite: models server unreachable, discord refused slice",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0626-two-tests-fail-now-and-then-under-the-full-suite-models-server-unreachable/ticket.md",
-    "updated": "2026-11-04T18:00:41.056Z"
+    "updated": "2026-11-04T20:40:50.966Z",
+    "after": [
+      "AR0618"
+    ]
   },
   {
     "id": "AR0627",
     "title": "No client or other project of the owner named in the repository, and a check that refuses a commit naming one",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0627-no-client-or-other-project-of-the-owner-named-in-the-repository-and-a-check-that/ticket.md",
-    "updated": "2026-11-04T20:01:58.878Z"
+    "updated": "2026-11-04T20:36:47.649Z"
   }
 ]

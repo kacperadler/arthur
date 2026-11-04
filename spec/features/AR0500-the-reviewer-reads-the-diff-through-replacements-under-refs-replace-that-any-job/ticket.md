@@ -23,21 +23,23 @@ F2 of AR0404 (spec/features/AR0404-security-review-of-our-own-code-part-3-channe
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The reviewer must judge the real diff, never one shown through `refs/replace` a job wrote (Description). AR0621 (merged) gives every job, a reviewer included, `GIT_NO_REPLACE_OBJECTS=1`, and AR0615/AR0621 pin `core.useReplaceRefs=false` on Arthur's checked git calls. This ticket checks what is still open and closes it.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A test writes a replacement for a commit of a branch under review and shows the reviewer's `git diff <base>..<commit>` and `git log` (as the review task runs them) read the real objects; it fails when the protection is removed.
+- If nothing is left open after AR0621, the worker says so with that test as the proof and changes no other code.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/review-command.ts`, `packages/core/src/wrapper.ts`, `packages/core/src/job-sandbox.ts` and their tests, only as far as needed.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The worktree guard rules for `git replace` (AR0615, AR0616).
 
 ## Decisions
 

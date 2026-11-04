@@ -135,8 +135,7 @@ function repeatsOf(host: Host, project: string, made: Date | undefined): string 
 	}
 }
 
-// The steers and continues the project's jobs got since `made` (the core's `job-steered`, its job's project the one `job-started`
-// named), grouped by their first sentence, the most frequent first.
+// The project's jobs' steers and continues since `made` (`job-started` names a job's project), by first sentence, most first.
 function corrections(host: Host, project: string, made: Date | undefined): string {
 	const [projects, counts] = [new Map<unknown, unknown>(), new Map<string, number>()];
 	for (const { name, time, data } of host.events.read(0)) {
@@ -147,5 +146,5 @@ function corrections(host: Host, project: string, made: Date | undefined): strin
 		counts.set(first, (counts.get(first) ?? 0) + 1);
 	}
 	const lines = [...counts].sort(([, a], [, b]) => b - a).map(([first, count]) => `- ${count}: ${first}`);
-	return `### Corrections\n\nThe steers and continues this project's jobs got in the period, grouped by their first sentence, the most frequent first:\n\n${lines.join("\n") || "none"}`;
+	return `### Corrections\n\nSteers and continues of the project's jobs, by first sentence, most frequent first:\n\n${lines.join("\n") || "none"}`;
 }

@@ -220,7 +220,7 @@ test("a retro's prompt lists the corrections of the project's jobs since the las
 		const prompt = env.read(job.id, "prompt");
 		return prompt.slice(prompt.indexOf("### Corrections"), prompt.indexOf("### Board"));
 	};
-	const lead = "### Corrections\n\nThe steers and continues this project's jobs got in the period, grouped by their first sentence, the most frequent first:\n\n";
+	const lead = "### Corrections\n\nSteers and continues of the project's jobs, by first sentence, most frequent first:\n\n";
 	assert.equal(await corrections(), `${lead}- 2: Use a timeout of 1800.\n- 1: Never pkill.\n- 1: Use a timeout of 1800!\n- 1: ${"x".repeat(200)}\n\n`);
 	// A last retro whose commit is dated after every one of them: none is of the period.
 	mkdirSync(join(env.root, "spec/retro"));

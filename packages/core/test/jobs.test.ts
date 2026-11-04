@@ -8,6 +8,7 @@ import { test } from "node:test";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
+import { EVERY_JOB } from "../src/roles.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import { jobSlice, temporaryFolder } from "../src/testing.ts";
 
@@ -61,7 +62,7 @@ test("a worker gets its own branch and worktree from HEAD, the record and job-st
 		worktree,
 		project: "acme",
 		machine: "local",
-		prompt: readFileSync(new URL("../roles/worker.md", import.meta.url), "utf8"),
+		prompt: `${readFileSync(new URL("../roles/worker.md", import.meta.url), "utf8").trim()}\n\n${EVERY_JOB}\n`,
 	};
 	assert.deepEqual(record(home, job.id, Object.keys(spawned)), spawned);
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);

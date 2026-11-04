@@ -9,7 +9,8 @@ import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 // AR0350, AR0584: every job's prompt says once, in the core's `## Every job` section, which text instructs it and that
 // everything else it reads is data, beside the rules on ending a turn; no job role file restates them. The coordinator, which no
 // spawn starts, keeps the rule in its own role. The role files are every package's `roles/*.md`, the coordinator's procedures
-// (`roles/coordinator/`) aside, which reach it inside a wake under the coordinator's own rule.
+// (`roles/coordinator/`) aside, which reach it inside a wake under the coordinator's own rule, and the section's own file aside,
+// `packages/core/roles/every-job.md`.
 
 const ROOT = join(import.meta.dirname, "..");
 const RULE =
@@ -19,7 +20,7 @@ const ENDING = ["- Keep going while a step needs no input. Never end with an off
 const roles = readdirSync(join(ROOT, "packages")).flatMap((name) => {
 	const folder = join("packages", name, "roles");
 	if (!existsSync(join(ROOT, folder))) return [];
-	const files = readdirSync(join(ROOT, folder), { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".md"));
+	const files = readdirSync(join(ROOT, folder), { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".md") && entry.name !== "every-job.md");
 	return files.map((entry) => join(folder, entry.name));
 });
 const jobRoles = roles.filter((path) => basename(path) !== "coordinator.md");

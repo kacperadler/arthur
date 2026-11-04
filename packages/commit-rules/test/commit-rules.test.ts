@@ -129,11 +129,13 @@ test("words go into the worker's and the reviewer's prompt, and no other role's"
 	const fake = await load(repository(), { words: `  ${WORDS}\n` });
 	const worker = await fake.host.jobs.spawn({ task: "Build it." });
 	assert.ok(promptOf(fake, worker.id).endsWith(`\n\n## Commit messages\n\nThis project's rule for every commit message you write (commitRules.project({ words }) in its project file):\n\n${WORDS}\n`));
+	// The core's section every job's prompt holds, before the plugins' sections.
+	const every = /## Every job\n\n(- .*\n)+/.exec(promptOf(fake, worker.id))?.[0] ?? "";
 	const review = await fake.host.jobs.spawn({ task: "Review it.", kind: "review" });
 	const judge = "This project's rule for commit messages; judge each commit of the branch by it, and a message that breaks it is a finding";
-	assert.equal(promptOf(fake, review.id), `# Reviewer\n\n## Commit messages\n\n${judge} (commitRules.project({ words }) in its project file):\n\n${WORDS}\n`);
+	assert.equal(promptOf(fake, review.id), `# Reviewer\n\n${every}\n## Commit messages\n\n${judge} (commitRules.project({ words }) in its project file):\n\n${WORDS}\n`);
 	const plan = await fake.host.jobs.spawn({ task: "Plan it.", kind: "plan" });
-	assert.equal(promptOf(fake, plan.id), "# Reviewer\n");
+	assert.equal(promptOf(fake, plan.id), `# Reviewer\n\n${every}`);
 	assert.deepEqual(commit(worker.worktree, "Fixed it").code, 0, "words are no hook");
 });
 

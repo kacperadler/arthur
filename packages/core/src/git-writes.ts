@@ -1,9 +1,9 @@
 // What a `git` command line writes, for the worktree guard (spec/roadmap.md, entry 20). `args` are the words after `git`.
 
 // Subcommands that write a tree, the index or a ref of the checkout they run in, and those that change their file operands
-// (`init` its folder and its `--separate-git-dir`, whose `.git` file it writes there).
+// (`init` its folder and its `--separate-git-dir`, whose `.git` file it writes there; `fast-import` its `--export-marks` file).
 const WRITES_CHECKOUT = ["commit", "checkout", "checkout-index", "read-tree", "update-index", "reset", "add", "restore", "clean", "rebase", "merge", "cherry-pick", "revert", "apply", "am", "rm", "mv", "switch", "pull", "fetch", "push", "bisect", "sparse-checkout", "submodule", "symbolic-ref", "filter-branch", "init"];
-const WRITES_OPERANDS = ["add", "rm", "mv", "restore", "clean", "apply", "init"];
+const WRITES_OPERANDS = ["add", "rm", "mv", "restore", "clean", "apply", "init", "fast-import"];
 const VALUE_OPTIONS = ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source"];
 // Config the guard does not read, given with the call: an include by `-c`, an alias or include by `--config-env`, and the
 // variables that add config or move the user's (`GIT_CONFIG_NOSYSTEM` only drops the system's), set, appended to or set at an
@@ -129,12 +129,11 @@ function configWrite(rest: readonly string[]): GitCall["config"] {
 	return { key: operands[subcommand ? 1 : 0] ?? "", scope, file, loads };
 }
 
-// Whether `git <sub> <rest>` writes a ref, beside the subcommands that always do: `branch` or `tag` with a flag that
-// forces, deletes, moves, copies or sets an upstream, or naming one without a flag that lists; `remote` or `notes` with a
-// verb that changes them.
+// Whether `git <sub> <rest>` writes a ref, beside the subcommands that always do: `fast-import`, whose refs come on stdin; `branch` or `tag` with a flag that
+// forces, deletes, moves, copies or sets an upstream, or naming one without a flag that lists; `remote` or `notes` with a verb that changes them.
 function writesRef(sub: string, rest: readonly string[]): boolean {
 	if (sub === "remote" || sub === "notes") return /^(?:add|remove|rm|rename|set-|prune|update|append|copy|edit|merge)/.test(rest[0] ?? "");
-	if (sub !== "branch" && sub !== "tag") return false;
+	if (sub !== "branch" && sub !== "tag") return sub === "fast-import";
 	const changes = rest.some((word) => /^-[a-zA-Z]*[fdDmMcCu]|^--(?:force|delete|move|copy|(?:un)?set-upstream)/.test(word));
 	const lists = rest.some((word) => /^-[a-zA-Z]*l|^--(?:list|contains|no-contains|merged|no-merged|points-at)/.test(word));
 	return changes || (rest.some((word) => !word.startsWith("-")) && !lists);

@@ -343,6 +343,21 @@ test("this machine offline: no notice and no site down, one log line; no site re
 	assert.equal(readState(fake.host.folder).offline, undefined);
 });
 
+test("one site and the default probes, none answering: offline, nothing sent; once a probe answers, the site still failing needs 2 new failed checks", async (t) => {
+	const logs = t.mock.method(console, "log", () => {});
+	const closed = createServer();
+	await once(closed.listen(0, "127.0.0.1"), "listening");
+	const url = `http://127.0.0.1:${(closed.address() as AddressInfo).port}/`;
+	closed.close();
+	network.up = false;
+	const { fake, notices } = await started(t, { acme: [{ url, everySeconds: 1 }] });
+	await until("the offline log line", () => logs.mock.callCount() === 1);
+	fake.setNow(new Date("2026-01-01T00:05:00Z"));
+	network.up = true;
+	await until("the down notice", () => notices().length === 1);
+	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since 00:05 on thu 2026-01-01 (UTC): connection refused`]);
+});
+
 test("with probes: [] nothing tells this machine offline apart: two sites with no answer are each down, no probe asked", async (t) => {
 	const site = await server(t);
 	Object.assign(site.answers, { "/a": hang, "/b": hang });

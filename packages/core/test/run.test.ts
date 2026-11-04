@@ -188,6 +188,44 @@ test("SIGINT stops like SIGTERM; a stop that throws is named, the other plugins 
 	assert.ok(!existsSync(join(home, "run.pid")));
 });
 
+// AR0622: a Discord gateway close its peer never answered held `arthur run`, after its own restart's SIGTERM, forever.
+test("a stop that has not ended 30 s on is named, the plugins before it still stop, and the run ends with 1", async (t) => {
+	t.mock.timers.enable({ apis: ["setTimeout"] });
+	t.mock.method(console, "log", () => {});
+	const failed = t.mock.method(console, "error", () => {});
+	const { home } = project("");
+	const stopped: string[] = [];
+	// Its stop ends only once the test is over, so a run with no bound fails the test, then ends too.
+	const hold = Promise.withResolvers<void>();
+	t.after(() => hold.resolve());
+	const a = { name: "a", setup() {}, stop: () => void stopped.push("a") };
+	const hung = { name: "discord", setup() {}, stop: () => void stopped.push("discord") ?? hold.promise };
+	const b = { name: "b", setup() {}, start() { throw new Error("no socket"); } };
+	let code: number | undefined;
+	void runPlugins([a, hung, b], home, () => () => {}, async () => {}, async () => [], () => {}).then((exit) => (code = exit));
+	const settle = async () => { for (let each = 0; each < 20; each++) await new Promise(setImmediate); };
+	await settle();
+	t.mock.timers.tick(29_999);
+	await settle();
+	assert.deepEqual([stopped, code], [["discord"], undefined], "still waiting 1 ms before the bound");
+	t.mock.timers.tick(1);
+	await settle();
+	assert.deepEqual([stopped, code], [["discord", "a"], 1]);
+	assert.ok(!existsSync(join(home, "run.pid")));
+	assert.deepEqual(failed.mock.calls.map((call) => String(call.arguments[0])), ["arthur run: plugin b: start failed: no socket", "arthur run: plugin discord: stop did not end within 30 s; going on without it"]);
+});
+
+test("a timer or a socket a stop left behind holds arthur run one second at most after its stops", async (t) => {
+	const { folder } = project('plugin("orchestration"), plugin("a", { stop() { setInterval(() => {}, 1000); } })');
+	const run = start(t, folder);
+	await until("the start", () => run.output().includes("started"));
+	run.child.kill("SIGTERM");
+	await until("the stops", () => run.output().includes("arthur run: stopped"));
+	await until("the process's end", () => run.child.exitCode !== null, { deadlineMs: 3000 });
+	const ended = await run.ended;
+	assert.deepEqual([ended.status, ended.stderr], [0, ""]);
+});
+
 test("SIGTERM during a start lets it finish, stops it and those before it, and starts no other", async (t) => {
 	// b's start ends once it has seen the signal itself; Arthur's listener came first, so by then Arthur has seen it too.
 	const slow = `plugin("b", { async start() {

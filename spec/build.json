@@ -4941,9 +4941,9 @@
   {
     "id": "AR0615",
     "title": "A job may write under refs/replace through a refspec from config or another repository: close it in Git config",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0615-a-job-may-write-under-refs-replace-through-a-refspec-from-config-or-another/ticket.md",
-    "updated": "2026-11-04T15:10:26.751Z"
+    "updated": "2026-11-04T15:25:35.128Z"
   },
   {
     "id": "AR0616",

@@ -4965,5 +4965,12 @@
     "status": "planned",
     "path": "spec/features/AR0618-the-checks-extension-misses-a-check-run-behind-an-env-assignment-or-through-bun/ticket.md",
     "updated": "2026-11-04T10:08:52.759Z"
+  },
+  {
+    "id": "AR0619",
+    "title": "A branch delete on origin that fails for a network or GitHub error is retried, not left behind",
+    "status": "planning",
+    "path": "spec/features/AR0619-a-branch-delete-on-origin-that-fails-for-a-network-or-github-error-is-retried/ticket.md",
+    "updated": "2026-11-04T10:37:03.224Z"
   }
 ]

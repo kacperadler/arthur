@@ -199,7 +199,7 @@ test("a stop that has not ended 30 s on is named, the plugins before it still st
 	const hold = Promise.withResolvers<void>();
 	t.after(() => hold.resolve());
 	const a = { name: "a", setup() {}, stop: () => void stopped.push("a") };
-	const hung = { name: "discord", setup() {}, stop: () => void stopped.push("discord") ?? hold.promise };
+	const hung = { name: "discord", setup() {}, stop() { stopped.push("discord"); return hold.promise; } };
 	const b = { name: "b", setup() {}, start() { throw new Error("no socket"); } };
 	let code: number | undefined;
 	void runPlugins([a, hung, b], home, () => () => {}, async () => {}, async () => [], () => {}).then((exit) => (code = exit));

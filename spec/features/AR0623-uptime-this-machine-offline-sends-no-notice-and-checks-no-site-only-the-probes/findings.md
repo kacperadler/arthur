@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/discord/test/menu.test.ts:87`
 - What: `npm test` on 6ba2b890 failed "no phone commands empties the menu; a refused PUT is one line without the token, the record unchanged, and the next start sets it" (34 ms, 1 of 1536); `node --import @arthur/core/testing --test packages/discord/test/menu.test.ts` then passed 12 of 12. This branch touches no discord file. Which assertion failed was not captured.
 - Suggestion: run the file under load (`npm test` in parallel with a CPU hog) until it fails, read the assertion, and make the test wait for the state it asserts (likely the stop's write or the third PUT) instead of an earlier signal.
-- Status: open
+- Status: deferred (client summary)

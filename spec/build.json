@@ -5003,9 +5003,9 @@
   {
     "id": "AR0623",
     "title": "Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0623-uptime-this-machine-offline-sends-no-notice-and-checks-no-site-only-the-probes/ticket.md",
-    "updated": "2026-11-04T20:17:02.241Z"
+    "updated": "2026-11-04T20:36:29.318Z"
   },
   {
     "id": "AR0624",

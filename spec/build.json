@@ -4955,9 +4955,9 @@
   {
     "id": "AR0617",
     "title": "The worktree guard reads a brace list in a path as one word, so rm ../../{acme,x}/README.md reaches the main checkout",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0617-the-worktree-guard-reads-a-brace-list-in-a-path-as-one-word-so-rm-acme-x-readme/ticket.md",
-    "updated": "2026-11-04T17:14:08.860Z"
+    "updated": "2026-11-04T17:21:21.664Z"
   },
   {
     "id": "AR0618",

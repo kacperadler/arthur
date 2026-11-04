@@ -24,6 +24,8 @@ const commit = (cwd: string, message: string, ...more: string[]) => {
 function repository(files: Readonly<Record<string, string>> = {}): string {
 	const root = temporaryFolder();
 	git(root, "init", "--quiet", "--initial-branch=main");
+	// As the core's config check sets it before a spawn (AR0615), so the plugin's own change is all a test sees.
+	git(root, "config", "core.useReplaceRefs", "false");
 	for (const [path, text] of Object.entries({ "README.md": "# demo\n", ...files })) {
 		mkdirSync(dirname(join(root, path)), { recursive: true });
 		writeFileSync(join(root, path), text, { mode: path.includes("hooks/") ? 0o755 : 0o644 });

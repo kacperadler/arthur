@@ -4958,5 +4958,12 @@
     "status": "planned",
     "path": "spec/features/AR0617-the-worktree-guard-reads-a-brace-list-in-a-path-as-one-word-so-rm-acme-x-readme/ticket.md",
     "updated": "2026-11-04T08:37:52.185Z"
+  },
+  {
+    "id": "AR0618",
+    "title": "The checks extension misses a check run behind an env assignment or through bun run",
+    "status": "planning",
+    "path": "spec/features/AR0618-the-checks-extension-misses-a-check-run-behind-an-env-assignment-or-through-bun/ticket.md",
+    "updated": "2026-11-04T09:28:45.998Z"
   }
 ]

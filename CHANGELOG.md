@@ -22,6 +22,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0621 Every git call of Arthur and every job reads past refs/replace, not only after a config check (7e25c5ab)
 - AR0622 arthur run hangs after its own restart SIGTERM: a plugin stop never resolves, so the service never restarts and every plugin stays stopped (feac705f)
 - AR0623 Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers (8e7ed5c6)
+- AR0627 No client or other project of the owner named in the repository, and a check that refuses a commit naming one (3b0bb390)
 
 ### Changed
 

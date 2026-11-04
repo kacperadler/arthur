@@ -5047,8 +5047,8 @@
   {
     "id": "AR0627",
     "title": "No client or other project of the owner named in the repository, and a check that refuses a commit naming one",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0627-no-client-or-other-project-of-the-owner-named-in-the-repository-and-a-check-that/ticket.md",
-    "updated": "2026-11-04T20:36:47.649Z"
+    "updated": "2026-11-04T21:42:04.781Z"
   }
 ]

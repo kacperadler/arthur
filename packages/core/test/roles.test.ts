@@ -145,6 +145,38 @@ test("a symlinked override or criteria file, one under a symlinked folder, or on
 	}
 });
 
+test("a role that talks with the owner ends its prompt with the tone file, below the plugins' sections; its own replaces the shared one; no job role reads either", async () => {
+	const { root, home } = repository({ [`${CRITERIA}/personality.md`]: "# Personality\n\nDry humour.\n", [`${CRITERIA}/styleguide.md`]: "# Styleguide\n" });
+	const names = registry();
+	names.provide("commit-rules", "prompt", () => "Commit rules.");
+	const jobs = withReviewer(root, home, ["styleguide"], names);
+	jobs.registerRole("orchestration", { name: "coordinator", file: roleFile("# Coordinator\n"), criteria: ["styleguide"], personality: true });
+	jobs.registerKind("orchestration", { name: "talk", readOnly: true, role: "coordinator" });
+	const rules = `# Coordinator\n\n## Styleguide (${CRITERIA}/styleguide.md)\n\n# Styleguide\n`;
+	const tone = (path: string, text: string) => `\n## Personality, which sets tone only; every rule above wins over it (${path})\n\n${text}`;
+	const shared = tone(`${CRITERIA}/personality.md`, "# Personality\n\nDry humour.\n");
+	assert.equal(prompt(home, (await jobs.spawn({ task: "Talk.", kind: "talk" })).id), `${rules}\nCommit rules.\n${shared}`);
+	assert.deepEqual(jobs.prompt("coordinator"), { prompt: `${rules}${shared}`, warnings: [] });
+	for (const job of [await jobs.spawn({ task: "Go." }), await jobs.spawn({ task: "Review it.", kind: "review" })]) assert.doesNotMatch(prompt(home, job.id), /Dry humour/, job.id);
+	assert.doesNotMatch(jobs.prompt("reviewer").prompt, /Dry humour/);
+	mkdirSync(join(root, ROLES), { recursive: true });
+	writeFileSync(join(root, ROLES, "coordinator.personality.md"), "Warm.\n");
+	assert.deepEqual(jobs.prompt("coordinator"), { prompt: `${rules}${tone(`${ROLES}/coordinator.personality.md`, "Warm.\n")}`, warnings: [] });
+	writeFileSync(join(root, ROLES, "coordinator.personality.md"), " \n");
+	assert.deepEqual(jobs.prompt("coordinator"), { prompt: rules, warnings: [] }, "an empty own file replaces the shared one with nothing");
+	rmSync(join(root, ROLES, "coordinator.personality.md"));
+	writeFileSync(join(root, CRITERIA, "personality.md"), "\n");
+	assert.deepEqual(jobs.prompt("coordinator"), { prompt: rules, warnings: [] }, "an empty file adds nothing and warns nothing");
+	rmSync(join(root, CRITERIA, "personality.md"));
+	assert.deepEqual(jobs.prompt("coordinator"), { prompt: rules, warnings: [] }, "a missing file adds nothing and warns nothing");
+	writeFileSync(join(root, "secret.md"), "SECRET\n");
+	for (const path of [`${CRITERIA}/personality.md`, `${ROLES}/coordinator.personality.md`]) {
+		symlinkSync(join(root, "secret.md"), join(root, path));
+		assert.throws(() => jobs.prompt("coordinator"), { message: `${path} is a symlink; refused, the roles read a project's file only as a plain file` }, path);
+		assert.equal(jobs.prompt("worker").warnings.length, 0, "a job role never looks at it");
+	}
+});
+
 test("a project's prompts move the files the roles read; host.jobs reads a role's prompt and the vision outside a spawn", async () => {
 	const harness = { [".agents/harness/roles/worker.md"]: "Use spaces.\n", [".agents/harness/criteria/styleguide.md"]: "# House style\n", "docs/vision.md": "# Acme\n\nSell tools.\n" };
 	const { root, home } = repository({ ...harness, [`${ROLES}/worker.md`]: "Use tabs.\n", "spec/vision.md": "# Old\n" });
@@ -256,7 +288,7 @@ test("the role's model, thinking and quick model come from roles.model; --model 
 	nothingMade(other.root, other.home);
 });
 
-test("registerRole refuses a role registered twice, a bad name, a file that is no file URL, and criteria that are not names", () => {
+test("registerRole refuses a role registered twice, a bad name, a file that is no file URL, criteria that are not names, and a personality not a boolean", () => {
 	const { root, home } = repository();
 	const jobs = runner(root, home);
 	const file = roleFile("# Reviewer\n");
@@ -269,16 +301,17 @@ test("registerRole refuses a role registered twice, a bad name, a file that is n
 	const notNames = 'role reviewer: criteria must be a list of file names without .md, e.g. ["styleguide"]';
 	assert.throws(register({ name: "reviewer", file, criteria: ["review.md"] }), { message: notNames });
 	assert.throws(register({ name: "reviewer", file, criteria: "review" }), { message: notNames });
+	assert.throws(register({ name: "reviewer", file, criteria: [], personality: "yes" }), { message: "role reviewer: personality must be a boolean" });
 	jobs.registerRole("delivery", { name: "reviewer", file, criteria: ["review"] });
 });
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 
-// The roles a config's plugin registers: `reviewer` with its model, and `auditor`, whose role file is missing.
+// The roles a config's plugin registers: `reviewer` with its model, and `auditor`, whose role file is missing, with a personality.
 const CONFIG = `export default { plugins: [{ name: "orchestration", setup(host) {
 	host.jobs.registerRole({ name: "reviewer", file: new URL("./reviewer.md", import.meta.url), criteria: ["styleguide", "review", "policy"] });
 	host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer" });
-	host.jobs.registerRole({ name: "auditor", file: new URL("./auditor.md", import.meta.url), criteria: ["audit"] });
+	host.jobs.registerRole({ name: "auditor", file: new URL("./auditor.md", import.meta.url), criteria: ["audit"], personality: true });
 	host.provide("roles.model", (role) => (role === "reviewer" ? { model: "anthropic/sonnet", thinking: "medium", quick: "anthropic/haiku" } : undefined));
 } }] };
 `;
@@ -316,6 +349,7 @@ test("arthur roles prints each role, its model, and the files it reads in the ma
 			`  role     ${join(root, "auditor.md")}  missing: a spawn is refused`,
 			`  override ${ROLES}/auditor.md  none`,
 			`  criteria ${CRITERIA}/audit.md  missing: a spawn warns and starts without it`,
+			`  personality ${CRITERIA}/personality.md  none`,
 			"",
 		].join("\n"),
 	);

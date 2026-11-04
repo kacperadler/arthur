@@ -30,7 +30,7 @@ function describe(role: RoleView): string {
 // Nothing when the file is read as it is.
 function state({ what, text, problem }: Source): string {
 	if (problem === "missing" && what === "role") return "  missing: a spawn is refused";
-	if (problem === "missing") return what === "override" ? "  none" : "  missing: a spawn warns and starts without it";
+	if (problem === "missing") return what === "override" || what === "personality" ? "  none" : "  missing: a spawn warns and starts without it";
 	if (problem !== undefined) return `  ${problem}: never read, a spawn is refused`;
 	return text?.trim() === "" ? "  empty: adds nothing" : "";
 }

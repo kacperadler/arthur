@@ -91,8 +91,8 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			const report = { id: "report", at, option: "morningReport.at", action: { message: "Write the morning report.", procedure: fileURLToPath(new URL("../roles/coordinator/morning-report.md", import.meta.url)) } };
 			if (at !== undefined && host.collect("schedule.register", host.name, [report], host.package).length === 0)
 				throw new Error("morningReport.at needs the schedule plugin, which sends the morning report; add schedule() to the config's plugins, or leave morningReport out");
-			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
-			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide", "autopilot", "report"] });
+			// Read like every role, its tone file too since it talks with the owner; no kind spawns it, `arthur run` starts it.
+			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide", "autopilot", "report"], personality: true });
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;
 			host.commands.register({
 				name: "attach",

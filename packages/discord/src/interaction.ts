@@ -32,7 +32,7 @@ export async function interaction(host: Host, bot: Bot, data: Readonly<Record<st
 	const from = { channel: "discord", ...(place === undefined ? {} : { place }), ...(bot.name === undefined ? {} : { instance: bot.name }) };
 	const option = (Array.isArray(command.options) ? command.options : []).map(record).find((each) => each.name === "text");
 	const name = String(command.name);
-	const parts = slices(await host.commands.route(`/${name} ${typeof option?.value === "string" ? option.value : ""}`, from), LIMIT);
+	const parts = slices(await host.commands.route(typeof option?.value === "string" ? `/${name} ${option.value}` : `/${name}`, from), LIMIT);
 	if (parts.length === 0) parts.push(`/${name} gave no reply`);
 	for (const [at, part] of parts.entries()) {
 		try {

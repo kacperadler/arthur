@@ -100,11 +100,16 @@ test("no phone commands empties the menu; a refused PUT is one line without the 
 	assert.equal(puts(api).length, 3);
 });
 
-test("the fake refuses a description over 100, as Discord's documentation says", async (t) => {
+test("the fake refuses a description over 100 and a message's content over 2000, as Discord's documentation says", async (t) => {
 	const api = await fakeDiscord(t);
 	const put = (description: string) => fetch(`${api.url}${PUTS}`, { method: "PUT", headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify([{ type: 1, name: "jobs", description, options: [TEXT] }]) });
 	assert.deepEqual([(await put("x".repeat(100))).status, (await put("x".repeat(101))).status], [200, 400]);
 	assert.equal((await (await put("")).json()).code, 50035);
+	const post = (path: string, content: string) => fetch(`${api.url}${path}`, { method: "POST", headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify({ content }) });
+	const picked = api.interaction("jobs");
+	const statuses = [];
+	for (const path of [`/channels/${MAIN}/messages`, `/webhooks/${BOT}/${picked.token}`]) statuses.push((await post(path, "x".repeat(2000))).status, (await post(path, "x".repeat(2001))).status);
+	assert.deepEqual(statuses, [200, 400, 200, 400]);
 });
 
 test("a picked command answers deferred, runs as /name text with its channel and place, and its reply is the follow-up", async (t) => {
@@ -137,6 +142,20 @@ test("a reply longer than one message goes as follow-ups of at most 2000, cut at
 	const picked = api.interaction("long");
 	await until("two follow-ups", () => api.followups.length === 2);
 	assert.deepEqual(api.followups, [followup(picked.token, lines.slice(0, 19 * 101 - 1)), followup(picked.token, lines.slice(19 * 101))]);
+});
+
+test("a reply of exactly 2000 is one follow-up; one of 2001 is two, 2000 and 1", async (t) => {
+	const { api, errors, queued } = await started(t, {
+		register: (host) => {
+			phone(host, "fit", () => "f".repeat(2000));
+			phone(host, "over", () => "o".repeat(2001));
+		},
+	});
+	const [fit, over] = [api.interaction("fit"), api.interaction("over")];
+	await until("three follow-ups", () => api.followups.length === 3);
+	assert.deepEqual(api.followups.filter((each) => each.token === fit.token), [followup(fit.token, "f".repeat(2000))]);
+	assert.deepEqual(api.followups.filter((each) => each.token === over.token), [followup(over.token, "o".repeat(2000)), followup(over.token, "o")]);
+	assert.deepEqual([errors, api.took, queued()], [[], [], []]);
 });
 
 test("another user, server or channel, a DM, or one before the server is known gets an ephemeral refusal and runs nothing; other types are left alone", async (t) => {

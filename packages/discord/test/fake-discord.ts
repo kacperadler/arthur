@@ -101,7 +101,11 @@ export async function fakeDiscord(t: TestContext) {
 		if (lookup !== undefined) return [MAIN, PROJECT].includes(lookup) ? json(response, 200, channel(lookup, 0, "arthur")) : json(response, 404, { message: "Unknown Channel", code: 10003 });
 		const id = /^\/channels\/(\d+)\/messages$/.exec(url.pathname)?.[1];
 		if (id !== undefined && ![MAIN, PROJECT, ...api.extra].includes(id)) return json(response, 404, { message: "Unknown Channel", code: 10003 });
+		// Discord refuses a message's content over 2000 characters, a channel's message and an interaction's follow-up alike.
+		const long = typeof body?.content === "string" && body.content.length > 2000;
+		const tooLong = { message: "Invalid Form Body", code: 50035, errors: { content: { _errors: [{ code: "BASE_TYPE_MAX_LENGTH", message: "Must be 2000 or fewer in length." }] } } };
 		if (id !== undefined && request.method === "POST") {
+			if (long) return json(response, 400, tooLong);
 			// Discord's files are the fields files[n], each named in payload_json's attachments by its n.
 			const files = form === undefined ? [] : [...form.entries()].filter(([field]) => field !== "payload_json");
 			const named = Array.isArray(body.attachments) ? (body.attachments as { id: unknown }[]).map((each) => `files[${String(each.id)}]`) : [];
@@ -134,6 +138,7 @@ export async function fakeDiscord(t: TestContext) {
 		const webhook = new RegExp(`^/webhooks/${BOT}/([^/]+)$`).exec(url.pathname)?.[1];
 		if (webhook !== undefined && request.method === "POST") {
 			if (![...open.values()].includes(webhook)) return json(response, 404, { message: "Unknown Webhook", code: 10015 });
+			if (long) return json(response, 400, tooLong);
 			followups.push({ token: webhook, body });
 			return json(response, 200, message(snowflake(Date.now()), { channel_id: MAIN, guild_id: undefined, author: user(BOT, "arthur", true), content: body.content ?? "", flags: 0, webhook_id: BOT, application_id: BOT, type: 20 }));
 		}

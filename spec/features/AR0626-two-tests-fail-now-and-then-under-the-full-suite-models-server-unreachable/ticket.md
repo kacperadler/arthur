@@ -17,7 +17,7 @@ The AR0616 worker saw, on the same clean tip, `packages/models/test/models.test.
 
 <!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
 
-- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->
+- Kind: test
 
 ## Done means
 Both tests wait for the state they assert instead of a fixed time, pass 10 full `npm test` runs in a row, and no `sleep 300` process is left after `npm run mutate -- --max 4`.

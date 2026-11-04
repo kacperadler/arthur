@@ -17,7 +17,7 @@ Review 2026-11-04-review-fac0508e of AR0616 noted: `git fast-import --allow-unsa
 
 <!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
 
-- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->
+- Kind: security
 
 ## Done means
 The worktree guard refuses `git fast-import --allow-unsafe-features` on any repository (or judges every export-marks path it may name); a test row with a stdin `feature export-marks=` line into the main checkout is refused and fails when the refusal is removed.

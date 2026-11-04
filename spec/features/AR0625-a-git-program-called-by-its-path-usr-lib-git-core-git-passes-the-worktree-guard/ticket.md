@@ -17,7 +17,7 @@ Review 2026-11-04-review-fac0508e of AR0616 noted: the guard knows git by the wo
 
 <!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
 
-- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->
+- Kind: security
 
 ## Done means
 A command whose program is a git program by path or name (`git-<sub>`, the exec-path folder) is judged as `git <sub>`; test rows for `git-fast-import`, `git-update-ref` and `git-replace` by full path are refused into main and fail when the rule is removed.

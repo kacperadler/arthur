@@ -34,3 +34,4 @@ Out:
 
 ## Decisions
 - 2026-11-04: Rewrite the published history once no Arthur job runs: the client name replaced in every old commit, main force-pushed, open job branches rebuilt; the owner: "AR-D499 - 1" (AR-D499)
+- 2026-11-04: Exempt Signed-off-by and Git author lines carrying the owner own address; every other mention stays refused (recommendation taken under AR-D500); the owner: "always go with recommendation (AR-D500)" (AR-D501)

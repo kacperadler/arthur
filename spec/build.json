@@ -4877,9 +4877,9 @@
   {
     "id": "AR0608",
     "title": "The plan guard ignores a Plan line it cannot read, so a misspelt one lets a worker start without a plan",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0608-the-plan-guard-ignores-a-plan-line-it-cannot-read-so-a-misspelt-one-lets-a/ticket.md",
-    "updated": "2026-11-04T22:18:34.907Z",
+    "updated": "2026-11-04T22:54:08.575Z",
     "after": [
       "AR0627"
     ]

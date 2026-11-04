@@ -4993,9 +4993,12 @@
   {
     "id": "AR0622",
     "title": "arthur run hangs after its own restart SIGTERM: a plugin stop never resolves, so the service never restarts and every plugin stays stopped",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0622-arthur-run-hangs-after-its-own-restart-sigterm-a-plugin-stop-never-resolves-so/ticket.md",
-    "updated": "2026-11-04T15:44:37.255Z"
+    "updated": "2026-11-04T16:03:20.667Z",
+    "after": [
+      "AR0617"
+    ]
   },
   {
     "id": "AR0623",

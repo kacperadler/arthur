@@ -1,6 +1,6 @@
 import { rmSync } from "node:fs";
 import { basename, join, matchesGlob } from "node:path";
-import type { Host, Plugin } from "@arthur/core/plugin";
+import type { Host, Job, Plugin } from "@arthur/core/plugin";
 import { autoMergePiece, type DeliveryPiece } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
 import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
@@ -15,6 +15,7 @@ import { failsSincePass, LIMIT, readReview, saveReview, settle } from "./review-
 import { named, recorded, wake } from "./review-wake.ts";
 import { takeMainCommand } from "./take-main.ts";
 import { pruneTicket } from "./ticket-prune.ts";
+import { workerCriteria } from "./worker-criteria.ts";
 
 // The delivery plugin (spec/roadmap.md, entry 52): the kind `review`, a read-only job on the reviewer role in a detached checkout
 // of a worker's branch, on `roles.reviewer`'s model in a session of its own. It moves its ticket to review as it starts, and its
@@ -53,7 +54,8 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			const procedure = new URL("../roles/coordinator/review-limit.md", import.meta.url);
 			const always = options.review?.alwaysReview ?? ALWAYS_REVIEW;
 			const held = (path: string) => always.some((glob) => matchesGlob(path, glob));
-			host.jobs.registerRole({ name: "reviewer", file: new URL("../roles/reviewer.md", import.meta.url), criteria: ["styleguide", "review"] });
+			host.jobs.registerRole({ name: "reviewer", file: new URL("../roles/reviewer.md", import.meta.url), criteria: ["styleguide", "review", "verify"] });
+			host.provide("prompt", (role: string, job: Job) => (role === "worker" ? workerCriteria(host, job) : undefined));
 			host.jobs.registerKind({ name: REVIEW, readOnly: true, role: "reviewer", verdicts: ["PASS", "FAIL"], file: reviewFiler(host) });
 			host.jobs.beforeSpawn(({ kind, task, tickets, project }) => (kind === REVIEW ? refusal(host, task, tickets, project) : undefined));
 			host.jobs.prepare(async (job, _env, continued) => {

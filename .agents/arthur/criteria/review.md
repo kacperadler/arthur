@@ -9,7 +9,7 @@ Can the owner merge this branch as it is? Judge the branch against its instructi
 ## PASS when all hold
 
 - The diff does what the instruction and its `Ticket:` ask, end to end, and meets every Done means point they name, edge cases included.
-- `npm ci`, `npm run check` and `npm test` pass when you run them yourself.
+- `npm run check` and `npm test` pass when you run them yourself, as `verify.md` says.
 - Everything the worker's final message claims (checks, behavior, files) matches what you see.
 - The diff changes nothing outside the instruction, unless the final message gives a reason for it.
 

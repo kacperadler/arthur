@@ -4976,8 +4976,8 @@
   {
     "id": "AR0620",
     "title": "Uptime tells this machine offline apart from a site down even with one site, by probing addresses outside the projects",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0620-uptime-tells-this-machine-offline-apart-from-a-site-down-even-with-one-site-by/ticket.md",
-    "updated": "2026-11-04T13:39:18.799Z"
+    "updated": "2026-11-04T13:47:23.463Z"
   }
 ]

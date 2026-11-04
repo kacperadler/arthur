@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/uptime/src/uptime-options.ts:31`, `packages/uptime/src/site-check.ts:49`
 - What: the load check refuses only IP literals in `PRIVATE` and `localhost` names; a DNS name whose address is 127.0.0.1 (or any private one) passes, and `probe` connects through plain `fetch`, without the `guarded` lookup a site's redirect uses, so such a probe answers locally and this machine is never taken as offline. The NAT64 form `[64:ff9b::7f00:1]` passes too, as `PRIVATE` holds no `64:ff9b::/96`, which also lets a redirect reach it.
 - Suggestion: send each probe through `site-check.ts`'s `get` (node:https with the `guarded` lookup), so a probe whose name resolves to a `PRIVATE` address is refused at its connection as no answer; and add `64:ff9b::/96` to `PRIVATE`. Out: a DNS lookup at load.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. a probe given as a host name is not resolved at load, and `probe` uses plain `fetch` without `site-check`'s guarded lookup
+
+- Kind: security
+- Found by: 2026-11-04-review-9a1270fd (review), 2026-11-04
+- Where: `packages/uptime/src/uptime-options.ts:28`
+- What: A public-looking name that resolves to loopback, or `[64:ff9b::7f00:1]` (NAT64), passes the check and always answers, so the machine is never taken as offline. The worker filed this as F1 in the ticket's `findings.md`.
+- Status: deferred (client summary)

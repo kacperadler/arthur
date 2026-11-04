@@ -153,7 +153,9 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, con
 			const lines = loaded() === undefined ? await coreLines() : undefined;
 			if (lines !== undefined && printAtStart(lines)) return 1;
 			const app = need("", (loadedApp) => loadedApp)();
-			return runPlugins(app.plugins, app.home, app.follow, app.jobs.sweep, app.doctor, app.emit);
+			// A stop cut short (run.ts) may leave a socket or a timer holding the process: a second after the stops it ends anyway.
+			const exit = () => void setTimeout(() => process.exit(), 1000).unref();
+			return runPlugins(app.plugins, app.home, app.follow, app.jobs.sweep, app.doctor, app.emit).finally(exit);
 		},
 	});
 	commands.register("core", {

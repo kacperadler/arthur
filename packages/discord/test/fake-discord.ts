@@ -144,7 +144,10 @@ export async function fakeDiscord(t: TestContext) {
 		}
 		json(response, 404, { message: "404: Not Found", code: 0 });
 	});
+	// The upgraded sockets, which `closeAllConnections` no longer tracks: a deaf one stays open until the test ends.
+	const upgraded: Socket[] = [];
 	server.on("upgrade", (request: IncomingMessage, socket: Socket) => {
+		upgraded.push(socket);
 		const accept = createHash("sha1").update(`${request.headers["sec-websocket-key"]}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
 		socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
 		const frame = (op: number, data: Buffer) => {
@@ -175,6 +178,7 @@ export async function fakeDiscord(t: TestContext) {
 				buffer = buffer.subarray(at + 4 + length);
 				if ((first & 15) === 8) {
 					connection.closed ??= data.length >= 2 ? data.readUInt16BE(0) : 1005;
+					if (api.deaf) return;
 					frame(8, data.subarray(0, 2));
 					socket.end();
 					return;
@@ -201,6 +205,7 @@ export async function fakeDiscord(t: TestContext) {
 	const port = (server.address() as AddressInfo).port;
 	t.after(() => {
 		server.closeAllConnections();
+		for (const socket of upgraded) socket.destroy();
 		server.close();
 	});
 	let id = 0;
@@ -216,6 +221,8 @@ export async function fakeDiscord(t: TestContext) {
 		extra: [] as string[],
 		// How many heartbeats from now on get no ACK.
 		unacked: 0,
+		// A dead network path: a close frame gets no answer and the TCP connection stays open.
+		deaf: false,
 		heartbeat: 45_000,
 		remaining: 999,
 		resetAfter: 14_400_000,

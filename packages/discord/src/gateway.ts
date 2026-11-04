@@ -16,6 +16,9 @@ export const INTENTS = 33281;
 const FLOOR = 50;
 const FIRST_MS = 1000;
 const MOST_MS = 60_000;
+// Node's WebSocket waits for the peer's close frame with no time limit, and a dead network path never sends it (AR0622): a
+// close not answered within CLOSE_MS counts as 1006, the code of a connection lost without a close frame.
+const CLOSE_MS = 5000;
 const PORTAL = "the Bot page of the application at discord.com/developers/applications";
 
 const FATAL = (bot: Bot, code: number) =>
@@ -88,14 +91,23 @@ export async function gateway(bot: Bot, signal: AbortSignal, on: (type: string, 
 		const { promise, resolve } = Promise.withResolvers<{ code: number; reached: boolean; invalid: boolean }>();
 		const socket = new WebSocket(address);
 		let [reached, invalid, acked] = [false, false, true];
-		let timer: NodeJS.Timeout | undefined;
+		let [timer, late] = [undefined as NodeJS.Timeout | undefined, undefined as NodeJS.Timeout | undefined];
 		const send = (op: number, d: unknown) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify({ op, d }));
+		const ended = (code: number) => {
+			[timer, late].forEach(clearTimeout);
+			signal.removeEventListener("abort", stop);
+			resolve({ code, reached, invalid });
+		};
+		const close = (code: number, reason?: string) => {
+			socket.close(code, reason);
+			late ??= setTimeout(ended, CLOSE_MS, 1006);
+		};
 		const beat = () => {
-			if (!acked) return socket.close(4000, "no heartbeat ACK");
+			if (!acked) return close(4000, "no heartbeat ACK");
 			acked = false;
 			send(1, seq);
 		};
-		const stop = () => socket.close(1000);
+		const stop = () => close(1000);
 		signal.addEventListener("abort", stop, { once: true });
 		socket.addEventListener("message", (event) => {
 			let payload: Payload = {};
@@ -114,10 +126,10 @@ export async function gateway(bot: Bot, signal: AbortSignal, on: (type: string, 
 				else send(6, { token: bot.token, session_id: session.id, seq });
 			} else if (op === 11) acked = true;
 			else if (op === 1) send(1, seq);
-			else if (op === 7) socket.close(4000, "reconnect asked");
+			else if (op === 7) close(4000, "reconnect asked");
 			else if (op === 9) {
 				invalid = d !== true;
-				socket.close(4000, "invalid session");
+				close(4000, "invalid session");
 			} else if (op === 0 && typeof t === "string") {
 				const data = record(d);
 				if (t === "READY") session = { id: String(data.session_id), url: String(data.resume_gateway_url) };
@@ -125,11 +137,7 @@ export async function gateway(bot: Bot, signal: AbortSignal, on: (type: string, 
 				on(t, data);
 			}
 		});
-		socket.addEventListener("close", (event) => {
-			clearTimeout(timer);
-			signal.removeEventListener("abort", stop);
-			resolve({ code: event.code, reached, invalid });
-		});
+		socket.addEventListener("close", (event) => ended(event.code));
 		return promise;
 	}
 }

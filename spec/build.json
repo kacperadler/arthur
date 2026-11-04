@@ -4948,16 +4948,16 @@
   {
     "id": "AR0616",
     "title": "git fast-import in a job writes any ref, main included, past the worktree guard",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0616-git-fast-import-in-a-job-writes-any-ref-main-included-past-the-worktree-guard/ticket.md",
-    "updated": "2026-11-04T15:47:11.436Z"
+    "updated": "2026-11-04T16:49:11.906Z"
   },
   {
     "id": "AR0617",
     "title": "The worktree guard reads a brace list in a path as one word, so rm ../../{acme,x}/README.md reaches the main checkout",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0617-the-worktree-guard-reads-a-brace-list-in-a-path-as-one-word-so-rm-acme-x-readme/ticket.md",
-    "updated": "2026-11-04T15:48:15.106Z"
+    "updated": "2026-11-04T17:14:08.860Z"
   },
   {
     "id": "AR0618",
@@ -5003,8 +5003,8 @@
   {
     "id": "AR0623",
     "title": "Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0623-uptime-this-machine-offline-sends-no-notice-and-checks-no-site-only-the-probes/ticket.md",
-    "updated": "2026-11-04T15:54:21.662Z"
+    "updated": "2026-11-04T16:34:09.706Z"
   }
 ]

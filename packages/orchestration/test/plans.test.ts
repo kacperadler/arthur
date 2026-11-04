@@ -191,6 +191,24 @@ test("the plan guard reads only the Goal: a Plan: yes line elsewhere, a ticket w
 	assert.equal((await jobs.spawn({ task: "No ticket at all." })).kind, "worker");
 });
 
+test("a Plan line under the Goal that is not exactly - Plan: yes is refused, whatever its spelling, case or language", async (t) => {
+	const { jobs, root, commit } = await load(t);
+	for (const line of ["- Plan: tak", "- Plan: Yes", "- Plan: no", "- Plan:", "- plan: yes", "* Plan: yes", "  -  Plan : yes"]) {
+		writeFileSync(join(root, TICKET), ticketText().replace("- Plan: yes", line));
+		commit(line);
+		await assert.rejects(jobs.spawn({ task: `Ticket: ${TICKET}\nPlan: ${PLAN}` }), {
+			message: `refused by orchestration: AC0001: its Goal line "${line.trim()}" is not the one accepted form "- Plan: yes"; write that for a plan, or remove the line for none`,
+		});
+	}
+	// A Plan line elsewhere, beside the accepted one, still refuses; the ticket without a Plan line is unchanged.
+	writeFileSync(join(root, TICKET), ticketText().replace("- Plan: yes", "- Plan: yes \n- Plan: tak"));
+	commit("both");
+	await assert.rejects(jobs.spawn({ task: `Ticket: ${TICKET}` }), { message: /AC0001: its Goal line "- Plan: tak" is not/ });
+	writeFileSync(join(root, TICKET), ticketText().replace("- Plan: yes\n", "- Planning: later\n"));
+	commit("no plan line");
+	assert.equal((await jobs.spawn({ task: `Ticket: ${TICKET}` })).kind, "worker");
+});
+
 test("a worker or a continue on a pre-approved ticket needs a budget above 0 and at most the recorded one, until the owner approves it", async (t) => {
 	const { jobs, fake, root, commit, ended } = await load(t);
 	const small = "spec/features/AC0002-small/ticket.md";

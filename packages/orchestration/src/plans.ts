@@ -13,8 +13,10 @@ export const PLAN_BUDGET = 5;
 // The ticket a task's `Ticket:` path lies in, and its folder: `spec/features/<id>-<slug>/...`.
 const FEATURE = /(?:^|\/)(spec\/features\/([A-Z]+\d{4,})-[^/]+)\//;
 const TICKET = /^spec\/features\/[A-Z]+\d{4,}-[^/]+\/ticket\.md$/;
-// Under a ticket's Goal: it gets a plan the owner approves before a worker.
+// Under a ticket's Goal: it gets a plan the owner approves before a worker. Any other Plan line there is refused, so no
+// spelling, case or language reads as no plan (AR0608).
 const MARK = /^- Plan: yes\s*$/;
+const PLAN_LINE = /^\s*[-*+]\s*plan\s*:/i;
 // Under its Decisions: the owner's approval of the plan.md that commit holds.
 const APPROVED = /^- \d{4}-\d\d-\d\d: Plan approved by the owner: plan\.md at ([0-9a-f]{7,40})\b/;
 // Under its Decisions: autopilot's record (autopilot.ts) with the budget it checked, and an approval the owner gave after it.
@@ -62,7 +64,12 @@ function unapproved(at: string, task: string, tickets: readonly string[], budget
 		const shown = spawnSync("git", ["--no-replace-objects", "-C", at, "cat-file", "blob", `HEAD:${folder}/ticket.md`], { encoding: "utf8" });
 		if (shown.status !== 0) return [];
 		const decisions = section(shown.stdout, "Decisions");
-		return [section(shown.stdout, "Goal").some((line) => MARK.test(line)) ? unplanned(at, folder, id, decisions, planned) : undefined, overBudget(id, decisions, budgetUsd, free)].flatMap((reason) => reason ?? []);
+		const goal = section(shown.stdout, "Goal");
+		const misread = goal.find((line) => PLAN_LINE.test(line) && !MARK.test(line));
+		const plan = misread !== undefined
+			? `${id}: its Goal line "${misread.trim()}" is not the one accepted form "- Plan: yes"; write that for a plan, or remove the line for none`
+			: goal.some((line) => MARK.test(line)) ? unplanned(at, folder, id, decisions, planned) : undefined;
+		return [plan, overBudget(id, decisions, budgetUsd, free)].flatMap((reason) => reason ?? []);
 	});
 	return refused.length > 0 ? refused.join("; ") : undefined;
 }

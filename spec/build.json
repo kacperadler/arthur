@@ -4955,9 +4955,9 @@
   {
     "id": "AR0617",
     "title": "The worktree guard reads a brace list in a path as one word, so rm ../../{acme,x}/README.md reaches the main checkout",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0617-the-worktree-guard-reads-a-brace-list-in-a-path-as-one-word-so-rm-acme-x-readme/ticket.md",
-    "updated": "2026-11-04T08:37:52.185Z"
+    "updated": "2026-11-04T15:48:15.106Z"
   },
   {
     "id": "AR0618",
@@ -4996,5 +4996,12 @@
     "status": "planning",
     "path": "spec/features/AR0622-arthur-run-hangs-after-its-own-restart-sigterm-a-plugin-stop-never-resolves-so/ticket.md",
     "updated": "2026-11-04T15:44:37.255Z"
+  },
+  {
+    "id": "AR0623",
+    "title": "Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers",
+    "status": "planned",
+    "path": "spec/features/AR0623-uptime-this-machine-offline-sends-no-notice-and-checks-no-site-only-the-probes/ticket.md",
+    "updated": "2026-11-04T15:54:21.662Z"
   }
 ]

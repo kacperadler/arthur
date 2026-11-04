@@ -6,7 +6,8 @@ import { dirname, join } from "node:path";
 // of the owner. Their names are the folders of the main checkout's git-ignored `projects/`, read at each run, so none is
 // written here. `npm test` runs it on the checkout (other-projects.test.ts), so `arthur merge` does on main; `.githooks/commit-msg` at each commit.
 
-type Message = { readonly where: string; readonly text: string };
+// `own`: the commit's author's and committer's addresses, lowercased.
+type Message = { readonly where: string; readonly text: string; readonly own: readonly string[] };
 
 function git(root: string, args: readonly string[]): string {
 	// No cap: the list of tracked files grows with every ticket.
@@ -27,8 +28,17 @@ export function otherProjects(root: string): string[] {
 // The commits HEAD brings: HEAD alone, or for a merge every commit of its branch with it, as `arthur merge` checks main.
 export function headMessages(root: string): Message[] {
 	const merge = spawnSync("git", ["-C", root, "rev-parse", "--quiet", "--verify", "HEAD^2"]).status === 0;
-	const entries = git(root, ["log", "-z", "--format=%h%n%B", ...(merge ? ["HEAD^1..HEAD"] : ["-1", "HEAD"])]).split("\0").filter(Boolean);
-	return entries.map((entry) => ({ where: `commit ${entry.slice(0, entry.indexOf("\n"))}`, text: entry.slice(entry.indexOf("\n") + 1) }));
+	const entries = git(root, ["log", "-z", "--format=%h%n%ae%n%ce%n%B", ...(merge ? ["HEAD^1..HEAD"] : ["-1", "HEAD"])]).split("\0").filter(Boolean);
+	return entries.map((entry) => {
+		const [hash = "", author = "", committer = ""] = entry.split("\n", 3);
+		return { where: `commit ${hash}`, text: entry.split("\n").slice(3).join("\n"), own: [author.toLowerCase(), committer.toLowerCase()] };
+	});
+}
+
+// The text of `message` but the address of a `Signed-off-by:` line that is the commit's own author's or committer's (AR-D501):
+// the owner signs off with his address, whatever it names; the rest of that line, and that address anywhere else, still count.
+function unsigned(message: Message): string {
+	return message.text.replace(/^(signed-off-by:.*)<([^>]*)>[ \t]*$/gim, (line: string, head: string, address: string) => (message.own.includes(address.toLowerCase()) ? head : line));
 }
 
 // Each tracked file (as the index holds it: the commit's own in a hook), by its path or its content, and each of `messages`
@@ -40,14 +50,15 @@ export function namings(root: string, names: readonly string[], messages: readon
 		const named = (text: string) => forms.some((form) => text.toLowerCase().includes(form));
 		const contents = git(root, ["grep", "--cached", "-l", "-z", "-i", "-F", ...forms.flatMap((form) => ["-e", form])]).split("\0").filter(Boolean);
 		const files = [...new Set([...paths.filter(named), ...contents])].toSorted();
-		return [...files, ...messages.filter((message) => named(message.text)).map((message) => message.where)].map((where) => `${where}: names the project ${name}`);
+		return [...files, ...messages.filter((message) => named(unsigned(message))).map((message) => message.where)].map((where) => `${where}: names the project ${name}`);
 	});
 }
 
 // The `commit-msg` hook: the message in the file Git passes, and the files the commit holds, in the checkout Git runs it in.
 if (import.meta.main) {
 	const root = process.cwd();
-	const found = namings(root, otherProjects(root), [{ where: "the commit message", text: readFileSync(process.argv[2] ?? "", "utf8") }]);
+	const own = ["GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"].map((ident) => (/<([^>]*)>/.exec(git(root, ["var", ident]))?.[1] ?? "").toLowerCase());
+	const found = namings(root, otherProjects(root), [{ where: "the commit message", text: readFileSync(process.argv[2] ?? "", "utf8"), own }]);
 	for (const line of found) console.error(`commit refused: ${line}; Arthur's repository names no other project (AR0627)`);
 	if (found.length > 0) process.exitCode = 1;
 }

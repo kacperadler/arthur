@@ -62,12 +62,5 @@
     "action": {
       "message": "AR-D460 (owner: the down-site runbook, after the weekly reset): run arthur usage (under 87%, AR-D443); then arthur spawn --kind plan for AR0607 (spec/features/AR0607-*). If the board refuses it for \"after AR0603\", plan it anyway is not possible: tell the owner and ask whether to drop the after or wait for AR0603."
     }
-  },
-  {
-    "id": "after-reset-queue",
-    "at": "2026-11-04T09:05",
-    "action": {
-      "message": "The weekly usage has reset. Owner said \"Continue\" at 07:49: start the next queued task (handoff Queue: AR0584, AR0563, AR0603, AR0608, AR0605 plan, then AR0607 plan), one at a time, under the base 90% limit (AR-D443). AR0606/AR0614 workers wait for AR-D482/AR-D483."
-    }
   }
 ]

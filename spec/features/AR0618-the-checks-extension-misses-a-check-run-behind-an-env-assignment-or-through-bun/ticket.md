@@ -35,3 +35,4 @@ Out:
 - Other package managers (pnpm, yarn): a later ticket if a project uses one.
 
 ## Decisions
+- 2026-11-04: AR0618 approved; the owner: "AR0618 - approve" (AR-D489)

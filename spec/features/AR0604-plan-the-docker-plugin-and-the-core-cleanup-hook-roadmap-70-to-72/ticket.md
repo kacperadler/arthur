@@ -52,4 +52,5 @@ Out:
 
 ## Decisions
 - 2026-11-01: AR0604 approved; its plan is written on 2026-11-04 at 10:30; the owner: "AR-D430 2 and plan it at nov 4 at 10:30" (AR-D430)
+- 2026-11-04: Keep the four Docker worker tickets of the AR0604 plan unbuilt until a project needs Docker in jobs; set resources keepFree.disk 20G now; the owner: "AR-D487 - 1 - i have to add more memory to this mashine also?" (AR-D487)
 

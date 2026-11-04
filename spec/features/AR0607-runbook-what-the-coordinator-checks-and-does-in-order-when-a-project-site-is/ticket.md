@@ -39,4 +39,5 @@ Out:
 
 ## Decisions
 - 2026-11-02: AR0607 approved: a down-site runbook with checks and steps in order and a boilerplate; plan after the weekly reset (2026-11-04); the owner: "I think we have to add a file with instructions with steps what should be done when the site will be down, this file should have checks and todos with right order like check if serwer is…" (AR-D460, cut: arthur decisions AR-D460 prints it whole)
+- 2026-11-04: Plan approved by the owner: plan.md at 53a57c48; the owner: "AR-D488 - 1" (AR-D488)
 

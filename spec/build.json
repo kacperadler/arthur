@@ -4675,9 +4675,9 @@
   {
     "id": "AR0584",
     "title": "Defaults T16: verify.md criteria for workers and reviewers, one Every job rule, and the retro sees the corrections",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0584-defaults-t16-verify-md-criteria-for-workers-and-reviewers-one-every-job-rule-and/ticket.md",
-    "updated": "2026-11-04T09:23:00.360Z",
+    "updated": "2026-11-04T09:40:01.133Z",
     "after": [
       "AR0570",
       "AR0571",
@@ -4851,9 +4851,9 @@
   {
     "id": "AR0606",
     "title": "Discord T3: the phone commands as Discord application commands, suggested when the owner types /",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0606-discord-t3-the-phone-commands-as-discord-application-commands-suggested-when-the/ticket.md",
-    "updated": "2026-11-04T09:19:34.670Z",
+    "updated": "2026-11-04T10:05:28.911Z",
     "after": [
       "AR0390",
       "AR0397"
@@ -4934,9 +4934,9 @@
   {
     "id": "AR0614",
     "title": "Session: compact the coordinator by schedule, by context use, or both, chosen in the session options",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0614-session-compact-the-coordinator-by-schedule-by-context-use-or-both-chosen-in-the/ticket.md",
-    "updated": "2026-11-03T14:50:27.543Z"
+    "updated": "2026-11-04T10:00:47.732Z"
   },
   {
     "id": "AR0615",
@@ -4962,8 +4962,8 @@
   {
     "id": "AR0618",
     "title": "The checks extension misses a check run behind an env assignment or through bun run",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0618-the-checks-extension-misses-a-check-run-behind-an-env-assignment-or-through-bun/ticket.md",
-    "updated": "2026-11-04T09:28:45.998Z"
+    "updated": "2026-11-04T10:08:52.759Z"
   }
 ]

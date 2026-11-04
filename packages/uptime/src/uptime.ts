@@ -98,8 +98,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 					save();
 				}
 				let [checked, checks] = [due, await checkAll(due)];
-				// Before a site goes down for want of an answer, every other site and each probe is asked too: when none answers, this
-				// machine is offline. Without probes nothing tells it apart from the sites down.
+				// Before a site goes down for want of an answer, every other site and each probe is asked: none answering is offline.
 				if (probes.length > 0 && reaching(checked, checks)) {
 					const rest = sites.filter((site) => !due.includes(site));
 					const [more, reached] = await Promise.all([checkAll(rest), answered()]);

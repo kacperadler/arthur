@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-05
+
+### Fixed
+
+- AR0618 The checks extension misses a check run behind an env assignment or through bun run (720a6871)
+
 ## 2026-11-04
 
 ### Added

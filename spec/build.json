@@ -4966,9 +4966,9 @@
   {
     "id": "AR0618",
     "title": "The checks extension misses a check run behind an env assignment or through bun run",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0618-the-checks-extension-misses-a-check-run-behind-an-env-assignment-or-through-bun/ticket.md",
-    "updated": "2026-11-04T10:08:52.759Z",
+    "updated": "2026-11-04T23:27:56.994Z",
     "after": [
       "AR0608"
     ]

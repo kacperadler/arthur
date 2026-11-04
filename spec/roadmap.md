@@ -1142,7 +1142,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | S7 | The service and the user manager survive; controllers delegated | 8; delegation 13 |
 | S8 | The VPS recipe | 8; `docs/setup.md`, each step with its check, and `arthur setup`, 94; its step after install, `arthur doctor`, 80 |
 
-Session options: `compactAt` 35; `freshAt`, `freshRetryMinutes` and `freshUntil` 36; `timeZone` 7; `compactWaitSeconds` 35; `exitWaitSeconds`, `restartDelaySeconds` and the tmux session 23 (options of `orchestration`); no restart, stop or fresh start while jobs run, a rule in 23 and 36; `restartGuard` 37; `probeLlm` 38; the coordinator's model 26; the session's files in `.arthur/session/`: the handoff 35, the rest 36.
+Session options: `compactAt` 35; `compactOn` and `compactAtPercent` 35 (AR0614); `freshAt`, `freshRetryMinutes` and `freshUntil` 36; `timeZone` 7; `compactWaitSeconds` 35; `exitWaitSeconds`, `restartDelaySeconds` and the tmux session 23 (options of `orchestration`); no restart, stop or fresh start while jobs run, a rule in 23 and 36; `restartGuard` 37; `probeLlm` 38; the coordinator's model 26; the session's files in `.arthur/session/`: the handoff 35, the rest 36.
 
 ### Telegram
 

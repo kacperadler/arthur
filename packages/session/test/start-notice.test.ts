@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -172,6 +172,31 @@ test("a coordinator turn that fails before any text is left for arthur run as om
 	assert.equal(files().length, 3);
 	end([user, said("assistant", "", "error", overloaded)]);
 	assert.match(files().at(-1) ?? "", /-4\.txt$/, "after it worked again, the first reason is told again");
+});
+
+test("at each real end of a coordinator turn, failed or aborted included, the context use omp gives is left in context-use; none when omp gives none", (t) => {
+	const folder = temporaryFolder();
+	t.after(() => delete process.env.ARTHUR_SESSION_FOLDER);
+	process.env.ARTHUR_SESSION_FOLDER = folder;
+	type Ctx = { hasUI: boolean; getContextUsage?: () => { tokens: number | null; contextWindow: number; percent: number | null } | undefined };
+	const handlers: ((event: object, ctx: Ctx) => void)[] = [];
+	turnFailures({ on: (_event, handler) => void handlers.push(handler as (typeof handlers)[number]) });
+	const use = join(folder, "context-use");
+	const user = { role: "user", content: [{ type: "text", text: "[via telegram] Status?" }], attribution: "user", timestamp: 1792363617727 };
+	// What omp's `ctx.getContextUsage()` answers: the tokens used, the model's context window, and their share in percent.
+	const usage = (contextWindow: number, percent: number | null) => () => ({ tokens: percent === null ? null : (contextWindow * percent) / 100, contextWindow, percent });
+	const end = (ctx: Ctx, last = said("assistant", "All quiet."), willContinue?: boolean) => {
+		rmSync(use, { force: true });
+		for (const handler of handlers) handler({ type: "agent_end", messages: [user, last], ...(willContinue === undefined ? {} : { willContinue }), isTerminal: true }, ctx);
+		return existsSync(use) ? readFileSync(use, "utf8") : undefined;
+	};
+	assert.equal(end({ hasUI: true, getContextUsage: usage(200000, 83.5) }), "83.5");
+	assert.equal(end({ hasUI: true, getContextUsage: usage(200000, 83.5) }, said("assistant", "", "aborted")), "83.5");
+	assert.equal(end({ hasUI: true, getContextUsage: usage(200000, 91) }, said("assistant", "", "error", "529 overloaded")), "91");
+	assert.equal(readdirSync(join(folder, "turn-failed")).length, 1, "the failure left too");
+	for (const ctx of [{ hasUI: false, getContextUsage: usage(200000, 83.5) }, { hasUI: true }, { hasUI: true, getContextUsage: () => undefined }, { hasUI: true, getContextUsage: usage(0, 0) }, { hasUI: true, getContextUsage: usage(200000, null) }])
+		assert.equal(end(ctx), undefined, JSON.stringify(ctx));
+	assert.equal(end({ hasUI: true, getContextUsage: usage(200000, 83.5) }, undefined, true), undefined, "the turn goes on");
 });
 
 test("arthur run sends each turn failure the coordinator's agent left as turn failed on <host>, each env file value redacted whole; one left before its start is dropped", async (t) => {

@@ -1,6 +1,6 @@
 # session
 
-The `session` plugin: the coordinator's one long conversation, compacted at set times during the day so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. Its restart guard holds new jobs once a commit changed the code `arthur run` loaded, until `arthur run` starts again, which under its service it does by itself once no job runs (entry 37). At every start of `arthur run` it asks the coordinator's model for one word and tells the owner whether the coordinator is up, after what `arthur doctor` found missing, and it tells each coordinator turn that fails before any text (entry 38). It gives `arthur doctor` the user service and linger (entry 80). It needs `orchestration`, which runs the coordinator.
+The `session` plugin: the coordinator's one long conversation, compacted during the day, at set times, once it uses a share of its context window, or both, so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. Its restart guard holds new jobs once a commit changed the code `arthur run` loaded, until `arthur run` starts again, which under its service it does by itself once no job runs (entry 37). At every start of `arthur run` it asks the coordinator's model for one word and tells the owner whether the coordinator is up, after what `arthur doctor` found missing, and it tells each coordinator turn that fails before any text (entry 38). It gives `arthur doctor` the user service and linger (entry 80). It needs `orchestration`, which runs the coordinator.
 
 ## Options
 
@@ -8,7 +8,9 @@ In `session({ ... })` in `arthur.config.ts`; every key optional:
 
 | Option | Meaning |
 | --- | --- |
-| `compactAt` | The times of day the coordinator's conversation is compacted, each `"HH:MM"` (00:00 to 23:59) in `core.timeZone`. Default `["08:00", "13:00", "18:00"]`; `[]` never compacts. |
+| `compactAt` | The times of day the coordinator's conversation is compacted, each `"HH:MM"` (00:00 to 23:59) in `core.timeZone`. Default `["08:00", "13:00", "18:00"]`; `[]` never compacts. Not used with `compactOn: "context"`. |
+| `compactOn` | What compacts the coordinator's conversation: `"schedule"`, each `compactAt` time; `"context"`, a turn that ends with the conversation at `compactAtPercent` of its context window or more; `"both"`, whichever comes first. Default `"schedule"`. Jobs compact as before under each. |
+| `compactAtPercent` | With `compactOn` `"context"` or `"both"`, the share of the context window, in percent, at which a compaction is asked for; a whole number from 1 to 99. Default 80. |
 | `compactWaitSeconds` | How long a compaction waits for the coordinator to be idle, a whole number of seconds of at least 1. Default 1800. |
 | `freshAt` | The time of day, `"HH:MM"` in `core.timeZone`, of the first try of the fresh start: a new conversation, without `--continue`, only once no job runs. Default `"23:00"`. |
 | `freshRetryMinutes` | While a job runs, the fresh start is tried again this often, counted from `freshAt`; a whole number of minutes of at least 1. A try also waits this long for the handoff. Default 15. |
@@ -16,7 +18,7 @@ In `session({ ... })` in `arthur.config.ts`; every key optional:
 | `restartGuard` | `true` or `false`: once a commit changed the code `arthur run` loaded, refuse every spawn and continue until it starts again, and say so in the coordinator's context (below). Default `true`; `false` turns the guard off. |
 | `probeLlm` | `true` or `false`: at every start of `arthur run`, ask the coordinator's model for one word before the start notice (below). Default `true`; `false` skips the probe, and the start notice says `coordinator up` without asking. |
 
-Refused at load (and by `arthur config check`), naming the option: a `compactAt` that is not a list, an entry, `freshAt` or `freshUntil` that is not `"HH:MM"` (`compactAt[<index>]: expected a time "HH:MM" from 00:00 to 23:59, got <value>`, `freshUntil: ...`), a `compactWaitSeconds` or `freshRetryMinutes` that is not a whole number of at least 1 (`freshRetryMinutes: expected a whole number of minutes of at least 1, got <value>`), a `restartGuard` or `probeLlm` that is not `true` or `false` (`probeLlm: expected true or false, got <value>`), and any other option.
+Refused at load (and by `arthur config check`), naming the option: a `compactAt` that is not a list, an entry, `freshAt` or `freshUntil` that is not `"HH:MM"` (`compactAt[<index>]: expected a time "HH:MM" from 00:00 to 23:59, got <value>`, `freshUntil: ...`), a `compactOn` other than these three (`compactOn: expected "schedule", "context" or "both", got <value>`), a `compactAtPercent` that is not a whole number from 1 to 99 (`compactAtPercent: expected a whole number from 1 to 99, got <value>`), a `compactWaitSeconds` or `freshRetryMinutes` that is not a whole number of at least 1 (`freshRetryMinutes: expected a whole number of minutes of at least 1, got <value>`), a `restartGuard` or `probeLlm` that is not `true` or `false` (`probeLlm: expected true or false, got <value>`), and any other option.
 
 ## The handoff
 
@@ -36,7 +38,7 @@ The extension acts only in the coordinator's own session, one with a UI, never i
 
 ## Compaction during the day
 
-`arthur run` looks at the clock every 500 ms. At each `compactAt` time it asks for a compaction, and prints the outcome, one line:
+`arthur run` looks at the clock every 500 ms. At each `compactAt` time it asks for a compaction (with `compactOn` `"schedule"` or `"both"`), and prints the outcome, one line:
 
 - `session: compact: done; the compacted conversation starts by reading the handoff`, or `session: compact: done; the handoff is empty, so nothing is read back`.
 - `session: compact: skipped, session busy for <n> s`: the agent was not idle with nothing queued within `compactWaitSeconds` of the slot. The handoff is not asked for.
@@ -50,6 +52,8 @@ When it happens:
 - Two slots close together never queue two compactions: a slot that comes while a compaction or a restart is still asked for or running is dropped, and slots passed together (a clock that jumped, a machine that slept) ask once.
 - Daylight saving days: a time the spring gap skips (02:30 in Warsaw) comes at the first minute after the jump (03:00); a time the autumn repeat shows twice compacts at its first pass only.
 - The coordinator restarting during a compaction: its request is dropped without a word once the agent that took it is gone.
+
+By context use (`compactOn` `"context"` or `"both"`): at each real end of a coordinator turn (aborted and failed turns included, not one omp goes on from), the turn extension, `packages/session/src/turn-extension.ts`, leaves in `<home>/session/context-use` the share of its context window the conversation uses, as omp's `ctx.getContextUsage()` gives it (omp 18.3.0; nothing when omp gives none or knows no context window). At its next 500 ms look `arthur run` reads that report once and removes it; one at `compactAtPercent` or more asks for the same compaction a `compactAt` time asks for, as slot `context <percent>%`: the handoff first, withdrawn when it is not written, waiting up to `compactWaitSeconds` for an idle session, with the same outcome lines. It then asks again only after a compaction whose outcome is `compact: done` (by either trigger), or after a report below `compactAtPercent` (a fresh start, omp's own compaction, a `/compact` typed): a repeated crossing asks once, and one skipped or withdrawn is not asked again until then. A report left before `arthur run` started is dropped. With `"both"`, a slot or a report asks, whichever comes first, and neither queues one while a compaction or a restart is asked for; the two stay independent, so a slot soon after a compaction by context use compacts again. Set `compactAtPercent` below the point omp's own auto-compaction starts near the limit, which compacts without a handoff.
 
 ## The fresh start at night
 
@@ -108,6 +112,6 @@ Without a systemd user manager (macOS, a container: `systemctl --user show-envir
 
 ## Files
 
-In `<home>/session/`: `request.json` (the request of the moment), `handoff.md` (the coordinator's handoff), `handoff-read` (the modification time of the last handoff read), `agent` (the pid of the coordinator's agent), `restarted.json` (a restart made, until the next coordinator is up; one that is not a restart's mark is dropped, named), `after-restart.md` (the steps for the human after a restart, sent once with `Restarted.`), `loaded.json` (what `arthur run` loaded at its start, for the restart guard), `service` (the pid of an `arthur run` that is the service's, from its start until it stops, for `/restart`), and `turn-failed/` (the coordinator turns that failed before any text, until `arthur run` sends them).
+In `<home>/session/`: `request.json` (the request of the moment), `handoff.md` (the coordinator's handoff), `handoff-read` (the modification time of the last handoff read), `agent` (the pid of the coordinator's agent), `context-use` (the share of its context window the coordinator's conversation used at its last turn's end, until `arthur run` reads it), `restarted.json` (a restart made, until the next coordinator is up; one that is not a restart's mark is dropped, named), `after-restart.md` (the steps for the human after a restart, sent once with `Restarted.`), `loaded.json` (what `arthur run` loaded at its start, for the restart guard), `service` (the pid of an `arthur run` that is the service's, from its start until it stops, for `/restart`), and `turn-failed/` (the coordinator turns that failed before any text, until `arthur run` sends them).
 
 A file here that cannot be read, written or removed (a disk full, the folder made read-only) never ends `arthur run`: the 500 ms look that failed prints `session: <compaction|restart|turn notice> failed: <the error's first line>`, once per distinct error, and the next look tries again. A fresh start's try whose request could not be written is made at the first look that can write it; a night's restart that threw ends that night, and the next night tries again.

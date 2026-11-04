@@ -26,7 +26,7 @@ async function load(t: TestContext, options: SessionOptions, now: string) {
 	const plugin = session(options);
 	await fake.setup(plugin);
 	t.after(() => plugin.stop?.());
-	const file = join(fake.host.folder, "request.json");
+	const [file, use] = [join(fake.host.folder, "request.json"), join(fake.host.folder, "context-use")];
 	return {
 		fake,
 		out,
@@ -36,8 +36,19 @@ async function load(t: TestContext, options: SessionOptions, now: string) {
 		start: () => plugin.start?.(),
 		at: (when: string) => fake.setNow(new Date(when)),
 		request: () => (existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>) : undefined),
+		// A turn's end at `percent` of its context window, as the turn extension reports it; `consumed` waits until a tick took
+		// it, which decides on the report and on the slot in that same tick.
+		report: (percent: string) => writeFileSync(use, percent),
+		consumed: () => until("the report read", () => !existsSync(use)),
 	};
 }
+
+// The two ways a compaction is asked for at 13:00: its slot, or a turn's report at compactAtPercent.
+type Fire = { at(when: string): unknown; report(percent: string): unknown };
+const TRIGGERS: readonly { readonly options: SessionOptions; readonly fire: (box: Fire) => unknown }[] = [
+	{ options: { compactAt: ["13:00"] }, fire: (box) => box.at("2026-10-18T13:00:00+02:00") },
+	{ options: { compactOn: "context", compactAtPercent: 80 }, fire: (box) => box.report("80") },
+];
 
 // The coordinator: the fake agent playing `run` with the extension the plugin gives orchestration, after `before`'s, and its
 // variables; killed at the end. `open(name)` lets a step `{ waitFor: gate(name) }` go on.
@@ -58,42 +69,45 @@ function coordinator(t: TestContext, fake: FakeHost, run: (gate: (name: string) 
 	};
 }
 
-test("at a compactAt slot the coordinator writes its handoff, the conversation is compacted, and the compacted conversation starts by reading it", async (t) => {
-	const box = await load(t, { compactAt: ["13:00"], compactWaitSeconds: 60 }, "2026-10-18T12:59:00+02:00");
-	const agent = coordinator(t, box.fake, (gate) => ({
-		steps: [{ prompt: true }, { waitFor: gate("written") }, { message: "Handoff written." }, { end: true }, { prompt: true }, { message: "Going on." }, { end: true }, { waitFor: gate("release") }],
-	}));
-	await box.start();
-	await sleep(1200);
-	assert.equal(box.request(), undefined, "nothing before the slot");
-	box.at("2026-10-18T13:00:00+02:00");
-	await until("the handoff request", () => agent.messages().length === 1);
-	const ask = `[Arthur] Your conversation is compacted after this turn. First write your handoff to ${box.handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The compacted conversation starts by reading it. ${ARTHUR}`;
-	assert.deepEqual(agent.messages()[0], { content: ask, options: { attribution: "agent" }, step: 0 });
-	assert.equal(typeof box.request()?.pid, "number", "the agent took the request");
-	writeFileSync(box.handoff, `${HANDOFF}\n`);
-	agent.open("written");
-	await until("the outcome", () => box.out.length === 1);
-	assert.deepEqual(box.out, ["session: compact: done; the compacted conversation starts by reading the handoff"]);
-	// Compacted after the handoff turn ended (step 3), while the agent waits for its next prompt (step 4), which reads the handoff.
-	assert.deepEqual(agent.compactions(), [{ instructions: null, step: 4 }]);
-	await until("the read-back turn", () => agent.messages().length === 2);
-	const read = `[Arthur] Your conversation was just compacted. Before that you wrote this handoff (${box.handoff}); go on from it:\n\n> Work in progress: AR0143, its worker runs.\n> Next: review its branch.\n> Unanswered: merge AR0140? (asked at 12:40)\n\n${ARTHUR}`;
-	assert.deepEqual(agent.messages()[1], { content: read, options: { attribution: "agent" }, step: 4 });
-	await until("the request gone", () => box.request() === undefined);
-	assert.equal(readFileSync(join(box.fake.host.folder, "handoff-read"), "utf8"), String(statSync(box.handoff).mtimeMs), "noted as read, so no start reads it again");
-	assert.deepEqual(box.err, []);
+test("at a compactAt slot, or a report at compactAtPercent, the coordinator writes its handoff, the conversation is compacted, and the compacted conversation starts by reading it", async (t) => {
+	for (const trigger of TRIGGERS) {
+		const box = await load(t, { ...trigger.options, compactWaitSeconds: 60 }, "2026-10-18T12:59:00+02:00");
+		const agent = coordinator(t, box.fake, (gate) => ({
+			steps: [{ prompt: true }, { waitFor: gate("written") }, { message: "Handoff written." }, { end: true }, { prompt: true }, { message: "Going on." }, { end: true }, { waitFor: gate("release") }],
+		}));
+		await box.start();
+		await sleep(1200);
+		assert.equal(box.request(), undefined, "nothing before the slot or the report");
+		trigger.fire(box);
+		await until("the handoff request", () => agent.messages().length === 1);
+		const ask = `[Arthur] Your conversation is compacted after this turn. First write your handoff to ${box.handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The compacted conversation starts by reading it. ${ARTHUR}`;
+		assert.deepEqual(agent.messages()[0], { content: ask, options: { attribution: "agent" }, step: 0 });
+		assert.equal(typeof box.request()?.pid, "number", "the agent took the request");
+		writeFileSync(box.handoff, `${HANDOFF}\n`);
+		agent.open("written");
+		await until("the outcome", () => box.out.length === 1);
+		assert.deepEqual(box.out, ["session: compact: done; the compacted conversation starts by reading the handoff"]);
+		// Compacted after the handoff turn ended (step 3), while the agent waits for its next prompt (step 4), which reads the handoff.
+		assert.deepEqual(agent.compactions(), [{ instructions: null, step: 4 }]);
+		await until("the read-back turn", () => agent.messages().length === 2);
+		const read = `[Arthur] Your conversation was just compacted. Before that you wrote this handoff (${box.handoff}); go on from it:\n\n> Work in progress: AR0143, its worker runs.\n> Next: review its branch.\n> Unanswered: merge AR0140? (asked at 12:40)\n\n${ARTHUR}`;
+		assert.deepEqual(agent.messages()[1], { content: read, options: { attribution: "agent" }, step: 4 });
+		await until("the request gone", () => box.request() === undefined);
+		assert.equal(readFileSync(join(box.fake.host.folder, "handoff-read"), "utf8"), String(statSync(box.handoff).mtimeMs), "noted as read, so no start reads it again");
+		assert.deepEqual(box.err, []);
+	}
 });
 
 test("a handoff write that fails withdraws the compaction with one line and leaves the conversation as it was", async (t) => {
-	for (const ending of [{ message: "Nothing to write." }, { message: "", stopReason: "error" as const, error: "529 overloaded" }]) {
-		const box = await load(t, { compactAt: ["13:00"], compactWaitSeconds: 60 }, "2026-10-18T12:59:00+02:00");
+	const endings = [{ message: "Nothing to write." }, { message: "", stopReason: "error" as const, error: "529 overloaded" }];
+	for (const [trigger, ending] of TRIGGERS.flatMap((trigger) => endings.map((ending) => [trigger, ending] as const))) {
+		const box = await load(t, { ...trigger.options, compactWaitSeconds: 60 }, "2026-10-18T12:59:00+02:00");
 		// One the conversation read already, so its start does not read it again.
 		writeFileSync(box.handoff, "An older handoff.\n");
 		writeFileSync(join(box.fake.host.folder, "handoff-read"), String(statSync(box.handoff).mtimeMs));
 		const agent = coordinator(t, box.fake, (gate) => ({ steps: [{ prompt: true }, ending, { end: true }, { waitFor: gate("release") }] }));
 		await box.start();
-		box.at("2026-10-18T13:00:00+02:00");
+		trigger.fire(box);
 		await until("the outcome", () => box.out.length === 1);
 		const why = ending.stopReason === "error" ? " (529 overloaded)" : "";
 		assert.deepEqual(box.out, [`session: compact: skipped, handoff not written: no new handoff when the coordinator's turn ended${why}`]);
@@ -125,18 +139,94 @@ test("an empty handoff is not read back; a compaction that fails says so and rea
 });
 
 test("a session busy for compactWaitSeconds withdraws the request with one line, and the handoff is never asked for", async (t) => {
-	const box = await load(t, { compactAt: ["13:00"], compactWaitSeconds: 1 }, "2026-10-18T12:59:00+02:00");
-	// Another extension starts a turn that runs until the test ends.
-	const busy = join(temporaryFolder(), "busy.ts");
-	writeFileSync(busy, `export default (pi) => pi.on("session_start", () => pi.sendUserMessage("Busy."));\n`);
-	const agent = coordinator(t, box.fake, (gate) => ({ steps: [{ prompt: true }, { waitFor: gate("release") }] }), [busy]);
-	await until("the busy turn", () => agent.messages().length === 1);
+	for (const trigger of TRIGGERS) {
+		const box = await load(t, { ...trigger.options, compactWaitSeconds: 1 }, "2026-10-18T12:59:00+02:00");
+		// Another extension starts a turn that runs until the test ends.
+		const busy = join(temporaryFolder(), "busy.ts");
+		writeFileSync(busy, `export default (pi) => pi.on("session_start", () => pi.sendUserMessage("Busy."));\n`);
+		const agent = coordinator(t, box.fake, (gate) => ({ steps: [{ prompt: true }, { waitFor: gate("release") }] }), [busy]);
+		await until("the busy turn", () => agent.messages().length === 1);
+		await box.start();
+		trigger.fire(box);
+		await until("the outcome", () => box.out.length === 1);
+		assert.deepEqual(box.out, ["session: compact: skipped, session busy for 1 s"]);
+		assert.deepEqual(agent.messages().map((message) => message.content), ["Busy."]);
+		assert.deepEqual(agent.compactions(), []);
+	}
+});
+
+test("compactOn left out compacts only at the slots: a turn's report of its context use is read and asks nothing", async (t) => {
+	const box = await load(t, {}, "2026-10-18T07:59:00+02:00");
+	await box.start();
+	box.report("95");
+	await box.consumed();
+	assert.equal(box.request(), undefined);
+	box.at("2026-10-18T08:00:00+02:00");
+	await until("the slot's request", () => box.request() !== undefined);
+	assert.equal(box.request()?.slot, "08:00");
+});
+
+test("compactOn context: a report at compactAtPercent or more asks for a compaction, one just below it nothing, and no compactAt slot asks", async (t) => {
+	for (const [compactAtPercent, below, at] of [[80, "79.9", "80"], [1, "0.9", "1"], [99, "98.99", "99"]] as const) {
+		const box = await load(t, { compactOn: "context", compactAtPercent, compactAt: ["13:00"], compactWaitSeconds: 60 }, "2026-10-18T12:59:00+02:00");
+		// A report the last arthur run did not read is dropped at the start.
+		box.report("100");
+		await box.start();
+		assert.equal(existsSync(join(box.fake.host.folder, "context-use")), false);
+		box.at("2026-10-18T13:00:00+02:00");
+		box.report(below);
+		await box.consumed();
+		assert.equal(box.request(), undefined, `${below} under ${compactAtPercent}, and 13:00 passed`);
+		box.report(at);
+		await until("the request", () => box.request() !== undefined);
+		assert.deepEqual({ ...box.request(), asked: 0 }, { then: "compact", slot: `context ${at}%`, asked: 0, waitSeconds: 60 });
+	}
+});
+
+test("compactOn both: a slot or a report asks, whichever comes first, and while one is asked for the other adds none", async (t) => {
+	const box = await load(t, { compactOn: "both", compactAtPercent: 80, compactAt: ["13:00"], compactWaitSeconds: 600 }, "2026-10-18T12:59:00+02:00");
 	await box.start();
 	box.at("2026-10-18T13:00:00+02:00");
-	await until("the outcome", () => box.out.length === 1);
-	assert.deepEqual(box.out, ["session: compact: skipped, session busy for 1 s"]);
-	assert.deepEqual(agent.messages().map((message) => message.content), ["Busy."]);
-	assert.deepEqual(agent.compactions(), []);
+	await until("the slot's request", () => box.request() !== undefined);
+	const slot = box.request();
+	assert.equal(slot?.slot, "13:00");
+	box.report("90");
+	await box.consumed();
+	assert.deepEqual(box.request(), slot, "a report while the slot's is asked for adds none");
+	rmSync(box.file);
+	box.report("90");
+	await until("the report's request", () => box.request() !== undefined);
+	const report = box.request();
+	assert.equal(report?.slot, "context 90%");
+	box.at("2026-10-19T13:00:00+02:00");
+	box.report("10");
+	await box.consumed();
+	assert.deepEqual(box.request(), report, "the next day's slot while the report's is asked for adds none");
+});
+
+test("a repeated crossing asks once: no new request until a compaction is done or a report falls below compactAtPercent", async (t) => {
+	const box = await load(t, { compactOn: "context", compactAtPercent: 80, compactWaitSeconds: 600 }, "2026-10-18T12:59:00+02:00");
+	await box.start();
+	const again = async (percent: string) => {
+		box.report(percent);
+		await box.consumed();
+		return box.request()?.slot;
+	};
+	box.report("85");
+	await until("the request", () => box.request() !== undefined);
+	const first = box.request();
+	assert.equal(await again("90"), "context 85%", "the same request");
+	rmSync(box.file);
+	assert.equal(await again("91"), undefined, "withdrawn without a compaction: not asked again");
+	for (const line of ["compact: skipped, session busy for 600 s", "compact: failed: 500 from the model", "compact: done; the handoff is empty, so nothing is read back"]) {
+		writeFileSync(box.file, JSON.stringify({ ...first, line }));
+		await until("the outcome", () => box.out.at(-1) === `session: ${line}`);
+		assert.equal(await again("92"), line.startsWith("compact: done") ? "context 92%" : undefined, line);
+	}
+	rmSync(box.file);
+	assert.equal(await again("95"), undefined);
+	assert.equal(await again("79"), undefined, "below: nothing asked, and asked again at the next crossing");
+	assert.equal(await again("80"), "context 80%");
 });
 
 test("with no session running a slot does nothing: its request is dropped without a word after compactWaitSeconds", async (t) => {
@@ -284,12 +374,17 @@ test("in arthur run a tick that throws in an unwritable session folder is told o
 	assert.equal(code, 0);
 });
 
-test("the options: compactAt times, compactWaitSeconds, the fresh start's, restartGuard and probeLlm, each refused naming its path, and no unknown option", () => {
+test("the options: compactAt times, compactOn, compactAtPercent, compactWaitSeconds, the fresh start's, restartGuard and probeLlm, each refused naming its path, and no unknown option", () => {
 	assert.deepEqual(checkOptions({}), []);
+	for (const compactOn of ["schedule", "context", "both"]) assert.deepEqual(checkOptions({ compactOn, compactAtPercent: 1 }), []);
+	assert.deepEqual(checkOptions({ compactAtPercent: 99 }), []);
+	for (const value of ["hourly", true, null, "Context"]) assert.deepEqual(checkOptions({ compactOn: value }), [{ path: "compactOn", problem: `expected "schedule", "context" or "both", got ${JSON.stringify(value)}` }]);
+	for (const value of [0, 100, 50.5, "80", -1, null])
+		assert.deepEqual(checkOptions({ compactAtPercent: value }), [{ path: "compactAtPercent", problem: `expected a whole number from 1 to 99, got ${JSON.stringify(value)}` }]);
 	assert.deepEqual(checkOptions({ compactAt: [], compactWaitSeconds: 1, freshAt: "00:00", freshRetryMinutes: 1, freshUntil: "00:00", restartGuard: false, probeLlm: false }), []);
 	assert.deepEqual(checkOptions({ compactAt: ["08:00", "23:59", "00:00"], compactWaitSeconds: 1800, freshAt: "23:00", freshRetryMinutes: 15, freshUntil: "03:00", restartGuard: true, probeLlm: true }), []);
 	assert.deepEqual(checkOptions({ compactAt: "13:00", compactWaitSeconds: 0, probeSeconds: 60 }), [
-		{ path: "probeSeconds", problem: "unknown option; options: compactAt, compactWaitSeconds, freshAt, freshRetryMinutes, freshUntil, restartGuard, probeLlm" },
+		{ path: "probeSeconds", problem: "unknown option; options: compactAt, compactOn, compactAtPercent, compactWaitSeconds, freshAt, freshRetryMinutes, freshUntil, restartGuard, probeLlm" },
 		{ path: "compactAt", problem: 'expected a list of times "HH:MM", got "13:00"' },
 		{ path: "compactWaitSeconds", problem: "expected a whole number of seconds of at least 1, got 0" },
 	]);
@@ -309,6 +404,15 @@ test("the options: compactAt times, compactWaitSeconds, the fresh start's, resta
 		{ path: "compactAt[2]", problem: 'expected a time "HH:MM" from 00:00 to 23:59, got 13' },
 		{ path: "compactWaitSeconds", problem: "expected a whole number of seconds of at least 1, got 1.5" },
 	]);
+});
+
+test("arthur.config.example.ts gives session every option of its table, each one it accepts", () => {
+	const example = readFileSync(new URL("../../../arthur.config.example.ts", import.meta.url), "utf8");
+	const call = /\n\t\tsession\((\{[\s\S]*?\n\t\t\})\),\n/.exec(example);
+	assert.ok(call, "the example calls session({ ... })");
+	const options = Function(`return (${call[1]});`)() as Record<string, unknown>;
+	assert.deepEqual(checkOptions(options), []);
+	assert.deepEqual(Object.keys(options), Object.keys(table));
 });
 
 // Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as

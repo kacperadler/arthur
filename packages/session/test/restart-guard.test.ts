@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type SessionOptions, session } from "../src/session.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args], { encoding: "utf8" }).trim();
@@ -175,4 +175,25 @@ test("a replacement under refs/replace does not hide a merge of loaded code (AR0
 	// HEAD read as the commit arthur run loaded: no change since.
 	git(arthur, "replace", git(arthur, "rev-parse", merged), loaded);
 	assert.equal(await box.spawn(), due("AR0002", box.since));
+});
+
+test("a job's launch is the same under each compactOn, and loads neither of the coordinator's session extensions", async (t) => {
+	const omp = fakeAgent({ steps: [{ message: "Done." }] });
+	const path = process.env.PATH;
+	process.env.PATH = `${dirname(omp)}${delimiter}${path}`;
+	t.after(() => {
+		process.env.PATH = path;
+	});
+	const starts = () => (existsSync(join(dirname(omp), "starts.jsonl")) ? readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").split("\n").slice(0, -1) : []);
+	const arthur = checkout("arthur");
+	const launches: string[] = [];
+	for (const compactOn of ["schedule", "context", "both"] as const) {
+		const box = await load(t, arthur, { compactOn, compactAt: ["08:00"], probeLlm: false });
+		const job = await box.fake.host.jobs.spawn({ task: "Go.", kind: "worker" });
+		const start = await until("the job's start", () => starts()[launches.length]);
+		const { args, cwd } = JSON.parse(start) as { args: string[]; cwd: string };
+		launches.push(JSON.stringify({ args, cwd }).replaceAll(job.id, "<job>").replaceAll(dirname(box.fake.host.folder), "<home>"));
+	}
+	assert.equal(new Set(launches).size, 1, launches.join("\n"));
+	assert.doesNotMatch(launches[0] ?? "", /turn-extension|handoff-extension/);
 });

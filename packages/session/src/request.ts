@@ -5,7 +5,7 @@ import { join } from "node:path";
 // entries 35 and 36): a compaction, or a restart (`fresh` without `--continue`), each after the handoff; the handoff extension
 // (handoff-extension.ts) takes it and writes its outcome into it: docs/session.md.
 
-// Asked at `asked` (ms) by `slot` (a compactAt or freshAt time, or `/restart`), withdrawn once the session has been busy for
+// Asked at `asked` (ms) by `slot` (a compactAt or freshAt time, `context <n>%`, or `/restart`), withdrawn once the session has been busy for
 // `waitSeconds`; `pid` is the agent that took it, `line` its outcome: a compaction's line, or for a restart `handoff written`
 // or `handoff not written: <reason>`; `run`: a `/restart` that ends `arthur run` too, a restart being due under its service.
 export type Request = {

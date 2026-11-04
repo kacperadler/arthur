@@ -6,12 +6,14 @@ import { join } from "node:path";
 // error and none of whose replies held text, it leaves omp's error as it is in `turn-failed/` of the folder `ARTHUR_SESSION_FOLDER`
 // names, as `<ms>-<pid>-<n>.txt`, which `arthur run` sends as a notice, redacted there in one pass with `host.secrets` (start-notice.ts). A failure
 // with the first line of the last one told is not left again, so the inbox's retries during an outage tell it once; the next
-// turn that ends without an error after one told leaves `<ms>-<pid>-<n>.ok`, told as working again: docs/session.md.
+// turn that ends without an error after one told leaves `<ms>-<pid>-<n>.ok`, told as working again. At each real end of a turn,
+// aborted or failed included, it leaves the share of its context window the conversation uses (omp's `ctx.getContextUsage()`)
+// in `context-use` of that folder, for `compactOn` (session.ts): docs/session.md.
 
 type Said = { readonly role?: string; readonly stopReason?: string; readonly errorMessage?: string; readonly content?: readonly { readonly type?: string; readonly text?: string }[] };
-type ExtensionApi = {
-	on(event: "agent_end", handler: (event: { readonly messages?: readonly Said[]; readonly willContinue?: boolean }, ctx: { readonly hasUI: boolean }) => void): void;
-};
+type Usage = { readonly contextWindow?: number; readonly percent?: number };
+type Ctx = { readonly hasUI: boolean; readonly getContextUsage?: () => Usage | undefined };
+type ExtensionApi = { on(event: "agent_end", handler: (event: { readonly messages?: readonly Said[]; readonly willContinue?: boolean }, ctx: Ctx) => void): void };
 
 export default function turnFailures(pi: ExtensionApi): void {
 	const folder = process.env.ARTHUR_SESSION_FOLDER ?? "";
@@ -29,6 +31,12 @@ export default function turnFailures(pi: ExtensionApi): void {
 	pi.on("agent_end", (event, ctx) => {
 		// Only in the coordinator's own session, one with a UI, and at the turn's real end.
 		if (!ctx.hasUI || event.willContinue === true) return;
+		const usage = ctx.getContextUsage?.();
+		if ((usage?.contextWindow ?? 0) > 0 && Number.isFinite(usage?.percent)) {
+			const use = join(folder, "context-use");
+			writeFileSync(`${use}.${process.pid}`, String(usage?.percent));
+			renameSync(`${use}.${process.pid}`, use);
+		}
 		const messages = event.messages ?? [];
 		const turn = messages.slice(messages.findLastIndex((message) => message.role === "user") + 1);
 		const last = turn.at(-1);

@@ -18,6 +18,7 @@ const CONTEXT_COMMAND = JSON.stringify([process.execPath, fileURLToPath(import.m
 // How often the session is looked at, and how often a previous agent still alive is.
 const POLL_MS = 500;
 const EXIT_POLL_MS = 200;
+const SIGNALS = ["SIGTERM", "SIGINT"] as const;
 // In the plugin's folder: the last agent started, `<pid> <start time>`; the mark `arthur coordinator stop` leaves; and the mark
 // `coordinator.restart` leaves for a fresh conversation at the next start.
 const PID_FILE = "coordinator.pid";
@@ -68,6 +69,10 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 	rmSync(join(folder, STOPPED), { force: true });
 	writeMcp(folder, servers);
 	const quit = new AbortController();
+	// `arthur run`'s SIGTERM and SIGINT (run.ts) start its stops, this plugin's maybe much later: an agent that ends from then on is
+	// not started again (AR0622), and `stop` ends the session.
+	const leave = () => quit.abort();
+	for (const name of SIGNALS) process.on(name, leave);
 	const pause = (ms: number) => sleep(ms, undefined, { signal: quit.signal }).catch(() => {});
 	const delay = coordinator.restartDelaySeconds;
 	const running = (async () => {
@@ -94,6 +99,7 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 	})();
 	return {
 		async stop() {
+			for (const name of SIGNALS) process.off(name, leave);
 			quit.abort();
 			await running;
 			tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);

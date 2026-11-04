@@ -212,7 +212,12 @@ test("/repeats sends the digest as a page in the report style from manage's own 
 	assert.deepEqual(sent, [{ files: [file], place: "7" }]);
 	assert.deepEqual(readdirSync(fake.host.folder).filter((name) => name.startsWith("repeats")), ["repeats-2026-10-21.html"], "written whole, no temporary file left");
 	const page = readFileSync(file, "utf8");
-	assert.match(page, /^<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Repeats of acme<\/title><style>body\{margin:0 auto;max-width:46em;[^<]*color:#000;background:#fff\}h1,h2,h3\{color:#1d4ed8\}/);
+	assert.match(page, /^<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Repeats of acme<\/title><style>:root\{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000;/);
+	const style = /<style>(.*)<\/style>/.exec(page)?.[1] ?? "";
+	for (const rule of ["body{margin:0;background:var(--paper);color:var(--ink);", "main{max-width:900px;margin:0 auto;", "code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);", ".red{color:var(--red)}"]) assert.ok(style.includes(rule), rule);
+	assert.doesNotMatch(style, /#000[;}]|#1d4ed8|#b91c1c|46em|prefers-color-scheme/, "none of the old colours or layout");
+	assert.match(page, /<body>\n<header>\n<h1>Repeats of acme<\/h1>\n<p>Since the start\.<\/p>\n<\/header>\n<main>\n<h2>Decisions by kind and by who answered<\/h2>\n/);
+	assert.ok(page.endsWith("</ul>\n</main>\n</body></html>\n"), page.slice(-80));
 	const red = ['AC-D9 question: picked 2, "Red" over 1, "Blue, the brand\'s": "Which colour for the menu?"', 'AC-D12 review: picked 2, "Fix or split the ticket"', 'AC-D5 answered by AC-D3, whose words "passed review" it names apart, not as one phrase: "Merge AC0003? Docs only, so no review ran; checks passed"'];
 	assert.deepEqual(page.match(/<li class="red">[^<]*/g)?.map((line, at) => line.startsWith(`<li class="red">${red[at]}`)), [true, true, true], "the two overrides and the loose match, nothing else");
 	assert.ok(page.includes("<h2>Repeated shapes</h2>") && page.includes("<ul>\n<li>budget: 4 asks;"), page);

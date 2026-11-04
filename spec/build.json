@@ -4983,9 +4983,9 @@
   {
     "id": "AR0621",
     "title": "Every git call of Arthur and every job reads past refs/replace, not only after a config check",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0621-every-git-call-of-arthur-and-every-job-reads-past-refs-replace-not-only-after-a/ticket.md",
-    "updated": "2026-11-04T19:35:21.507Z",
+    "updated": "2026-11-04T19:55:16.097Z",
     "after": [
       "AR0617"
     ]
@@ -5027,5 +5027,12 @@
     "status": "planning",
     "path": "spec/features/AR0626-two-tests-fail-now-and-then-under-the-full-suite-models-server-unreachable/ticket.md",
     "updated": "2026-11-04T18:00:41.056Z"
+  },
+  {
+    "id": "AR0627",
+    "title": "No client or other project of the owner named in the repository, and a check that refuses a commit naming one",
+    "status": "planned",
+    "path": "spec/features/AR0627-no-client-or-other-project-of-the-owner-named-in-the-repository-and-a-check-that/ticket.md",
+    "updated": "2026-11-04T20:01:58.878Z"
   }
 ]

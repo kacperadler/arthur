@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-11-04: AR0621 approved: run after AR0617, outside the 22-task counter; the owner: "AR-D494 - approve" (AR-D494)
+- 2026-11-04: No client and no other project of the owner may be named in the repository: a ticket removes every such name from tracked files and adds a check that refuses any commit naming one; rewriting the published history is asked separately; the owner: "AR-D498 - THERE SHOULD BE SOME THING THAT WILL PREVENT THIS SIUTATIONS AND THERE CANNOT BE A CLIENT NAME IN THE REPO" (AR-D498)

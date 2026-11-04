@@ -62,9 +62,8 @@ function tree(cwd: string): Tree | undefined {
 	return { head: head.stdout.trim(), files: files.join("\n"), clean: status.stdout === "" && entries.every((entry) => entry.startsWith("H ")) };
 }
 
-// The lines of one bash call: `check pass|fail` per `npm run check`, `test pass|fail <passed>/<total>` per `npm test` (`npm t`,
-// `npm run test`), `mutate pass|fail` per `npm run mutate`, in the command's order, for the scripts the worktree's package.json
-// declares; any other command, or a call the bash tool moved to the background (it returned before the checks did), none.
+// The lines of one bash call: `check pass|fail`, `test pass|fail <passed>/<total>` and `mutate pass|fail`, one per run `scripts`
+// finds, in the command's order; a call the bash tool moved to the background (it returned before the checks did), none.
 // Commands joined by `;`, `&&` or `|` give one exit status, so the output decides too: a check fails on a TypeScript error; a
 // test takes pass or fail from node --test's last summary (`fail 0` passes), and from the exit status without one; mutate
 // passes only on an exit status of 0 and a last summary with `0 survived`.
@@ -84,7 +83,8 @@ function ran(event: ToolEvent, cwd: string): string[] {
 }
 
 // The runs of the `check`, `test` and `mutate` scripts the package.json in `worktree` declares that `command` names, in its
-// order; a missing or broken package.json declares none.
+// order: after a separator and any `NAME=value` (AR0618), `npm test`, `npm t`, `npm run` or `bun run` of one (`bun test` runs
+// none); a missing or broken package.json declares none.
 function scripts(command: unknown, worktree: string): Script[] {
 	if (typeof command !== "string") return [];
 	let declared: readonly Script[];
@@ -94,5 +94,5 @@ function scripts(command: unknown, worktree: string): Script[] {
 	} catch {
 		return [];
 	}
-	return Array.from(command.matchAll(/(?:^|[;&|(\n])\s*npm\s+(test|t|run\s+(?:test|check|mutate))(?=$|[\s;&|)])/g), (match): Script => (match[1]?.endsWith("check") ? "check" : match[1]?.endsWith("mutate") ? "mutate" : "test")).filter((name) => declared.includes(name));
+	return Array.from(command.matchAll(/(?:^|[;&|(\n])\s*(?:[A-Za-z_]\w*=(?:"[^"]*"|'[^']*'|[^\s"';&|()])*\s+)*(?:npm\s+t(?:est)?|(?:npm|bun)\s+run\s+(check|mutate|test))(?=$|[\s;&|)])/g), (match) => (match[1] ?? "test") as Script).filter((name) => declared.includes(name));
 }

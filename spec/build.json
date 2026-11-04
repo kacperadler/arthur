@@ -4972,5 +4972,12 @@
     "status": "planned",
     "path": "spec/features/AR0619-a-branch-delete-on-origin-that-fails-for-a-network-or-github-error-is-retried/ticket.md",
     "updated": "2026-11-04T10:57:46.645Z"
+  },
+  {
+    "id": "AR0620",
+    "title": "Uptime tells this machine offline apart from a site down even with one site, by probing addresses outside the projects",
+    "status": "planning",
+    "path": "spec/features/AR0620-uptime-tells-this-machine-offline-apart-from-a-site-down-even-with-one-site-by/ticket.md",
+    "updated": "2026-11-04T11:00:07.899Z"
   }
 ]

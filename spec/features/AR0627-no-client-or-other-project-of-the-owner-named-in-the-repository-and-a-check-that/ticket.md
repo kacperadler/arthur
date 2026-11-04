@@ -33,3 +33,4 @@ Out:
 - Other projects' repositories.
 
 ## Decisions
+- 2026-11-04: Rewrite the published history once no Arthur job runs: the client name replaced in every old commit, main force-pushed, open job branches rebuilt; the owner: "AR-D499 - 1" (AR-D499)

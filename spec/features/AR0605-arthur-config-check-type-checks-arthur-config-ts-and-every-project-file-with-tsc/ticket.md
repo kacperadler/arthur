@@ -14,7 +14,7 @@
 
 ## Goal
 
-The owner asked, 2026-11-02, how he knows a project file he writes is correct. Today two layers exist, measured on `projects/kacperadler.pl/project.config.ts` the same day:
+The owner asked, 2026-11-02, how he knows a project file he writes is correct. Today two layers exist, measured on `projects/landing.example/project.config.ts` the same day:
 
 - Each plugin checks its piece at load: a misspelt key (`ulr`, `ap`) or a bad prefix (`K-A`) makes `arthur config check` exit 1 with the project, the helper and the key. But it stops at the first plugin that fails, so three mistakes take three runs.
 - The helpers are typed (`DokployPiece`, uptime's `Site`): `tsc` on the file reports both misspelt keys at once (`TS2353 ... 'ulr' does not exist in type 'Site'`). But nothing runs it: the root `tsconfig.json` includes only `test/` and `packages/`, and `projects/` and `arthur.config.ts` are ignored by Git, so `npm run check` never sees them.

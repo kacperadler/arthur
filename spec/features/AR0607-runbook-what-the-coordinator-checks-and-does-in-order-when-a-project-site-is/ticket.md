@@ -14,7 +14,7 @@ When the uptime plugin says a project's site is down, the coordinator gets a run
 
 ## Goal
 
-The owner asked, 2026-11-02, after kacperadler.pl got its uptime check (AR-D457): a file with instructions for a down site, with checks and todos in the right order, such as checking whether the server is available and working and, if so, trying a redeploy. Today `uptime-down` is only a notice to the owner (`packages/uptime/docs/uptime.md`, "Down and up"); nothing wakes the coordinator with steps, and `arthur dokploy` only reads (`app`, `status`): a deploy comes with AR0603.
+The owner asked, 2026-11-02, after landing.example got its uptime check (AR-D457): a file with instructions for a down site, with checks and todos in the right order, such as checking whether the server is available and working and, if so, trying a redeploy. Today `uptime-down` is only a notice to the owner (`packages/uptime/docs/uptime.md`, "Down and up"); nothing wakes the coordinator with steps, and `arthur dokploy` only reads (`app`, `status`): a deploy comes with AR0603.
 
 - Plan: yes
 - Kind: feat

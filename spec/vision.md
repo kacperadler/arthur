@@ -184,6 +184,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 - Which days the audit and the retro run: `manage` options `audit.days` and `retro.day` register the entries; `schedule` fires them.
 - Finding a dead job, and the joint CPU and memory limit: the core's job runner.
 - A project's own vision and criteria read by the roles: `projects` owns the paths (`prompts`); the core's prompt loader reads them.
+- The tone of the agents that talk with the owner (the coordinator, a project agent): the project's `personality.md` beside its criteria, or its `<role>.personality.md` beside the overrides for one of them, read last by the core's prompt loader, below every rule; no job role reads it.
 - Docs per command and `--help`: part of the host API; a command registers with its doc file.
 - The commit-subject rule and its hook: the `commit-rules` plugin, per project. Arthur's own repository uses it like any project.
 - Language: English only from the first line of code; the board and every message read and write English keys.

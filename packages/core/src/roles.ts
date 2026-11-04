@@ -11,6 +11,9 @@ export type Role = {
 	readonly file: URL;
 	// The criteria files the role reads from the project's criteria folder, by name: `styleguide` is `<criteria>/styleguide.md`.
 	readonly criteria: readonly string[];
+	// A role that talks with the owner (the coordinator, a project agent) ends its prompt with `<rolesDir>/<role>.personality.md`,
+	// else `<criteriaDir>/personality.md`: tone only, below every rule.
+	readonly personality?: boolean;
 };
 
 // Where a project keeps the files the roles read, relative to its repository, or absolute: a file of its project folder, as
@@ -29,7 +32,7 @@ export function promptFiles(project: { readonly name: string; readonly prompts?:
 
 // One file a role reads: `path` is absolute for the role file, else relative to the project; `problem` when it is not read.
 export type Source = {
-	readonly what: "role" | "override" | "criteria";
+	readonly what: "role" | "override" | "criteria" | "personality";
 	readonly path: string;
 	readonly text?: string;
 	readonly problem?: "missing" | "a symlink" | "not a file";
@@ -83,6 +86,7 @@ export function roleRegistry(): RoleRegistry {
 			if (!(role.file instanceof URL) || role.file.protocol !== "file:") throw new Error(`role ${role.name}: file must be a file URL, e.g. new URL("../roles/${role.name}.md", import.meta.url)`);
 			if (!Array.isArray(role.criteria) || !role.criteria.every((name) => typeof name === "string" && NAME.test(name)))
 				throw new Error(`role ${role.name}: criteria must be a list of file names without .md, e.g. ["styleguide"]`);
+			if (role.personality !== undefined && typeof role.personality !== "boolean") throw new Error(`role ${role.name}: personality must be a boolean`);
 			roles.set(role.name, { owner, role });
 		},
 		get(name) {
@@ -119,19 +123,22 @@ export async function describeRoles(registry: RoleRegistry, kinds: readonly { re
 // The files `role` reads in the project at `folder`, whose prompt files are `files`, in the order of the prompt.
 export function sources(role: Role, folder: string, files: PromptFiles): Source[] {
 	const file = fileURLToPath(role.file);
-	const own = (what: "override" | "criteria", path: string): Source => ({ what, path, ...projectFile(folder, path) });
+	const own = (what: Exclude<Source["what"], "role">, path: string): Source => ({ what, path, ...projectFile(folder, path) });
+	const mine = role.personality === true ? own("personality", join(files.rolesDir, `${role.name}.personality.md`)) : undefined;
 	return [
 		existsSync(file) ? { what: "role", path: file, text: readFileSync(file, "utf8") } : { what: "role", path: file, problem: "missing" },
 		own("override", join(files.rolesDir, `${role.name}.md`)),
 		...role.criteria.map((name) => own("criteria", join(files.criteriaDir, `${name}.md`))),
+		...(mine === undefined ? [] : [mine.problem === "missing" ? own("personality", join(files.criteriaDir, "personality.md")) : mine]),
 	];
 }
 
 // The prompt of `role` for a job in `folder`, with its warnings; `sections` is asked only once the project's files passed, and
-// each is text, undefined, or `{ text, warnings }`, whose warnings join the prompt's.
+// each is text, undefined, or `{ text, warnings }`, whose warnings join the prompt's. The tone file comes last, below every rule.
 export function prompt(role: Role, folder: string, files: PromptFiles, sections: () => readonly unknown[]): { readonly prompt: string; readonly warnings: string[] } {
 	const parts: string[] = [];
 	const warnings: string[] = [];
+	let tone = "";
 	for (const { what, path, text = "", problem } of sources(role, folder, files)) {
 		if (problem === "missing" && what === "role") throw new Error(`role ${role.name}: its role file ${path} is missing`);
 		if (problem === "missing" && what === "criteria") warnings.push(`criteria file ${path} is missing; the ${role.name} goes without it`);
@@ -143,6 +150,7 @@ export function prompt(role: Role, folder: string, files: PromptFiles, sections:
 		if (what === "role") parts.push(body);
 		if (what === "override") parts.push(`## Project override, which wins over the role above (${path})\n\n${body}`);
 		if (what === "criteria") parts.push(`## ${/^#\s+(.+)$/m.exec(body)?.[1]?.trim() ?? basename(path, ".md")} (${path})\n\n${body}`);
+		if (what === "personality") tone = `## Personality, which sets tone only; every rule above wins over it (${path})\n\n${body}`;
 	}
 	for (const section of sections()) {
 		const { text, warnings: more = [] } = typeof section === "object" && section !== null ? (section as { readonly text?: unknown; readonly warnings?: unknown }) : { text: section };
@@ -150,7 +158,7 @@ export function prompt(role: Role, folder: string, files: PromptFiles, sections:
 		warnings.push(...more);
 		if (text?.trim()) parts.push(text.trim());
 	}
-	return { prompt: `${parts.join("\n\n")}\n`, warnings };
+	return { prompt: `${[...parts, ...(tone === "" ? [] : [tone])].join("\n\n")}\n`, warnings };
 }
 
 // The role's model, or an ordered list of models, as written (the models plugin picks from a list at spawn, entry 82), its

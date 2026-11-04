@@ -102,6 +102,8 @@ test("a replacement a mirror push writes is read past once the check ran, which 
 	git(m, "worktree", "add", "--quiet", "-b", "job", linked);
 	const undo: readonly (readonly [string, string, () => void])[] = [
 		[m, "the shared config", () => git(m, "config", "core.useReplaceRefs", "true")],
+		// Every other spelling Git reads as true: each is put back too, not only `true`.
+		...["yes", "on", "1", "2", "True"].map((value) => [m, `the shared config, ${value}`, () => git(m, "config", "core.useReplaceRefs", value)] as const),
 		[m, "a key with no value", () => appendFileSync(join(m, ".git", "config"), "[core]\n\tuseReplaceRefs\n")],
 		[m, "the main checkout's config.worktree", () => git(m, "config", "--worktree", "core.useReplaceRefs", "true")],
 		[linked, "the shared config, checked from a job's worktree", () => git(m, "config", "--local", "core.useReplaceRefs", "true")],

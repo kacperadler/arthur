@@ -4983,9 +4983,9 @@
   {
     "id": "AR0621",
     "title": "Every git call of Arthur and every job reads past refs/replace, not only after a config check",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0621-every-git-call-of-arthur-and-every-job-reads-past-refs-replace-not-only-after-a/ticket.md",
-    "updated": "2026-11-04T17:44:50.214Z",
+    "updated": "2026-11-04T18:49:46.538Z",
     "after": [
       "AR0617"
     ]
@@ -4995,7 +4995,7 @@
     "title": "arthur run hangs after its own restart SIGTERM: a plugin stop never resolves, so the service never restarts and every plugin stays stopped",
     "status": "in-progress",
     "path": "spec/features/AR0622-arthur-run-hangs-after-its-own-restart-sigterm-a-plugin-stop-never-resolves-so/ticket.md",
-    "updated": "2026-11-04T17:43:29.652Z",
+    "updated": "2026-11-04T19:02:11.183Z",
     "after": [
       "AR0617"
     ]

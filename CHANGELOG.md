@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0606 Discord T3: the phone commands as Discord application commands, suggested when the owner types / (362c89f8)
 - AR0609 A personality file every agent reads, the coordinator included, as tone only (84d73bfe)
+- AR0614 Session: compact the coordinator by schedule, by context use, or both, chosen in the session options (752fb17b)
 
 ### Fixed
 

@@ -197,10 +197,10 @@ test("a Plan line under the Goal that is not exactly - Plan: yes is refused, wha
 		writeFileSync(join(root, TICKET), ticketText().replace("- Plan: yes", line));
 		commit(line);
 		await assert.rejects(jobs.spawn({ task: `Ticket: ${TICKET}\nPlan: ${PLAN}` }), {
-			message: `refused by orchestration: AC0001: its Goal line "${line.trim()}" is not the one accepted form "- Plan: yes"; write that for a plan, or remove the line for none`,
+			message: `refused by orchestration: AC0001: its Goal line "${line.trim()}" is not "- Plan: yes", the one accepted form`,
 		});
 	}
-	// A Plan line elsewhere, beside the accepted one, still refuses; the ticket without a Plan line is unchanged.
+	// A second Plan line beside the accepted one still refuses; a ticket without a Plan line under its Goal is unchanged.
 	writeFileSync(join(root, TICKET), ticketText().replace("- Plan: yes", "- Plan: yes \n- Plan: tak"));
 	commit("both");
 	await assert.rejects(jobs.spawn({ task: `Ticket: ${TICKET}` }), { message: /AC0001: its Goal line "- Plan: tak" is not/ });

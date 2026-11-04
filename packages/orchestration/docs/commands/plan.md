@@ -30,7 +30,7 @@ Each refusal comes before any worktree or record exists, as `refused by orchestr
 - A plan or a plan review of a ticket not on the board: `<id> is not on the board`.
 - A plan review of a ticket whose `plan.md` is not committed at HEAD: `<id> has no committed plan.md to review; file its plan first (arthur ticket file <id> <plan job>) and commit it`.
 - A worker (a spawn or `arthur continue`) whose `Ticket:` files lie in a ticket whose `ticket.md` at HEAD has a Plan line under its Goal (`- Plan:`, any bullet, spacing or case), one reason per such ticket, joined by `; `:
-  - a Plan line that is not exactly `- Plan: yes` (`- Plan: tak`, `- Plan: Yes`, `- Plan: no`, `- Plan:`), so no spelling or language reads as no plan: `<id>: its Goal line "<line>" is not the one accepted form "- Plan: yes"; write that for a plan, or remove the line for none`; the checks below wait for it;
+  - a Plan line that is not exactly `- Plan: yes` (`- Plan: tak`, `- Plan: Yes`, `- Plan: no`, `- Plan:`), so no spelling or language reads as no plan: `<id>: its Goal line "<line>" is not "- Plan: yes", the one accepted form`; the checks below wait for it;
   - no `plan.md` committed at HEAD: `<id> says "- Plan: yes" and has no committed plan.md; plan it first: arthur spawn --kind plan 'Ticket: <folder>/ticket.md', then the owner's ok`;
   - no line `- YYYY-MM-DD: Plan approved by the owner: plan.md at <commit>` under the ticket's `## Decisions` names a commit whose `plan.md` is the one at HEAD, so a plan filed again after the approval needs a new one: `<id>: its plan.md at HEAD is not one the owner approved: ...`;
   - the task has no line `Plan: <folder>/plan.md`: `<id>: the task needs the line Plan: <folder>/plan.md, so the worker follows the approved plan`.

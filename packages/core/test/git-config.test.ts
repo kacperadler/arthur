@@ -150,10 +150,11 @@ test("a passed check pins each key Git reads by a fixed name to the owner's conf
 	const user = join(temporaryFolder(), "gitconfig");
 	writeFileSync(user, "");
 	owner(t, user);
-	const defaults = ["gpg.ssh.defaultkeycommand=", "commit.gpgsign=false", "gpg.format=openpgp", "gpg.program=gpg", "gpg.ssh.program=ssh-keygen", "gpg.x509.program=gpgsm", "protocol.ext.allow=never", "core.useReplaceRefs=false"];
-	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=", ...defaults), "nothing set: Git's defaults");
+	const fixed = ["protocol.ext.allow=never", "core.useReplaceRefs=false", "credential.helper="];
+	const defaults = ["gpg.ssh.defaultkeycommand=", "commit.gpgsign=false", "gpg.format=openpgp", "gpg.program=gpg", "gpg.ssh.program=ssh-keygen", "gpg.x509.program=gpgsm"];
+	assert.deepEqual(checkConfig(root).pins, c(...fixed, "core.sshcommand=ssh", "core.askpass=", ...defaults), "nothing set: Git's defaults");
 	process.env.SSH_ASKPASS = "/usr/bin/ssh-askpass";
-	assert.deepEqual(checkConfig(root).pins, c("credential.helper=", "core.sshcommand=ssh", "core.askpass=/usr/bin/ssh-askpass", ...defaults), "SSH_ASKPASS, which Git asks last");
+	assert.deepEqual(checkConfig(root).pins, c(...fixed, "core.sshcommand=ssh", "core.askpass=/usr/bin/ssh-askpass", ...defaults), "SSH_ASKPASS, which Git asks last");
 	delete process.env.SSH_ASKPASS;
 	// GIT_SSH names the program itself, which core.sshCommand, a shell's command, would otherwise override.
 	const folder = temporaryFolder();
@@ -161,7 +162,7 @@ test("a passed check pins each key Git reads by a fixed name to the owner's conf
 	writeFileSync(ssh, `#!/bin/sh\necho "$@" > '${join(folder, "ran")}'\nexit 1\n`, { mode: 0o755 });
 	process.env.GIT_SSH = ssh;
 	const { pins } = checkConfig(root);
-	assert.deepEqual(pins, c("credential.helper=", `core.sshcommand='${ssh.replaceAll("'", "'\\''")}'`, "core.askpass=", ...defaults), "GIT_SSH, quoted for the shell");
+	assert.deepEqual(pins, c(...fixed, `core.sshcommand='${ssh.replaceAll("'", "'\\''")}'`, "core.askpass=", ...defaults), "GIT_SSH, quoted for the shell");
 	spawnSync("git", ["-C", root, ...pins, "ls-remote", "ssh://example.invalid/x"]);
 	assert.match(readFileSync(join(folder, "ran"), "utf8"), /^example\.invalid git-upload-pack '\/x'$/m, "Git runs it");
 	const config = ["[credential]", "\thelper = first", "\thelper =", "\thelper = second", '[credential "https://example.com"]', "\thelper = url", "[core]", "\tsshCommand = user ssh", "\taskPass = asks"];
@@ -171,8 +172,8 @@ test("a passed check pins each key Git reads by a fixed name to the owner's conf
 	Object.assign(process.env, { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "core.sshCommand", GIT_CONFIG_VALUE_0: "command ssh" });
 	assert.deepEqual(
 		checkConfig(root).pins,
-		c(...["credential.helper=", "credential.helper=first", "credential.helper=", "credential.helper=second", "credential.https://example.com.helper=url", "core.sshcommand=command ssh", "core.askpass=asks"],
-			...["gpg.ssh.defaultkeycommand=key", "commit.gpgsign=true", "gpg.format=ssh", "gpg.program=gpg two", "gpg.ssh.program=keygen", "gpg.x509.program=gpgsm two", "protocol.ext.allow=never", "core.useReplaceRefs=false"]),
+		c(...[...fixed, "credential.helper=first", "credential.helper=", "credential.helper=second", "credential.https://example.com.helper=url", "core.sshcommand=command ssh", "core.askpass=asks"],
+			...["gpg.ssh.defaultkeycommand=key", "commit.gpgsign=true", "gpg.format=ssh", "gpg.program=gpg two", "gpg.ssh.program=keygen", "gpg.x509.program=gpgsm two"]),
 		"the owner's, the last one of each, in the order Git reads them; gpg.openpgp.program is gpg.program; a key with no value is true",
 	);
 });

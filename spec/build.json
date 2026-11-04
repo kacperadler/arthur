@@ -4941,23 +4941,23 @@
   {
     "id": "AR0615",
     "title": "A job may write under refs/replace through a refspec from config or another repository: close it in Git config",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0615-a-job-may-write-under-refs-replace-through-a-refspec-from-config-or-another/ticket.md",
-    "updated": "2026-11-04T08:37:50.769Z"
+    "updated": "2026-11-04T15:25:35.128Z"
   },
   {
     "id": "AR0616",
     "title": "git fast-import in a job writes any ref, main included, past the worktree guard",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0616-git-fast-import-in-a-job-writes-any-ref-main-included-past-the-worktree-guard/ticket.md",
-    "updated": "2026-11-04T08:37:51.489Z"
+    "updated": "2026-11-04T15:47:11.436Z"
   },
   {
     "id": "AR0617",
     "title": "The worktree guard reads a brace list in a path as one word, so rm ../../{acme,x}/README.md reaches the main checkout",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0617-the-worktree-guard-reads-a-brace-list-in-a-path-as-one-word-so-rm-acme-x-readme/ticket.md",
-    "updated": "2026-11-04T08:37:52.185Z"
+    "updated": "2026-11-04T15:48:15.106Z"
   },
   {
     "id": "AR0618",
@@ -4979,5 +4979,32 @@
     "status": "merged",
     "path": "spec/features/AR0620-uptime-tells-this-machine-offline-apart-from-a-site-down-even-with-one-site-by/ticket.md",
     "updated": "2026-11-04T13:47:23.463Z"
+  },
+  {
+    "id": "AR0621",
+    "title": "Every git call of Arthur and every job reads past refs/replace, not only after a config check",
+    "status": "planned",
+    "path": "spec/features/AR0621-every-git-call-of-arthur-and-every-job-reads-past-refs-replace-not-only-after-a/ticket.md",
+    "updated": "2026-11-04T15:11:58.287Z",
+    "after": [
+      "AR0617"
+    ]
+  },
+  {
+    "id": "AR0622",
+    "title": "arthur run hangs after its own restart SIGTERM: a plugin stop never resolves, so the service never restarts and every plugin stays stopped",
+    "status": "planned",
+    "path": "spec/features/AR0622-arthur-run-hangs-after-its-own-restart-sigterm-a-plugin-stop-never-resolves-so/ticket.md",
+    "updated": "2026-11-04T16:03:20.667Z",
+    "after": [
+      "AR0617"
+    ]
+  },
+  {
+    "id": "AR0623",
+    "title": "Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers",
+    "status": "planned",
+    "path": "spec/features/AR0623-uptime-this-machine-offline-sends-no-notice-and-checks-no-site-only-the-probes/ticket.md",
+    "updated": "2026-11-04T15:54:21.662Z"
   }
 ]

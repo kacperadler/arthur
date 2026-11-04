@@ -53,8 +53,9 @@ export function github(options: GithubOptions): Plugin {
 				if (tip !== undefined && line.startsWith("github: pushed ")) recordPush(host.folder, branch, tip);
 				return line;
 			});
-			// Asked by the core's prune: a pruned job's branch deleted on origin (AR0555).
-			host.provide("jobs.keep", pruned(host, list));
+			// Asked by the core's prune: a pruned job's branch deleted on origin (AR0555); a delete git failed, tried again each poll (AR0619).
+			const branches = pruned(host, list);
+			host.provide("jobs.keep", branches.keep);
 			// Asked by delivery's `arthur merge --auto` and its CI waits: the run that built a branch, as `arthur ci` finds it, with
 			// how many commits below the tip it is, undefined for none; a refusal rejects. And a hung run cancelled.
 			host.provide("github.ci", ({ project, branch }: { readonly project: string; readonly branch: string }) =>
@@ -128,6 +129,7 @@ export function github(options: GithubOptions): Plugin {
 				save({ ...state, pulls: { ...state.pulls, [each.project]: answer.pulls } });
 			};
 			round = async (signal) => {
+				branches.retry();
 				for (const each of watched) {
 					if (Date.now() < (paused.get(each.instance) ?? 0)) continue;
 					const answer = await workflowRuns(each.instance, each.repo, each.workflow, signal);

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { github } from "../src/github.ts";
+import { again } from "../src/github-branch.ts";
 import { deleteOnOrigin } from "../src/github-git.ts";
 
 // A job's branch on origin (AR0555): deleted when the core prunes its job (`jobs.keep`), and `arthur github branch sweep`;
@@ -15,22 +16,26 @@ const NONE = "0000000000000000000000000000000000000000";
 
 const git = (path: string, ...args: readonly string[]) => execFileSync("git", ["-C", path, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args], { encoding: "utf8" }).trim();
 
-// The owner's ~/.gitconfig, allowing a push to an origin that is a folder (AR0393), for the test alone.
-const FOLDERS_ALLOWED = join(temporaryFolder(), "gitconfig");
-writeFileSync(FOLDERS_ALLOWED, '[protocol "file"]\n\tallow = always\n');
-
 // The project `shop` on main, its origin a bare folder whose `post-receive` notes each ref it changed in `received`, and the
-// plugin set up on a fake host. `job(n)` makes an ended worker's record and its worktree on `arthur/<id>` with one commit;
+// plugin set up on a fake host, polling each second once `start()`ed. `job(n)` makes an ended worker's record and its worktree on `arthur/<id>` with one commit;
 // `tip(branch)` is origin's, "" for none; `deletes()` the refs origin deleted, in order; `sweep(...args)` runs `arthur github
 // branch sweep` as the CLI does, a throw being exit 1 and its message.
 async function world(t: TestContext) {
-	for (const [name, value] of Object.entries({ GIT_CONFIG_GLOBAL: FOLDERS_ALLOWED, GIT_CONFIG_NOSYSTEM: "1" })) {
+	const [origin, path, received, gate] = [temporaryFolder(), join(temporaryFolder(), "shop"), join(temporaryFolder(), "received"), temporaryFolder()];
+	// The owner's ~/.gitconfig, for the test alone: a push to an origin that is a folder allowed (AR0393), and origin's listing
+	// (`git ls-remote`) through `<gate>/upload-pack`, which notes each call in `<gate>/calls`, fails as an origin out of reach
+	// while `<gate>/down` exists, and once the listing is over moves the ref `<gate>/move` names (`<ref> <commit>`), once.
+	const script = join(gate, "upload-pack");
+	const move = `if [ -e '${gate}/move' ]; then git -C '${origin}' update-ref $(cat '${gate}/move') && rm '${gate}/move'; fi`;
+	const down = `if [ -e '${gate}/down' ]; then echo 'fatal: Could not read from remote repository.' >&2; exit 128; fi`;
+	writeFileSync(script, `#!/bin/sh\necho >> '${gate}/calls'\n${down}\ngit upload-pack "$@" || exit\n${move}\n`, { mode: 0o755 });
+	writeFileSync(join(gate, "gitconfig"), `[protocol "file"]\n\tallow = always\n[remote "origin"]\n\tuploadpack = ${script}\n`);
+	for (const [name, value] of Object.entries({ GIT_CONFIG_GLOBAL: join(gate, "gitconfig"), GIT_CONFIG_NOSYSTEM: "1" })) {
 		const was = process.env[name];
 		process.env[name] = value;
 		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
 	}
 	// `path` in a folder of its own, its jobs' worktrees beside it, where a spawn puts them.
-	const [origin, path, received] = [temporaryFolder(), join(temporaryFolder(), "shop"), join(temporaryFolder(), "received")];
 	mkdirSync(path);
 	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
 	writeFileSync(join(origin, "hooks", "post-receive"), `#!/bin/sh\ncat >> '${received}'\n`, { mode: 0o755 });
@@ -41,15 +46,17 @@ async function world(t: TestContext) {
 	const [out, err] = [[] as string[], [] as string[]];
 	t.mock.method(console, "log", (text: string) => void out.push(text));
 	t.mock.method(console, "error", (text: string) => void err.push(text));
-	const instances = [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }];
-	const fake = fakeHost({ name: "github", options: { instances }, env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
+	const options = { instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], poll: { everySeconds: 1 } };
+	const fake = fakeHost({ name: "github", options, env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	const alone = temporaryFolder();
 	git(alone, "init", "--quiet", "--initial-branch=main");
 	fake.provide("projects", () => [
 		{ name: "shop", path, prefix: "SH" },
 		{ name: "alone", path: alone, prefix: "AL" },
 	]);
-	await fake.setup(github({ instances }));
+	const plugin = github(options);
+	await fake.setup(plugin);
+	t.after(() => plugin.stop?.());
 	const home = dirname(fake.host.folder);
 	const job = (n: number) => {
 		const id = `2026-01-01-worker-${n.toString(16).padStart(8, "0")}`;
@@ -72,9 +79,12 @@ async function world(t: TestContext) {
 		path,
 		alone,
 		origin,
+		gate,
 		job,
 		sweep,
 		out,
+		start: () => plugin.start?.(),
+		calls: () => (existsSync(join(gate, "calls")) ? readFileSync(join(gate, "calls"), "utf8").length : 0),
 		tip: (branch: string) => spawnSync("git", ["-C", origin, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], { encoding: "utf8" }).stdout.trim(),
 		push: (branch: string) => fake.call<Promise<string>>("github.push", { project: "shop", branch }),
 		merge: (branch: string) => git(path, "merge", "--quiet", "--no-ff", "-m", `Merge ${branch}`, branch),
@@ -177,6 +187,70 @@ test("a branch not in main whose origin tip is the one github pushed is deleted 
 	const refused = w.job(3);
 	assert.equal(await w.push(refused.branch), `github: ${refused.branch} not pushed to origin: [remote rejected] (pre-receive hook declined)`);
 	assert.equal(existsSync(join(w.fake.host.folder, "pushed", refused.id)), false, "a push origin refused records no tip");
+});
+
+test("a delete git failed (origin out of reach) is recorded and told once, retried each poll without a word, and done once origin answers; a second prune adds no second record; 24 hours of failures are told once and given up", async (t) => {
+	const w = await world(t);
+	const [one, two] = [w.job(1), w.job(2)];
+	for (const each of [one, two]) {
+		assert.equal(await w.push(each.branch), `github: pushed ${each.branch} to origin: [new branch]`);
+		w.merge(each.branch);
+	}
+	writeFileSync(join(w.gate, "down"), "");
+	w.fake.host.jobs.prune([one.id, two.id]);
+	const left = (job: { readonly branch: string }) => `github: ${job.branch} not deleted on origin, retrying: fatal: Could not read from remote repository.`;
+	await until("both told", () => w.notices().length === 2);
+	assert.deepEqual(w.notices(), [left(one), left(two)]);
+	const pending = join(w.fake.host.folder, "pending");
+	const record = (id: string) => JSON.parse(readFileSync(join(pending, id), "utf8"));
+	const first = record(one.id);
+	assert.deepEqual({ ...first, since: "" }, { project: "shop", branch: one.branch, tip: one.tip, since: "" });
+	assert.ok(Math.abs(Date.now() - Date.parse(first.since)) < 60_000, first.since);
+	// A second prune of `one` while origin is out of reach; another job's foreign name queued after it says when it is over.
+	const other = "2026-01-01-worker-0000000f";
+	w.keep(one);
+	w.keep({ id: other, branch: "main" });
+	await until("the foreign name's notice", () => w.notices().length === 3);
+	assert.equal(w.notices()[2], `github: main not deleted on origin: it is not arthur/${other}, the branch of job ${other}`);
+	assert.deepEqual(readdirSync(pending).toSorted(), [one.id, two.id], "no second record");
+	assert.deepEqual(record(one.id), first, "nor a new start");
+	writeFileSync(join(pending, two.id), JSON.stringify({ ...record(two.id), since: new Date(Date.now() - 24 * 3600_000 - 1000).toISOString() }));
+	const calls = w.calls();
+	w.start();
+	await until("two given up", () => w.notices().length === 4);
+	assert.equal(w.notices()[3], `github: ${two.branch} still on origin after 24 h: fatal: Could not read from remote repository.; arthur github branch sweep deletes it once origin answers`);
+	// The first poll tried both, the second `one` alone, without a word.
+	await until("two polls", () => w.calls() >= calls + 3);
+	assert.deepEqual(readdirSync(pending), [one.id]);
+	assert.equal(w.notices().length, 4);
+	rmSync(join(w.gate, "down"));
+	await until("one gone from origin", () => w.tip(one.branch) === "");
+	await until("its line", () => w.out.includes(`github: deleted ${one.branch} on origin (${one.tip.slice(0, 7)})`));
+	await until("its record gone", () => readdirSync(pending).length === 0);
+	assert.equal(existsSync(join(w.fake.host.folder, "pushed", one.id)), false, "its push record with it");
+	assert.equal(w.notices().length, 4, "a success after failures says no more");
+	assert.equal(w.tip(two.branch), two.tip, "two, given up, stays");
+	assert.deepEqual(w.deletes(), [`refs/heads/${one.branch}`]);
+});
+
+test("a lease refused (origin's tip moved between the look and the delete) is told as before, and not recorded for a retry", async (t) => {
+	const w = await world(t);
+	const one = w.job(1);
+	assert.equal(await w.push(one.branch), `github: pushed ${one.branch} to origin: [new branch]`);
+	w.merge(one.branch);
+	const main = w.tip("main");
+	writeFileSync(join(w.gate, "move"), `refs/heads/${one.branch} ${main}`);
+	w.fake.host.jobs.prune([one.id]);
+	await until("the notice", () => w.notices().length === 1);
+	assert.deepEqual(w.notices(), [`github: ${one.branch} not deleted on origin: [rejected] (stale info)`]);
+	assert.equal(existsSync(join(w.fake.host.folder, "pending", one.id)), false);
+	assert.equal(w.tip(one.branch), main);
+});
+
+test("retried: git's own failure, or a [remote rejected] for a server's error; never a refusal git's porcelain gave", () => {
+	const retried = ["fatal: Could not read from remote repository.", "ssh: connect to host github.com port 22: Connection refused", "no end in 60 s", "[remote rejected] (Internal Server Error)", "[remote rejected] (503 Service Unavailable)", "[remote rejected] (502 Bad Gateway)"];
+	const refused = ["[rejected] (stale info)", "[remote rejected] (pre-receive hook declined)", "[remote rejected] (failed to update ref)", "[rejected] (fetch first)", "[rejected] (500 in the name)"];
+	assert.deepEqual([...retried, ...refused].map(again), [...retried.map(() => true), ...refused.map(() => false)]);
 });
 
 test("the delete is leased: a branch whose tip moved since it was read is refused, the others of the same push deleted; a planted config refuses it whole, running nothing", async (t) => {

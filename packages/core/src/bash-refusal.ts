@@ -25,7 +25,7 @@ const MADE = (at: string) => `arthur: refused: this git write goes through ${at}
 // which may be a link made in it: a redirect, `mv`, `tee`, `sed -i`, `cp`, `ln`, `dd`, not `mkdir`, `touch`, a removal; `made`), any `git stash`, a `git config`
 // that changes the shared, the user's or the system's config, a git call that reads config the guard does not or writes an alias or include, one that may
 // point a checkout at a branch another worktree holds (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list or a fetch or push
-// whose refspec may write under `refs/replace` (git-writes.ts), one that rewrites
+// whose refspec may write under `refs/replace` (git-writes.ts), `git fast-import` (its refs come on stdin) also in the job's own worktree, one that rewrites
 // the repository every worktree shares (`gc`, `prune`, `repack`, `reflog expire`, `maintenance`, `filter-repo`, `worktree prune`, `worktree add` or `move`
 // outside the worktrees folder, `gc.*` or `maintenance.*` config given or written), or one of these after a `cd` there. The command is the word after
 // assignments and wrappers (`sudo`, `timeout 60`, the words `env -S` splits), also in `bash -c`, a shell's heredoc, `eval`, a trap's command, a function's body where it is defined (`f() …`, `function f …`); each path is resolved from where the commands before it left
@@ -123,9 +123,9 @@ export function bashRefusal(place: Place, command: string, start: string, unread
 		if (unread || config?.loads) return UNSEEN;
 		if (sub === "stash" && !["list", "show"].includes(rest[0] ?? "")) return STASH;
 		const dir = chdirs.reduce(located, cwd);
-		// Every worktree shares the repository: a ref the job does not own, a checkout pointed at it, a replacement or a rewrite is main's.
-		const ref = rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin";
-		if (sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git update-ref ${ref}`);
+		// Every worktree shares the repository: a ref the job does not own (any `fast-import` names), a checkout pointed at it, a replacement or a rewrite is main's.
+		const ref = sub === "fast-import" ? "with its refs on stdin" : (rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin");
+		if (sub === "fast-import" ? [dir, ...trees].some((path) => [place.root, place.worktrees].some((at) => inside(located(dir, path), at))) : sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git ${sub} ${ref}`);
 		if ((points !== undefined && points !== `refs/heads/${place.branch}`) || replaces || shared || adds.some((word) => !inside(located(dir, word), place.worktrees))) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
 		// Config the worktrees share runs hooks and programs in the main checkout; a worktree's own, or a file elsewhere, does not.
 		if (config?.file !== undefined) return theirs([config.file], dir);

@@ -551,6 +551,18 @@ test("in a job, each call that writes into the main checkout, the home folder or
 			`git -C /tmp/other send-pack --stdin ${main}`,
 			"git -c alias.f=fetch f . HEAD:refs/replace/0123abcd",
 		].map((command) => ["bash", { command }, MAIN] as const),
+		// `git fast-import` writes the refs its stdin names, `refs/heads/main` and `refs/replace` included, wherever it reaches the repository the worktrees share (AR0616).
+		...[
+			"printf 'reset refs/replace/0123abcd\\nfrom HEAD\\n\\n' | git fast-import --quiet",
+			"git fast-import < notes.txt",
+			"cd sub && git fast-import",
+			`git -C ${main} fast-import`,
+			`git -C /tmp/other --git-dir=${own.worktree}/.git fast-import`,
+			`git -C /tmp/other --git-dir ${root}/.git fast-import`,
+			`GIT_DIR=${root}/.git git -C /tmp/other fast-import`,
+			`git -C ${otherJob} fast-import`,
+			"git -c alias.fi=fast-import fi",
+		].map((command) => ["bash", { command }, MAIN] as const),
 		["bash", { command: `echo "gitdir: ${root}/.git" > .git` }, MAIN],
 		["bash", { command: "rm .git", cwd: "sub" }, LINK],
 		["bash", { command: "rm ../.git", cwd: "sub" }, MAIN],
@@ -603,6 +615,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "git config --get gc.auto; git config --worktree --get gc.pruneExpire; git -c user.name=x commit -m 'gc.auto'" }, undefined],
 		["bash", { command: "git remote add -f fork /tmp/fork.git && echo x > .gitignore && git checkout -- -B" }, undefined],
 		["bash", { command: `git replace && git replace -l && git replace --list 'v*' && git replace --li --format=medium && git -C ${main} replace -l` }, undefined],
+		["bash", { command: "git -C /tmp/other fast-import --quiet < notes.txt && git -C /tmp/other --git-dir=.git fast-import && GIT_DIR=.git git -C /tmp/other fast-import" }, undefined],
 		["bash", { command: "git fetch . HEAD:refs/heads/topic && git fetch . HEAD:replace/0123abcd && git fetch /tmp/other refs/replace/0123abcd && git fetch origin '+refs/heads/*:refs/remotes/origin/*' && git fetch . HEAD:refs/heads/{a,b}" }, undefined],
 		["bash", { command: "git push . HEAD:refs/heads/topic && git push origin -- HEAD && git push --no-mirror origin HEAD:refs/heads/x && git pull --stat origin main" }, undefined],
 		["bash", { command: `echo 'rm ${main}/README.md' > notes.txt` }, undefined],
@@ -646,6 +659,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	assert.ok(replaced.includes("into the main checkout (git replace -d main)"), replaced);
 	const fetched = worktreeRefusal(place, "bash", { command: "git fetch . HEAD:refs/replace/0123abcd" }) ?? "";
 	assert.ok(fetched.includes("into the main checkout (git fetch . HEAD:refs/replace/0123abcd)"), fetched);
+	// A fast-import's refusal says its refs come on stdin, as `git update-ref --stdin`'s shows `--stdin`.
+	for (const command of ["git fast-import", `git -C ${main} fast-import`]) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /into the main checkout \(git fast-import with its refs on stdin\);/, command);
 });
 
 test("pkill and killall are refused wherever the guard finds a command, through a shell, eval, sudo or a wrapper too; kill <pid> and pgrep pass", async () => {
@@ -1053,6 +1068,8 @@ test("a call writing a .git or commondir is refused, and a git write through one
 		["bash", { command: `cd ${z}/sub && git add -A` }, MAIN],
 		["bash", { command: `cd ${z}; cd /tmp; git --git-dir=~-/.git --work-tree=~- commit -m x` }, MAIN],
 		["bash", { command: `git -C ${z} init` }, MAIN],
+		["bash", { command: `git -C ${z} fast-import` }, MAIN],
+		["bash", { command: `GIT_DIR=${file} git -C /tmp fast-import` }, MAIN],
 		["bash", { command: `git -C ${z} config --worktree user.name x` }, MAIN],
 		["bash", { command: `git --git-dir=${file} --work-tree=. commit -m x` }, MAIN],
 		["bash", { command: `GIT_DIR=${file} git reset --hard` }, MAIN],

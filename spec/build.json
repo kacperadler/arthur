@@ -4883,9 +4883,9 @@
   {
     "id": "AR0609",
     "title": "A personality file every agent reads, the coordinator included, as tone only",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0609-a-personality-file-every-agent-reads-the-coordinator-included-as-tone-only/ticket.md",
-    "updated": "2026-11-03T08:58:07.982Z",
+    "updated": "2026-11-04T00:25:12.871Z",
     "after": [
       "AR0390",
       "AR0397"
@@ -4916,9 +4916,9 @@
   {
     "id": "AR0612",
     "title": "The /repeats page follows the report style (report.md)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0612-the-repeats-page-follows-the-report-style-report-md/ticket.md",
-    "updated": "2026-11-03T08:58:01.465Z",
+    "updated": "2026-11-04T00:36:24.162Z",
     "after": [
       "AR0390",
       "AR0397"

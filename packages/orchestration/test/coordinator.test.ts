@@ -186,7 +186,7 @@ test("a coordinator that ends is started again after restartDelaySeconds, and on
 });
 
 // AR0622: the restart guard ended the coordinator and sent arthur run SIGTERM; this plugin's stop came later, the agent meanwhile
-// started again. A tmux that fails every call, so each start fails and is tried again every second until the signal.
+// started again. A tmux that fails every call, so each start fails and is tried again after the delay, until the signal.
 test("from arthur run's SIGTERM or SIGINT on, the coordinator is not started again; its stop leaves no listener", async (t) => {
 	const said: string[] = [];
 	for (const method of ["log", "error"] as const) t.mock.method(console, method, (text: string) => void said.push(text));
@@ -194,19 +194,25 @@ test("from arthur run's SIGTERM or SIGINT on, the coordinator is not started aga
 	writeFileSync(join(dirname(agent), "tmux"), `#!/bin/sh\necho "stub tmux: no server" >&2\nexit 1\n`, { mode: 0o755 });
 	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;
 	t.after(() => void (process.env.PATH = PATH));
-	const failed = "orchestration: coordinator start failed: tmux new-session: stub tmux: no server; trying again in 1 s";
-	const listeners = () => [process.listenerCount("SIGTERM"), process.listenerCount("SIGINT")];
-	const before = listeners();
-	for (const signal of ["SIGTERM", "SIGINT"] as const) {
-		const supervisor = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket: `arthur-test-${process.pid}` }, restartDelaySeconds: 1 } }), temporaryFolder(), "omp");
+	const failed = (seconds: number) => `orchestration: coordinator start failed: tmux new-session: stub tmux: no server; trying again in ${seconds} s`;
+	const count = (seconds: number) => said.filter((line) => line === failed(seconds)).length;
+	const watch = (seconds: number) => {
+		const supervisor = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket: `arthur-test-${process.pid}` }, restartDelaySeconds: seconds } }), temporaryFolder(), "omp");
 		t.after(() => supervisor.stop());
-		await until("the second start", () => said.length === 2);
+		return supervisor;
+	};
+	const before = [process.listenerCount("SIGTERM"), process.listenerCount("SIGINT")];
+	for (const signal of ["SIGTERM", "SIGINT"] as const) {
+		const supervisor = watch(1);
+		await until("a start, and one a second later", () => count(1) === 2);
 		process.emit(signal);
-		// Past restartDelaySeconds and a poll since the second start: a third would have come by now.
-		await sleep(1700);
-		assert.deepEqual(said.splice(0), [failed, failed], signal);
-		await supervisor.stop();
-		assert.deepEqual(listeners(), before, signal);
+		// The clock, started after the signal: its second start comes 2 s on, past the 1 s and the poll a third of the first would take.
+		const clock = watch(2);
+		await until("the clock's second start", () => count(2) === 2);
+		assert.equal(count(1), 2, signal);
+		await Promise.all([supervisor.stop(), clock.stop()]);
+		assert.deepEqual([process.listenerCount("SIGTERM"), process.listenerCount("SIGINT")], before, signal);
+		said.splice(0);
 	}
 });
 

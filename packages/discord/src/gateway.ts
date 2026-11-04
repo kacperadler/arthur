@@ -9,15 +9,15 @@ import { type ApiError, type Bot, rest } from "./rest.ts";
 // got to READY or RESUMED waits before the next, from 1 s doubling to 60 s. A new session asks `GET /gateway/bot` first and
 // does not identify while fewer than 50 of Discord's session starts are left (Discord resets the token after 1000 in a day),
 // until they reset. A close Discord says not to retry (4004, 4010 to 4014), or a gateway address that is not wss: (ws: only on
-// loopback, for a test), ends it, said once by `fatal`; a stop closes with 1000; a close Discord leaves unanswered 5 s ends as
-// 1006: packages/discord/docs/discord.md, "Receiving".
+// loopback, for a test), ends it, said once by `fatal`; a stop closes with 1000: packages/discord/docs/discord.md, "Receiving".
 
 // GUILDS (1 << 0), GUILD_MESSAGES (1 << 9), MESSAGE_CONTENT (1 << 15).
 export const INTENTS = 33281;
 const FLOOR = 50;
 const FIRST_MS = 1000;
 const MOST_MS = 60_000;
-// Node's WebSocket waits for the peer's close frame with no time limit; a dead network path never sends it (AR0622).
+// Node's WebSocket waits for the peer's close frame with no time limit, and a dead network path never sends it (AR0622): a
+// close not answered within CLOSE_MS counts as 1006, the code of a connection lost without a close frame.
 const CLOSE_MS = 5000;
 const PORTAL = "the Bot page of the application at discord.com/developers/applications";
 
@@ -93,7 +93,6 @@ export async function gateway(bot: Bot, signal: AbortSignal, on: (type: string, 
 		let [reached, invalid, acked] = [false, false, true];
 		let [timer, late] = [undefined as NodeJS.Timeout | undefined, undefined as NodeJS.Timeout | undefined];
 		const send = (op: number, d: unknown) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify({ op, d }));
-		// A close Discord does not answer within CLOSE_MS counts as 1006, the code of a connection lost without a close frame.
 		const ended = (code: number) => {
 			[timer, late].forEach(clearTimeout);
 			signal.removeEventListener("abort", stop);

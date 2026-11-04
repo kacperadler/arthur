@@ -69,8 +69,7 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 	rmSync(join(folder, STOPPED), { force: true });
 	writeMcp(folder, servers);
 	const quit = new AbortController();
-	// `arthur run`'s SIGTERM and SIGINT (run.ts) start its stops, this plugin's maybe much later: an agent that ends from then on is
-	// not started again (AR0622), and `stop` ends the session.
+	// From `arthur run`'s SIGTERM or SIGINT (run.ts) on, an agent that ends is not started again (AR0622); `stop` ends the session.
 	const leave = () => quit.abort();
 	for (const name of SIGNALS) process.on(name, leave);
 	const pause = (ms: number) => sleep(ms, undefined, { signal: quit.signal }).catch(() => {});

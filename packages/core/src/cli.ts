@@ -154,7 +154,8 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, con
 			if (lines !== undefined && printAtStart(lines)) return 1;
 			const app = need("", (loadedApp) => loadedApp)();
 			// A stop cut short (run.ts) may leave a socket or a timer holding the process: a second after the stops it ends anyway.
-			return runPlugins(app.plugins, app.home, app.follow, app.jobs.sweep, app.doctor, app.emit).finally(() => setTimeout(() => process.exit(), 1000).unref());
+			const exit = () => void setTimeout(() => process.exit(), 1000).unref();
+			return runPlugins(app.plugins, app.home, app.follow, app.jobs.sweep, app.doctor, app.emit).finally(exit);
 		},
 	});
 	commands.register("core", {

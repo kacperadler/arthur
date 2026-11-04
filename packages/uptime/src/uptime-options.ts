@@ -1,3 +1,4 @@
+import { BlockList, isIP } from "node:net";
 import { describe } from "@arthur/core";
 import type { Check, OptionTable, Tool, ValueOption } from "@arthur/core/option-table";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
@@ -6,7 +7,7 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 // docs/uptime.md; and the check of a project's piece, its sites.
 
 export type Site = { readonly url: string; readonly expect?: number | string; readonly everySeconds?: number };
-export type UptimeOptions = { readonly enabled?: boolean };
+export type UptimeOptions = { readonly enabled?: boolean; readonly probes?: readonly string[] };
 
 export const summary = "each project's sites checked over HTTP on a schedule, a notice when one is down and when it is back";
 
@@ -18,6 +19,19 @@ export const EVERY_SECONDS = 60;
 const address: Check = (value) => {
 	const url = typeof value === "string" && URL.canParse(value) ? new URL(value) : undefined;
 	return url?.protocol === "http:" || url?.protocol === "https:" ? undefined : "an http or https URL";
+};
+// Loopback, link-local (metadata), private (as models'): where a redirect leads only when the config names its host (AR0367),
+// and never a probe (AR0620).
+export const PRIVATE = new BlockList();
+for (const [address, prefix] of [["0.0.0.0", 8], ["127.0.0.0", 8], ["169.254.0.0", 16], ["10.0.0.0", 8], ["172.16.0.0", 12], ["192.168.0.0", 16], ["100.64.0.0", 10], ["::", 127], ["fe80::", 10], ["fc00::", 7]] as const) PRIVATE.addSubnet(address, prefix, address.includes(":") ? "ipv6" : "ipv4");
+// Addresses outside the projects, asked with the other sites before a site with no answer is down (AR0620): two independent ones.
+export const PROBES: readonly string[] = ["https://1.1.1.1/", "https://dns.google/"];
+const probe: Check = (value) => {
+	const url = typeof value === "string" && URL.canParse(value) ? new URL(value) : undefined;
+	if (url?.protocol !== "https:") return "an https URL";
+	const host = url.hostname.replace(/^\[(.*)\]$/, "$1");
+	const family = isIP(host);
+	return /(^|\.)localhost$/i.test(host) || (family !== 0 && PRIVATE.check(host, family === 6 ? "ipv6" : "ipv4")) ? "an https URL of a public host, not a loopback, link-local or private address" : undefined;
 };
 // The Fetch standard's bad ports (fetch.spec.whatwg.org/#bad-port): Node's fetch refuses them without a connection (AR0232).
 export const BLOCKED_PORTS: readonly string[] = "1 7 9 11 13 15 17 19 20 21 22 23 25 37 42 43 53 69 77 79 87 95 101 102 103 104 109 110 111 113 115 117 119 123 135 137 139 143 161 179 389 427 465 512 513 514 515 526 530 531 532 540 548 554 556 563 587 601 636 989 990 993 995 1719 1720 1723 2049 3659 4045 4190 5060 5061 6000 6566 6665 6666 6667 6668 6669 6679 6697 10080".split(" ");
@@ -35,11 +49,22 @@ const SITE: Readonly<Record<string, ValueOption>> = {
 		check: (value) => (Number.isInteger(value) && (value as number) >= 1 ? undefined : "a whole number of seconds, 1 or more"),
 	},
 };
-// The plugin takes no option but `enabled`: a project's sites are its piece, `uptime.project([...])` in its project file.
-export const table: OptionTable = {};
+// A project's sites are its piece, `uptime.project([...])` in its project file; the plugin's one option is its probes.
+export const table: OptionTable = {
+	probes: {
+		about: "https URLs outside the projects, each a public host, asked with the other sites before a site with no answer is down: when none answers, this machine is offline; [] for none",
+		default: PROBES.join(", "),
+		check: (value) => (Array.isArray(value) && value.every((each) => probe(each) === undefined) ? undefined : "a list of https URLs, each a public host"),
+	},
+};
 
 export function checkOptions(options: Options): OptionProblem[] {
-	return Object.keys(options).map((key) => ({ path: key, problem: "unknown option; uptime takes none: a project's sites are its uptime.project([...]) in its project file" }));
+	const problems = Object.keys(options).filter((key) => key !== "probes").map((key) => ({ path: key, problem: "unknown option; options: probes; a project's sites are its uptime.project([...]) in its project file" }));
+	const { probes } = options;
+	if (probes === undefined) return problems;
+	if (!Array.isArray(probes)) return [...problems, { path: "probes", problem: `expected a list of https URLs, [] for none, got ${describe(probes)}` }];
+	probes.forEach((each, index) => void (probe(each) !== undefined && problems.push({ path: `probes[${index}]`, problem: `expected ${probe(each)}, got ${describe(each)}` })));
+	return problems;
 }
 
 // A project's piece, a list of sites: its problems in one line, `; ` between them, or undefined.

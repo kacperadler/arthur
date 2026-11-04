@@ -12,7 +12,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { type FakeHost, fakeHost, until } from "@arthur/core/testing";
 import { checkSite } from "../src/site-check.ts";
 import { readState } from "../src/uptime-state.ts";
-import type { Site } from "../src/uptime-options.ts";
+import type { Site, UptimeOptions } from "../src/uptime-options.ts";
 import { uptime } from "../src/uptime.ts";
 
 // The uptime plugin against the fake host and a local HTTP server on a port the OS picks, each path answering as the test
@@ -73,6 +73,20 @@ function outside(t: TestContext, name: string): number[] {
 	return ports;
 }
 
+// The probes' fake fetch, for their hosts only, the default ones and probe.example: while `network.up`, the answer 1.1.1.1
+// gives, a 301 to one.one.one.one; else what a real fetch without a network rejects with, a TypeError caused by ENOTFOUND.
+// `network.asked` holds each URL asked. Every test starts with the network up.
+const network = { up: true, asked: [] as string[] };
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+	const url = new URL(input instanceof Request ? input.url : input);
+	if (!["1.1.1.1", "dns.google", "probe.example"].includes(url.hostname)) return realFetch(input, init);
+	network.asked.push(url.href);
+	if (network.up) return new Response("<html><head><title>301 Moved Permanently</title></head></html>", { status: 301, headers: { location: "https://one.one.one.one/", "content-type": "text/html" } });
+	const cause = Object.assign(new Error(`getaddrinfo ENOTFOUND ${url.hostname}`), { errno: -3008, code: "ENOTFOUND", syscall: "getaddrinfo", hostname: url.hostname });
+	throw new TypeError("fetch failed", { cause });
+}) as typeof fetch;
+
 // Each project's sites, its piece, by the project's name.
 type Sites = Readonly<Record<string, readonly Site[]>>;
 
@@ -83,13 +97,14 @@ function host(sites: Sites, more: { readonly now?: Date; readonly quietHours?: {
 	return fake;
 }
 
-// The plugin set up on `fake` and started; stopped at the end. Its checks run on real timers against a real server: the
-// timeout cut by `fetch` and the server's own time are what is tested.
-async function started(t: TestContext, sites: Sites, fake: FakeHost = host(sites)) {
-	const plugin = uptime();
+// The plugin set up on `fake` with `options` and started; stopped at the end. Its checks run on real timers against a real
+// server: the timeout cut by `fetch` and the server's own time are what is tested.
+async function started(t: TestContext, sites: Sites, fake: FakeHost = host(sites), options: UptimeOptions = {}) {
+	const plugin = uptime(options);
 	await fake.setup(plugin);
 	await plugin.start?.();
 	t.after(() => plugin.stop?.());
+	t.after(() => void Object.assign(network, { up: true, asked: [] }));
 	const notices = () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text);
 	const events = (name: string) => fake.emitted.filter((event) => event.name === name).map((event) => event.data);
 	return { fake, plugin, notices, events };
@@ -285,7 +300,8 @@ test("each failure has its reason: a wrong status, the text missing, connection 
 	assert.match(reasons[3] ?? "", /^TLS error \(ERR_SSL_[A-Z_]+\)$/);
 });
 
-test("this machine offline: no site answers, one notice that the checks cannot run, none per site, none again after a restart", async (t) => {
+// With the probes off, as before them; with the default ones, which do not answer either, the notice names them too.
+for (const probes of [[], undefined]) test(`this machine offline: no site answers, one notice that the checks cannot run, none per site, none again after a restart, ${probes === undefined ? "with the default probes" : "with probes: []"}`, async (t) => {
 	// Both answer once, then a never answers and b's server is gone. b is due only every minute: it is asked again as a goes
 	// down, so both fail at once.
 	const [site, other] = [await server(t), await server(t)];
@@ -293,14 +309,16 @@ test("this machine offline: no site answers, one notice that the checks cannot r
 	Object.assign(other.answers, { "/b": ok });
 	const [a, b] = [site.url("/a"), other.url("/b")];
 	const sites = { acme: [{ url: a, everySeconds: 1 }], beta: [{ url: b }] };
-	const { fake, plugin, notices, events } = await started(t, sites);
+	network.up = false;
+	const { fake, plugin, notices, events } = await started(t, sites, host(sites), { probes });
 	await until("the first checks", () => site.seen("/a") === 1 && other.seen("/b") === 1);
 	site.answers["/a"] = hang;
 	other.close();
 	await until("the offline notice", () => notices().length === 1);
-	assert.deepEqual(notices(), [`uptime: none of the 2 sites answers (${a}: no answer within 1 s), so this machine looks offline and the checks cannot run; one notice follows when a site answers again`]);
+	const nor = probes === undefined ? ", nor https://1.1.1.1/ nor https://dns.google/" : "";
+	assert.deepEqual(notices(), [`uptime: none of the 2 sites answers (${a}: no answer within 1 s)${nor}, so this machine looks offline and the checks cannot run; one notice follows when a site answers again`]);
 	await plugin.stop?.();
-	const restarted = await started(t, sites, fake);
+	const restarted = await started(t, sites, fake, { probes });
 	const checks = site.seen("/a");
 	await until("three more checks", () => site.seen("/a") >= checks + 3);
 	assert.equal(restarted.notices().length, 1, "no second offline notice, after a restart too");
@@ -309,6 +327,39 @@ test("this machine offline: no site answers, one notice that the checks cannot r
 	await until("the notice that the checks run again", () => notices().length === 2);
 	assert.equal(notices()[1], "uptime: a site answers again, so the checks run again, after 5 min without an answer from any site");
 	assert.deepEqual([events("uptime-down"), events("uptime-up")], [[], []]);
+	assert.equal(network.asked.length > 0, probes === undefined, "the probes asked only when there are any");
+});
+
+test("one site and the default probes, none answering: this machine offline, no site down; once a probe answers, the site still failing is down after 2 more failed checks", async (t) => {
+	const closed = createServer();
+	await once(closed.listen(0, "127.0.0.1"), "listening");
+	const url = `http://127.0.0.1:${(closed.address() as AddressInfo).port}/`;
+	closed.close();
+	network.up = false;
+	const { fake, notices, events } = await started(t, { acme: [{ url, everySeconds: 1 }] });
+	await until("the offline notice", () => notices().length === 1);
+	assert.deepEqual(notices(), [`uptime: none of the 1 sites answers (${url}: connection refused), nor https://1.1.1.1/ nor https://dns.google/, so this machine looks offline and the checks cannot run; one notice follows when a site answers again`]);
+	// While offline, the probes are asked again at each check the site fails.
+	const asked = network.asked.length;
+	await until("the probes asked twice more", () => network.asked.length >= asked + 4);
+	assert.deepEqual([notices().length, events("uptime-down")], [1, []]);
+	fake.setNow(new Date("2026-01-01T00:05:00Z"));
+	network.up = true;
+	await until("the down notice", () => notices().length === 3);
+	assert.deepEqual(notices().slice(1), [
+		"uptime: a probe answers again, so the checks run again, after 5 min without an answer from any site",
+		`uptime: ${url} (project acme) is down since 00:05 on thu 2026-01-01 (UTC): connection refused`,
+	]);
+});
+
+for (const probes of [undefined, []]) test(`one site with no answer is down after 2 failed checks, ${probes === undefined ? "when a probe answers, even with a redirect" : "with probes: [], none asked"}`, async (t) => {
+	const site = await server(t);
+	site.answers["/"] = hang;
+	const url = site.url("/");
+	const { notices } = await started(t, { acme: [{ url, everySeconds: 1 }] }, undefined, { probes });
+	await until("the down notice", () => notices().length === 1);
+	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since ${SINCE}: no answer within 1 s`]);
+	assert.deepEqual(network.asked, probes === undefined ? ["https://1.1.1.1/", "https://dns.google/"] : [], "asked once, as the site was about to go down");
 });
 
 test("one site with no answer while another answers is down, not offline", async (t) => {

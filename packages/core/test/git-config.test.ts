@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { checkConfig } from "../src/git-config.ts";
@@ -79,6 +79,45 @@ test("a config Git cannot read is refused with Git's own line", () => {
 	appendFileSync(join(root, ".git", "config"), "[broken\n");
 	assert.deepEqual(checkConfig(root).pins, []);
 	assert.match(checkConfig(root).refusal, new RegExp(`^git config --list in ${root}: fatal: bad config line \\d+ in file \\.git/config$`));
+});
+
+// AR0615, the finding of AR0396: `git -C other push --mirror` writes `refs/replace/<tip>` into the main checkout, which every worktree reads.
+test("a replacement a mirror push writes is read past once the check ran, which sets core.useReplaceRefs=false again wherever a job undid it", () => {
+	const m = repository();
+	git(m, "commit", "--quiet", "--allow-empty", "-m", "tip");
+	const [tip, other] = [git(m, "rev-parse", "HEAD"), join(temporaryFolder(), "other")];
+	git(m, "clone", "--quiet", m, other);
+	writeFileSync(join(other, "planted.txt"), "x\n");
+	git(other, "add", "planted.txt");
+	git(other, "-c", "user.name=x", "-c", "user.email=x@example.com", "commit", "--quiet", "-m", "planted");
+	const planted = git(other, "rev-parse", "HEAD");
+	git(other, "reset", "--quiet", "--hard", tip);
+	git(other, "replace", tip, planted);
+	assert.equal(checkConfig(m).refusal, "");
+	git(other, "push", "--quiet", "--mirror", m);
+	assert.equal(git(m, "rev-parse", `refs/replace/${tip}`), planted, "the push wrote it");
+	const reads = (root: string) => [git(root, "status", "--porcelain"), git(root, "log", "-1", "--format=%s")];
+	assert.deepEqual(reads(m), ["", "tip"]);
+	const linked = join(temporaryFolder(), "linked");
+	git(m, "worktree", "add", "--quiet", "-b", "job", linked);
+	const undo: readonly (readonly [string, string, () => void])[] = [
+		[m, "the shared config", () => git(m, "config", "core.useReplaceRefs", "true")],
+		[m, "a key with no value", () => appendFileSync(join(m, ".git", "config"), "[core]\n\tuseReplaceRefs\n")],
+		[m, "the main checkout's config.worktree", () => git(m, "config", "--worktree", "core.useReplaceRefs", "true")],
+		[linked, "the shared config, checked from a job's worktree", () => git(m, "config", "--local", "core.useReplaceRefs", "true")],
+	];
+	for (const [root, where, write] of undo) {
+		write();
+		assert.deepEqual(reads(root), ["D  planted.txt", "planted"], `${where}: read again`);
+		assert.equal(checkConfig(root).refusal, "", where);
+		assert.deepEqual(reads(root), ["", "tip"], `${where}: read past again`);
+	}
+	git(m, "config", "--worktree", "core.useReplaceRefs", "true");
+	chmodSync(join(m, ".git"), 0o555);
+	const refusal = checkConfig(m);
+	chmodSync(join(m, ".git"), 0o755);
+	assert.deepEqual(refusal.pins, []);
+	assert.match(refusal.refusal, new RegExp(`^git config core\\.useReplaceRefs false in ${m}: error: could not lock config file .+: Permission denied$`));
 });
 
 // The env of the rest of the test: each variable set, or removed when undefined; each one back as it was at the end.

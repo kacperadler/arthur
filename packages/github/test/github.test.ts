@@ -671,7 +671,7 @@ esac\n`;
 	assert.match(await push("main"), /^github: pushed main to origin: [0-9a-f]{7,}\.\.[0-9a-f]{7,}$/);
 	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), [`${local.path} push origin refs/heads/main ${first}`], "git lfs push ran before the push");
 	// git-lfs, which runs ssh and credential helpers itself, reads the keys pinned as git does (AR0392).
-	assert.match(readFileSync(`${log}.config`, "utf8"), /'credential\.helper'='' .*'protocol\.ext\.allow'='never'/);
+	assert.match(readFileSync(`${log}.config`, "utf8"), /'protocol\.ext\.allow'='never' 'core\.useReplaceRefs'='false' 'credential\.helper'='' /);
 	assert.equal(git(origin, "rev-parse", "main"), local.head());
 	commit("arthur/plain", first, "README.md", "Large files would take filter=lfs in .gitattributes.\n");
 	assert.equal(await push("arthur/plain"), "github: pushed arthur/plain to origin: [new branch]");

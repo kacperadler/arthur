@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-04
 
+### Added
+
+- AR0609 A personality file every agent reads, the coordinator included, as tone only (84d73bfe)
+
 ### Fixed
 
 - AR0610 arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names (e3deefdc)

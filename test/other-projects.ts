@@ -9,7 +9,8 @@ import { dirname, join } from "node:path";
 type Message = { readonly where: string; readonly text: string };
 
 function git(root: string, args: readonly string[]): string {
-	const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", maxBuffer: 64 * 2 ** 20 });
+	// No cap: the list of tracked files grows with every ticket.
+	const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", maxBuffer: Infinity });
 	// `git grep` exits 1 when nothing matches.
 	if (run.status !== 0 && !(args[0] === "grep" && run.status === 1)) throw new Error(`git ${args.join(" ")}: ${run.error?.message ?? run.stderr.trim()}`);
 	return run.stdout;

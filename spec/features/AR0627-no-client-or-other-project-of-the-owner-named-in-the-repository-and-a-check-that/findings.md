@@ -26,7 +26,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: risk
 - Found by: 2026-11-04-worker-331520f3 (worker), 2026-11-04
-- Where: `test/other-projects.ts:38`
+- Where: `test/other-projects.ts:39`
 - What: a name is matched as a substring, in any case. A user who follows `docs/setup.md` literally has `projects/shop`, and Arthur's tracked tests and docs name `shop` hundreds of times, so `npm test` in that clone fails on `test/other-projects.test.ts` [INFERENCE: from the matching code; not run on such a clone].
 - Suggestion: run the repository-wide test only where `origin` is Arthur's own repository, or let `projects/<name>/` hold a marker that excludes a name; the owner decides which.
 - Status: open
@@ -53,7 +53,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: risk
 - Found by: 2026-11-04-worker-331520f3 (worker), 2026-11-04
-- Where: `test/other-projects.ts:21`
+- Where: `test/other-projects.ts:22`
 - What: the names are read from `projects/` beside the repository's Git folder. A job on another machine runs in a worktree of `<home>/repos/arthur.git`, beside which no `projects/` lies, so its `npm test` and its hook check nothing [INFERENCE: from `docs/deploy.md`, "Another machine for jobs"; not run there]. The merge on main, here, still checks.
 - Suggestion: none needed while the merge gate holds; or send the names with the job.
 - Status: open

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkOptions, checkSites } from "../src/uptime-options.ts";
+import { checkOptions, checkSites, PROBES, table } from "../src/uptime-options.ts";
 
 // The uptime plugin's option check, and its check of a project's piece, its sites: every refusal names its place.
 
@@ -8,12 +8,29 @@ test("a project's sites pass: a url alone, a status, a text, everySeconds", () =
 	assert.equal(checkSites([{ url: "https://acme.example/" }, { url: "https://acme.example/admin", expect: 401, everySeconds: 1 }, { url: "http://acme.example:8080/health", expect: "ok" }]), undefined);
 });
 
-test("refused: any option but enabled, the old sites among them; sites that are no list or an empty one, a site not an object", () => {
+test("refused: any option but probes, the old sites among them; sites that are no list or an empty one, a site not an object", () => {
 	assert.deepEqual(checkOptions({}), []);
-	assert.deepEqual(checkOptions({ sites: { acme: [] } }), [{ path: "sites", problem: "unknown option; uptime takes none: a project's sites are its uptime.project([...]) in its project file" }]);
+	assert.deepEqual(checkOptions({ sites: { acme: [] }, probes: [] }), [{ path: "sites", problem: "unknown option; options: probes" }]);
 	assert.equal(checkSites({ url: "https://acme.example/" }), "expected a list of at least one site { url, expect?, everySeconds? }, got an object");
 	assert.equal(checkSites([]), "expected a list of at least one site { url, expect?, everySeconds? }, got a list");
 	assert.equal(checkSites(["https://acme.example/"]), '[0]: expected a site { url, expect?, everySeconds? }, got "https://acme.example/"');
+});
+
+test("probes pass: the default ones, none, a public address or name; refused at load: no list, a URL not https, a loopback, link-local or private host", () => {
+	assert.deepEqual(PROBES, ["https://1.1.1.1/", "https://dns.google/"]);
+	// Just past each refused range, at both ends where there is one: public.
+	const outside = ["1.0.0.0", "126.255.255.255", "128.0.0.0", "169.253.255.255", "169.255.0.0", "9.255.255.255", "11.0.0.0", "172.15.255.255", "172.32.0.0", "192.167.255.255", "192.169.0.0", "100.63.255.255", "100.128.0.0", "[::2]", "[fe7f::1]", "[fec0::1]", "[fbff::1]", "[fe00::1]"];
+	for (const probes of [PROBES, [], ["https://203.0.113.5/", "https://[2001:db8::1]/", "https://example.com:8443/up", "https://localhost.example/", "https://dns.google./"], outside.map((host) => `https://${host}/`)])
+		assert.deepEqual(checkOptions({ probes }), [], String(probes));
+	assert.deepEqual(checkOptions({ probes: "https://1.1.1.1/" }), [{ path: "probes", problem: 'expected a list of https URLs, [] for none, got "https://1.1.1.1/"' }]);
+	// Each refused range at its first and last address, and localhost however it is spelled.
+	const hosts = ["0.0.0.0", "0.255.255.255", "127.0.0.1", "127.255.255.254", "127.1", "169.254.0.0", "169.254.255.255", "10.0.0.0", "10.255.255.255", "172.16.0.0", "172.31.255.255", "192.168.0.0", "192.168.255.255", "100.64.0.0", "100.127.255.255", "[::]", "[::1]", "[fe80::]", "[febf:ffff::1]", "[fc00::]", "[fdff:ffff::1]", "[::ffff:127.0.0.1]", "localhost", "LOCALHOST", "localhost.", "localhost..", "api.localhost.", "127.0.0.1."];
+	const problem = (probe: unknown, at = 1) => ({ path: `probes[${at}]`, problem: `expected an https URL of a public host, not a loopback, link-local or private address, got ${JSON.stringify(probe)}` });
+	for (const host of hosts) assert.deepEqual(checkOptions({ probes: ["https://1.1.1.1/", `https://${host}/`] }), [problem(`https://${host}/`)], host);
+	for (const probe of ["http://1.1.1.1/", "1.1.1.1", ""]) assert.deepEqual(checkOptions({ probes: ["https://1.1.1.1/", probe] }), [problem(probe)], probe);
+	assert.deepEqual(checkOptions({ probes: [5, "https://dns.google/", "https://10.0.0.1/"] }), [problem(5, 0), problem("https://10.0.0.1/", 2)], "each refused probe, by its place");
+	const check = table.probes !== undefined && "check" in table.probes ? table.probes.check : () => "no check";
+	assert.deepEqual([check(PROBES), check([]), check(["https://127.0.0.1/"]), check("https://1.1.1.1/")], [undefined, undefined, "a list of https URLs of public hosts, [] for none", "a list of https URLs of public hosts, [] for none"]);
 });
 
 test("refused: a site without a url, a url that is not http or https, an unknown key, an expect or everySeconds out of range", () => {

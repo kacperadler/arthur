@@ -4,7 +4,7 @@ Roadmap entry 98: Arthur checks each project's sites over plain HTTP while `arth
 
 ```ts
 // arthur.config.ts
-plugins: [orchestration({}), projects({ folders: ["projects/acme"] }), uptime()],
+plugins: [orchestration({}), projects({ folders: ["projects/acme"] }), uptime()], // or uptime({ probes: ["https://1.1.1.1/"] })
 
 // projects/acme/project.config.ts
 export default [
@@ -17,9 +17,15 @@ export default [
 ];
 ```
 
+## Options
+
+- `probes`: a list of `https://` URLs outside the projects, asked with the other sites before a site with no answer is down, so that even with one site this machine offline is told apart from the site down ("This machine offline"). Default `["https://1.1.1.1/", "https://dns.google/"]`, two independent ones; `[]` turns the probes off. Each must be a public host: a URL that is not `https://`, `localhost` (or a name under it), or an address that is unspecified, loopback, link-local or private (the ranges below, IPv4-mapped IPv6 included) is refused at load as `probes[<i>]: expected an https URL of a public host, not a loopback, link-local or private address, got "<url>"`; a value that is no list as `probes: expected a list of https URLs, [] for none, got <value>`. A probe is one `GET`, cut after 10 s, its redirect not followed: any HTTP answer, of any status, proves the network works.
+
+Any other option but `enabled`, the old `sites` among them, is refused as unknown.
+
 ## Its piece
 
-The plugin takes no option but `enabled`; any other, the old `sites` among them, is refused as unknown. A project's sites are its piece, `uptime.project([...])` in its project file (`arthur projects --help`, "A project's file"): a list of at least one `{ url, expect?, everySeconds? }`.
+A project's sites are its piece, `uptime.project([...])` in its project file (`arthur projects --help`, "A project's file"): a list of at least one `{ url, expect?, everySeconds? }`.
 - `url`: required, an `http://` or `https://` address. A redirect is followed (at most 20; the answer to a 21st is judged as it is), and the page it leads to is judged. A redirect to another host (a host and port other than the `url`'s) is followed only when none of its addresses (`dns.lookup`, all of them) is unspecified (`0.0.0.0/8`, `::`), loopback (`127.0.0.0/8`, `::1`), link-local (`169.254.0.0/16` with the cloud metadata address, `fe80::/10`) or private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, Tailscale's `100.64.0.0/10`, `fc00::/7`), IPv4-mapped IPv6 included. That hop goes through `node:http`/`node:https`, whose connection resolves the name once more and is refused the same way, so a name whose DNS answers a public address first and a private one next never reaches the private one. A redirect to a port of the Fetch standard's bad-port list (below) fails the check with `bad port`, before any connection. The `url`'s own host is followed to whatever its address.
 - `expect`: a status code from 100 to 599, which the answer must have exactly; or non-empty text, which a page with a 2xx status must hold. Left out: any 2xx status.
 - `everySeconds`: a whole number of seconds, 1 or more, between two checks of the site; default 60. A check is cut after 10 s, or after `everySeconds` when that is shorter, so two checks of one site never overlap.
@@ -50,11 +56,11 @@ and `uptime-up`, `{ project, url, since, downSeconds }`. Nothing repeats while t
 
 ## This machine offline
 
-With 2 or more sites not down, a site that is about to go down for want of an answer (no answer in time, refused, not found, a TLS error; an HTTP answer of any status proves the network works) makes the plugin ask every other site at once, also one not due yet. When none of them answers either, the sites are taken as fine and this machine as offline: one notice, no site's own,
+A site that is about to go down for want of an answer (no answer in time, refused, not found, a TLS error; an HTTP answer of any status proves the network works) makes the plugin ask, at once, every other site, also one not due yet, and each probe (`probes` above). When none of them answers either, the sites are taken as fine and this machine as offline: one notice, no site's own,
 
-`uptime: none of the <n> sites answers (<url>: <reason>), so this machine looks offline and the checks cannot run; one notice follows when a site answers again`
+`uptime: none of the <n> sites answers (<url>: <reason>), nor <probe> nor <probe>, so this machine looks offline and the checks cannot run; one notice follows when a site or a probe answers again`
 
-and while it lasts nothing more. Once any site answers, one notice, `uptime: a site answers again, so the checks run again, after <how long> without an answer from any site`, and the checks go on as before; a site still failing then needs 2 failed checks in a row again. With one site, or one left that is not down, a site with no answer is down, as nothing tells the two apart.
+(without `, nor ...` and ` or a probe` when `probes` is `[]`), and while it lasts nothing more. Each check while no site answers asks the probes again; a probe with no answer is cut after 10 s. Once any site answers, one notice, `uptime: a site answers again, so the checks run again, after <how long> without an answer from any site`; once a probe answers while no site does, the same with `a probe answers again`; and the checks go on as before: a site still failing then needs 2 failed checks in a row again, and is down after them while a probe answers. So with one site and the default probes, a lost connection is the offline notice, never a site down; a site that fails while a probe answers is down after its 2 failed checks. With `probes: []` and one site, or one left that is not down, a site with no answer is down, as nothing tells the two apart.
 
 ## Across a restart
 

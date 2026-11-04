@@ -1,13 +1,13 @@
 import type { Plugin } from "@arthur/core/plugin";
-import { type Check, checkSite } from "./site-check.ts";
-import { checkOptions, checkSites, EVERY_SECONDS, type Site as UptimeSite, type UptimeOptions } from "./uptime-options.ts";
+import { type Check, checkSite, probe } from "./site-check.ts";
+import { checkOptions, checkSites, EVERY_SECONDS, PROBES, type Site as UptimeSite, type UptimeOptions } from "./uptime-options.ts";
 import { readState, writeState } from "./uptime-state.ts";
 
 // The uptime plugin (spec/roadmap.md, entry 98): each project's sites checked over plain HTTP while `arthur run` runs, no model
 // called. A site is down after 2 failed checks in a row: one `notice` with its URL, the reason and since when, and the event
 // `uptime-down`; once it answers again, one notice with how long it was down, and `uptime-up`. When no site answers at all,
-// this machine is taken as offline: one notice for it, none per site. What is down survives a restart (uptime-state.ts).
-// docs/uptime.md.
+// nor any probe outside the projects, this machine is taken as offline: one notice for it, none per site. What is down
+// survives a restart (uptime-state.ts). docs/uptime.md.
 
 export type { UptimeOptions };
 
@@ -39,6 +39,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 				(pieces?.uptime ?? []).map(({ url, expect, everySeconds = EVERY_SECONDS }) => ({ project, url, expect, every: everySeconds * 1000, next: 0, fails: 0, reason: "" })),
 			);
 			const key = (site: Site) => `${site.project} ${site.url}`;
+			const probes = options.probes ?? PROBES;
 			let offline: Date | undefined;
 			const notice = (text: string) => host.events.emit("notice", { text: `uptime: ${text}` });
 			const when = (at: Date) => { const { date, time, day } = host.clock.local(at); return `${time} on ${day} ${date} (${host.clock.timeZone})`; };
@@ -65,16 +66,19 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 			const reaching = (checked: readonly Site[], checks: readonly Check[]) =>
 				checked.some((site, at) => site.down === undefined && site.fails + 1 >= FAILS && failed(checks[at] as Check)?.answered === false);
 			const silent = (checks: readonly Check[]) => checks.every((check) => failed(check)?.answered === false);
-			const apply = (checked: readonly Site[], checks: readonly Check[]) => {
+			// Whether anything else can tell this machine offline from one site down: a probe, or a second site not down.
+			const telling = () => probes.length > 0 || sites.filter((site) => site.down === undefined).length >= 2;
+			const apply = (checked: readonly Site[], checks: readonly Check[], reached: boolean) => {
 				const at = host.clock.now();
 				if (offline !== undefined) {
-					if (silent(checks)) return;
-					notice(`a site answers again, so the checks run again, after ${lasted(offline, at)} without an answer from any site`);
+					if (silent(checks) && !reached) return;
+					notice(`a ${silent(checks) ? "probe" : "site"} answers again, so the checks run again, after ${lasted(offline, at)} without an answer from any site`);
 					offline = undefined;
-				} else if (checked.length === sites.length && silent(checks) && reaching(checked, checks) && sites.filter((site) => site.down === undefined).length >= 2) {
+				} else if (checked.length === sites.length && silent(checks) && !reached && reaching(checked, checks) && telling()) {
 					offline = at;
 					for (const site of sites) if (site.down === undefined) [site.fails, site.first] = [0, undefined];
-					notice(`none of the ${sites.length} sites answers (${checked[0]?.url}: ${failed(checks[0] as Check)?.reason}), so this machine looks offline and the checks cannot run; one notice follows when a site answers again`);
+					const [nor, or] = probes.length === 0 ? ["", ""] : [`, nor ${probes.join(" nor ")}`, " or a probe"];
+					notice(`none of the ${sites.length} sites answers (${checked[0]?.url}: ${failed(checks[0] as Check)?.reason})${nor}, so this machine looks offline and the checks cannot run; one notice follows when a site${or} answers again`);
 					return save();
 				}
 				checked.forEach((site, index) => {
@@ -98,13 +102,15 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 			round = async () => {
 				const due = sites.filter((site) => site.next - Date.now() < TICK_MS / 2);
 				if (due.length === 0) return;
-				let [checked, checks] = [due, await checkAll(due)];
-				// Before a site goes down for want of an answer, every other site is asked too: when none answers, this machine is offline.
-				if (offline === undefined && reaching(checked, checks) && sites.filter((site) => site.down === undefined).length >= 2) {
-					const rest = sites.filter((site) => !due.includes(site));
-					[checked, checks] = [[...due, ...rest], [...checks, ...(await checkAll(rest))]];
+				let [checked, checks, reached] = [due, await checkAll(due), false];
+				// Before a site goes down for want of an answer, every other site and each probe is asked too: when none answers, this
+				// machine is offline. While it is, the probes are asked when no site answers, so a site down meanwhile is still told.
+				if (offline === undefined ? reaching(checked, checks) && telling() : silent(checks)) {
+					const rest = offline === undefined ? sites.filter((site) => !due.includes(site)) : [];
+					const [more, answers] = await Promise.all([checkAll(rest), Promise.all(probes.map((url) => probe(url, LIMIT_SECONDS)))]);
+					[checked, checks, reached] = [[...due, ...rest], [...checks, ...more], answers.includes(true)];
 				}
-				if (running) apply(checked, checks);
+				if (running) apply(checked, checks, reached);
 			};
 			// What was down at the last stop stays down, told once; a site no longer listed is forgotten at the next save.
 			begin = () => {

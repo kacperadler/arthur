@@ -24,12 +24,14 @@ async function world(t: TestContext) {
 	const [origin, path, received, gate] = [temporaryFolder(), join(temporaryFolder(), "shop"), join(temporaryFolder(), "received"), temporaryFolder()];
 	// The owner's ~/.gitconfig, for the test alone: a push to an origin that is a folder allowed (AR0393), and origin's listing
 	// (`git ls-remote`) through `<gate>/upload-pack`, which notes each call in `<gate>/calls`, fails as an origin out of reach
-	// while `<gate>/down` exists, and once the listing is over moves the ref `<gate>/move` names (`<ref> <commit>`), once.
-	const script = join(gate, "upload-pack");
+	// while `<gate>/down` exists, and once the listing is over moves the ref `<gate>/move` names (`<ref> <commit>`), once; and
+	// a push through `<gate>/receive-pack`, which fails likewise while `<gate>/dropped` exists.
+	const [script, receive] = [join(gate, "upload-pack"), join(gate, "receive-pack")];
 	const move = `if [ -e '${gate}/move' ]; then git -C '${origin}' update-ref $(cat '${gate}/move') && rm '${gate}/move'; fi`;
-	const down = `if [ -e '${gate}/down' ]; then echo 'fatal: Could not read from remote repository.' >&2; exit 128; fi`;
-	writeFileSync(script, `#!/bin/sh\necho >> '${gate}/calls'\n${down}\ngit upload-pack "$@" || exit\n${move}\n`, { mode: 0o755 });
-	writeFileSync(join(gate, "gitconfig"), `[protocol "file"]\n\tallow = always\n[remote "origin"]\n\tuploadpack = ${script}\n`);
+	const down = (marker: string) => `if [ -e '${gate}/${marker}' ]; then echo 'fatal: Could not read from remote repository.' >&2; exit 128; fi`;
+	writeFileSync(script, `#!/bin/sh\necho >> '${gate}/calls'\n${down("down")}\ngit upload-pack "$@" || exit\n${move}\n`, { mode: 0o755 });
+	writeFileSync(receive, `#!/bin/sh\n${down("dropped")}\nexec git receive-pack "$@"\n`, { mode: 0o755 });
+	writeFileSync(join(gate, "gitconfig"), `[protocol "file"]\n\tallow = always\n[remote "origin"]\n\tuploadpack = ${script}\n\treceivepack = ${receive}\n`);
 	for (const [name, value] of Object.entries({ GIT_CONFIG_GLOBAL: join(gate, "gitconfig"), GIT_CONFIG_NOSYSTEM: "1" })) {
 		const was = process.env[name];
 		process.env[name] = value;
@@ -39,6 +41,14 @@ async function world(t: TestContext) {
 	mkdirSync(path);
 	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
 	writeFileSync(join(origin, "hooks", "post-receive"), `#!/bin/sh\ncat >> '${received}'\n`, { mode: 0o755 });
+	// `reject(reason)`: origin answers each push to an `arthur/*` branch `[remote rejected] (<reason>)`, as a proc-receive hook
+	// (githooks(5)) may, the ref kept; `reject("")`, no more.
+	const pkt = `pkt() { printf '%04x%s' $((\${#1} + 4)) "$1"; }\nread_pkts() { while n=$(dd bs=1 count=4 2>/dev/null) && [ -n "$n" ] && [ "$n" != 0000 ]; do dd bs=1 count=$((0x$n - 4)) 2>/dev/null; echo; done; }`;
+	const reject = (reason: string) => {
+		const answer = `read_pkts > /dev/null\npkt version=1\nprintf 0000\nfor ref in $(read_pkts | cut -d ' ' -f 3); do pkt "ng $ref ${reason}"; done\nprintf 0000`;
+		writeFileSync(join(origin, "hooks", "proc-receive"), `#!/bin/sh\n${pkt}\n${answer}\n`, { mode: 0o755 });
+		git(origin, "config", ...(reason === "" ? ["--unset", "receive.procReceiveRefs"] : ["receive.procReceiveRefs", "refs/heads/arthur/"]));
+	};
 	git(path, "init", "--quiet", "--initial-branch=main");
 	git(path, "remote", "add", "origin", origin);
 	git(path, "commit", "--quiet", "--allow-empty", "-m", "first");
@@ -84,6 +94,7 @@ async function world(t: TestContext) {
 		sweep,
 		out,
 		start: () => plugin.start?.(),
+		reject,
 		calls: () => (existsSync(join(gate, "calls")) ? readFileSync(join(gate, "calls"), "utf8").length : 0),
 		tip: (branch: string) => spawnSync("git", ["-C", origin, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], { encoding: "utf8" }).stdout.trim(),
 		push: (branch: string) => fake.call<Promise<string>>("github.push", { project: "shop", branch }),
@@ -189,7 +200,7 @@ test("a branch not in main whose origin tip is the one github pushed is deleted 
 	assert.equal(existsSync(join(w.fake.host.folder, "pushed", refused.id)), false, "a push origin refused records no tip");
 });
 
-test("a delete git failed (origin out of reach) is recorded and told once, retried each poll without a word, and done once origin answers; a second prune adds no second record; 24 hours of failures are told once and given up", async (t) => {
+test("a delete git failed (origin out of reach) is recorded and told once, retried each poll without a word, and done once origin answers; a second prune adds no second record; 24 hours of failures are told once and given up, a minute less is not", async (t) => {
 	const w = await world(t);
 	const [one, two] = [w.job(1), w.job(2)];
 	for (const each of [one, two]) {
@@ -214,7 +225,10 @@ test("a delete git failed (origin out of reach) is recorded and told once, retri
 	assert.equal(w.notices()[2], `github: main not deleted on origin: it is not arthur/${other}, the branch of job ${other}`);
 	assert.deepEqual(readdirSync(pending).toSorted(), [one.id, two.id], "no second record");
 	assert.deepEqual(record(one.id), first, "nor a new start");
-	writeFileSync(join(pending, two.id), JSON.stringify({ ...record(two.id), since: new Date(Date.now() - 24 * 3600_000 - 1000).toISOString() }));
+	// Two past 24 hours of failures is given up at the next poll; one, a minute short of them, is tried again.
+	const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+	writeFileSync(join(pending, two.id), JSON.stringify({ ...record(two.id), since: ago(24 * 3600_000 + 1000) }));
+	writeFileSync(join(pending, one.id), JSON.stringify({ ...first, since: ago(24 * 3600_000 - 60_000) }));
 	const calls = w.calls();
 	w.start();
 	await until("two given up", () => w.notices().length === 4);
@@ -247,9 +261,38 @@ test("a lease refused (origin's tip moved between the look and the delete) is to
 	assert.equal(w.tip(one.branch), main);
 });
 
+test("a delete push git failed once origin was listed is retried: the connection dropped, or [remote rejected] for a server's error", async (t) => {
+	const w = await world(t);
+	const [one, two] = [w.job(1), w.job(2)];
+	for (const each of [one, two]) {
+		assert.equal(await w.push(each.branch), `github: pushed ${each.branch} to origin: [new branch]`);
+		w.merge(each.branch);
+	}
+	writeFileSync(join(w.gate, "dropped"), "");
+	w.fake.host.jobs.prune([one.id]);
+	await until("one told", () => w.notices().length === 1);
+	rmSync(join(w.gate, "dropped"));
+	w.reject("503 Service Unavailable");
+	w.fake.host.jobs.prune([two.id]);
+	await until("two told", () => w.notices().length === 2);
+	assert.deepEqual(w.notices(), [
+		`github: ${one.branch} not deleted on origin, retrying: fatal: Could not read from remote repository.`,
+		`github: ${two.branch} not deleted on origin, retrying: [remote rejected] (503 Service Unavailable)`,
+	]);
+	const pending = join(w.fake.host.folder, "pending");
+	assert.deepEqual([one, two].map((each) => JSON.parse(readFileSync(join(pending, each.id), "utf8")).tip), [one.tip, two.tip], "origin's tip, as listed");
+	assert.deepEqual([w.tip(one.branch), w.tip(two.branch)], [one.tip, two.tip]);
+	w.reject("");
+	w.start();
+	await until("both gone from origin", () => w.tip(one.branch) === "" && w.tip(two.branch) === "");
+	await until("their records gone", () => readdirSync(pending).length === 0);
+	assert.equal(w.notices().length, 2);
+});
+
 test("retried: git's own failure, or a [remote rejected] for a server's error; never a refusal git's porcelain gave", () => {
-	const retried = ["fatal: Could not read from remote repository.", "ssh: connect to host github.com port 22: Connection refused", "no end in 60 s", "[remote rejected] (Internal Server Error)", "[remote rejected] (503 Service Unavailable)", "[remote rejected] (502 Bad Gateway)"];
-	const refused = ["[rejected] (stale info)", "[remote rejected] (pre-receive hook declined)", "[remote rejected] (failed to update ref)", "[rejected] (fetch first)", "[rejected] (500 in the name)"];
+	// Each server's error matches one alternative only, so each alternative is needed.
+	const retried = ["fatal: Could not read from remote repository.", "ssh: connect to host github.com port 22: Connection refused", "no end in 60 s", "[remote rejected] (internal server error)", "[remote rejected] (504)", "[remote rejected] (Service Unavailable)", "[remote rejected] (Bad Gateway)"];
+	const refused = ["[rejected] (stale info)", "[remote rejected] (pre-receive hook declined)", "[remote rejected] (failed to update ref)", "[rejected] (fetch first)", "[rejected] (500 in the name)", "[remote rejected] (5000 refs)"];
 	assert.deepEqual([...retried, ...refused].map(again), [...retried.map(() => true), ...refused.map(() => false)]);
 });
 

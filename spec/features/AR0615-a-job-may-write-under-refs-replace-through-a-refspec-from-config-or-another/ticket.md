@@ -43,4 +43,5 @@ Out:
 - `git fast-import` (AR0616) and brace lists in paths (AR0617).
 
 ## Decisions
+- 2026-11-04: AR0615 uses core.useReplaceRefs=false: Git ignores every replacement in job worktrees; the owner: "AR-D473 - 1" (AR-D473)
 

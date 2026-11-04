@@ -45,4 +45,5 @@ Out:
 
 ## Decisions
 - 2026-11-03: AR0614 approved: a planner writes the plan first, after the usage reset; it joins the tasks counter (18 -> 19); the owner: "AR-D471 - 1" (AR-D471)
+- 2026-11-04: Plan approved by the owner: plan.md at 6ff8b36d; the owner: "AR-D483 - approve" (AR-D483)
 

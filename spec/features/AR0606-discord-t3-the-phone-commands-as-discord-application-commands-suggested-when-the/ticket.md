@@ -42,3 +42,4 @@ Out:
 ## Decisions
 
 - 2026-11-03: AR0606 approved: its plan runs first (after the usage reset), the worker after Group 2; the owner: "you can run a plan" (AR-D468)
+- 2026-11-04: Plan approved by the owner: plan.md at 66192aca; the owner: "AR-D482 - approve" (AR-D482)

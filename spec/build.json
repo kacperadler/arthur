@@ -4851,9 +4851,9 @@
   {
     "id": "AR0606",
     "title": "Discord T3: the phone commands as Discord application commands, suggested when the owner types /",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0606-discord-t3-the-phone-commands-as-discord-application-commands-suggested-when-the/ticket.md",
-    "updated": "2026-11-03T08:58:06.836Z",
+    "updated": "2026-11-04T09:09:36.113Z",
     "after": [
       "AR0390",
       "AR0397"

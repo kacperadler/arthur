@@ -37,3 +37,4 @@ Out:
 ## Decisions
 
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
+- 2026-11-04: Merge AR0584 into main; the owner: "AR-D491 - approve" (AR-D491)

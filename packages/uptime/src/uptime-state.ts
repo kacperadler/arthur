@@ -2,7 +2,7 @@ import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // What a restart must not lose (spec/roadmap.md, entry 98), in `<folder>/state.json`: each site that is down, since when and
-// why it was told, by `<project> <url>`, and since when no site answers. Written to a temporary name and renamed.
+// why it was told, by `<project> <url>`, and since when this machine looks offline. Written to a temporary name and renamed.
 
 export type Down = { readonly since: string; readonly reason: string };
 export type State = { readonly down: Readonly<Record<string, Down>>; readonly offline?: string };

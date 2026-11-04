@@ -167,8 +167,6 @@ test("a probe ignores the user's .curlrc and the proxy variables: the request go
 });
 
 test("a list skips a model whose server is unreachable, slow, lacks it, answers 401 or no model list; all unavailable refuses, naming each", async () => {
-	const closed = await ollama();
-	closed.close();
 	const slow = await server(() => "hang");
 	const lacks = await ollama();
 	const denied = await server(() => ({ status: 401, body: { error: { message: "Invalid API key", type: "invalid_request_error" } } }));
@@ -177,7 +175,8 @@ test("a list skips a model whose server is unreachable, slow, lacks it, answers 
 		const { pick } = await load({
 			probeSeconds: 1,
 			providers: {
-				off: { kind: "ollama", url: closed.url },
+				// Port 9 (discard) is below 1024, so no test's server can listen there, as one could on a closed server's freed port.
+				off: { kind: "ollama", url: "http://127.0.0.1:9" },
 				slow: { kind: "ollama", url: slow.url },
 				lacks: { kind: "ollama", url: lacks.url },
 				denied: { kind: "openai-compatible", url: `${denied.url}/v1`, keyEnv: "ARTHUR_MODELS_DENIED_KEY" },

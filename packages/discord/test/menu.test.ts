@@ -90,6 +90,8 @@ test("no phone commands empties the menu; a refused PUT is one line without the 
 	await empty.plugin.start?.();
 	await until("the empty set", () => puts(api).length === 1);
 	assert.deepEqual(puts(api)[0]?.body, []);
+	// The PUT is answered before the record is written, and a stop between the two drops the write: wait for the record itself.
+	await until("the record written", () => existsSync(join(empty.folder, "commands.json")));
 	await empty.plugin.stop?.();
 	const record = readFileSync(join(empty.folder, "commands.json"), "utf8");
 	api.fail(`PUT ${PUTS}`, 403, { message: "Missing Access", code: 50001 });

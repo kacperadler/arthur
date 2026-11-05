@@ -63,8 +63,8 @@ export async function syncMachines(home: string, machines: readonly Machine[], b
 // With one SSH call, copies the run's changed files of the records of `machine`'s followed jobs, of the log only its new bytes up to the last line break, the
 // rest asked again from the same time and byte, so a value a cut splits is named whole (all once the run ended there and its log came whole, or a cut holds no
 // line break); a run that ended there brings its branch into `root` before its state moves here, then `job-ended`. A job failed here while offline takes the
-// state there once that run ended; a log cut short, once the rest arrived. Each file and reason is named with the bus's `hide`: the record there guards no env file.
-// Each job is copied on its own: one that fails is named, by the machine and the job, once the others were copied.
+// state there once that run ended; a log cut short, once the rest came. Each file and reason passes the bus's `hide`: the record there guards no env file.
+// Each job is copied on its own: one that fails is named, by the machine and the job, once the others were copied; one that another copy moved during its fetch, which waits without blocking, is that copy's.
 export async function syncMachine(home: string, machine: Machine, bus: Bus): Promise<void> {
 	const ids = followed(home, machine), { hide } = bus;
 	if (ids.length === 0) return;
@@ -85,7 +85,6 @@ export async function syncMachine(home: string, machine: Machine, bus: Bus): Pro
 			write(folder, "synced", rest === "" ? `${copy.at}:${copy.logTo}` : `${(read("synced") || "0:0").split(":")[0]}:${copy.logTo - Buffer.byteLength(rest)}`);
 			if (copy.logTo < copy.logSize) continue;
 			if (read("state") === "ended" && !ended) continue;
-			// The fetch waits without blocking, so a later copy may move the job meanwhile: then that copy ended it here, not this one.
 			const mark = `${read("state")}:${read("offline")}`;
 			if (ended && read("branch") !== "") await gitOver(read("root"), "fetch", ["branch", "--force", `arthur/${id}`, (await gitOver(read("root"), "fetch", ["fetch-pack", "--quiet", "--no-progress", url(machine, read("project")), `refs/heads/arthur/${id}`])).split(" ")[0] ?? ""]);
 			if (mark !== `${read("state")}:${read("offline")}`) continue;

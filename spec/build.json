@@ -4451,9 +4451,9 @@
   {
     "id": "AR0558",
     "title": "GitHub T2: create, comment on and close pull requests",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0558-github-t2-create-comment-on-and-close-pull-requests/ticket.md",
-    "updated": "2026-11-05T22:22:45.847Z",
+    "updated": "2026-11-05T23:41:58.870Z",
     "after": [
       "AR0560"
     ]
@@ -5105,8 +5105,8 @@
   {
     "id": "AR0634",
     "title": "The roadmap page shows listen, video and Discord as not built, and the README status is from October",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0634-the-roadmap-page-shows-listen-video-and-discord-as-not-built-and-the-readme/ticket.md",
-    "updated": "2026-11-05T21:26:33.428Z"
+    "updated": "2026-11-05T23:39:01.265Z"
   }
 ]

@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-06
+
+### Added
+
+- AR0558 GitHub T2: create, comment on and close pull requests (f579072f)
+
 ## 2026-11-05
 
 ### Added

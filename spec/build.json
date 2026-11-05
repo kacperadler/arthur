@@ -5064,22 +5064,28 @@
   {
     "id": "AR0629",
     "title": "A delivery merge running when arthur run restarts dies half done, leaving an unpushed merge commit on main",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0629-a-delivery-merge-running-when-arthur-run-restarts-dies-half-done-leaving-an/ticket.md",
-    "updated": "2026-11-05T07:57:56.393Z"
+    "updated": "2026-11-05T07:58:39.330Z"
   },
   {
     "id": "AR0630",
     "title": "arthur review runs on a job whose review-needed said no review, and a stopped review then blocks the merge",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0630-arthur-review-runs-on-a-job-whose-review-needed-said-no-review-and-a-stopped/ticket.md",
-    "updated": "2026-11-05T07:58:02.080Z"
+    "updated": "2026-11-05T08:29:40.293Z",
+    "after": [
+      "AR0628"
+    ]
   },
   {
     "id": "AR0631",
     "title": "Two tests fail now and then under the full suite: the discord 50 ms heartbeat, and the machine copy of only the log new bytes",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0631-two-tests-fail-now-and-then-under-the-full-suite-the-discord-50-ms-heartbeat-and/ticket.md",
-    "updated": "2026-11-05T07:58:02.669Z"
+    "updated": "2026-11-05T08:29:41.056Z",
+    "after": [
+      "AR0630"
+    ]
   }
 ]

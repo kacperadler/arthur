@@ -21,7 +21,7 @@ import { ownHome } from "./own-home.ts";
 // limit, its cores minus one and 70% of its memory.
 
 const USAGE = "usage: arthur remote-job repo|add|launch|stop|steer|continue|prune|remove|records <home> [args]";
-const LOG_BYTES = 256 * 1024;
+const [LOG_BYTES, ANSWER_BYTES] = [256 * 1024, 512 * 1024];
 
 // What `add` reads on stdin: the job with the repository there as its `root`, its prompt, and the record's other keys.
 export type Added = { readonly job: Job; readonly prompt: string; readonly kind: Own; readonly idleMinutes: number; readonly unsandboxed: boolean; readonly since: string };
@@ -101,12 +101,12 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		removeWorktree(read("root"), read("worktree"), read("branch") || undefined);
 		rmSync(join(home, "jobs", id), { recursive: true, force: true });
 	},
-	// `<id>=<ms>:<bytes>` each: a JSON object of a `Copy` per job whose record exists, its log from `<bytes>` on, at most
-	// LOG_BYTES of it, cut at the start of a character; a log cut short leaves `at` the time asked, so the next copy reads on.
+	// `<id>=<ms>:<bytes>` each: a `Copy` per job whose record exists, its log from `<bytes>` on, at most its share (LOG_BYTES, or what ANSWER_BYTES has left
+	// over the jobs not read yet, to fit the sweep's 20 s on a slow link), cut at a character; a log cut short leaves `at` as asked, so the next copy reads on.
 	records(home, asked) {
 		const answer: Record<string, Copy> = {};
-		for (const pair of asked) {
-			const [id = "", from = "0", skip = "0"] = pair.split(/[=:]/);
+		for (let [index, left] = [0, ANSWER_BYTES]; index < asked.length; index++) {
+			const [id = "", from = "0", skip = "0"] = (asked[index] ?? "").split(/[=:]/), share = Math.min(LOG_BYTES, Math.floor(left / (asked.length - index)));
 			if (!ID.test(id) || !existsSync(join(home, "jobs", id, "kind"))) continue;
 			const folder = join(home, "jobs", id);
 			const read = field(home, id);
@@ -125,8 +125,9 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 					// Read once, so the next copy asks from where this one stopped.
 					const bytes = readFileSync(join(folder, name));
 					[logSize, logFrom] = [bytes.length, Number(skip) <= bytes.length ? Number(skip) : 0];
-					for (logTo = Math.min(bytes.length, logFrom + LOG_BYTES); logTo < bytes.length && logTo > logFrom + LOG_BYTES - 3 && (bytes[logTo] ?? 0) >> 6 === 2; logTo--);
+					for (logTo = Math.min(bytes.length, logFrom + share); logTo < bytes.length && logTo > logFrom + share - 3 && (bytes[logTo] ?? 0) >> 6 === 2; logTo--);
 					files.log = bytes.subarray(logFrom, logTo).toString();
+					left -= logTo - logFrom;
 				}
 			}
 			answer[id] = { state, reason, since, at: logTo < logSize ? Number(from) : at, logFrom, logSize, logTo: Math.min(logTo, logSize), files };

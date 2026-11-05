@@ -886,6 +886,35 @@ test("a copy that answers more than 64 MiB is cut here and counts as the machine
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z"]);
 });
 
+test("a copy of many jobs whose logs grew past 256 KiB brings 512 KiB of log at most, so a link carrying 1 MiB in 20 s copies it and no job is held offline", async (t) => {
+	const gate = join(temporaryFolder(), "go");
+	t.after(() => writeFileSync(gate, ""));
+	const { home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const ids: string[] = [];
+	for (let n = 0; n < 5; n++) ids.push((await jobs.spawn({ task: "Go.", machine: "gpu" })).id);
+	await jobs.sweep();
+	const synced = () => ids.map((id) => Number(read(home, id, "synced").split(":")[1]));
+	const before = synced();
+	for (const id of ids) appendFileSync(join(there, "jobs", id, "log"), `${"x".repeat(1023)}\n`.repeat(300));
+	// From here the link carries 1 MiB within the copy's 20 s: a longer answer of `records` there does not arrive before `gate` exists, or 30 s on.
+	const [answer, sizes] = [join(machine, "answer"), join(machine, "sizes")];
+	const slow = `n=0; while [ ! -e '${gate}' ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done; exit 0`;
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\nif [ "$2" = records ]; then\n'${process.execPath}' '${CLI}' "$@" > '${answer}' || exit 1\nwc -c < '${answer}' >> '${sizes}'\n[ "$(wc -c < '${answer}')" -gt 1048576 ] && { ${slow}; }\nexec cat '${answer}'\nfi\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	await jobs.sweep();
+	const moved = synced().map((at, index) => at - (before[index] ?? 0));
+	assert.deepEqual(ids.map((id) => [read(home, id, "state"), existsSync(join(home, "jobs", id, "offline"))]), ids.map(() => ["working", false]), "no job held as offline");
+	assert.ok(moved.every((bytes) => bytes > 0) && moved.reduce((sum, bytes) => sum + bytes) <= 512 * 1024, `every job moved on, 512 KiB in all at most: ${moved}`);
+	assert.ok(Number(readFileSync(sizes, "utf8")) < 1048576, "one answer, within what the link carries");
+	for (let copies = 0; copies < 3; copies++) await jobs.sweep();
+	assert.deepEqual(ids.map((id) => read(home, id, "log") === read(there, id, "log")), ids.map(() => true), "the rest came in the next copies");
+	// A job asked first that has few bytes to send leaves its share to the jobs after it.
+	const [near, far, other] = ids as [string, string, string];
+	const size = statSync(join(there, "jobs", near, "log")).size;
+	const run = spawnSync(process.execPath, [CLI, "remote-job", "records", there, `${near}=0:${size - 10}`, `${far}=0:0`, `${other}=0:0`], { cwd: there, encoding: "utf8" });
+	const copies = JSON.parse(run.stdout) as Record<string, { logFrom: number; logTo: number }>;
+	assert.deepEqual([near, far, other].map((id) => (copies[id]?.logTo ?? 0) - (copies[id]?.logFrom ?? 0)), [10, 262139, 262139]);
+});
+
 test("a copy refuses a record file whose name is not a plain record key, naming it, and writes nothing of that answer", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });

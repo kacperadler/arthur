@@ -105,11 +105,11 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	// over the jobs not read yet, to fit the sweep's 20 s on a slow link), cut at a character; a log cut short leaves `at` as asked, so the next copy reads on.
 	records(home, asked) {
 		const answer: Record<string, Copy> = {};
-		let left = ANSWER_BYTES;
-		for (const [index, pair] of asked.entries()) {
-			const [id = "", from = "0", skip = "0"] = pair.split(/[=:]/), share = Math.min(LOG_BYTES, Math.floor(left / (asked.length - index)));
+		for (let [index, left] = [0, ANSWER_BYTES]; index < asked.length; index++) {
+			const [id = "", from = "0", skip = "0"] = (asked[index] ?? "").split(/[=:]/), share = Math.min(LOG_BYTES, Math.floor(left / (asked.length - index)));
 			if (!ID.test(id) || !existsSync(join(home, "jobs", id, "kind"))) continue;
-			const [folder, read] = [join(home, "jobs", id), field(home, id)];
+			const folder = join(home, "jobs", id);
+			const read = field(home, id);
 			// The state first, whole, so every file of its end is written by the time the files are read.
 			const [state = "", reason = "", since = ""] = withLock(join(folder, "state.lock"), () => ["state", "reason", "since"].map(read));
 			const files: Record<string, string> = {};

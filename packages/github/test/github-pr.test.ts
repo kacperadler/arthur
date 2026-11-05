@@ -246,10 +246,10 @@ test("pr create: the file's first line, its heading's `#` dropped, is the title,
 	assert.deepEqual(await run(["pr", "create", "arthur/13", file("\n## Add the cart  \n\n  It holds items.\n\nAnd prices.\n\n")]), { code: 0, out: "created pull request #13: https://github.com/acme/shop/pull/13", err: "" });
 	assert.deepEqual(await run(["pr", "create", "--base", "develop", "arthur/14", file("Plain title\r\n")]), { code: 0, out: "created pull request #14: https://github.com/acme/shop/pull/14", err: "" });
 	assert.deepEqual(
-		api.seen.map(({ method, path, body }) => [method, path, JSON.parse(body)]),
+		api.seen.map(({ method, path, body, type }) => [method, path, type, JSON.parse(body)]),
 		[
-			["POST", "/repos/acme/shop/pulls", { title: "Add the cart", head: "arthur/13", base: "main", body: "It holds items.\n\nAnd prices." }],
-			["POST", "/repos/acme/shop/pulls", { title: "Plain title", head: "arthur/14", base: "develop", body: "" }],
+			["POST", "/repos/acme/shop/pulls", "application/json", { title: "Add the cart", head: "arthur/13", base: "main", body: "It holds items.\n\nAnd prices." }],
+			["POST", "/repos/acme/shop/pulls", "application/json", { title: "Plain title", head: "arthur/14", base: "develop", body: "" }],
 		],
 	);
 	const listed = ["#12 open, arthur/12 -> main, by octocat, updated 2026-01-02", "> pull 12", "#13 open, arthur/13 -> main, by octocat, updated 2026-01-01", "> Add the cart"];

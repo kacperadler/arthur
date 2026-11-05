@@ -118,20 +118,20 @@ const shapedReview = (full: string, number: number, { id, user: login, state, bo
 // `always` replies to every request while set, `post` to every POST; `clock` is GitHub's clock less this machine's, in ms, as
 // its `date` header says it (null: no `date`); `slow` the ms an answer waits after its request, its body taken at the request.
 // A pull request created takes the next number, a comment the next id, each by octocat. `seen` holds each request: its method,
-// path, time, Authorization and body.
+// path, time, Authorization, body and Content-Type.
 export async function fakeGithub(t: TestContext) {
 	const runs: Record<string, FakeRun[]> = {};
 	const jobs: Record<number, FakeJob[]> = {};
 	const pulls: Record<string, FakePull[]> = {};
 	const next: Reply[] = [];
 	const state: { always?: Reply; post?: Reply; clock?: number | null; slow?: number } = {};
-	const seen: { readonly method: string; readonly path: string; readonly at: number; readonly auth: string; readonly body: string }[] = [];
+	const seen: { readonly method: string; readonly path: string; readonly at: number; readonly auth: string; readonly body: string; readonly type: string }[] = [];
 	const http = createServer(async (request, response) => {
 		const path = request.url ?? "";
 		const chunks: Buffer[] = [];
 		for await (const chunk of request) chunks.push(chunk as Buffer);
 		const sent = Buffer.concat(chunks).toString("utf8");
-		seen.push({ method: request.method ?? "", path, at: Date.now(), auth: request.headers.authorization ?? "", body: sent });
+		seen.push({ method: request.method ?? "", path, at: Date.now(), auth: request.headers.authorization ?? "", body: sent, type: request.headers["content-type"] ?? "" });
 		// Asked only when no `next` or `always` reply answers, so such a reply writes nothing.
 		const found = (): Reply | undefined => {
 			if (request.method === "POST" && state.post !== undefined) return state.post;

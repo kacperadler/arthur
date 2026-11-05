@@ -22,7 +22,7 @@ Evidence, 2026-11-05 01:2x to 02:0x: `arthur review-needed` answered `no review:
 
 - `arthur review <worker job>` refuses, exit 1, when `<folder>/<job>/review-needed` holds `no review` for the branch's current tip (`noReview` in `review-records.ts`). The refusal names the answer and says the branch merges without a review. A test proves the refusal, and another proves that a `no review` kept for an older commit does not refuse.
 - A job with a `review` answer, or with no answer at all, is reviewed as today; a test proves it.
-- `docs/commands/review.md` names the refusal.
+- `packages/delivery/docs/commands/review.md` names the refusal.
 - The project's checks pass.
 
 ## Scope
@@ -30,7 +30,7 @@ Evidence, 2026-11-05 01:2x to 02:0x: `arthur review-needed` answered `no review:
 In:
 - `packages/delivery/src/review-command.ts`: the refusal.
 - `packages/delivery/test/`: the tests above.
-- `docs/commands/review.md`: the refusal.
+- `packages/delivery/docs/commands/review.md`: the refusal.
 
 Out:
 - The merge's rule that a review of the tip outranks `no review` (`auto-merge.ts:34`) stays as it is: a review someone started counts.

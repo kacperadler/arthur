@@ -356,7 +356,7 @@ test("arthur github branch sweep says an origin with no arthur/* branch; refuses
 	assert.deepEqual(await w.sweep("--all"), {
 		code: 2,
 		out: "",
-		err: "usage: arthur github pr list [--all]|get <n>|create <branch> <file> [--base <branch>]|comment <n> <file>|close <n>|merge <n> | branch list|delete <branch> [--unmerged]|sweep [--dry-run] [--project <name>]",
+		err: "usage: arthur github pr list [--all]|get <n>|create <branch> <file> [--base <branch>]|comment <n> <file>|close <n>|merge <n> | issue list [--all]|get <n>|create <file>|comment <n> <file>|label <n> <label>|close <n> | branch list|delete <branch> [--unmerged]|sweep [--dry-run] [--project <name>]",
 	});
 	assert.equal((await w.sweep("x")).code, 2);
 	for (const args of [["delete"], ["delete", "a", "b"], ["delete", "a", "--dry-run"], ["list", "x"], ["list", "--unmerged"], ["sweep", "--unmerged"]]) assert.equal((await w.branch(...args)).code, 2, args.join(" "));

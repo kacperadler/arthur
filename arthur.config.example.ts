@@ -315,12 +315,12 @@ export default defineConfig({
 		// its repository the checkout's `origin`. An instance named after a repository's owner reads it, the unnamed one every
 		// other: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`. GitHub Enterprise Server: `apiUrl:
 		// "https://<host>/api/v3"`. `arthur ci <branch>` tells why a run failed, `--rerun` reruns it once; `arthur github pr list|get`
-		// reads a project's pull requests, any project with a GitHub origin, and `pr create|comment|close` writes them; a branch a review passed and main after a merge are
+		// reads a project's pull requests, any project with a GitHub origin, and `pr create|comment|close` writes them, `issue list|get` and `issue create|comment|label|close` its issues; a branch a review passed and main after a merge are
 		// pushed to origin with git's own credentials, never a prompt, and a pruned job's branch is deleted there; `arthur github
 		// branch sweep [--dry-run]` deletes the arthur/* branches left there by jobs gone, `branch list` lists origin's branches,
 		// `branch delete <branch> [--unmerged]` deletes one. packages/github/docs/github.md.
 		github({
-			instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], // fine-grained, Actions: read (and write to rerun a run); Pull requests: read for reviews and arthur github pr, and write for its writes
+			instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], // fine-grained, Actions: read (and write to rerun a run); Pull requests: read for reviews and arthur github pr, Issues: read for arthur github issue, each and write for their writes
 			poll: { everySeconds: 120 }, // one request per project with a ci.workflow per poll
 			wakeOn: ["ci-finished", "pull-request-review"], // what wakes the coordinator; pull-request-review also polls the reviews
 		}),

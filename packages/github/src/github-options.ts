@@ -9,7 +9,7 @@ export type InstanceOptions = { readonly name?: string; readonly tokenEnv: strin
 export type Wake = "ci-finished" | "pull-request-review";
 export type GithubOptions = { readonly enabled?: boolean; readonly instances: readonly InstanceOptions[]; readonly poll?: { readonly everySeconds?: number }; readonly wakeOn?: readonly Wake[] };
 
-export const summary = "GitHub accounts, named and unnamed: CI runs polled, ci-finished once per run attempt, arthur ci and --rerun, branches pushed, pull request reviews, arthur github pr reads and writes";
+export const summary = "GitHub accounts, named and unnamed: CI runs polled, ci-finished once per run attempt, arthur ci and --rerun, branches pushed, pull request reviews, arthur github pr and issue reads and writes";
 
 export const tools: readonly Tool[] = [];
 
@@ -25,7 +25,7 @@ const INSTANCE: Readonly<Record<string, ValueOption>> = {
 		check: (value) => (typeof value === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value) ? undefined : "a GitHub owner in lowercase: letters, digits and single dashes"),
 	},
 	tokenEnv: {
-		about: "The variable holding a token of the owner's repositories with Actions: read, and Pull requests: read for reviews and arthur github pr, read and write for its writes",
+		about: "The variable holding a token of the owner's repositories with Actions: read, and Pull requests: read for reviews and arthur github pr, Issues: read for arthur github issue, each read and write for their writes",
 		check: (value) => (typeof value === "string" && value !== "" ? undefined : "the name of an env variable"),
 	},
 	apiUrl: {

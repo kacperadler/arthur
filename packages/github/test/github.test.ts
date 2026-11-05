@@ -301,7 +301,7 @@ test("a 401 is said once, not every poll, for every project of the instance; onc
 	assert.deepEqual(box.errors, []);
 });
 
-test("a rate limit stops the instance's requests until the time GitHub says: x-ratelimit-reset, then retry-after", async (t) => {
+test("a rate limit stops the instance's requests until the time GitHub says: x-ratelimit-reset, then retry-after, then a run list answered with no request left", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	api.runs["acme/shop/ci.yml"] = [];
@@ -311,10 +311,14 @@ test("a rate limit stops the instance's requests until the time GitHub says: x-r
 	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl));
 	await until("the request after the reset", () => api.count(PATH) >= 2);
 	assert.ok((api.seen[1]?.at ?? 0) >= reset * 1000, "no request before x-ratelimit-reset");
+	// After the 429, a run list answered with the last request of the hour spent: the next one waits for its reset too.
+	const later = Math.ceil(Date.now() / 1000) + 6;
 	api.next.push({ status: 429, headers: { "retry-after": "2" }, body: { message: "You have exceeded a secondary rate limit.", documentation_url: DOCS, status: "429" } });
-	await until("the request after retry-after", () => api.count(PATH) >= 4);
+	api.next.push({ status: 200, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(later) }, body: { total_count: 0, workflow_runs: [] } });
+	await until("the request after the reset of the run list", () => api.count(PATH) >= 5);
 	const [limitedAt, resumed] = [api.seen[2]?.at ?? 0, api.seen[3]?.at ?? 0];
 	assert.ok(resumed - limitedAt >= 2000, `${resumed - limitedAt} ms between the 429 and the next request`);
+	assert.ok((api.seen[4]?.at ?? 0) >= later * 1000, "no request before the run list's x-ratelimit-reset");
 	assert.deepEqual(box.notices(), [], "a rate limit is no notice");
 	assert.equal(box.errors.length, 2);
 	assert.match(box.errors[0] ?? "", /^github: instance \(unnamed\): 403, rate limited: API rate limit exceeded for user ID 1\.; no request until /);

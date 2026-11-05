@@ -137,7 +137,8 @@ test("when the config does not load, the core's commands still run and a list of
 	const folder = project(CONFIG.replace('"orchestration"', '"schedule"'));
 	const check = arthur(folder, "config", "check");
 	const refusal = `${join(folder, "arthur.config.ts")}: plugins: orchestration is required and missing; add orchestration({ ... })`;
-	assert.deepEqual([check.status, check.stdout, check.stderr], [1, `${refusal}\nno enabled plugin names an env variable\n`, ""]);
+	const untyped = `types not checked: typescript is not installed beside ${join(folder, "arthur.config.ts")}; npm ci installs it with the dev dependencies`;
+	assert.deepEqual([check.status, check.stdout, check.stderr], [1, `${refusal}\n${untyped}\nno enabled plugin names an env variable\n`, ""]);
 	const why = `only the core's commands are listed: arthur.config.ts did not load:\n${refusal}\n`;
 	const unknown = arthur(folder, "echo");
 	assert.deepEqual([unknown.status, unknown.stderr], [2, `arthur: unknown command echo\n${CORE_LIST}${why}`]);

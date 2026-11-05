@@ -3102,9 +3102,9 @@
   {
     "id": "AR0399",
     "title": "`git lfs push origin` reads origin's URL outside Git's transport policy",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0399-git-lfs-push-origin-reads-origin-s-url-outside-git-s-transport-policy/ticket.md",
-    "updated": "2026-11-04T20:40:54.013Z",
+    "updated": "2026-11-05T12:35:20.684Z",
     "after": [
       "AR0629"
     ]

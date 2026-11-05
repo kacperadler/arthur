@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/github/src/github-git.ts:89`
 - What: git-lfs takes its endpoint from `lfs.url`, `lfs.pushurl` or `remote.origin.lfsurl` before origin's URL, and reads them from the `.lfsconfig` of the checkout's working tree, a file a job's branch can commit and a merge brings into main's checkout; `@arthur/core/git-config` checks only `.git/config`. With git-lfs 3.5.1, origin a folder and a committed `.lfsconfig` holding `lfs.url = file:///<other folder>` (likewise `lfs.pushurl`, `remote.origin.lfsurl`), `git lfs push origin refs/heads/main` put the object into the other folder, none into origin; `remote.origin.lfspushurl` it ignored as an unsafe `.lfsconfig` key. The dry run of AR0399 checks origin's push URL, so it passes, and the upload goes to the `.lfsconfig` endpoint under no `protocol.<name>.allow` (a folder written to; `<name>://` runs `ssh` to host `<name>`, as the AR0399 probe saw for origin's URL). Pinning the four keys empty with `-c` stopped it, but also left git-lfs with no endpoint (`batch request: missing protocol: ""`).
 - Suggestion: refuse the LFS step while the `.lfsconfig` git-lfs reads (the working tree's, else the index's or HEAD's) sets one of `lfs.url`, `lfs.pushurl`, `remote.<name>.lfsurl`, naming the file and the key as a config refusal does; or pin each of them with `-c` to the endpoint git-lfs derives from the URL the dry run checked. Which one, given a project may keep its LFS objects on a server of its own, is the owner's call. Out: origin's URL, which AR0399 covers.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. there is a gap between the dry run and the upload
+
+- Kind: fix
+- Found by: 2026-11-05-review-16f02ec7 (review), 2026-11-05
+- Where: `packages/github/src/github-git.ts:84-89`
+- What: Git checks origin's URL in the dry run, then git-lfs reads the config again. A process that rewrites `remote.origin.url` or `pushurl` in between gets past the check. The gap is short, and the earlier `originCheck` read has the same limit.
+- Status: deferred (client summary)

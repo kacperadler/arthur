@@ -6,7 +6,7 @@ Tells the run of the project's workflow, its `github.project({ workflow })`, tha
 
 ## The run
 
-The run that built the branch is the one the poll tells as `ci-finished` and `arthur merge --auto` counts (roadmap 59): the newest run, among the workflow's 100 newest, of the nearest commit on the branch's first-parent line that has one, from its tip back at most 1000 commits. A commit that touches no path the workflow watches has no run, so the run before it counts. First line, then the run's page:
+The run that built the branch is the one the poll tells as `ci-finished` and `arthur merge --auto` counts (roadmap 59): the newest run, among the workflow's 100 newest, of the nearest commit on the branch's first-parent line that has one, from its tip back at most 1000 commits. Only a push of the branch itself to the project's repository counts: a run of a pull request (a fork's among them), a `workflow_dispatch`, a `schedule` or another branch on the same commit is ignored. A commit that touches no path the workflow watches has no run, so the run before it counts. First line, then the run's page:
 
 `run <id>, attempt <n>, of <workflow> on <commit> (<branch>'s tip | <branch>, <k> commits below its tip): <conclusion or status>`
 
@@ -26,7 +26,7 @@ Exit 1, one line `arthur ci: <why>` (`arthur ci --rerun: <why>` for the first), 
 - `--rerun` inside a job (`arthur help --help`), where `arthur ci <branch>` still reads the run when its token is in the job's shell (otherwise github is not loaded in a job, `arthur config --help`): `arthur ci --rerun: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, before anything is asked of GitHub.
 - A project without `github.project({ workflow })`: `project <name> has no github.project({ workflow }), so github watches no run of it`.
 - A branch the checkout lacks: `no branch <branch> in <folder>`.
-- No run built it: `no run built <branch>: none of its last 1000 commits has one among the <n> newest runs of <workflow>`.
+- No run built it: `no run built <branch>: none of its last 1000 commits has one among the <n> newest push runs of <workflow>`, `<n>` the pushes to the project's repository among the 100 GitHub listed.
 - `--rerun` of a run not finished: `run <id> is <status>, not finished; only a run that failed or was cancelled is rerun`; of a run that passed: `run <id> passed; only a run that failed or was cancelled is rerun` (`ended <conclusion>` for one `skipped`, `neutral`, ...).
 - A second `--rerun` of a run, or a run rerun by hand (an attempt past the first): `run <id> was rerun before (attempt <n>); arthur ci reruns a run once, and a further rerun is the owner's, on GitHub`.
 - GitHub's refusal, in the words of `docs/github.md`, "Failures": a token refused, a 403 naming the permission the token needs, a 404, a rate limit with the time of the next request.

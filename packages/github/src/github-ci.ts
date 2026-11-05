@@ -39,7 +39,7 @@ export function ciCommand(host: Host, watched: readonly Watched[]): Command {
 			const asked = await built(watched, name, branch).catch((error: Error) => error);
 			if (asked instanceof Error) return refuse(asked.message);
 			const { each, runs, found } = asked;
-			if (found === undefined) return refuse(`no run built ${branch}: none of its last ${DEPTH} commits has one among the ${runs} newest runs of ${each.workflow}`);
+			if (found === undefined) return refuse(`no run built ${branch}: none of its last ${DEPTH} commits has one among the ${runs} newest push runs of ${each.workflow}`);
 			const { run, below } = found;
 			const where = below === 0 ? `${branch}'s tip` : `${branch}, ${below} commit${below === 1 ? "" : "s"} below its tip`;
 			console.log(`run ${run.id}, attempt ${run.attempt}, of ${each.workflow} on ${run.sha.slice(0, 7)} (${where}): ${run.status === "completed" ? run.conclusion : run.status}\n${run.url}`);

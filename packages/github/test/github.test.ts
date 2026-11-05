@@ -181,7 +181,7 @@ test("a passed run is told as ci-finished and wakes no one; a failed one on the 
 	assert.match(box.messages()[0] ?? "", /^CI run 62, attempt 1, of ci.yml in shop ended failure on arthur\/one /);
 });
 
-test("a commit with no run of its own has the run of the nearest commit before it, for the poll and arthur ci; two branches on one run are one event; wakeOn [] wakes nobody", async (t) => {
+test("a commit with no run of its own has the run of the nearest commit before it, for the poll and arthur ci; a branch not pushed yet has none, main's run is main's alone; wakeOn [] wakes nobody", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const built = shop.commit("arthur/two");
@@ -200,7 +200,7 @@ test("a commit with no run of its own has the run of the nearest commit before i
 	assert.deepEqual(
 		box.finished().map((event) => [event.run, event.branches]),
 		[
-			[20, ["main", "arthur/fresh"]],
+			[20, ["main"]],
 			[21, ["arthur/two"]],
 		],
 	);
@@ -235,7 +235,7 @@ test("a branch deleted while in play leaves it: its run is not told, nothing is 
 	assert.deepEqual([box.notices(), box.errors], [[], []]);
 });
 
-test("a branch delivery.ciEnded answers true for is left out of the wake and the others stay; with none left, no wake; ci-finished still names every branch; a project's first poll asks it of a run already finished, and tells nothing", async (t) => {
+test("a branch delivery.ciEnded answers true for is not woken on, one it answers false for is; a branch on another branch's run has none; a project's first poll asks it of a run already finished, and tells nothing", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const tip = shop.commit("arthur/waits");
@@ -247,7 +247,7 @@ test("a branch delivery.ciEnded answers true for is left out of the wake and the
 	const fake = fakeHost({ name: "github", options: options(api.apiUrl), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	fake.provide("projects", () => [project]);
 	// The test as delivery: the branches whose CI wait it says it woke the coordinator for.
-	let waits = ["arthur/waits", "arthur/old"];
+	let waits = ["arthur/old"];
 	const asked: (readonly unknown[])[] = [];
 	fake.provide("delivery.ciEnded", (end: { readonly project: string; readonly branch: string; readonly below: number; readonly run: { readonly id: number; readonly attempt: number } }) => {
 		asked.push([end.project, end.branch, end.below, end.run.id, end.run.attempt]);
@@ -263,20 +263,17 @@ test("a branch delivery.ciEnded answers true for is left out of the wake and the
 	assert.deepEqual([asked, box.finished()], [[["shop", "arthur/old", 0, 40, 1]], []], "the first poll asks of run 40 and tells nothing");
 	[run.status, run.conclusion] = ["completed", "failure"];
 	await until("the run's end", () => box.finished().length === 1);
-	assert.deepEqual([...(box.finished()[0]?.branches ?? [])].sort(), ["arthur/also", "arthur/waits"]);
-	assert.deepEqual(asked.slice(1).sort(), [
-		["shop", "arthur/also", 1, 41, 1],
-		["shop", "arthur/waits", 0, 41, 1],
-	]);
-	const ci = "arthur ci arthur/also --project shop";
-	const then = `then a failure in the branch's own code goes back to its worker: arthur continue 2026-01-01-worker-00000011 '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
-	assert.deepEqual(box.messages(), [`CI run 41, attempt 1, of ci.yml in shop ended failure on arthur/also (${tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/41\nWhy: ${ci}; ${then}`]);
-	waits = ["arthur/waits", "arthur/also"];
-	[run.attempt, run.status, run.conclusion] = [2, "completed", "success"];
+	assert.deepEqual(box.finished()[0]?.branches, ["arthur/waits"], "arthur/also's commit below its tip ran as arthur/waits: not its run");
+	assert.deepEqual(asked.slice(1), [["shop", "arthur/waits", 0, 41, 1]]);
+	const ci = "arthur ci arthur/waits --project shop";
+	const then = `then a failure in the branch's own code goes back to its worker: arthur continue 2026-01-01-worker-00000010 '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
+	assert.deepEqual(box.messages(), [`CI run 41, attempt 1, of ci.yml in shop ended failure on arthur/waits (${tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/41\nWhy: ${ci}; ${then}`]);
+	waits = ["arthur/waits"];
+	[run.attempt, run.status, run.conclusion] = [2, "completed", "failure"];
 	await until("the rerun's end", () => box.finished().length === 2);
 	const polls = api.count(PATH);
 	await until("two more polls", () => api.count(PATH) >= polls + 2);
-	assert.equal(box.messages().length, 1, "every branch woken by delivery: github says nothing");
+	assert.equal(box.messages().length, 1, "the branch woken by delivery: github says nothing");
 });
 
 test("a 401 is said once, not every poll, for every project of the instance; once GitHub answers, a new 401 is said again", async (t) => {
@@ -429,7 +426,7 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a rerun in
 	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: instance (unnamed): 403 for run 50 of acme/shop: Resource not accessible by personal access token; the token in ARTHUR_GITHUB_TOKEN needs Actions: read and write on it"]);
 	assert.deepEqual(await refused("arthur/none"), [1, `arthur ci: no branch arthur/none in ${shop.path}`]);
 	api.runs["acme/shop/ci.yml"] = [];
-	assert.deepEqual(await refused("main"), [1, "arthur ci: no run built main: none of its last 1000 commits has one among the 0 newest runs of ci.yml"]);
+	assert.deepEqual(await refused("main"), [1, "arthur ci: no run built main: none of its last 1000 commits has one among the 0 newest push runs of ci.yml"]);
 	const ci = box.fake.commands.find((command) => command.name === "ci");
 	assert.equal(await ci?.run({ args: ["main"], project: "plain" }), 1);
 	assert.equal(box.errors.at(-1), "arthur ci: project plain has no github.project({ workflow }), so github watches no run of it");
@@ -460,9 +457,17 @@ test("github.ci answers the run that built a branch as arthur ci finds it, how f
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const built = shop.commit("arthur/one");
-	shop.commit("arthur/one");
-	const run: FakeRun = { id: 60, sha: built, branch: "arthur/one", status: "in_progress", conclusion: null, started: "2026-01-01T00:05:00Z" };
-	api.runs["acme/shop/ci.yml"] = [run];
+	const tip = shop.commit("arthur/one");
+	// GitHub's names ignore case: the repository's own push, though origin says acme/shop.
+	const run: FakeRun = { id: 60, sha: built, branch: "arthur/one", status: "in_progress", conclusion: null, started: "2026-01-01T00:05:00Z", repository: "Acme/Shop" };
+	// Newer runs on the tip that are not the branch's own push, each passed: none counts (AR0504).
+	const others: FakeRun[] = [
+		{ id: 70, sha: tip, branch: "arthur/one", status: "completed", conclusion: "success", event: "pull_request", repository: "fork/shop" },
+		{ id: 71, sha: tip, branch: "arthur/one", status: "completed", conclusion: "success", event: "workflow_dispatch" },
+		{ id: 72, sha: tip, branch: "arthur/two", status: "completed", conclusion: "success" },
+		{ id: 73, sha: tip, branch: "arthur/one", status: "completed", conclusion: "success", repository: "fork/shop" },
+	];
+	api.runs["acme/shop/ci.yml"] = [...others, run];
 	const projects = [
 		{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) },
 		{ name: "plain", path: repository(null).path, prefix: "PL" },

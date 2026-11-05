@@ -68,14 +68,14 @@ export async function ask(instance: Instance, path: string, what: string, needs:
 	return { text: `instance ${label}: ${response.status} for ${what}: ${said}`, loud: false };
 }
 
-// The newest runs of `workflow` (its file name or id) in `repo` (`owner/name`), newest first.
+// The newest runs of `workflow` (its file name or id) in `repo` (`owner/name`) that are pushes to `repo` itself, newest first.
 export async function workflowRuns(instance: Instance, repo: string, workflow: string, signal: AbortSignal): Promise<Runs | Failure> {
 	const what = `workflow ${workflow} of ${repo}`;
 	const answer = await ask(instance, `/repos/${repo}/actions/workflows/${encodeURIComponent(workflow)}/runs?per_page=${PER_PAGE}&exclude_pull_requests=true`, what, "Actions: read", signal);
 	if (!("body" in answer)) return answer;
 	const list = field(answer.body, "workflow_runs");
 	if (!Array.isArray(list)) return { text: `instance ${instance.label}: the answer for ${what} holds no workflow_runs`, loud: false };
-	return { runs: list.flatMap((each) => run(each) ?? []), ...(answer.until === undefined ? {} : { until: answer.until }) };
+	return { runs: list.flatMap((each) => run(each, repo) ?? []), ...(answer.until === undefined ? {} : { until: answer.until }) };
 }
 
 // Every item of the list at `path`, in GitHub's order, page after page of `PER_PAGE`, at most `PAGES` pages: `cut` when the
@@ -104,10 +104,13 @@ function waitUntil(response: Response, said: string): number | undefined {
 	return undefined;
 }
 
-// One run of the answer's `workflow_runs`, undefined when it lacks a field the plugin reads; a server without `run_attempt`
-// (an older GitHub Enterprise Server) has first attempts only.
-function run(item: unknown): Run | undefined {
-	const [id, attempt, sha, branch, status, conclusion, url, started, created] = ["id", "run_attempt", "head_sha", "head_branch", "status", "conclusion", "html_url", "run_started_at", "created_at"].map((key) => field(item, key));
+// One run of the answer's `workflow_runs`, undefined when it lacks a field the plugin reads or is not a push to `repo` itself
+// (AR0504: a fork's pull request, a `workflow_dispatch` or a `schedule` may run less); GitHub's names ignore case. A server
+// without `run_attempt` (an older GitHub Enterprise Server) has first attempts only.
+function run(item: unknown, repo: string): Run | undefined {
+	const [id, attempt, sha, branch, status, conclusion, url, started, created, event] = ["id", "run_attempt", "head_sha", "head_branch", "status", "conclusion", "html_url", "run_started_at", "created_at", "event"].map((key) => field(item, key));
+	const from = field(field(item, "head_repository"), "full_name");
+	if (event !== "push" || typeof from !== "string" || from.toLowerCase() !== repo.toLowerCase()) return undefined;
 	if (typeof id !== "number" || typeof sha !== "string" || typeof status !== "string" || typeof url !== "string") return undefined;
 	const startedAt = typeof started === "string" ? started : typeof created === "string" ? created : null;
 	return { id, attempt: typeof attempt === "number" ? attempt : 1, sha, branch: typeof branch === "string" ? branch : null, status, conclusion: typeof conclusion === "string" ? conclusion : null, url, startedAt };

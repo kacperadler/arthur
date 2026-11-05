@@ -19,8 +19,8 @@ export type Watched = Repository & { readonly workflow: string };
 // `run_started_at` (else `created_at`), as GitHub writes it.
 export type Run = { readonly id: number; readonly attempt: number; readonly sha: string; readonly branch: string | null; readonly status: string; readonly conclusion: string | null; readonly url: string; readonly startedAt: string | null };
 // `loud` when the owner must act (a token refused, a workflow not found): a notice, else a line on stderr; `until` the time in
-// ms before which the instance asks nothing more.
-export type Failure = { readonly text: string; readonly loud: boolean; readonly until?: number };
+// ms before which the instance asks nothing more; `status` 404 when GitHub found no such thing, so a caller can say what it may be.
+export type Failure = { readonly text: string; readonly loud: boolean; readonly until?: number; readonly status?: number };
 export type Runs = { readonly runs: readonly Run[]; readonly until?: number };
 // A 2xx answer: its text, its JSON when it is some, and GitHub's `date` header (its clock, whole seconds) when it sent one.
 export type Answer = { readonly body: unknown; readonly text: string; readonly until?: number; readonly date?: string };
@@ -37,16 +37,17 @@ const MINUTE_MS = 60_000;
 // A key of an answer's object, undefined when it is no object or lacks it.
 export const field = (item: unknown, key: string): unknown => (typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined);
 
-// One request of `path`, from the API's root; `what` is the thing asked and `needs` the token's permission on it, as a
-// refusal names them. A redirect is followed (a job's log).
-export async function ask(instance: Instance, path: string, what: string, needs: string, signal: AbortSignal, method = "GET"): Promise<Answer | Failure> {
+// One request of `path`, from the API's root, with `json` as its body when given; `what` is the thing asked and `needs` the
+// token's permission on it, as a refusal names them. A redirect is followed (a job's log).
+export async function ask(instance: Instance, path: string, what: string, needs: string, signal: AbortSignal, method = "GET", json?: unknown): Promise<Answer | Failure> {
 	const { label, tokenEnv, apiUrl, token } = instance;
 	let response: Response;
 	let text: string;
 	let body: unknown;
 	try {
-		const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "arthur" };
-		response = await fetch(`${apiUrl}${path}`, { method, headers, signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) });
+		const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "arthur", ...(json === undefined ? {} : { "Content-Type": "application/json" }) };
+		const init = { method, headers, signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) };
+		response = await fetch(`${apiUrl}${path}`, json === undefined ? init : { ...init, body: JSON.stringify(json) });
 		text = await response.text();
 		try {
 			body = JSON.parse(text);
@@ -57,14 +58,19 @@ export async function ask(instance: Instance, path: string, what: string, needs:
 		return { text: `instance ${label}: ${apiUrl}: ${why}`, loud: false };
 	}
 	const message = field(body, "message");
-	const said = (typeof message === "string" ? message : response.statusText || "no reason given").replaceAll(token, "[token]").replace(/\s+/g, " ").slice(0, 300);
+	// A 422's `errors`, "Validation Failed": each its `message`, else its `resource`, `field` and `code` (a head not on GitHub has no message).
+	const errors = field(body, "errors");
+	const each = (Array.isArray(errors) ? errors : []).map((error) =>
+		(typeof field(error, "message") === "string" ? ["message"] : ["resource", "field", "code"]).flatMap((key) => (typeof field(error, key) === "string" ? [field(error, key)] : [])).join(" "),
+	);
+	const said = [typeof message === "string" ? message : response.statusText || "no reason given", ...each].join(": ").replaceAll(token, "[token]").replace(/\s+/g, " ").slice(0, 300);
 	const until = waitUntil(response, said);
 	const date = response.headers.get("date");
 	if (response.ok) return { body, text, ...(until === undefined ? {} : { until }), ...(date === null ? {} : { date }) };
 	if (until !== undefined) return { text: `instance ${label}: ${response.status}, rate limited: ${said}; no request until ${new Date(until).toISOString()}`, loud: false, until };
 	if (response.status === 401) return { text: `instance ${label}: 401: the token in ${tokenEnv} was refused: ${said}`, loud: true };
 	if (response.status === 403) return { text: `instance ${label}: 403 for ${what}: ${said}; the token in ${tokenEnv} needs ${needs} on it`, loud: true };
-	if (response.status === 404) return { text: `instance ${label}: 404: ${what} not found, or the token in ${tokenEnv} cannot see it`, loud: true };
+	if (response.status === 404) return { text: `instance ${label}: 404: ${what} not found, or the token in ${tokenEnv} cannot see it`, loud: true, status: 404 };
 	return { text: `instance ${label}: ${response.status} for ${what}: ${said}`, loud: false };
 }
 

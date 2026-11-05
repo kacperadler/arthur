@@ -45,7 +45,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **telegram**, built: text, media and the phone menu ([telegram](packages/telegram/docs/telegram.md)).
 - **discord**, built: text, media and the phone commands through the gateway, on one private server, a channel per project ([discord](packages/discord/docs/discord.md)).
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).
-- **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads pull requests and lists and deletes branches on origin ([github](packages/github/docs/github.md)).
+- **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads, creates, comments on and closes pull requests and lists and deletes branches on origin ([github](packages/github/docs/github.md)).
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
 - **dokploy**, partly built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, each server's API key in a variable, for the coordinator only; upload and deploy planned ([dokploy](packages/dokploy/docs/dokploy.md)).
 - **manage**, built: health, stats, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).

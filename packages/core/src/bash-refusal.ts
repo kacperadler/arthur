@@ -127,7 +127,8 @@ export function bashRefusal(place: Place, command: string, start: string, unread
 		// Every worktree shares the repository: a ref the job does not own (any `fast-import` names), a checkout pointed at it, a replacement or a rewrite is main's.
 		const ref = sub === "fast-import" ? "with its refs on stdin" : (rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin");
 		if (sub === "fast-import" ? [dir, ...trees].some((path) => [place.root, place.worktrees].some((at) => inside(located(dir, path), at))) : sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git ${sub} ${ref}`);
-		if ((points !== undefined && points !== `refs/heads/${place.branch}`) || replaces || shared || adds.some((word) => !inside(located(dir, word), place.worktrees))) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
+		// On any repository, `fast-import --allow-unsafe-features` (an exact word, as Git reads it) lets stdin's `feature export-marks=<path>` write any file.
+		if ((points !== undefined && points !== `refs/heads/${place.branch}`) || replaces || shared || adds.some((word) => !inside(located(dir, word), place.worktrees)) || (sub === "fast-import" && rest.includes("--allow-unsafe-features"))) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
 		// Config the worktrees share runs hooks and programs in the main checkout; a worktree's own, or a file elsewhere, does not.
 		if (config?.file !== undefined) return theirs([config.file], dir);
 		if (config !== undefined && config.scope !== "--worktree") return refusal(place, place.root, ["git config", config.scope, config.key].filter(Boolean).join(" "));

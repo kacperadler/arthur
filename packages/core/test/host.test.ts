@@ -76,6 +76,18 @@ test("host.secrets hands every plugin each enabled plugin's set values, from the
 	]);
 });
 
+test("hide names every value of the env file, a disabled plugin's, no plugin's and one the shell overrides too; a job's, which reads no env file, the shell's alone", async () => {
+	const loaded = config([
+		fake([], "orchestration"),
+		fake([], "telegram", { options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN" } }),
+		fake([], "signal", { options: { enabled: false, accountEnv: "ARTHUR_SIGNAL_ACCOUNT" } }),
+	]);
+	writeFileSync(loaded.core.envFile, "ARTHUR_TELEGRAM_BOT_TOKEN=overridden-1\nARTHUR_SIGNAL_ACCOUNT=disabled-one\nARTHUR_LOOSE_KEY=no-plugin-one\n");
+	const [shell, text] = [{ ARTHUR_TELEGRAM_BOT_TOKEN: "from-the-shell" }, "overridden-1 disabled-one no-plugin-one from-the-shell"];
+	assert.equal((await loadPlugins(loaded, shell)).hide(text), "ARTHUR_TELEGRAM_BOT_TOKEN ARTHUR_SIGNAL_ACCOUNT ARTHUR_LOOSE_KEY ARTHUR_TELEGRAM_BOT_TOKEN");
+	assert.equal((await loadPlugins(loaded, shell, undefined, "2026-10-30-worker-0a1b2c3d")).hide(text), "overridden-1 disabled-one no-plugin-one ARTHUR_TELEGRAM_BOT_TOKEN");
+});
+
 test("under umask 022 the load leaves the home its user's alone: one made 0755 earlier is 0700 before any plugin's setup", async (t) => {
 	const mask = process.umask(0o022);
 	t.after(() => process.umask(mask));

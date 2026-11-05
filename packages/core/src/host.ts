@@ -16,7 +16,7 @@ import { coreRequirements } from "./requirements.ts";
 import { checkPieces, unreadPieces } from "./project-pieces.ts";
 import type { Answer, Plugin } from "./plugin.ts";
 import { asPlugin, pluginHost, pluginStep, registry } from "./plugin-host.ts";
-import { type Hide, secretNames } from "./secret-names.ts";
+import { envFileNames, type Hide } from "./secret-names.ts";
 import type { Outgoing } from "./send-command.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
@@ -30,7 +30,7 @@ import type { Outgoing } from "./send-command.ts";
 // `follow` is what `arthur run` follows the event log with; `project` is the project a name names (job-checkout.ts), refusing
 // one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`);
 // `doctor` checks the core's requirements, each project piece no loaded plugin reads, and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's;
-// `channels` asks every channel's `channel.send` (`arthur send`); `hide` names each env variable's value (secret-names.ts).
+// `channels` asks every channel's `channel.send` (`arthur send`); `hide` names the env file's values, outside a job, and the plugins' (secret-names.ts).
 export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[]; readonly hide: Hide };
 export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 
@@ -47,7 +47,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const checked = await checkPlugins(config);
 	const record = join(config.core.home, "jobs", job ?? "", "project");
 	const own = job === undefined ? undefined : { id: job, project: existsSync(record) ? readFileSync(record, "utf8").trim() : "" };
-	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = secretNames(Object.assign({}, ...Object.values(values)));
+	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = envFileNames(job === undefined ? [config.core.envFile] : [], Object.assign({}, ...Object.values(values)));
 	const skipped = new Set<string>();
 	for (const plugin of checked) if (unset.has(plugin.name) || plugin.requires?.some((name) => skipped.has(name))) skipped.add(plugin.name);
 	const sorted = checked.filter((plugin) => !skipped.has(plugin.name));

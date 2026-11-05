@@ -114,25 +114,26 @@ test("a plugin's setup that fails with the token says its name in every command'
 	}
 });
 
-test("an uncaught exception, an unhandled rejection and bytes written by a plugin say the token's name; the first two exit 1", () => {
+test("an uncaught exception, an unhandled rejection and bytes written by a plugin say the names of the env file's values, an enabled plugin's, a disabled one's and no plugin's; the first two exit 1", () => {
 	const secrets = temporaryFolder();
-	writeFileSync(join(secrets, "env"), `${NAME}=supersecret-value-123\n`);
+	writeFileSync(join(secrets, "env"), `${NAME}=supersecret-value-123\nARTHUR_SIGNAL_ACCOUNT=disabled-value-456\nARTHUR_LOOSE_KEY=loose-value-789\n`);
 	const root = temporaryFolder();
 	writeFileSync(join(root, "doc.md"), "# arthur\n");
 	const wait = "new Promise((done) => setTimeout(done, 5000))";
 	writeFileSync(join(root, "arthur.config.ts"), `const doc = new URL("./doc.md", import.meta.url);
 export default { core: { envFile: ${JSON.stringify(join(secrets, "env"))} }, plugins: [{ name: "orchestration", options: { tokenEnv: "${NAME}" }, setup(host) {
-	const token = host.env.${NAME};
+	const token = host.env.${NAME} + " disabled-value-456 loose-value-789";
 	host.commands.register({ name: "later", doc, run: () => (setTimeout(() => { throw new Error("later " + token); }, 10), ${wait}) });
 	host.commands.register({ name: "rejects", doc, run: () => (void Promise.reject(new Error("rejected " + token)), ${wait}) });
 	host.commands.register({ name: "bytes", doc, run: () => void process.stdout.write(Buffer.from("buf " + token + " ä\\n")) });
-} }] };
+} }, { name: "signal", options: { enabled: false, accountEnv: "ARTHUR_SIGNAL_ACCOUNT" }, setup() {} }] };
 `);
 	const later = arthur(root, "later"), rejects = arthur(root, "rejects"), bytes = arthur(root, "bytes");
-	assert.deepEqual([later.status, later.stderr.split("\n")[0]], [1, `Error: later ${NAME}`]);
-	assert.deepEqual([rejects.status, rejects.stderr.split("\n")[0]], [1, `Error: rejected ${NAME}`]);
-	assert.deepEqual([bytes.status, bytes.stdout], [0, `buf ${NAME} ä\n`]);
-	for (const run of [later, rejects, bytes]) assert.ok(!`${run.stdout}${run.stderr}`.includes("supersecret-value-123"), `${run.stdout}${run.stderr}`);
+	const names = `${NAME} ARTHUR_SIGNAL_ACCOUNT ARTHUR_LOOSE_KEY`;
+	assert.deepEqual([later.status, later.stderr.split("\n")[0]], [1, `Error: later ${names}`]);
+	assert.deepEqual([rejects.status, rejects.stderr.split("\n")[0]], [1, `Error: rejected ${names}`]);
+	assert.deepEqual([bytes.status, bytes.stdout], [0, `buf ${names} ä\n`]);
+	for (const run of [later, rejects, bytes]) assert.ok(!/supersecret-value-123|disabled-value-456|loose-value-789/.test(`${run.stdout}${run.stderr}`), `${run.stdout}${run.stderr}`);
 });
 
 test("each value of 8 characters or more becomes its name, the longest first, whatever characters it holds; a shorter one stays", () => {

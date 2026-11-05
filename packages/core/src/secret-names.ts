@@ -7,9 +7,9 @@ import { parseEnvFile } from "./env.ts";
 // `values`: the values named, the longest first; `bytes` names them in bytes, each value as its UTF-8.
 export type Hide = ((text: string) => string) & { readonly values: readonly string[]; readonly bytes: (chunk: Uint8Array) => Buffer };
 
-// `named`: values by variable name, replaced in one pass, the longest first, so a value inside another never splits it.
-export function secretNames(named: Readonly<Record<string, string>>): Hide {
-	const kept = Object.entries(named).filter(([, value]) => value.length >= 8);
+// `named`: values by variable name, or `[name, value]` pairs; replaced in one pass, the longest first, so a value inside another never splits it.
+export function secretNames(named: Readonly<Record<string, string>> | readonly (readonly [string, string])[]): Hide {
+	const kept = (Array.isArray(named) ? named : Object.entries(named)).filter(([, value]) => value.length >= 8);
 	// Bytes as latin1 text, one character per byte, so a byte sequence a chunk cuts short stays as it was.
 	const latin = replacer(kept.map(([name, value]) => [name, Buffer.from(value).toString("latin1")]));
 	const values = kept.map(([, value]) => value).sort((a, b) => b.length - a.length);
@@ -38,10 +38,10 @@ export function namedChunks(hide: Hide, write: (text: string) => void): { push(c
 	};
 }
 
-// The wrapper's, which loads no config: every value of the env files its job's record names (`hidden`, job-sandbox.ts); a path
-// that is no file (the `~/.ssh` folder, a file gone) names nothing.
-export function envFileNames(files: readonly string[]): Hide {
-	return secretNames(Object.fromEntries(files.filter((file) => statSync(file, { throwIfNoEntry: false })?.isFile()).flatMap((file) => [...parseEnvFile(readFileSync(file, "utf8"), file).values])));
+// Every value of the env files `files`, whatever its name, and `named`: the wrapper's (`hidden`, job-sandbox.ts) and the loading process's
+// (host.ts) both name the env file whole; a path that is no file (the `~/.ssh` folder, a file gone) names nothing.
+export function envFileNames(files: readonly string[], named: Readonly<Record<string, string>> = {}): Hide {
+	return secretNames([...files.filter((file) => statSync(file, { throwIfNoEntry: false })?.isFile()).flatMap((file) => [...parseEnvFile(readFileSync(file, "utf8"), file).values]), ...Object.entries(named)]);
 }
 
 // Every text and every byte this process writes to stdout and stderr from here on, a value two writes split excepted; an

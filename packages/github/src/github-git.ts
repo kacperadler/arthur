@@ -64,26 +64,25 @@ function originCheck(path: string): { readonly refusal: string; readonly pins: r
 	return checked.refusal !== "" || git(path, "remote", "get-url", "origin") !== undefined ? checked : { refusal: `${path} has no origin remote`, pins: [] };
 }
 
-// `git push origin <branch>`, resolving to one line: `github: pushed ...`, or `github: <branch> not pushed to origin: <why>`.
-// No prompt and no program of the checkout's or origin's (`quiet`, `originCheck`). No hook runs, so a branch whose
-// `.gitattributes` (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as Git LFS's pre-push hook does (AR0379); git-lfs must be on PATH,
-// as git would otherwise run a `lfs` alias of the config, and prints its progress to a pipe only with GIT_LFS_FORCE_PROGRESS (git-lfs-config(5)).
+// `git push origin <branch>` in a line: `github: pushed ...` or `github: <branch> not pushed to origin: <why>`; no prompt or program (`quiet`, `originCheck`).
+// No hook runs: a branch whose `.gitattributes` (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as LFS's pre-push hook does (AR0379).
+// git-lfs, on PATH (not a `lfs` alias), reads no protocol.<name>.allow, so a dry run asks Git first (AR0399); GIT_LFS_FORCE_PROGRESS shows progress in a pipe.
 export async function push(path: string, branch: string): Promise<string> {
 	const failed = (why: string) => `github: ${branch} not pushed to origin: ${why}`;
 	const { refusal: refused, pins } = originCheck(path);
 	if (refused !== "") return failed(refused);
 	const ref = `refs/heads/${branch}`;
-	const env = quiet();
-	if (git(path, "grep", "--quiet", "--fixed-strings", "-e", "filter=lfs", ref, "--", ":(glob)**/.gitattributes") !== undefined) {
-		if (spawnSync("git-lfs", ["version"]).status !== 0) return failed("its .gitattributes names filter=lfs, and git-lfs is not installed");
-		const lfs = await gitAway(path, [...pins, "lfs", "push", "origin", ref], { ...env, GIT_LFS_FORCE_PROGRESS: "1" }, "progress");
-		if (lfs.code !== 0) return failed(`its LFS objects were not pushed: ${lfs.why}`);
-	}
-	const ran = await gitAway(path, [...pins, "push", "--porcelain", "origin", `${ref}:${ref}`], env);
-	// `<flag>\t<from>:<to>\t<summary>`, as `git push --porcelain` prints each ref.
-	const [flag, , summary = ""] = ran.out.split("\n").find((line) => line.includes(`\t${ref}:${ref}\t`))?.split("\t") ?? [];
-	if (ran.code === 0) return `github: pushed ${branch} to origin: ${summary || "done"}`;
-	return failed(flag === "!" ? summary : ran.why);
+	// The push; with `lfs`, its dry run, the upload, then the push. `<flag>\t<from>:<to>\t<summary>`, as `git push --porcelain` prints each ref.
+	const pushing = async (lfs: boolean): Promise<string> => {
+		const ran = await gitAway(path, [...pins, "push", "--porcelain", ...(lfs ? ["--dry-run"] : []), "origin", `${ref}:${ref}`], quiet());
+		const [flag, , summary = ""] = ran.out.split("\n").find((line) => line.includes(`\t${ref}:${ref}\t`))?.split("\t") ?? [];
+		if (ran.code !== 0) return failed(flag === "!" ? summary : ran.why);
+		if (!lfs) return `github: pushed ${branch} to origin: ${summary || "done"}`;
+		const upload = await gitAway(path, [...pins, "lfs", "push", "origin", ref], { ...quiet(), GIT_LFS_FORCE_PROGRESS: "1" }, "progress");
+		return upload.code !== 0 ? failed(`its LFS objects were not pushed: ${upload.why}`) : pushing(false);
+	};
+	if (git(path, "grep", "--quiet", "--fixed-strings", "-e", "filter=lfs", ref, "--", ":(glob)**/.gitattributes") === undefined) return pushing(false);
+	return spawnSync("git-lfs", ["version"]).status !== 0 ? failed("its .gitattributes names filter=lfs, and git-lfs is not installed") : pushing(true);
 }
 
 // Origin's branches under `prefix` (such as `arthur/`, or a full name), each with its tip, as `git ls-remote` lists them; a

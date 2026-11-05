@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { watch } from "node:fs/promises";
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import { coreVersion, ssh, sshAsync } from "../src/job-machine.ts";
+import { coreVersion, reach, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { secretNames } from "../src/secret-names.ts";
@@ -439,6 +441,46 @@ test("a prepare that throws on a job on another machine removes its worktree and
 	await assert.rejects(jobs.spawn({ task: "Go.", machine: "gpu" }), { message: "plugin projects: prepare failed: no install; the job's worktree and record were removed" });
 	assert.deepEqual([readdirSync(join(home, "jobs")), readdirSync(join(there, "jobs")), readdirSync(join(there, "repos/.arthur-worktrees"))], [[], [], []]);
 	assert.equal(git(join(there, "repos/acme.git"), "branch", "--list"), "");
+});
+
+test("a spawn's add, launch and remove there wait without blocking: the process answers while each runs", async () => {
+	const gates = temporaryFolder();
+	const { machine, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	// From here `arthur remote-job add`, `launch` and `remove` there note they began, and go on only once this process answers
+	// with `<step>.go`: a process the step blocks never does, and the step fails 10 s on.
+	const wait = `touch '${gates}'/"$2" && n=0 && while [ ! -e '${gates}'/"$2.go" ] && [ $n -lt 100 ]; do sleep 0.1; n=$((n + 1)); done && [ -e '${gates}'/"$2.go" ] || exit 1`;
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\ncase "$2" in add|launch|remove) ${wait};; esac\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	const answer = async (step: string) => (await until(`${step} there`, () => existsSync(join(gates, step))), writeFileSync(join(gates, `${step}.go`), ""));
+	const [job] = await Promise.all([jobs.spawn({ task: "Go.", machine: "gpu" }), answer("add").then(() => answer("launch"))]);
+	assert.equal(job.failed, undefined);
+	jobs.prepare("projects", () => {
+		throw new Error("no install");
+	});
+	for (const name of ["add", "add.go"]) rmSync(join(gates, name));
+	const refused = assert.rejects(jobs.spawn({ task: "Go.", machine: "gpu" }), { message: "plugin projects: prepare failed: no install; the job's worktree and record were removed" });
+	await Promise.all([refused, answer("add").then(() => answer("remove"))]);
+});
+
+test("the push of a base there that has not ended 600 s on fails, naming the machine, and not 1 ms sooner", async (t) => {
+	const { root, machine, there } = setup();
+	const folder = temporaryFolder(), gate = join(folder, "go");
+	t.after(() => writeFileSync(gate, ""));
+	const real = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+	// From here `git receive-pack` there notes it began, then waits for `gate`, or 30 s; every other git there is the real one.
+	const pushing = `touch '${join(folder, "pushing")}' && n=0 && while [ ! -e '${gate}' ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done`;
+	writeFileSync(join(machine, "bin/git"), `#!/bin/sh\n[ "$3" = receive-pack ] && ${pushing}\nexec '${real}' "$@"\n`, { mode: 0o755 });
+	// Fake time: 600 s cannot pass for real in a test. The ssh steps before the push end on their own, without a timer.
+	t.mock.timers.enable({ apis: ["setTimeout"] });
+	const began = watch(folder);
+	let said = "";
+	void reach({ name: "gpu", ssh: "gpu", home: there, labels: {} }, "acme", root, git(root, "rev-parse", "HEAD")).then(() => (said = "resolved"), (error: Error) => (said = error.message));
+	for await (const { filename } of began) if (filename === "pushing") break;
+	t.mock.timers.tick(599_999);
+	await nextTurn();
+	assert.equal(said, "", "still pushing 1 ms before its limit");
+	t.mock.timers.tick(1);
+	await nextTurn();
+	assert.equal(said, "machine gpu: git push: timed out after 600 s");
 });
 
 // Whole lines only: a line the agent is still appending has no line break yet.

@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-11-02: AR0605 approved: plan first, after Group 2; the owner: "arthur config check - ok" (AR-D459)
+- 2026-11-05: Plan approved by the owner: plan.md at 76432365 (by its recommendations, AR-D500); the owner: "do not ask me about them; always go with the recommendation (AR-D500)" (AR-D506)

@@ -225,6 +225,8 @@ test("a refused slice (404, a channel gone) is set aside and told once; a channe
 	const { fake, plugin, errors, queued, folder, notices, received } = await load(t, { apiUrl: api.url });
 	await plugin.start?.();
 	await until("identified", () => api.sent(2).length === 1);
+	// The backlog of GUILD_CREATE lists the channels it reads as its first call goes; a channel created before then would be read too.
+	await until("the backlog under way", () => api.calls.some((call) => call.method === "GET" && call.path.startsWith(`/channels/${MAIN}/messages?`)));
 	const gone = "1300000000000000008";
 	api.dispatch("CHANNEL_CREATE", { id: gone, type: 0, guild_id: GUILD, name: "gone" });
 	api.dispatch("CHANNEL_CREATE", { id: "1300000000000000010", type: 15, guild_id: GUILD, name: "a forum" });

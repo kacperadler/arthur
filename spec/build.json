@@ -4127,9 +4127,9 @@
   {
     "id": "AR0521",
     "title": "A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0521-a-machine-with-many-jobs-whose-logs-grew-a-lot-may-not-fit-its-copy-in-20-s-over/ticket.md",
-    "updated": "2026-11-05T06:46:36.353Z",
+    "updated": "2026-11-05T07:39:54.095Z",
     "after": [
       "AR0391"
     ]

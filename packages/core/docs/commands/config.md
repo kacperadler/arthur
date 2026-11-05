@@ -9,13 +9,13 @@ set     ARTHUR_YOUTRACK_URL (youtrack.instances[0].urlEnv)
 missing ARTHUR_YOUTRACK_TOKEN (youtrack.instances[0].tokenEnv)
 ```
 
-The type check runs `tsc` on `arthur.config.ts` and on `<folder>/project.config.ts` of each folder in the `folders` of the first `projects` plugin the config lists, unless it has `enabled: false`; a folder is counted from the working folder, and one without that file is left to the projects plugin, which refuses it at load. So a project file with three misspelt keys shows all three in one run, while the plugins' own checks stop at the first plugin that refuses. `tsc` is the one of the `typescript` package installed beside the config (a dev dependency), run in the config's folder with the root `tsconfig.json`'s strictness (`--strict`, `--types node`, `--skipLibCheck`); its lines are printed as it writes them, after the host's refusals and before the env lines, each file counted from the config's folder:
+The type check runs `tsc` on `arthur.config.ts` and on `<folder>/project.config.ts` of each folder in the `folders` of the first `projects` plugin the config lists, unless it has `enabled: false`; a folder is counted from the working folder, and one without that file is left to the projects plugin, which refuses it at load. So misspelt keys in different objects, such as `uptime.project([{ ulr }])` and `dokploy.project({ ap })`, show all in one run, while the plugins' own checks stop at the first plugin that refuses; within one object, `tsc` names only the first unknown key. `tsc` is the one of the `typescript` package installed beside the config (a dev dependency), run in the config's folder with the root `tsconfig.json`'s strictness (`--strict`, `--types node`, `--skipLibCheck`); its lines are printed as it writes them, after the host's refusals and before the env lines, each file counted from the config's folder:
 
 ```
 projects/landing/project.config.ts(3,40): error TS2353: Object literal may only specify known properties, and 'ulr' does not exist in type 'Site'.
 ```
 
-It does not run when the config does not load.
+A type error, or a `tsc` that fails (its own lines, else `types not checked: tsc exited with <code>`), fails the check but does not refuse the start: `arthur run` does not type-check. The type check does not run when the config does not load.
 
 Where a value comes from:
 
@@ -40,7 +40,6 @@ Refused, one line each (the same lines refuse the start):
 - An env-file line without `=`, with a key that is not letters, digits and `_`, or with an unclosed quote: named by its line number, never shown.
 - An env file that exists but cannot be read.
 - A config that does not load (its own refusals, `loadConfig`).
-- A type error in the config or a project file the type check reads (above), and a `tsc` that fails: its own lines, else `types not checked: tsc exited with <code>`.
 - A plugin list the host refuses, printed before the env lines: an entry that is not a plugin (its variables are then neither looked up nor listed), a plugin's `module` that is not its own `import.meta.url` (a `file:` URL), two plugins with one name, `orchestration` missing or disabled, an `enabled` that is not true or false, a `requires` naming a plugin that is missing or disabled, a cycle in `requires` and `after`, and each enabled plugin's own `check` (its problems, or `plugin <name>: check failed: ...` when it throws).
 - A refusal in a plugin's `setup`, printed before the env lines when nothing above is refused (any of those stops the start before a `setup` runs): a command name the core or another plugin already registered, or a `setup` that throws: `plugin <name>: setup failed: ...`.
 

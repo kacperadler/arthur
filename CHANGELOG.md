@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0391 The 60 s limit of a push also bounds its LFS upload (19fc7230)
 - AR0399 `git lfs push origin` reads origin's URL outside Git's transport policy (a186c156)
+- AR0500 The reviewer reads the diff through replacements under `refs/replace` that any job may write (875ef073)
 - AR0521 A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline (5b6e46e6)
 - AR0618 The checks extension misses a check run behind an env assignment or through bun run (720a6871)
 - AR0624 git fast-import with --allow-unsafe-features and a feature export-marks line on stdin writes a file anywhere past the worktree guard (47c9c31b)

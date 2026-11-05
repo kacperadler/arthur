@@ -3957,9 +3957,9 @@
   {
     "id": "AR0500",
     "title": "The reviewer reads the diff through replacements under `refs/replace` that any job may write",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0500-the-reviewer-reads-the-diff-through-replacements-under-refs-replace-that-any-job/ticket.md",
-    "updated": "2026-11-04T20:40:54.584Z",
+    "updated": "2026-11-05T13:05:45.319Z",
     "after": [
       "AR0399"
     ]

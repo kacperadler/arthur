@@ -685,6 +685,37 @@ esac\n`;
 	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(2), [`${local.path} push origin refs/heads/arthur/hidden absent`], "read past the replacement");
 });
 
+// AR0399: git-lfs, run with real origins of each kind, wrote into a folder and ran `ssh evil git-lfs-authenticate` for `evil://`, past protocol.<name>.allow.
+test("github.push of a filter=lfs branch runs no git lfs push to a transport the push would refuse: a helper (<name>:: or <name>://), ext::, a folder with hooks", async (t) => {
+	const [bin, work, owner, origin] = [temporaryFolder(), temporaryFolder(), join(temporaryFolder(), "gitconfig"), temporaryFolder()];
+	const ran = join(work, "ran");
+	writeFileSync(join(bin, "git-lfs"), `#!/bin/sh\n[ "$1" = version ] && exit 0\necho lfs "$@" >> '${ran}'\n`, { mode: 0o755 });
+	writeFileSync(join(bin, "git-remote-evil"), `#!/bin/sh\necho helper "$@" >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	writeFileSync(owner, "");
+	withEnv(t, { PATH: `${bin}${delimiter}${process.env.PATH}`, GIT_CONFIG_GLOBAL: owner, GIT_CONFIG_NOSYSTEM: "1" });
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	writeFileSync(join(origin, "hooks", "pre-receive"), `#!/bin/sh\necho hook >> '${ran}'\n`, { mode: 0o755 });
+	const local = repository(origin);
+	writeFileSync(join(local.path, ".gitattributes"), "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+	git(local.path, "add", ".gitattributes");
+	git(local.path, "commit", "--quiet", "-m", "LFS");
+	const refused = (transport: string) => `github: main not pushed to origin: fatal: transport '${transport}' not allowed`;
+	const urls = [[origin, "file"], [`file://${origin}`, "file"], ["evil::https://github.com/acme/shop.git", "evil"], ["evil://github.com/acme/shop.git", "evil"], [`ext::sh -c echo% ext% >>${ran}`, "ext"]];
+	for (const [url = "", transport = ""] of urls) {
+		git(local.path, "config", "remote.origin.url", url);
+		assert.equal(await push(local.path, "main"), refused(transport), url);
+	}
+	git(local.path, "config", "remote.origin.url", "https://github.com/acme/shop.git");
+	git(local.path, "config", "remote.origin.pushurl", "evil://github.com/acme/shop.git");
+	assert.equal(await push(local.path, "main"), refused("evil"), "a pushurl, which git-lfs pushes to too");
+	assert.equal(existsSync(ran), false, "no git lfs push, helper, ext command or hook ran");
+	git(local.path, "config", "--unset", "remote.origin.pushurl");
+	git(local.path, "config", "remote.origin.url", origin);
+	writeFileSync(owner, '[protocol "file"]\n\tallow = always\n');
+	assert.equal(await push(local.path, "main"), "github: pushed main to origin: [new branch]", "a folder the owner allows");
+	assert.deepEqual(readFileSync(ran, "utf8").split("\n"), ["lfs push origin refs/heads/main", "hook", ""], "the upload, then the push");
+});
+
 // AR0391: large files take longer than the 60 s a push gets; git-lfs, as git-lfs-config(5) says, prints its progress to a pipe only with GIT_LFS_FORCE_PROGRESS.
 test("github.push's git lfs push is killed after 60 s without progress, not after 60 s: an upload that moves goes on; the git push after it keeps its 60 s", async (t) => {
 	const [bin, work, origin] = [temporaryFolder(), temporaryFolder(), temporaryFolder()];

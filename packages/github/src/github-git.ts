@@ -68,22 +68,29 @@ function originCheck(path: string): { readonly refusal: string; readonly pins: r
 // No prompt and no program of the checkout's or origin's (`quiet`, `originCheck`). No hook runs, so a branch whose
 // `.gitattributes` (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as Git LFS's pre-push hook does (AR0379); git-lfs must be on PATH,
 // as git would otherwise run a `lfs` alias of the config, and prints its progress to a pipe only with GIT_LFS_FORCE_PROGRESS (git-lfs-config(5)).
+// git-lfs reads no protocol.<name>.allow: it writes into a folder and runs ssh to host <name> for `<name>://`, so the same push's dry run asks Git first (AR0399).
 export async function push(path: string, branch: string): Promise<string> {
 	const failed = (why: string) => `github: ${branch} not pushed to origin: ${why}`;
 	const { refusal: refused, pins } = originCheck(path);
 	if (refused !== "") return failed(refused);
 	const ref = `refs/heads/${branch}`;
 	const env = quiet();
+	const pushing = (...flags: string[]) => gitAway(path, [...pins, "push", "--porcelain", ...flags, "origin", `${ref}:${ref}`], env);
+	// `<flag>\t<from>:<to>\t<summary>`, as `git push --porcelain` prints each ref.
+	const line = (ran: Ran) => ran.out.split("\n").find((line) => line.includes(`\t${ref}:${ref}\t`))?.split("\t") ?? [];
+	const why = (ran: Ran) => {
+		const [flag, , summary = ""] = line(ran);
+		return flag === "!" ? summary : ran.why;
+	};
 	if (git(path, "grep", "--quiet", "--fixed-strings", "-e", "filter=lfs", ref, "--", ":(glob)**/.gitattributes") !== undefined) {
 		if (spawnSync("git-lfs", ["version"]).status !== 0) return failed("its .gitattributes names filter=lfs, and git-lfs is not installed");
+		const dry = await pushing("--dry-run");
+		if (dry.code !== 0) return failed(why(dry));
 		const lfs = await gitAway(path, [...pins, "lfs", "push", "origin", ref], { ...env, GIT_LFS_FORCE_PROGRESS: "1" }, "progress");
 		if (lfs.code !== 0) return failed(`its LFS objects were not pushed: ${lfs.why}`);
 	}
-	const ran = await gitAway(path, [...pins, "push", "--porcelain", "origin", `${ref}:${ref}`], env);
-	// `<flag>\t<from>:<to>\t<summary>`, as `git push --porcelain` prints each ref.
-	const [flag, , summary = ""] = ran.out.split("\n").find((line) => line.includes(`\t${ref}:${ref}\t`))?.split("\t") ?? [];
-	if (ran.code === 0) return `github: pushed ${branch} to origin: ${summary || "done"}`;
-	return failed(flag === "!" ? summary : ran.why);
+	const ran = await pushing();
+	return ran.code === 0 ? `github: pushed ${branch} to origin: ${line(ran)[2] || "done"}` : failed(why(ran));
 }
 
 // Origin's branches under `prefix` (such as `arthur/`, or a full name), each with its tip, as `git ls-remote` lists them; a

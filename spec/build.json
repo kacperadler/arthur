@@ -4117,9 +4117,9 @@
   {
     "id": "AR0520",
     "title": "The copy's fetch of an ended job's branch, and the spawn's SSH steps, still block `arthur run` with no time limit",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0520-the-copy-s-fetch-of-an-ended-job-s-branch-and-the-spawn-s-ssh-steps-still-block/ticket.md",
-    "updated": "2026-11-04T20:40:55.717Z",
+    "updated": "2026-11-05T15:13:32.534Z",
     "after": [
       "AR0504"
     ]
@@ -5094,5 +5094,12 @@
     "status": "planning",
     "path": "spec/features/AR0632-arthur-merge-points-xdg-cache-home-at-a-fresh-folder-so-a-project-whose-tests/ticket.md",
     "updated": "2026-11-05T13:29:53.567Z"
+  },
+  {
+    "id": "AR0633",
+    "title": "The umask test walks .arthur while the job still writes, and fails on a lock file that vanished",
+    "status": "planning",
+    "path": "spec/features/AR0633-the-umask-test-walks-arthur-while-the-job-still-writes-and-fails-on-a-lock-file/ticket.md",
+    "updated": "2026-11-05T15:27:44.679Z"
   }
 ]

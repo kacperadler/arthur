@@ -40,7 +40,7 @@ export function passForward(host: Host): PassForward {
 		// `sh` writes the exit status once the merge ended; a merge killed with it leaves none.
 		const merge = ["sh", "-c", '"$@"; echo $? > "$0.tmp" && mv "$0.tmp" "$0"', join(folder, "exit"), process.execPath, CLI, "merge", "--auto", job];
 		const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--unit=arthur-merge-${unit}.scope`, "--"];
-		const scoped = spawnSync("systemd-run", [...scope(`probe-${process.pid}`), "true"]).status === 0;
+		const scoped = spawnSync("systemd-run", [...scope(`probe-${process.pid}-${Date.now()}`), "true"]).status === 0;
 		const [command = "", ...args] = scoped ? ["systemd-run", ...scope(`${job}-${process.pid}-${Date.now()}`), ...merge] : merge;
 		const output = [openSync(join(folder, "out"), "w"), openSync(join(folder, "err"), "w")] as const;
 		const child = spawn(command, args, { detached: true, stdio: ["ignore", ...output] });

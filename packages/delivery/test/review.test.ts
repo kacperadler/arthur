@@ -833,6 +833,11 @@ test("arthur run's start rolls back a merge that died half done, keeping the boa
 	assert.match(told(fake)[0] ?? "", new RegExp(`^The merge of ${job.id} on acme died half done, its process gone: main still holds its merge commit ${merged.slice(0, 7)}, as git read-tree -m -u ${merged.slice(0, 7)} ${before.slice(0, 7)} refused: .+; reset main to ${before.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}$`));
 	git(root, "checkout", "--", `${job.id}.ts`);
 	holder(dead);
+	// The merge's own run folder, as a reboot leaves it: no exit status, its process gone. Its end is the rerun, not a wake of its own.
+	const killed = join(fake.host.folder, "merge-runs", `${job.id}-dead`);
+	mkdirSync(killed, { recursive: true });
+	writeFileSync(join(killed, "run.json"), JSON.stringify({ project: "acme", job: job.id, why: "Review x says PASS.", pid: dead }));
+	writeFileSync(join(killed, "out"), `merged ${job.branch} into main: ${merged.slice(0, 7)}\n`);
 	await plugin.start?.();
 	t.after(() => plugin.stop?.());
 	assert.deepEqual([git(root, "rev-parse", "HEAD"), readFileSync(join(root, "spec/build.json"), "utf8")], [before, board], "main at the merge's first parent, the board kept");
@@ -840,7 +845,8 @@ test("arthur run's start rolls back a merge that died half done, keeping the boa
 	await until("the coordinator woken", () => told(fake).length === 2);
 	assert.deepEqual(merge.asked(), [["--auto", job.id]]);
 	const why = `The merge of ${job.id} on acme died half done, its process gone: main went back from its merge commit ${merged.slice(0, 7)} to ${before.slice(0, 7)}, the board kept.`;
-	assert.deepEqual(told(fake)[1], `${why} acme merges on its own (autoMerge), so delivery ran arthur merge --auto ${job.id}: it went in; follow the procedure it printed last. What it printed:\n\nmerged again`);
+	assert.deepEqual(told(fake).slice(1), [`${why} acme merges on its own (autoMerge), so delivery ran arthur merge --auto ${job.id}: it went in; follow the procedure it printed last. What it printed:\n\nmerged again`], "one wake, the rerun's; none for the killed run");
+	assert.equal(existsSync(killed), false);
 });
 
 // The hand-back's continue of a worker whose tip's checks did not pass, after the refusal.

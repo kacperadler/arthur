@@ -100,6 +100,61 @@ test("a Roadmap ticket whose entry is not in the roadmap fails, naming the ticke
 	);
 });
 
+const named = [
+	"# Roadmap",
+	"",
+	"- Tickets: AR0009",
+	"",
+	"## Core",
+	"",
+	"### 1. Rules",
+	"",
+	"- Tickets: AR0001, AR0002",
+	"- Package: core.",
+	"",
+	"## Later",
+	"",
+	"- Tickets: AR0003",
+	"",
+	"### 9. Signal",
+].join("\n");
+
+test("an entry's Tickets line ties it to tickets whatever their titles, and only inside an entry", () => {
+	const sections = parseRoadmap(named);
+	assert.deepEqual(
+		sections.map((section) => section.entries.map((entry) => [entry.number, entry.tickets])),
+		[[[1, ["AR0001", "AR0002"]]], [[9, []]]],
+	);
+	const board = [
+		ticket("AR0001", "Voice: transcription (roadmap 1)", "merged"),
+		ticket("AR0002", "Voice T2: a follow-up", "planned"),
+		ticket("AR0003", "Later work", "planned"),
+		ticket("AR0009", "Docs", "planned"),
+	];
+	const page = roadmapPage(sections, board);
+	assert.match(page, /^## Core: 1 of 1 built$/m);
+	assert.match(page, /^\| 1 \| Rules \| built \| \[AR0001\]/m);
+	assert.match(page, /^\| 9 \| Signal \| not started \|  \|$/m);
+	assert.doesNotMatch(page, /\| \[AR0002\]/);
+	assert.match(page, /^\| \[AR0003\]\([^)]+\) \| Later work \| planned \|$/m);
+	assert.match(page, /^\| \[AR0009\]\([^)]+\) \| Docs \| planned \|$/m);
+});
+
+test("an open ticket named by an entry's Tickets line stands for it until one is merged", () => {
+	const board = [ticket("AR0001", "Voice: first", "dropped"), ticket("AR0002", "Voice T2", "in-progress")];
+	assert.equal(joinBoard(parseRoadmap(named), board).get(1)?.id, "AR0002");
+});
+
+test("a Tickets line with something other than a ticket id fails, naming the line", () => {
+	assert.throws(() => parseRoadmap(named.replace("AR0001, AR0002", "AR0001 AR0002")), /roadmap\.md:9: entry 1 names "AR0001 AR0002", which is not a ticket id/);
+	assert.throws(() => parseRoadmap(named.replace("AR0001, AR0002", "AR0001,")), /entry 1 names "", which is not a ticket id/);
+});
+
+test("a Tickets line naming a ticket the board does not have fails, naming the entry and the ticket", () => {
+	const board = [ticket("AR0001", "Voice", "merged")];
+	assert.throws(() => joinBoard(parseRoadmap(named), board), /roadmap\.md:7: entry 1 names AR0002, which spec\/build\.json does not have/);
+});
+
 test("a board that is not an array of tickets with id, title, status and path fails", () => {
 	assert.throws(() => parseBoard("{}"), /not an array of tickets/);
 	assert.throws(() => parseBoard('[{"id":"AR0001","title":"x","status":"planned"}]'), /ticket 0 has no string path/);

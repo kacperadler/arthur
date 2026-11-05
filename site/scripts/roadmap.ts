@@ -1,6 +1,6 @@
 import { repo } from "./markdown.ts";
 
-export type Entry = { readonly number: number; readonly title: string; readonly line: number };
+export type Entry = { readonly number: number; readonly title: string; readonly line: number; readonly tickets: readonly string[] };
 export type Section = { readonly title: string; readonly entries: readonly Entry[] };
 export type Ticket = {
 	readonly id: string;
@@ -10,13 +10,24 @@ export type Ticket = {
 	readonly updated?: string;
 };
 
-/** The roadmap's `## <section>` and `### <N>. <title>` headings; a section without numbered entries is left out. */
+/** The roadmap's `## <section>` and `### <N>. <title>` headings, and each entry's `- Tickets: <id>, <id>` lines; a section without entries is left out. */
 export function parseRoadmap(text: string): Section[] {
 	const sections: { title: string; entries: Entry[] }[] = [];
 	const seen = new Map<number, number>();
+	let current: { number: number; tickets: string[] } | undefined;
 	text.split("\n").forEach((line, index) => {
 		const section = /^## (.+)$/.exec(line);
-		if (section !== null) sections.push({ title: section[1].trim(), entries: [] });
+		if (section !== null) {
+			sections.push({ title: section[1].trim(), entries: [] });
+			current = undefined;
+		}
+		const tickets = /^- Tickets: (.+)$/.exec(line);
+		if (tickets !== null && current !== undefined) {
+			for (const id of tickets[1].split(",").map((word) => word.trim())) {
+				if (!/^[A-Z]+\d+$/.test(id)) throw new Error(`spec/roadmap.md:${index + 1}: entry ${current.number} names "${id}", which is not a ticket id`);
+				current.tickets.push(id);
+			}
+		}
 		const entry = /^### (\d+)\. (.+)$/.exec(line);
 		if (entry === null) return;
 		const number = Number(entry[1]);
@@ -26,7 +37,8 @@ export function parseRoadmap(text: string): Section[] {
 		}
 		seen.set(number, index + 1);
 		if (sections.length === 0) throw new Error(`spec/roadmap.md:${index + 1}: entry ${number} is under no section`);
-		sections[sections.length - 1].entries.push({ number, title: entry[2].trim(), line: index + 1 });
+		current = { number, tickets: [] };
+		sections[sections.length - 1].entries.push({ number, title: entry[2].trim(), line: index + 1, tickets: current.tickets });
 	});
 	if (seen.size === 0) throw new Error("spec/roadmap.md: no numbered entry (### <N>. <title>)");
 	return sections.filter((section) => section.entries.length > 0);
@@ -48,20 +60,29 @@ export function parseBoard(text: string): Ticket[] {
 const open = (ticket: Ticket) => ticket.status !== "merged" && ticket.status !== "dropped";
 const entryOf = (ticket: Ticket) => /^Roadmap (\d+):/.exec(ticket.title)?.[1];
 
-/** The ticket that stands for each entry: a merged one, otherwise the most recently updated open one. */
+/** The ticket that stands for each entry, by its title (`Roadmap <N>:`) or the entry's `- Tickets:`: a merged one, else the most recently updated open one. */
 export function joinBoard(sections: readonly Section[], board: readonly Ticket[]): Map<number, Ticket> {
-	const numbers = new Set(sections.flatMap((section) => section.entries.map((entry) => entry.number)));
+	const entries = sections.flatMap((section) => section.entries);
+	const numbers = new Set(entries.map((entry) => entry.number));
+	const ids = new Set(board.map((ticket) => ticket.id));
+	const named = new Map<string, number[]>();
+	for (const entry of entries) {
+		for (const id of entry.tickets) {
+			if (!ids.has(id)) throw new Error(`spec/roadmap.md:${entry.line}: entry ${entry.number} names ${id}, which spec/build.json does not have`);
+			named.set(id, [...(named.get(id) ?? []), entry.number]);
+		}
+	}
 	const chosen = new Map<number, Ticket>();
 	for (const ticket of board) {
 		const entry = entryOf(ticket);
-		if (entry === undefined) continue;
-		const number = Number(entry);
-		if (!numbers.has(number)) {
-			throw new Error(`spec/build.json: ${ticket.id} (${ticket.title}) names entry ${number}, which spec/roadmap.md does not have`);
+		if (entry !== undefined && !numbers.has(Number(entry))) {
+			throw new Error(`spec/build.json: ${ticket.id} (${ticket.title}) names entry ${entry}, which spec/roadmap.md does not have`);
 		}
-		const current = chosen.get(number);
-		const newer = current === undefined || (open(current) && (ticket.updated ?? "") > (current.updated ?? ""));
-		if (ticket.status === "merged" || (open(ticket) && newer)) chosen.set(number, ticket);
+		for (const number of [...(entry === undefined ? [] : [Number(entry)]), ...(named.get(ticket.id) ?? [])]) {
+			const current = chosen.get(number);
+			const newer = current === undefined || (open(current) && (ticket.updated ?? "") > (current.updated ?? ""));
+			if (ticket.status === "merged" || (open(ticket) && newer)) chosen.set(number, ticket);
+		}
 	}
 	return chosen;
 }
@@ -82,7 +103,8 @@ export function roadmapPage(sections: readonly Section[], board: readonly Ticket
 		const head = `## ${section.title}: ${built} of ${section.entries.length} built`;
 		return [head, "", "| Entry | Title | State | Ticket |", "| --- | --- | --- | --- |", ...rows].join("\n");
 	});
-	const others = board.filter((ticket) => open(ticket) && entryOf(ticket) === undefined);
+	const named = new Set(sections.flatMap((section) => section.entries.flatMap((entry) => entry.tickets)));
+	const others = board.filter((ticket) => open(ticket) && entryOf(ticket) === undefined && !named.has(ticket.id));
 	const rows = others.map(
 		(ticket) => `| [${ticket.id}](${ticketUrl}${ticket.path}) | ${ticket.title.replaceAll("|", "\\|")} | ${ticket.status} |`,
 	);

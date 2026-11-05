@@ -752,6 +752,28 @@ test("a merge delivery started outlives its arthur run: killed with its process 
 	assert.match(told(fake)[1] ?? "", new RegExp(`so delivery ran arthur merge --auto ${job.id}: killed before its end, it did not go in; act on its last line .*What it printed:\n\n$`));
 });
 
+test("arthur run looks for the end of a merge an earlier one started every 5 seconds while it runs, and no more once stopped", async (t) => {
+	const { fake, plugin } = await load(t);
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const ended = (job: string) => {
+		const folder = join(fake.host.folder, "merge-runs", `${job}-x`);
+		mkdirSync(folder, { recursive: true });
+		writeFileSync(join(folder, "run.json"), JSON.stringify({ project: "acme", job, why: "Why.", pid: process.ppid }));
+		writeFileSync(join(folder, "out"), "merged\n");
+		writeFileSync(join(folder, "exit"), "0\n");
+	};
+	await plugin.start?.();
+	ended("one");
+	t.mock.timers.tick(4999);
+	assert.deepEqual(told(fake), []);
+	t.mock.timers.tick(1);
+	assert.deepEqual(told(fake), ["Why. acme merges on its own (autoMerge), so delivery ran arthur merge --auto one: it went in; follow the procedure it printed last. What it printed:\n\nmerged"]);
+	await plugin.stop?.();
+	ended("two");
+	t.mock.timers.tick(5000);
+	assert.equal(told(fake).length, 1, "stopped: no look");
+});
+
 test("arthur run's start rolls back a merge that died half done, keeping the board, removes its lock and runs it again; a live lock, a merge whose checks passed or one a remote holds is left alone", async (t) => {
 	const merge = fakeMerge(t);
 	const { root, fake, git, worker, setAutoMerge, plugin } = await load(t);

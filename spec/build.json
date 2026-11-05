@@ -3995,9 +3995,9 @@
   {
     "id": "AR0504",
     "title": "Any run of the workflow on the tip's sha counts as the branch's CI, whatever its event, branch or repository",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0504-any-run-of-the-workflow-on-the-tip-s-sha-counts-as-the-branch-s-ci-whatever-its/ticket.md",
-    "updated": "2026-11-04T20:40:55.153Z",
+    "updated": "2026-11-05T13:05:59.010Z",
     "after": [
       "AR0500"
     ]
@@ -5087,5 +5087,12 @@
     "after": [
       "AR0630"
     ]
+  },
+  {
+    "id": "AR0632",
+    "title": "arthur merge points XDG_CACHE_HOME at a fresh folder, so a project whose tests run Playwright finds no browser and every browser test fails",
+    "status": "planning",
+    "path": "spec/features/AR0632-arthur-merge-points-xdg-cache-home-at-a-fresh-folder-so-a-project-whose-tests/ticket.md",
+    "updated": "2026-11-05T13:29:53.567Z"
   }
 ]

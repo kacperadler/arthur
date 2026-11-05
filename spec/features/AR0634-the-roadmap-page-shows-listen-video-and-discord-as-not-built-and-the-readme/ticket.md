@@ -40,3 +40,4 @@ Out:
 - The roadmap's content and order: unchanged.
 
 ## Decisions
+- 2026-11-05: AR0634 approved: start it when a job slot frees, beside the Arthur queue; the owner: "AR-D50 - 1" (AR-D507)

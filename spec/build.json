@@ -3106,7 +3106,7 @@
     "path": "spec/features/AR0399-git-lfs-push-origin-reads-origin-s-url-outside-git-s-transport-policy/ticket.md",
     "updated": "2026-11-04T20:40:54.013Z",
     "after": [
-      "AR0521"
+      "AR0629"
     ]
   },
   {
@@ -5054,15 +5054,32 @@
   {
     "id": "AR0628",
     "title": "git fast-import appends to any file named by a stdin option git export-pack-edges line, past the worktree guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0628-git-fast-import-appends-to-any-file-named-by-a-stdin-option-git-export-pack/ticket.md",
-    "updated": "2026-11-05T03:23:39.657Z"
+    "updated": "2026-11-05T07:57:56.964Z",
+    "after": [
+      "AR0559"
+    ]
   },
   {
     "id": "AR0629",
     "title": "A delivery merge running when arthur run restarts dies half done, leaving an unpushed merge commit on main",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0629-a-delivery-merge-running-when-arthur-run-restarts-dies-half-done-leaving-an/ticket.md",
-    "updated": "2026-11-05T07:19:25.122Z"
+    "updated": "2026-11-05T07:57:56.393Z"
+  },
+  {
+    "id": "AR0630",
+    "title": "arthur review runs on a job whose review-needed said no review, and a stopped review then blocks the merge",
+    "status": "planning",
+    "path": "spec/features/AR0630-arthur-review-runs-on-a-job-whose-review-needed-said-no-review-and-a-stopped/ticket.md",
+    "updated": "2026-11-05T07:58:02.080Z"
+  },
+  {
+    "id": "AR0631",
+    "title": "Two tests fail now and then under the full suite: the discord 50 ms heartbeat, and the machine copy of only the log new bytes",
+    "status": "planning",
+    "path": "spec/features/AR0631-two-tests-fail-now-and-then-under-the-full-suite-the-discord-50-ms-heartbeat-and/ticket.md",
+    "updated": "2026-11-05T07:58:02.669Z"
   }
 ]

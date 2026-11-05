@@ -4471,9 +4471,9 @@
   {
     "id": "AR0560",
     "title": "GitHub T4: list and delete branches on origin",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0560-github-t4-list-and-delete-branches-on-origin/ticket.md",
-    "updated": "2026-11-05T21:20:36.016Z",
+    "updated": "2026-11-05T22:22:10.461Z",
     "after": [
       "AR0605"
     ]

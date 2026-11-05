@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0560 GitHub T4: list and delete branches on origin (1c063abf)
 - AR0605 arthur config check type-checks arthur.config.ts and every project file with tsc (1cd256e9)
 
 ### Fixed

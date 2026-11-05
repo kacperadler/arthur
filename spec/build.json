@@ -5027,9 +5027,9 @@
   {
     "id": "AR0625",
     "title": "A git program called by its path (/usr/lib/git-core/git-*) passes the worktree guard",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0625-a-git-program-called-by-its-path-usr-lib-git-core-git-passes-the-worktree-guard/ticket.md",
-    "updated": "2026-11-04T20:40:52.248Z",
+    "updated": "2026-11-05T03:23:30.431Z",
     "after": [
       "AR0624"
     ]
@@ -5050,5 +5050,12 @@
     "status": "merged",
     "path": "spec/features/AR0627-no-client-or-other-project-of-the-owner-named-in-the-repository-and-a-check-that/ticket.md",
     "updated": "2026-11-04T21:42:04.781Z"
+  },
+  {
+    "id": "AR0628",
+    "title": "git fast-import appends to any file named by a stdin option git export-pack-edges line, past the worktree guard",
+    "status": "planning",
+    "path": "spec/features/AR0628-git-fast-import-appends-to-any-file-named-by-a-stdin-option-git-export-pack/ticket.md",
+    "updated": "2026-11-05T03:23:39.657Z"
   }
 ]

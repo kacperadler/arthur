@@ -4451,9 +4451,9 @@
   {
     "id": "AR0558",
     "title": "GitHub T2: create, comment on and close pull requests",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0558-github-t2-create-comment-on-and-close-pull-requests/ticket.md",
-    "updated": "2026-10-29T14:33:13.845Z",
+    "updated": "2026-11-05T22:22:45.847Z",
     "after": [
       "AR0560"
     ]

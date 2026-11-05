@@ -37,3 +37,4 @@ Out:
 ## Decisions
 
 - 2026-10-29: Source: the approved plan of AR0556 (AR-D327)
+- 2026-11-06: github line budget 1124 to 1200 for AR0558, by recommendation under AR-D500; the owner: "do not ask me about them; always go with the recommendation (AR-D500)" (AR-D510)

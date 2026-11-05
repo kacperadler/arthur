@@ -20,6 +20,8 @@ export type Ran = { readonly code: number | null; readonly stdout: string; reado
 
 // ssh never asks for a password nor accepts a host key on its own, and gives up on a machine that does not answer in 10 s.
 const OPTIONS = ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=10"];
+// Each step there and a branch's fetch end within STEP_SECONDS and STEP_CHARS of output, a base's push within PUSH_SECONDS (AR0520).
+const [STEP_SECONDS, PUSH_SECONDS, STEP_CHARS] = [60, 600, 1024 * 1024];
 const HOST = /^[A-Za-z0-9_][A-Za-z0-9_.@-]*$/;
 const quote = (word: string) => `'${word.replaceAll("'", `'\\''`)}'`;
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -88,9 +90,9 @@ export function machineRegistry(home: string) {
 // Runs `command` here, `input` on its stdin; resolves once it ended, to its exit code (null when a signal killed it; 127 when it did not
 // start, as a shell says) and its whole output. Past `limitSeconds`, or past `limitChars` characters of output, it is killed and resolves at
 // once, its pipes closed even when a child of it holds them: code null, `timed out after <n> s` or `answered more than <n> characters` last on stderr.
-function execute([command = "", ...args]: readonly string[], input = "", limitSeconds?: number, limitChars = Infinity): Promise<Ran> {
+function execute([command = "", ...args]: readonly string[], input = "", limitSeconds?: number, limitChars = Infinity, env?: NodeJS.ProcessEnv): Promise<Ran> {
 	const output = { stdout: "", stderr: "" };
-	const child = spawn(command, args, { stdio: "pipe" });
+	const child = spawn(command, args, { stdio: "pipe", env });
 	// A command that ends without reading its input: its exit code tells what happened.
 	child.stdin.on("error", () => {}).end(input);
 	const ended = Promise.withResolvers<Ran>();
@@ -110,43 +112,38 @@ function execute([command = "", ...args]: readonly string[], input = "", limitSe
 const repositoryThere = (machine: Machine, project: string) => join(machine.home, "repos", `${project}.git`);
 export const url = (machine: Machine, project: string) => `${machine.ssh}:${repositoryThere(machine, project)}`;
 
-// Runs `argv` there, `input` on its stdin; its stdout, or the error of `failure`. `sshAsync` waits without blocking; past
-// `limitSeconds`, or past `limitChars` characters of output, it fails as with exit 255.
-export function ssh(machine: Machine, argv: readonly string[], input = ""): string {
-	const run = spawnSync("ssh", [...OPTIONS, machine.ssh, argv.map(quote).join(" ")], { encoding: "utf8", input });
-	// A command that ends without reading its input: its exit code tells what happened.
-	const unread = run.status !== null && (run.error as NodeJS.ErrnoException | undefined)?.code === "EPIPE";
-	if (run.error !== undefined && !unread) throw new Error(`machine ${machine.name}: ssh: ${run.error.message}`);
-	const failed = failure(machine, argv, run.status ?? run.signal, run.stderr);
-	if (failed !== undefined) throw failed;
-	return run.stdout;
+// Runs `argv` there, `input` on its stdin (one it does not read is no error: its exit code tells); its stdout, or the error of `answer`.
+// `sshAsync` waits without blocking. Past `limitSeconds`, or `limitChars` characters (`ssh`: bytes) of output, it fails as with exit 255.
+export function ssh(machine: Machine, argv: readonly string[], input = "", limitSeconds = STEP_SECONDS): string {
+	const run = spawnSync("ssh", [...OPTIONS, machine.ssh, argv.map(quote).join(" ")], { encoding: "utf8", input, timeout: limitSeconds * 1000, maxBuffer: STEP_CHARS, killSignal: "SIGKILL" });
+	const code = (run.error as NodeJS.ErrnoException | undefined)?.code;
+	if (run.error !== undefined && !["EPIPE", "ETIMEDOUT", "ENOBUFS"].includes(code ?? "")) throw new Error(`machine ${machine.name}: ssh: ${run.error.message}`);
+	return answer(machine, argv, run.status ?? run.signal, run, code === "ETIMEDOUT" ? `timed out after ${limitSeconds} s` : code === "ENOBUFS" ? `answered more than ${STEP_CHARS} bytes` : undefined);
 }
-export async function sshAsync(machine: Machine, argv: readonly string[], input = "", limitSeconds?: number, limitChars?: number): Promise<string> {
+export async function sshAsync(machine: Machine, argv: readonly string[], input = "", limitSeconds = STEP_SECONDS, limitChars = STEP_CHARS) {
 	const run = await execute(["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], input, limitSeconds, limitChars);
-	const cut = run.code === null && /(timed out after \S+ s|answered more than \d+ characters)\n$/.test(run.stderr);
-	const failed = failure(machine, argv, cut ? 255 : run.code, run.stderr);
-	if (failed !== undefined) throw failed;
-	return run.stdout;
+	return answer(machine, argv, run.code, run, run.code === null ? /(timed out after .+|answered more than .+)\n$/.exec(run.stderr)?.[1] : undefined);
 }
 
-// Why `argv` failed there, naming the machine with ssh's or the command's last line: the machine did not answer (ssh's exit
-// 255, the error's `cause`), `arthur` is missing there, or the command refused; undefined when it exited 0.
-function failure(machine: Machine, argv: readonly string[], code: number | string | null, stderr: string): Error | undefined {
-	if (code === 0) return undefined;
-	const said = stderr.trim().split("\n").at(-1)?.replace(/^arthur remote-job: /, "") || `exit code ${code}`;
-	if (code === 255) return new Error(`machine ${machine.name}: ssh ${machine.ssh}: ${said}`, { cause: 255 });
-	if (code === 127 && argv[0] === "arthur") return new Error(`machine ${machine.name}: arthur is not there (${said}); install the version here, ${coreVersion()} (docs/deploy.md)`);
-	return new Error(`machine ${machine.name}: ${argv.slice(0, 3).join(" ")}: ${said}`);
+// The stdout of `argv` there, or why it failed, naming the machine with ssh's or the command's last line: the machine did not answer
+// (ssh's exit 255, or `cut` at a limit, naming the step; the error's `cause` 255), `arthur` is missing there, or the command refused.
+function answer(machine: Machine, argv: readonly string[], code: number | string | null, run: Pick<Ran, "stdout" | "stderr">, cut?: string): string {
+	if (code === 0) return run.stdout;
+	const said = cut ? `${argv.slice(0, 3).join(" ")}: ${cut}` : run.stderr.trim().split("\n").at(-1)?.replace(/^arthur remote-job: /, "") || `exit code ${code}`;
+	if (code === 255 || cut) throw new Error(`machine ${machine.name}: ssh ${machine.ssh}: ${said}`, { cause: 255 });
+	if (code === 127 && argv[0] === "arthur") throw new Error(`machine ${machine.name}: arthur is not there (${said}); install the version here, ${coreVersion()} (docs/deploy.md)`);
+	throw new Error(`machine ${machine.name}: ${argv.slice(0, 3).join(" ")}: ${said}`);
 }
 
 // `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement (refs/replace), none of
 // its keys that may name a program, the owner's value of each Git reads by a fixed name (git-config.ts); its stdout. `send-pack` and `fetch-pack`, unlike
 // `push` and `fetch`, read no remote named as the URL, nor `insteadOf`, which a job may write even after the check: the machine's repository (AR0398).
-export function gitOver(root: string, verb: string, args: readonly string[]): string {
+export async function gitOver(root: string, verb: string, args: readonly string[], limitSeconds = STEP_SECONDS): Promise<string> {
 	const { refusal, pins } = checkConfig(root);
 	if (refusal !== "") throw new Error(`git ${verb}: ${refusal}`);
-	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...args], { encoding: "utf8", env: { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" ") } });
-	if (run.status !== 0) throw new Error(`git ${verb}: ${run.error?.message ?? run.stderr.trim()}`);
+	const argv = ["git", "--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...args];
+	const run = await execute(argv, "", limitSeconds, STEP_CHARS, { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" ") });
+	if (run.code !== 0) throw new Error(`git ${verb}: ${run.stderr.trim()}`);
 	return run.stdout;
 }
 
@@ -155,18 +152,18 @@ export function gitOver(root: string, verb: string, args: readonly string[]): st
 // The push's `git receive-pack` there runs no hook of that repository's config: a job's program there may have set them (AR0382);
 // `remote-job repo` refuses, before any push, while that config sets a key that may name another program (AR0394). A Git LFS
 // project is refused before any SSH step: neither push nor fetch takes its LFS objects there and back (AR0390).
-export function reach(machine: Machine, project: string, root: string, base: string, fetch?: string): string {
+export async function reach(machine: Machine, project: string, root: string, base: string, fetch?: string): Promise<string> {
 	const lfs = [base, fetch].find((commit) => commit !== undefined && namesLfs(root, commit));
 	if (lfs !== undefined) throw new Error(`machine ${machine.name}: a .gitattributes of ${lfs.slice(0, 7)} names filter=lfs: ${project} is a Git LFS project, whose jobs run on local only, as its LFS objects do not go to another machine and back (docs/deploy.md)`);
-	const [theirs, ours] = [ssh(machine, ["arthur", "version"]).trim(), coreVersion()];
+	const [theirs, ours] = [(await sshAsync(machine, ["arthur", "version"])).trim(), coreVersion()];
 	if (theirs !== ours) throw new Error(`machine ${machine.name} runs arthur ${theirs}, this one is ${ours}; both need the same version`);
 	for (const [commit, ref] of fetch === undefined ? [[base, "base"]] : [[base, "base"], [fetch, "fetch"]]) {
-		const there = ssh(machine, ["arthur", "remote-job", "repo", machine.home, project, commit ?? ""]).trim();
-		if (there === "missing") gitOver(root, "push", ["send-pack", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", url(machine, project), `+${commit}:refs/arthur/${ref}`]);
+		const there = (await sshAsync(machine, ["arthur", "remote-job", "repo", machine.home, project, commit ?? ""])).trim();
+		if (there === "missing") await gitOver(root, "push", ["send-pack", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", url(machine, project), `+${commit}:refs/arthur/${ref}`], PUSH_SECONDS).catch((error: Error) => Promise.reject(new Error(`machine ${machine.name}: ${error.message}`)));
 	}
 	return repositoryThere(machine, project);
 }
 
 // The job's worktree and record there, `added` as `arthur remote-job add` reads it; `remove` takes both away again.
-export const addThere = (machine: Machine, added: Added) => void ssh(machine, ["arthur", "remote-job", "add", machine.home], JSON.stringify(added));
-export const removeThere = (machine: Machine, id: string) => void ssh(machine, ["arthur", "remote-job", "remove", machine.home, id]);
+export const addThere = (machine: Machine, added: Added) => sshAsync(machine, ["arthur", "remote-job", "add", machine.home], JSON.stringify(added));
+export const removeThere = (machine: Machine, id: string) => sshAsync(machine, ["arthur", "remote-job", "remove", machine.home, id]);

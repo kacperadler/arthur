@@ -1,7 +1,7 @@
 import { appendFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Bus } from "./events.ts";
-import { gitOver, type Machine, ssh, sshAsync, url } from "./job-machine.ts";
+import { gitOver, type Machine, sshAsync, url } from "./job-machine.ts";
 import { capFields } from "./job-record.ts";
 import { sayUncapped, UNCAPPED } from "./job-scope.ts";
 import { current, field, inRun, jobIds, kept, moveJob, STATES, type State, write } from "./job-state.ts";
@@ -63,8 +63,8 @@ export async function syncMachines(home: string, machines: readonly Machine[], b
 // With one SSH call, copies the run's changed files of the records of `machine`'s followed jobs, of the log only its new bytes up to the last line break, the
 // rest asked again from the same time and byte, so a value a cut splits is named whole (all once the run ended there and its log came whole, or a cut holds no
 // line break); a run that ended there brings its branch into `root` before its state moves here, then `job-ended`. A job failed here while offline takes the
-// state there once that run ended; a log cut short, once the rest arrived. Each file and reason is named with the bus's `hide`: the record there guards no env file.
-// Each job is copied on its own: one that fails is named, by the machine and the job, once the others were copied.
+// state there once that run ended; a log cut short, once the rest came. Each file and reason passes the bus's `hide`: the record there guards no env file.
+// Each job is copied on its own: one that fails is named, by the machine and the job, once the others were copied; one that another copy moved during its fetch, which waits without blocking, is that copy's.
 export async function syncMachine(home: string, machine: Machine, bus: Bus): Promise<void> {
 	const ids = followed(home, machine), { hide } = bus;
 	if (ids.length === 0) return;
@@ -85,7 +85,9 @@ export async function syncMachine(home: string, machine: Machine, bus: Bus): Pro
 			write(folder, "synced", rest === "" ? `${copy.at}:${copy.logTo}` : `${(read("synced") || "0:0").split(":")[0]}:${copy.logTo - Buffer.byteLength(rest)}`);
 			if (copy.logTo < copy.logSize) continue;
 			if (read("state") === "ended" && !ended) continue;
-			if (ended && read("branch") !== "") gitOver(read("root"), "fetch", ["branch", "--force", `arthur/${id}`, gitOver(read("root"), "fetch", ["fetch-pack", "--quiet", "--no-progress", url(machine, read("project")), `refs/heads/arthur/${id}`]).split(" ")[0] ?? ""]);
+			const mark = `${read("state")}:${read("offline")}`;
+			if (ended && read("branch") !== "") await gitOver(read("root"), "fetch", ["branch", "--force", `arthur/${id}`, (await gitOver(read("root"), "fetch", ["fetch-pack", "--quiet", "--no-progress", url(machine, read("project")), `refs/heads/arthur/${id}`])).split(" ")[0] ?? ""]);
+			if (mark !== `${read("state")}:${read("offline")}`) continue;
 			// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.
 			let [state, reason] = [copy.state, hide(copy.reason)];
 			moveJob(home, id, bus, (now) => {
@@ -126,7 +128,7 @@ function unreachable(home: string, machine: Machine, bus: Bus, at: Date, graceMi
 // Starts the job's wrapper there in its own scope of the slice `slice`, whose limit is the machine's own, with the variables
 // `env` the prepares returned, sent on stdin; returns why it did not start, which ended the job there and, by a copy at once, here.
 export async function launchThere(home: string, machine: Machine, id: string, agent: string, slice: string, bus: Bus, env: Readonly<Record<string, string>> = {}): Promise<string | undefined> {
-	const failed = launched(home, machine, ssh(machine, ["arthur", "remote-job", "launch", machine.home, id, agent, slice], JSON.stringify(env)), bus);
+	const failed = launched(home, machine, await sshAsync(machine, ["arthur", "remote-job", "launch", machine.home, id, agent, slice], JSON.stringify(env)), bus);
 	if (failed !== undefined) await syncMachine(home, machine, bus);
 	return failed;
 }

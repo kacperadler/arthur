@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { watch } from "node:fs/promises";
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import { coreVersion, ssh, sshAsync } from "../src/job-machine.ts";
+import { coreVersion, reach, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { secretNames } from "../src/secret-names.ts";
@@ -175,7 +177,7 @@ test("the push of a job's base to another machine and the fetch of its branch ba
 	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0 }] }) });
 	const said = (verb: string) => `git ${verb}: ${join(root, ".git", "config")} sets remote.gpu.receivepack, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
 	git(root, "config", "remote.gpu.receivepack", "program");
-	await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: said("push") });
+	await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: `machine gpu: ${said("push")}` });
 	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, 0, "nothing pushed");
 	git(root, "config", "--unset", "remote.gpu.receivepack");
 	const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
@@ -441,6 +443,46 @@ test("a prepare that throws on a job on another machine removes its worktree and
 	assert.equal(git(join(there, "repos/acme.git"), "branch", "--list"), "");
 });
 
+test("a spawn's add, launch and remove there wait without blocking: the process answers while each runs", async () => {
+	const gates = temporaryFolder();
+	const { machine, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	// From here `arthur remote-job add`, `launch` and `remove` there note they began, and go on only once this process answers
+	// with `<step>.go`: a process the step blocks never does, and the step fails 10 s on.
+	const wait = `touch '${gates}'/"$2" && n=0 && while [ ! -e '${gates}'/"$2.go" ] && [ $n -lt 100 ]; do sleep 0.1; n=$((n + 1)); done && [ -e '${gates}'/"$2.go" ] || exit 1`;
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\ncase "$2" in add|launch|remove) ${wait};; esac\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	const answer = async (step: string) => (await until(`${step} there`, () => existsSync(join(gates, step))), writeFileSync(join(gates, `${step}.go`), ""));
+	const [job] = await Promise.all([jobs.spawn({ task: "Go.", machine: "gpu" }), answer("add").then(() => answer("launch"))]);
+	assert.equal(job.failed, undefined);
+	jobs.prepare("projects", () => {
+		throw new Error("no install");
+	});
+	for (const name of ["add", "add.go"]) rmSync(join(gates, name));
+	const refused = assert.rejects(jobs.spawn({ task: "Go.", machine: "gpu" }), { message: "plugin projects: prepare failed: no install; the job's worktree and record were removed" });
+	await Promise.all([refused, answer("add").then(() => answer("remove"))]);
+});
+
+test("the push of a base there that has not ended 600 s on fails, naming the machine, and not 1 ms sooner", async (t) => {
+	const { root, machine, there } = setup();
+	const folder = temporaryFolder(), gate = join(folder, "go");
+	t.after(() => writeFileSync(gate, ""));
+	const real = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+	// From here `git receive-pack` there notes it began, then waits for `gate`, or 30 s; every other git there is the real one.
+	const pushing = `touch '${join(folder, "pushing")}' && n=0 && while [ ! -e '${gate}' ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done`;
+	writeFileSync(join(machine, "bin/git"), `#!/bin/sh\n[ "$3" = receive-pack ] && ${pushing}\nexec '${real}' "$@"\n`, { mode: 0o755 });
+	// Fake time: 600 s cannot pass for real in a test. The ssh steps before the push end on their own, without a timer.
+	t.mock.timers.enable({ apis: ["setTimeout"] });
+	const began = watch(folder);
+	let said = "";
+	void reach({ name: "gpu", ssh: "gpu", home: there, labels: {} }, "acme", root, git(root, "rev-parse", "HEAD")).then(() => (said = "resolved"), (error: Error) => (said = error.message));
+	for await (const { filename } of began) if (filename === "pushing") break;
+	t.mock.timers.tick(599_999);
+	await nextTurn();
+	assert.equal(said, "", "still pushing 1 ms before its limit");
+	t.mock.timers.tick(1);
+	await nextTurn();
+	assert.equal(said, "machine gpu: git push: timed out after 600 s");
+});
+
 // Whole lines only: a line the agent is still appending has no line break yet.
 const messages = (agent: string) => (existsSync(join(agent, "..", "messages.jsonl")) ? readFileSync(join(agent, "..", "messages.jsonl"), "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line) as unknown) : []);
 const starts = (agent: string) => (existsSync(join(agent, "..", "starts.jsonl")) ? readFileSync(join(agent, "..", "starts.jsonl"), "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line) as { readonly cwd: string }) : []);
@@ -661,6 +703,17 @@ test("an ssh refused before it reads its input says ssh's own line, not EPIPE", 
 	await assert.rejects(sshAsync(gpu, ["cat"], input), { message: UNREACHABLE });
 });
 
+test("an ssh step there that does not end within its limit, or answers more than 1 MiB, fails as a machine that does not answer, naming the step", async () => {
+	const { there } = setup();
+	const gpu = { name: "gpu", ssh: "gpu", home: there, labels: {} };
+	const [late, started] = ["machine gpu: ssh gpu: exec sleep 30: timed out after 0.5 s", Date.now()];
+	assert.throws(() => ssh(gpu, ["exec", "sleep", "30"], "", 0.5), { message: late, cause: 255 });
+	await assert.rejects(sshAsync(gpu, ["exec", "sleep", "30"], "", 0.5), { message: late, cause: 255 });
+	assert.ok(Date.now() - started < 5000, `both gave up after ${Date.now() - started} ms`);
+	assert.throws(() => ssh(gpu, ["head", "-c", "2000000", "/dev/zero"]), { message: "machine gpu: ssh gpu: head -c 2000000: answered more than 1048576 bytes", cause: 255 });
+	await assert.rejects(sshAsync(gpu, ["head", "-c", "2000000", "/dev/zero"]), { message: "machine gpu: ssh gpu: head -c 2000000: answered more than 1048576 characters", cause: 255 });
+});
+
 test("offline past the grace: failed once, the worktree there kept; its end and branch arrive when the machine is back", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const { root, home, machine, there, jobs, now } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
@@ -873,6 +926,54 @@ test("a copy that does not answer within 20 s counts as the machine unreachable,
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z"]);
 	assert.ok(waited >= 20_000 && waited < 25_000, `the copy gave up after ${waited} ms`);
 	assert.ok(ticks > 100, `the process ran ${ticks} timer ticks of 100 ms during the ${waited} ms copy`);
+});
+
+test("a spawn's step there and the sweep's fetch of an ended job's branch that do not end within 60 s fail, naming the machine and the step, the process answering meanwhile", async (t) => {
+	const gate = join(temporaryFolder(), "go");
+	t.after(() => writeFileSync(gate, ""));
+	const { root, home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await endedThere(there, job.id);
+	// From here `arthur version` and `git-upload-pack` there do not end before `gate` exists, or 90 s on; every other step is this core's.
+	const wait = `n=0; while [ ! -e '${gate}' ] && [ $n -lt 900 ]; do sleep 0.1; n=$((n + 1)); done`;
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$1" = version ] && ${wait}\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	writeFileSync(join(machine, "bin/git-upload-pack"), `#!/bin/sh\n${wait}\nexec git upload-pack "$@"\n`, { mode: 0o755 });
+	// Real timers: the limits are real time on real child processes, and only a timer firing meanwhile shows the event loop free.
+	let ticks = 0;
+	const [timer, started] = [setInterval(() => ticks++, 100), Date.now()];
+	t.after(() => clearInterval(timer));
+	const said = (result: PromiseSettledResult<unknown>) => (result.status === "rejected" ? (result.reason as Error).message : "resolved");
+	const [spawned, swept] = (await Promise.allSettled([jobs.spawn({ task: "Go.", machine: "gpu" }), jobs.sweep()])).map(said);
+	const waited = Date.now() - started;
+	clearInterval(timer);
+	assert.deepEqual([spawned, swept], ["machine gpu: ssh gpu: arthur version: timed out after 60 s", `machine gpu: job ${job.id}: git fetch: timed out after 60 s`]);
+	assert.ok(waited >= 60_000 && waited < 65_000, `both gave up after ${waited} ms`);
+	assert.ok(ticks > 500, `the process ran ${ticks} timer ticks of 100 ms during the ${waited} ms`);
+	assert.deepEqual([readdirSync(join(home, "jobs")), read(home, job.id, "state"), git(root, "branch", "--list", job.branch ?? "")], [[job.id], "working", ""]);
+	// The next sweep tries the fetch again.
+	rmSync(join(machine, "bin/git-upload-pack"));
+	await jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), git(root, "branch", "--list", job.branch ?? "")], ["ended", job.branch]);
+});
+
+test("two sweeps whose fetches of an ended job's branch overlap end it here once, with one job-ended", async (t) => {
+	const gates = temporaryFolder();
+	t.after(() => ["go1", "go2"].forEach((name) => writeFileSync(join(gates, name), "")));
+	const { home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await endedThere(there, job.id);
+	// The n-th `git-upload-pack` there waits for `go<n>`, or 30 s.
+	const fake = `#!/bin/sh\ni=1; while ! mkdir '${gates}/'$i 2>/dev/null; do i=$((i + 1)); done\nn=0; while [ ! -e '${gates}/go'$i ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done\nexec git upload-pack "$@"\n`;
+	writeFileSync(join(machine, "bin/git-upload-pack"), fake, { mode: 0o755 });
+	const first = jobs.sweep();
+	await until("the first fetch", () => existsSync(join(gates, "1")));
+	const second = jobs.sweep();
+	await until("the second fetch", () => existsSync(join(gates, "2")));
+	writeFileSync(join(gates, "go1"), "");
+	await first;
+	writeFileSync(join(gates, "go2"), "");
+	await second;
+	assert.deepEqual([read(home, job.id, "state"), events(home, "job-ended").filter((event) => event.id === job.id).length], ["ended", 1]);
 });
 
 test("a copy that answers more than 64 MiB is cut here and counts as the machine unreachable, its jobs held, the process alive", async (t) => {

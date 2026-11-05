@@ -136,7 +136,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 			const release = await checks.pass(spawn);
 			try {
 				// The project's repository on another machine, where every step after this one runs over SSH; undefined on `local`.
-				const there = machine.name === LOCAL ? undefined : reach(machine, project, root, commit, fetch);
+				const there = machine.name === LOCAL ? undefined : await reach(machine, project, root, commit, fetch);
 				const job = newJob(home, time.local().date, { ...spawn, ...caps }, root, commit, kind.readOnly, there ?? root);
 				if (there === undefined) addWorktree(root, job.worktree, commit, job.branch);
 				let [warnings, added, env] = [[] as string[], false, {} as Readonly<Record<string, string>>];
@@ -145,14 +145,14 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 					const built = prompt(role, there === undefined ? job.worktree : root, files, () => [EVERY_JOB, ...collect("prompt", [role.name, job])]), named = bus.hide(built.prompt);
 					warnings = [...built.warnings, ...(there !== undefined && preset.mcp ? [`MCP servers left out on ${machine.name}, which Arthur sends no MCP secret (arthur spawn --help, "On another machine"): ${Object.keys(preset.mcp).join(", ")}`] : [])];
 					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [], extensions }, time.now()];
-					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: named, kind: own, idleMinutes: limits.idleMinutes, unsandboxed: limits.unsandboxed, since: since.toISOString() });
+					if (there !== undefined) await addThere(machine, { job: { ...job, root: there }, prompt: named, kind: own, idleMinutes: limits.idleMinutes, unsandboxed: limits.unsandboxed, since: since.toISOString() });
 					added = true;
 					writeRecord(home, job, named, own, limits.idleMinutes, limits.unsandboxed, since, checkouts(collect("projects", [])), there === undefined ? preset.mcp : undefined);
 					release();
 					env = await prepared(job, false);
 				} catch (error) {
 					if (there === undefined) removeWorktree(root, job.worktree, job.branch);
-					else if (added) removeThere(machine, job.id);
+					else if (added) await removeThere(machine, job.id);
 					rmSync(join(home, "jobs", job.id), { recursive: true, force: true });
 					throw new Error(`${error instanceof Error ? error.message : String(error)}; the job's worktree and record were removed`);
 				}

@@ -21,7 +21,6 @@ import { ownHome } from "./own-home.ts";
 // limit, its cores minus one and 70% of its memory.
 
 const USAGE = "usage: arthur remote-job repo|add|launch|stop|steer|continue|prune|remove|records <home> [args]";
-// A copy's log bytes: LOG_BYTES per job, ANSWER_BYTES for all its jobs, so the answer arrives within the sweep's 20 s on a slow link (AR0521).
 const [LOG_BYTES, ANSWER_BYTES] = [256 * 1024, 512 * 1024];
 
 // What `add` reads on stdin: the job with the repository there as its `root`, its prompt, and the record's other keys.
@@ -102,21 +101,15 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		removeWorktree(read("root"), read("worktree"), read("branch") || undefined);
 		rmSync(join(home, "jobs", id), { recursive: true, force: true });
 	},
-	// `<id>=<ms>:<bytes>` each: a JSON object of a `Copy` per job whose record exists, its log from `<bytes>` on, at most its
-	// share of it, cut at the start of a character; a log cut short leaves `at` the time asked, so the next copy reads on.
-	// The share: what ANSWER_BYTES has left over the jobs not yet read, LOG_BYTES at most, the job with the fewest bytes behind read first.
+	// `<id>=<ms>:<bytes>` each: a `Copy` per job whose record exists, its log from `<bytes>` on, at most its share (LOG_BYTES, or what ANSWER_BYTES has left
+	// over the jobs not read yet, to fit the sweep's 20 s on a slow link), cut at a character; a log cut short leaves `at` as asked, so the next copy reads on.
 	records(home, asked) {
 		const answer: Record<string, Copy> = {};
-		const jobs = asked.map((pair) => pair.split(/[=:]/)).filter(([id = ""]) => ID.test(id) && existsSync(join(home, "jobs", id, "kind")));
-		const sorted = jobs.map(([id = "", from = "0", skip = "0"]) => {
-			const size = statSync(join(home, "jobs", id, "log"), { throwIfNoEntry: false })?.size ?? 0;
-			return { id, from, skip, behind: Number(skip) <= size ? size - Number(skip) : size };
-		});
 		let left = ANSWER_BYTES;
-		for (const [index, { id, from, skip }] of sorted.sort((a, b) => a.behind - b.behind).entries()) {
-			const share = Math.min(LOG_BYTES, Math.floor(left / (sorted.length - index)));
-			const folder = join(home, "jobs", id);
-			const read = field(home, id);
+		for (const [index, pair] of asked.entries()) {
+			const [id = "", from = "0", skip = "0"] = pair.split(/[=:]/), share = Math.min(LOG_BYTES, Math.floor(left / (asked.length - index)));
+			if (!ID.test(id) || !existsSync(join(home, "jobs", id, "kind"))) continue;
+			const [folder, read] = [join(home, "jobs", id), field(home, id)];
 			// The state first, whole, so every file of its end is written by the time the files are read.
 			const [state = "", reason = "", since = ""] = withLock(join(folder, "state.lock"), () => ["state", "reason", "since"].map(read));
 			const files: Record<string, string> = {};

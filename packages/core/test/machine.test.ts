@@ -907,12 +907,12 @@ test("a copy of many jobs whose logs grew past 256 KiB brings 512 KiB of log at 
 	assert.ok(Number(readFileSync(sizes, "utf8")) < 1048576, "one answer, within what the link carries");
 	for (let copies = 0; copies < 3; copies++) await jobs.sweep();
 	assert.deepEqual(ids.map((id) => read(home, id, "log") === read(there, id, "log")), ids.map(() => true), "the rest came in the next copies");
-	// The job with the fewest bytes to send is read first, whatever the order asked: the others share what it leaves.
-	const [far, near, other] = ids as [string, string, string];
+	// A job asked first that has few bytes to send leaves its share to the jobs after it.
+	const [near, far, other] = ids as [string, string, string];
 	const size = statSync(join(there, "jobs", near, "log")).size;
-	const run = spawnSync(process.execPath, [CLI, "remote-job", "records", there, `${far}=0:0`, `${near}=0:${size - 10}`, `${other}=0:0`], { cwd: there, encoding: "utf8" });
+	const run = spawnSync(process.execPath, [CLI, "remote-job", "records", there, `${near}=0:${size - 10}`, `${far}=0:0`, `${other}=0:0`], { cwd: there, encoding: "utf8" });
 	const copies = JSON.parse(run.stdout) as Record<string, { logFrom: number; logTo: number }>;
-	assert.deepEqual([far, near, other].map((id) => (copies[id]?.logTo ?? 0) - (copies[id]?.logFrom ?? 0)), [262139, 10, 262139]);
+	assert.deepEqual([near, far, other].map((id) => (copies[id]?.logTo ?? 0) - (copies[id]?.logFrom ?? 0)), [10, 262139, 262139]);
 });
 
 test("a copy refuses a record file whose name is not a plain record key, naming it, and writes nothing of that answer", async () => {

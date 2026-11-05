@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0504 Any run of the workflow on the tip's sha counts as the branch's CI, whatever its event, branch or repository (57b24fad)
 - AR0520 The copy's fetch of an ended job's branch, and the spawn's SSH steps, still block `arthur run` with no time limit (c4d4abc7)
 - AR0521 A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline (5b6e46e6)
+- AR0525 The CLI and a plugin's task name only enabled plugins' env values, while a job names every value in the env file (caf3936c)
 - AR0618 The checks extension misses a check run behind an env assignment or through bun run (720a6871)
 - AR0624 git fast-import with --allow-unsafe-features and a feature export-marks line on stdin writes a file anywhere past the worktree guard (47c9c31b)
 - AR0625 A git program called by its path (/usr/lib/git-core/git-*) passes the worktree guard (b445e4cb)

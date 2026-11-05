@@ -4168,9 +4168,9 @@
   {
     "id": "AR0525",
     "title": "The CLI and a plugin's task name only enabled plugins' env values, while a job names every value in the env file",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0525-the-cli-and-a-plugin-s-task-name-only-enabled-plugins-env-values-while-a-job/ticket.md",
-    "updated": "2026-11-04T20:40:56.278Z",
+    "updated": "2026-11-05T19:00:29.476Z",
     "after": [
       "AR0520"
     ]

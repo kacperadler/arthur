@@ -10,7 +10,8 @@ import type { TestContext } from "node:test";
 // issue comments", with the `link` header of "Using pagination in the REST API" on each page that has a next one, and the
 // headers of "Rate limits for the REST API".
 
-export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null; readonly started?: string };
+// `event` push and `repository` (its `head_repository`, a fork's for a fork's pull request) the watched one when left out.
+export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null; readonly started?: string; readonly event?: string; readonly repository?: string };
 export type FakeStep = { readonly name: string; readonly conclusion: "success" | "failure" | "skipped" };
 export type FakeJob = { readonly id: number; readonly name: string; readonly conclusion: "success" | "failure"; readonly steps: readonly FakeStep[]; readonly log: string };
 // `submitted`, GitHub's `submitted_at` of a review not pending: 2026-01-01 when left out, none when null.
@@ -49,14 +50,14 @@ const repo = (full: string) => ({
 		["archive", "assignees", "blobs", "branches", "collaborators", "comments", "commits", "compare", "contents", "contributors", "deployments", "downloads", "events", "forks", "git_commits", "git_refs", "git_tags", "issue_comment", "issue_events", "issues", "keys", "labels", "languages", "merges", "milestones", "notifications", "pulls", "releases", "stargazers", "statuses", "subscribers", "subscription", "tags", "teams", "trees", "hooks"].map((each) => [`${each}_url`, `${API}/repos/${full}/${each}`]),
 	),
 });
-const shapedRun = (full: string, workflow: string, { id, attempt = 1, sha, branch, status, conclusion, started = T }: FakeRun) => ({
+const shapedRun = (full: string, workflow: string, { id, attempt = 1, sha, branch, status, conclusion, started = T, event = "push", repository = full }: FakeRun) => ({
 	...{ id, name: "CI", node_id: "MDEyOldvcmtmbG93IFJ1bjI2OTI4OQ==", check_suite_id: 42, check_suite_node_id: "MDEwOkNoZWNrU3VpdGU0Mg==", head_branch: branch, head_sha: sha, path: `.github/workflows/${workflow}@${branch}` },
-	...{ run_number: id % 1000, event: "push", display_title: `on ${branch}`, status, conclusion, workflow_id: 159038, url: `${API}/repos/${full}/actions/runs/${id}`, html_url: `https://github.com/${full}/actions/runs/${id}` },
+	...{ run_number: id % 1000, event, display_title: `on ${branch}`, status, conclusion, workflow_id: 159038, url: `${API}/repos/${full}/actions/runs/${id}`, html_url: `https://github.com/${full}/actions/runs/${id}` },
 	...{ pull_requests: [], created_at: T, updated_at: "2026-01-01T00:01:00Z", actor: user("octocat", 1), run_attempt: attempt, run_started_at: started, triggering_actor: user("octocat", 1) },
 	...Object.fromEntries(["jobs", "logs", "artifacts", "cancel", "rerun"].map((each) => [`${each}_url`, `${API}/repos/${full}/actions/runs/${id}/${each}`])),
 	...{ check_suite_url: `${API}/repos/${full}/check-suites/414944374`, workflow_url: `${API}/repos/${full}/actions/workflows/159038` },
 	head_commit: { id: sha, tree_id: "d23f6eedb1e1b9610bbc754ddb5197bfe7271223", message: `on ${branch}`, timestamp: T, author: { name: "test", email: "test@example.com" }, committer: { name: "test", email: "test@example.com" } },
-	...{ repository: { ...repo(full), git_url: `git:github.com/${full}.git`, ssh_url: `git@github.com:${full}.git` }, head_repository: repo(full) },
+	...{ repository: { ...repo(full), git_url: `git:github.com/${full}.git`, ssh_url: `git@github.com:${full}.git` }, head_repository: repo(repository) },
 });
 const shapedJob = (full: string, run: FakeRun, { id, name, conclusion, steps }: FakeJob) => ({
 	...{ id, run_id: run.id, run_url: `${API}/repos/${full}/actions/runs/${run.id}`, node_id: "MDg6Q2hlY2tSdW40", head_sha: run.sha, url: `${API}/repos/${full}/actions/jobs/${id}` },

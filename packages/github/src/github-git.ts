@@ -16,11 +16,11 @@ export const git = (path: string, ...args: readonly string[]) => {
 	return ran.status === 0 ? ran.stdout.trim() : undefined;
 };
 
-// The run that built `branch`: the newest of `runs` (newest first) on the nearest commit of its first-parent line, from its
+// The run that built `branch`: the newest of `runs` (newest first) whose `branch` is it (AR0504) on the nearest commit of its first-parent line, from its
 // tip back at most DEPTH commits, with how many commits below the tip that is; undefined for a branch gone or with none.
 export function nearestRun(path: string, branch: string, runs: readonly Run[]): { readonly run: Run; readonly below: number } | undefined {
 	const bySha = new Map<string, Run>();
-	for (const run of runs) if (!bySha.has(run.sha)) bySha.set(run.sha, run);
+	for (const run of runs) if (run.branch === branch && !bySha.has(run.sha)) bySha.set(run.sha, run);
 	const commits = git(path, "rev-list", "--first-parent", `--max-count=${DEPTH}`, `refs/heads/${branch}`, "--")?.split("\n") ?? [];
 	const below = commits.findIndex((sha) => bySha.has(sha));
 	const run = bySha.get(commits[below] ?? "");

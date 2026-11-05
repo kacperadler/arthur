@@ -5027,9 +5027,9 @@
   {
     "id": "AR0625",
     "title": "A git program called by its path (/usr/lib/git-core/git-*) passes the worktree guard",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0625-a-git-program-called-by-its-path-usr-lib-git-core-git-passes-the-worktree-guard/ticket.md",
-    "updated": "2026-11-05T03:23:30.431Z",
+    "updated": "2026-11-05T04:07:26.425Z",
     "after": [
       "AR0624"
     ]

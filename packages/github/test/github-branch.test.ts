@@ -8,7 +8,8 @@ import { github } from "../src/github.ts";
 import { again } from "../src/github-branch.ts";
 import { deleteOnOrigin } from "../src/github-git.ts";
 
-// A job's branch on origin (AR0555): deleted when the core prunes its job (`jobs.keep`), and `arthur github branch sweep`;
+// A job's branch on origin (AR0555): deleted when the core prunes its job (`jobs.keep`), and `arthur github branch sweep`; any
+// branch there listed and deleted with `arthur github branch list|delete` (AR0560);
 // against the fake host, real Git, and a bare origin in a folder of its own.
 
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
@@ -18,8 +19,8 @@ const git = (path: string, ...args: readonly string[]) => execFileSync("git", ["
 
 // The project `shop` on main, its origin a bare folder whose `post-receive` notes each ref it changed in `received`, and the
 // plugin set up on a fake host, polling each second once `start()`ed. `job(n)` makes an ended worker's record and its worktree on `arthur/<id>` with one commit;
-// `tip(branch)` is origin's, "" for none; `deletes()` the refs origin deleted, in order; `sweep(...args)` runs `arthur github
-// branch sweep` as the CLI does, a throw being exit 1 and its message.
+// `tip(branch)` is origin's, "" for none; `deletes()` the refs origin deleted, in order; `branch(...args)` runs `arthur github
+// branch ...` as the CLI does, a throw being exit 1 and its message, and `sweep(...args)` its `sweep`.
 async function world(t: TestContext) {
 	const [origin, path, received, gate] = [temporaryFolder(), join(temporaryFolder(), "shop"), join(temporaryFolder(), "received"), temporaryFolder()];
 	// The owner's ~/.gitconfig, for the test alone: a push to an origin that is a folder allowed (AR0393), and origin's listing
@@ -78,11 +79,12 @@ async function world(t: TestContext) {
 		return { id, branch, worktree, tip: git(worktree, "rev-parse", "HEAD") };
 	};
 	const command = fake.commands.find((each) => each.name === "github");
-	const sweep = async (...args: string[]) => {
+	const branch = async (...args: string[]) => {
 		const [said, failed] = [out.length, err.length];
-		const code = await Promise.resolve(command?.run({ args: ["branch", "sweep", ...args], project: undefined })).catch((error: Error) => (err.push(error.message), 1));
+		const code = await Promise.resolve(command?.run({ args: ["branch", ...args], project: undefined })).catch((error: Error) => (err.push(error.message), 1));
 		return { code: code ?? 0, out: out.slice(said).join("\n"), err: err.slice(failed).join("\n") };
 	};
+	const sweep = (...args: string[]) => branch("sweep", ...args);
 	return {
 		fake,
 		home,
@@ -91,6 +93,7 @@ async function world(t: TestContext) {
 		origin,
 		gate,
 		job,
+		branch,
 		sweep,
 		out,
 		start: () => plugin.start?.(),
@@ -350,10 +353,10 @@ test("arthur github branch sweep deletes origin's arthur/* branches whose job is
 test("arthur github branch sweep says an origin with no arthur/* branch; refuses an origin it may not reach, wrong usage and a job's call", async (t) => {
 	const w = await world(t);
 	assert.deepEqual(await w.sweep(), { code: 0, out: "no arthur/* branches on origin of project shop", err: "" });
-	assert.deepEqual(await w.sweep("--all"), { code: 2, out: "", err: "usage: arthur github pr list [--all]|get <n>|merge <n> | branch sweep [--dry-run] [--project <name>]" });
+	assert.deepEqual(await w.sweep("--all"), { code: 2, out: "", err: "usage: arthur github pr list [--all]|get <n>|merge <n> | branch list|delete <branch> [--unmerged]|sweep [--dry-run] [--project <name>]" });
 	assert.equal((await w.sweep("x")).code, 2);
+	for (const args of [["delete"], ["delete", "a", "b"], ["delete", "a", "--dry-run"], ["list", "x"], ["list", "--unmerged"], ["sweep", "--unmerged"]]) assert.equal((await w.branch(...args)).code, 2, args.join(" "));
 	const command = w.fake.commands.find((each) => each.name === "github");
-	assert.equal(await command?.run({ args: ["branch", "list"], project: undefined }), 2, "no verb but sweep yet");
 	assert.deepEqual(await Promise.resolve(command?.run({ args: ["branch", "sweep"], project: "alone" })).catch((error: Error) => error.message), `origin's branches of project alone not listed: ${w.alone} has no origin remote`);
 	git(w.path, "config", "core.sshCommand", "/bin/false");
 	const planted = await w.sweep();
@@ -366,4 +369,72 @@ test("arthur github branch sweep says an origin with no arthur/* branch; refuses
 	const refusal = "arthur github branch sweep: refused inside a job 2026-10-29-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message";
 	assert.deepEqual(await w.sweep("--dry-run"), { code: 1, out: "", err: refusal });
 	assert.deepEqual(w.deletes(), []);
+});
+
+// A job's process: ARTHUR_JOB names its record, as a spawn sets it; restored at the test's end.
+function asJob(t: TestContext): void {
+	const was = process.env.ARTHUR_JOB;
+	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-10-29-worker-0a1b2c3d";
+	t.after(() => (was === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = was)));
+}
+
+test("arthur github branch list: each branch on origin with its tip, whether main holds it or the checkout lacks it, and the job on it; inside a job too; an origin out of reach, and none", async (t) => {
+	const w = await world(t);
+	const [merged, working, unmerged] = [w.job(1), w.job(2), w.job(3)];
+	w.merge(merged.branch);
+	writeFileSync(join(w.home, "jobs", working.id, "state"), "working");
+	// A commit only origin has, pushed from another clone.
+	const other = temporaryFolder();
+	execFileSync("git", ["clone", "--quiet", w.origin, other]);
+	git(other, "commit", "--quiet", "--allow-empty", "-m", "elsewhere");
+	git(other, "push", "--quiet", "origin", "HEAD:refs/heads/feature");
+	git(w.path, "push", "--quiet", "origin", "main", merged.branch, working.branch, unmerged.branch);
+	const short = (path: string, ref: string) => git(path, "rev-parse", "--short=7", ref);
+	asJob(t);
+	const lines = [
+		`${merged.branch} ${short(w.path, merged.branch)} merged into main, job ${merged.id} (ended)`,
+		`${working.branch} ${short(w.path, working.branch)} not in main, job ${working.id} (working)`,
+		`${unmerged.branch} ${short(w.path, unmerged.branch)} not in main, job ${unmerged.id} (ended)`,
+		`feature ${short(other, "HEAD")} not here`,
+		`main ${short(w.path, "main")} merged into main`,
+	];
+	assert.deepEqual(await w.branch("list"), { code: 0, out: lines.join("\n"), err: "" });
+	writeFileSync(join(w.gate, "down"), "");
+	assert.deepEqual(await w.branch("list"), { code: 1, out: "", err: "origin's branches of project shop not listed: fatal: Could not read from remote repository." });
+	rmSync(join(w.gate, "down"));
+	const empty = temporaryFolder();
+	git(empty, "init", "--quiet", "--bare");
+	git(w.path, "remote", "set-url", "origin", empty);
+	assert.deepEqual(await w.branch("list"), { code: 0, out: "no branches on origin of project shop", err: "" });
+});
+
+test("arthur github branch delete deletes a branch on origin once, leased; refuses the checkout's branch, origin's default, a job's not ended, an unmerged tip without --unmerged, a tip moved since the read, a planted config, a job's call", async (t) => {
+	const w = await world(t);
+	const [merged, working, unmerged, moved] = [w.job(1), w.job(2), w.job(3), w.job(4)];
+	for (const each of [merged, working, moved]) w.merge(each.branch);
+	writeFileSync(join(w.home, "jobs", working.id, "state"), "working");
+	git(w.path, "push", "--quiet", "origin", "main", "main:release", merged.branch, working.branch, unmerged.branch, moved.branch);
+	// Origin's default is `release`, so `main` is refused only as the checkout's branch, and `release` only as the default.
+	git(w.origin, "symbolic-ref", "HEAD", "refs/heads/release");
+	const refused = (branch: string, why: string) => ({ code: 1, out: "", err: `${branch} not deleted on origin: ${why}` });
+	assert.deepEqual(await w.branch("delete", "main"), refused("main", `${w.path} has it checked out`));
+	assert.deepEqual(await w.branch("delete", "release"), refused("release", "it is origin's default branch"));
+	assert.deepEqual(await w.branch("delete", working.branch), refused(working.branch, `it is the branch of job ${working.id}, which has not ended (working)`));
+	assert.deepEqual(await w.branch("delete", unmerged.branch), refused(unmerged.branch, `its tip ${unmerged.tip.slice(0, 7)} is not in main; --unmerged deletes it all the same`));
+	// Another commit reaches origin's branch between the listing and the delete.
+	writeFileSync(join(w.gate, "move"), `refs/heads/${moved.branch} ${unmerged.tip}`);
+	assert.deepEqual(await w.branch("delete", moved.branch), refused(moved.branch, "[rejected] (stale info)"));
+	git(w.path, "config", "core.sshCommand", "/bin/false");
+	assert.match((await w.branch("delete", merged.branch)).err, /^origin's branches of project shop not listed: .*config sets core\.sshcommand, which a job can write/);
+	git(w.path, "config", "--unset", "core.sshCommand");
+	assert.deepEqual(w.deletes(), [], "nothing deleted yet");
+	assert.deepEqual(await w.branch("delete", merged.branch), { code: 0, out: `deleted ${merged.branch} on origin (${merged.tip.slice(0, 7)})`, err: "" });
+	assert.deepEqual(await w.branch("delete", merged.branch), refused(merged.branch, "origin has no such branch"));
+	assert.deepEqual(await w.branch("delete", unmerged.branch, "--unmerged"), { code: 0, out: `deleted ${unmerged.branch} on origin (${unmerged.tip.slice(0, 7)})`, err: "" });
+	assert.deepEqual(w.deletes(), [`refs/heads/${merged.branch}`, `refs/heads/${unmerged.branch}`]);
+	assert.deepEqual([w.tip("main") !== "", w.tip("release") !== "", w.tip(working.branch), w.tip(moved.branch)], [true, true, working.tip, unmerged.tip]);
+	asJob(t);
+	const job = "refused inside a job 2026-10-29-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message";
+	assert.deepEqual(await w.branch("delete", moved.branch, "--unmerged"), { code: 1, out: "", err: `arthur github branch delete: ${job}` });
+	assert.equal(w.tip(moved.branch), unmerged.tip);
 });

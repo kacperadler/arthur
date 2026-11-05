@@ -25,7 +25,7 @@ const BUDGETS = {
 
 	findings: 276,
 
-	github: 1076,
+	github: 1124,
 
 	listen: 262,
 

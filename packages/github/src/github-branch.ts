@@ -8,8 +8,8 @@ import { deleteOnOrigin, git, originBranches } from "./github-git.ts";
 // A job's branch on origin (AR0555): deleted once its job is pruned, and `arthur github branch sweep [--dry-run]`, origin's
 // `arthur/*` branches whose job is gone and whose tip main holds. `<folder>/pushed/<job id>` holds the tip `github.push`
 // last pushed of the job's branch, which the prune may delete although main does not hold it (a dropped ticket's). AR0619:
-// a delete git failed is left in `<folder>/pending/<job id>` and tried again each poll for 24 hours.
-// docs/github.md, "Branches on origin"; docs/commands/github-branch.md.
+// a delete git failed is left in `<folder>/pending/<job id>` and tried again each poll for 24 hours. AR0560: `branch list`
+// and `branch delete <branch> [--unmerged]`, any branch on origin. docs/github.md, "Branches on origin"; docs/commands/github-branch.md.
 
 // `arthur/<job id>`, the one branch a job's spawn names, `<date>-<kind>-<8 hex digits>` as the core's job ids.
 const JOB = /^arthur\/(\d{4}-\d\d-\d\d-[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{8})$/;
@@ -104,7 +104,7 @@ async function originDelete(host: Host, list: readonly Entry[], { id, project, b
 	const pushed = existsSync(record) ? readFileSync(record, "utf8").trim() : "";
 	const listed = await originBranches(path, branch);
 	if (typeof listed === "string") return { retry: listed, tip: pushed };
-	const tip = listed.get(branch);
+	const tip = listed.tips.get(branch);
 	if (tip !== undefined && tip !== pushed && !inMain(path, tip))
 		return `origin's tip ${tip.slice(0, 7)} is not the commit Arthur pushed (${pushed.slice(0, 7) || "none recorded"}), nor in ${mainOf(path)}`;
 	const why = tip === undefined ? "" : ((await deleteOnOrigin(path, new Map([[branch, tip]]))).get(branch) ?? "");
@@ -114,12 +114,55 @@ async function originDelete(host: Host, list: readonly Entry[], { id, project, b
 	return undefined;
 }
 
-// `arthur github branch sweep [--dry-run]`: origin's `arthur/*` branches of the project, deleted in one push with a lease each
-// when their job is gone and main holds their tip; every other one kept, with why. Writes its output; exit 1 when a delete
-// failed, a refused origin throws.
-export async function branch(host: Host, entry: Entry, dryRun: boolean): Promise<number> {
-	const listed = await originBranches(entry.path, "arthur/");
+// `arthur github branch list|delete|sweep` (docs/commands/github-branch.md): writes the verb's output, resolves to its exit code.
+export function branch(host: Host, entry: Entry, verb: string, name: string, flags: readonly string[]): Promise<number> {
+	if (verb === "list") return list(host, entry);
+	return verb === "delete" ? remove(host, entry, name, flags.includes("--unmerged")) : sweep(host, entry, flags.includes("--dry-run"));
+}
+
+// Origin's branches of the project under `prefix`; an origin refused or out of reach throws.
+async function listOrigin(entry: Entry, prefix: string) {
+	const listed = await originBranches(entry.path, prefix);
 	if (typeof listed === "string") throw new Error(`origin's branches of project ${entry.name} not listed: ${listed}`);
+	return listed;
+}
+
+// `branch list`: each branch on origin, its tip, whether the checkout's main holds it, and the newest job on it.
+async function list(host: Host, entry: Entry): Promise<number> {
+	const { tips } = await listOrigin(entry, "");
+	if (tips.size === 0) return (console.log(`no branches on origin of project ${entry.name}`), 0);
+	const [main, jobs] = [mainOf(entry.path), host.jobs.list()];
+	const lines = [...tips].map(([name, tip]) => {
+		const where = git(entry.path, "cat-file", "-e", `${tip}^{commit}`) === undefined ? "not here" : inMain(entry.path, tip) ? `merged into ${main}` : `not in ${main}`;
+		const job = jobs.find((each) => each.branch === name);
+		return `${name} ${tip.slice(0, 7)} ${where}${job === undefined ? "" : `, job ${job.id} (${job.state})`}`;
+	});
+	console.log(lines.join("\n"));
+	return 0;
+}
+
+// `branch delete <branch> [--unmerged]`: the branch deleted on origin with a lease on the tip just listed; each refusal throws.
+async function remove(host: Host, entry: Entry, name: string, unmerged: boolean): Promise<number> {
+	const refused = (why: string) => new Error(`${name} not deleted on origin: ${why}`);
+	const main = mainOf(entry.path);
+	if (name === main) throw refused(`${entry.path} has it checked out`);
+	const job = host.jobs.list().find((each) => each.branch === name && each.state !== "ended");
+	if (job !== undefined) throw refused(`it is the branch of job ${job.id}, which has not ended (${job.state})`);
+	const { tips, head } = await listOrigin(entry, name);
+	const tip = tips.get(name);
+	if (name === head) throw refused("it is origin's default branch");
+	if (tip === undefined) throw refused("origin has no such branch");
+	if (!unmerged && !inMain(entry.path, tip)) throw refused(`its tip ${tip.slice(0, 7)} is not in ${main}; --unmerged deletes it all the same`);
+	const why = (await deleteOnOrigin(entry.path, new Map([[name, tip]]))).get(name) ?? "";
+	if (why !== "") throw refused(why);
+	console.log(`deleted ${name} on origin (${tip.slice(0, 7)})`);
+	return 0;
+}
+
+// `branch sweep [--dry-run]`: origin's `arthur/*` branches of the project, deleted in one push with a lease each when their
+// job is gone and main holds their tip; every other one kept, with why. Exit 1 when a delete failed.
+async function sweep(host: Host, entry: Entry, dryRun: boolean): Promise<number> {
+	const { tips: listed } = await listOrigin(entry, "arthur/");
 	if (listed.size === 0) return (console.log(`no arthur/* branches on origin of project ${entry.name}`), 0);
 	const jobs = new Set(host.jobs.list().map((job) => job.id));
 	const main = mainOf(entry.path);

@@ -4127,9 +4127,9 @@
   {
     "id": "AR0521",
     "title": "A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0521-a-machine-with-many-jobs-whose-logs-grew-a-lot-may-not-fit-its-copy-in-20-s-over/ticket.md",
-    "updated": "2026-11-04T20:40:53.364Z",
+    "updated": "2026-11-05T06:46:36.353Z",
     "after": [
       "AR0391"
     ]
@@ -5057,5 +5057,12 @@
     "status": "planning",
     "path": "spec/features/AR0628-git-fast-import-appends-to-any-file-named-by-a-stdin-option-git-export-pack/ticket.md",
     "updated": "2026-11-05T03:23:39.657Z"
+  },
+  {
+    "id": "AR0629",
+    "title": "A delivery merge running when arthur run restarts dies half done, leaving an unpushed merge commit on main",
+    "status": "planning",
+    "path": "spec/features/AR0629-a-delivery-merge-running-when-arthur-run-restarts-dies-half-done-leaving-an/ticket.md",
+    "updated": "2026-11-05T07:19:25.122Z"
   }
 ]

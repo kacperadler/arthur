@@ -3,7 +3,7 @@ import { checkConfig } from "@arthur/core/git-config";
 import type { Run } from "./github-api.ts";
 
 // What the github plugin asks of a project's checkout (spec/roadmap.md, entries 57 and 58): the run that built a branch,
-// a branch pushed to origin, and branches listed and deleted there (AR0555), never with a prompt.
+// a branch pushed to origin, and branches listed and deleted there (AR0555, AR0560), never with a prompt.
 
 // The commits of a branch looked through for its nearest run, from its tip.
 export const DEPTH = 1000;
@@ -85,16 +85,18 @@ export async function push(path: string, branch: string): Promise<string> {
 	return spawnSync("git-lfs", ["version"]).status !== 0 ? failed("its .gitattributes names filter=lfs, and git-lfs is not installed") : pushing(true);
 }
 
-// Origin's branches under `prefix` (such as `arthur/`, or a full name), each with its tip, as `git ls-remote` lists them; a
-// refusal or a failure is its text, as `push` says it.
-export async function originBranches(path: string, prefix: string): Promise<ReadonlyMap<string, string> | string> {
+// Origin's branches under `prefix` (such as `arthur/`, a full name, or "" for all), each with its tip, as `git ls-remote` lists
+// them, and `head`, origin's default branch ("" unknown); a refusal or a failure is its text, as `push` says it.
+export async function originBranches(path: string, prefix: string): Promise<{ readonly tips: ReadonlyMap<string, string>; readonly head: string } | string> {
 	const { refusal: refused, pins } = originCheck(path);
 	if (refused !== "") return refused;
-	const ran = await gitAway(path, [...pins, "ls-remote", "--heads", "origin", `refs/heads/${prefix}${prefix.endsWith("/") ? "*" : ""}`], quiet());
+	const pattern = `refs/heads/${prefix}${prefix === "" || prefix.endsWith("/") ? "*" : ""}`;
+	const ran = await gitAway(path, [...pins, "ls-remote", "--symref", "origin", "HEAD", pattern], quiet());
 	if (ran.code !== 0) return ran.why;
-	// `<sha>\trefs/heads/<branch>`, a line each; ls-remote's pattern also matches the end of a longer name, which the prefix check drops.
+	// `<sha>\trefs/heads/<branch>`, a line each, and `ref: refs/heads/<branch>\tHEAD`; ls-remote's pattern also matches the end of a longer name, which the prefix check drops.
 	const pairs = ran.out.split("\n").flatMap((line) => (/^[0-9a-f]{40,64}\trefs\/heads\//.test(line) ? [[line.slice(line.indexOf("\t") + 12), line.slice(0, line.indexOf("\t"))] as const] : []));
-	return new Map(pairs.filter(([branch]) => branch.startsWith(prefix)));
+	const head = /^ref: refs\/heads\/(.+)\tHEAD$/m.exec(ran.out)?.[1] ?? "";
+	return { tips: new Map(pairs.filter(([branch]) => branch.startsWith(prefix))), head };
 }
 
 // Each of `tips` (a branch and the tip origin had) deleted on origin in one push, only while origin still has that tip

@@ -125,8 +125,10 @@ export function bashRefusal(place: Place, command: string, start: string, unread
 		if (sub === "stash" && !["list", "show"].includes(rest[0] ?? "")) return STASH;
 		const dir = chdirs.reduce(located, cwd);
 		// Every worktree shares the repository: a ref the job does not own (any `fast-import` names), a checkout pointed at it, a replacement or a rewrite is main's.
-		const ref = sub === "fast-import" ? "with its refs on stdin" : (rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin");
-		if (sub === "fast-import" ? [dir, ...trees].some((path) => [place.root, place.worktrees].some((at) => inside(located(dir, path), at))) : sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git ${sub} ${ref}`);
+		// `--allow-unsafe-features` (an exact word, as Git reads it) lets a stdin `feature export-marks=<path>` write any file, so it is refused on any repository.
+		const unsafe = sub === "fast-import" && rest.includes("--allow-unsafe-features");
+		const ref = sub === "fast-import" ? (unsafe ? "--allow-unsafe-features with its export-marks on stdin" : "with its refs on stdin") : (rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin");
+		if (unsafe || (sub === "fast-import" ? [dir, ...trees].some((path) => [place.root, place.worktrees].some((at) => inside(located(dir, path), at))) : sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`))) return refusal(place, place.root, `git ${sub} ${ref}`);
 		if ((points !== undefined && points !== `refs/heads/${place.branch}`) || replaces || shared || adds.some((word) => !inside(located(dir, word), place.worktrees))) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
 		// Config the worktrees share runs hooks and programs in the main checkout; a worktree's own, or a file elsewhere, does not.
 		if (config?.file !== undefined) return theirs([config.file], dir);

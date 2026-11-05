@@ -1,7 +1,7 @@
 // What a `git` command line writes, for the worktree guard (spec/roadmap.md, entry 20). `args` are the words after `git`.
 
 // Subcommands that write a tree, the index or a ref of the checkout they run in, and those that change their file operands
-// (`init` its folder and its `--separate-git-dir`, whose `.git` file it writes there; `fast-import` its `--export-marks` file).
+// (`init` its folder and its `--separate-git-dir`, whose `.git` file it writes there; `fast-import` its `--export-marks` file; bash-refusal.ts refuses its `--allow-unsafe-features`).
 const WRITES_CHECKOUT = ["commit", "checkout", "checkout-index", "read-tree", "update-index", "reset", "add", "restore", "clean", "rebase", "merge", "cherry-pick", "revert", "apply", "am", "rm", "mv", "switch", "pull", "fetch", "push", "bisect", "sparse-checkout", "submodule", "symbolic-ref", "filter-branch", "init"];
 const WRITES_OPERANDS = ["add", "rm", "mv", "restore", "clean", "apply", "init", "fast-import"];
 const VALUE_OPTIONS = ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source"];

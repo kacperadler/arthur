@@ -583,6 +583,12 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		].map((command) => ["bash", { command }, MAIN] as const),
 		// Run outside every project, it still writes the file its `--export-marks` names.
 		["bash", { command: `git -C /tmp/other fast-import --export-marks=${root}/marks` }, MAIN],
+		// With `--allow-unsafe-features` a stdin `feature export-marks=<path>` writes any file, so it is refused on any repository (AR0624).
+		...[
+			`printf 'feature export-marks=${main}/marks\\n' | git -C /tmp/other fast-import --allow-unsafe-features`,
+			"git -C /tmp/other fast-import --quiet --allow-unsafe-features < notes.txt",
+			"git -C /tmp/other -c alias.fi='fast-import --allow-unsafe-features' fi",
+		].map((command) => ["bash", { command }, MAIN] as const),
 		["bash", { command: `echo "gitdir: ${root}/.git" > .git` }, MAIN],
 		["bash", { command: "rm .git", cwd: "sub" }, LINK],
 		["bash", { command: "rm ../.git", cwd: "sub" }, MAIN],
@@ -681,6 +687,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	assert.ok(fetched.includes("into the main checkout (git fetch . HEAD:refs/replace/0123abcd)"), fetched);
 	// A fast-import's refusal says its refs come on stdin, as `git update-ref --stdin`'s shows `--stdin`.
 	for (const command of ["git fast-import", `git -C ${main} fast-import`]) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /into the main checkout \(git fast-import with its refs on stdin\);/, command);
+	assert.match(worktreeRefusal(place, "bash", { command: "git -C /tmp/other fast-import --allow-unsafe-features" }) ?? "", /into the main checkout \(git fast-import --allow-unsafe-features with its export-marks on stdin\);/);
 });
 
 test("pkill and killall are refused wherever the guard finds a command, through a shell, eval, sudo or a wrapper too; kill <pid> and pgrep pass", async () => {

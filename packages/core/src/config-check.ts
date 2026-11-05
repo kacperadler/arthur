@@ -1,6 +1,7 @@
 import { type LoadedConfig, loadConfig } from "./config.ts";
 import { checkEnv, type EnvCheck, type EnvVariable, type Shell } from "./env.ts";
 import { checkPlugins } from "./host.ts";
+import { typeCheck } from "./type-check.ts";
 
 // One variable as the check prints it, never its value; `arthur setup` prints the same.
 export const envLine = (variable: EnvVariable) => `${variable.set ? "set    " : "missing"} ${variable.name} (${variable.option})`;
@@ -29,7 +30,7 @@ export async function readConfig(path: string, shell: Shell, setupProblem?: stri
 	return { config, refused: before || setupProblem === undefined ? refused : setupProblem.split("\n"), env };
 }
 
-// `arthur config check`: docs/commands/config.md.
+// `arthur config check`: docs/commands/config.md. Its tsc lines (AR0605) come after the host's refusals, before the env lines.
 export async function configCheck(
 	path: string,
 	shell: Shell = process.env,
@@ -38,8 +39,9 @@ export async function configCheck(
 	const { config, refused, env } = await readConfig(path, shell, setupProblem);
 	if (config === undefined) return { lines: refused, ok: false };
 	const missing = env.variables.some((variable) => !variable.set);
-	const lines = [...refused, ...env.warnings, ...env.problems, ...env.variables.map(envLine)];
+	const types = typeCheck(config);
+	const lines = [...refused, ...types.lines, ...env.warnings, ...env.problems, ...env.variables.map(envLine)];
 	if (missing && !env.envFileFound) lines.push(`${config.core.envFile} does not exist; a missing variable must come from the shell`);
 	if (env.variables.length === 0 && env.problems.length === 0) lines.push("no enabled plugin names an env variable");
-	return { lines, ok: refused.length === 0 && env.problems.length === 0 && !missing };
+	return { lines, ok: refused.length === 0 && types.ok && env.problems.length === 0 && !missing };
 }

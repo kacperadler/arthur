@@ -5017,9 +5017,9 @@
   {
     "id": "AR0624",
     "title": "git fast-import with --allow-unsafe-features and a feature export-marks line on stdin writes a file anywhere past the worktree guard",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0624-git-fast-import-with-allow-unsafe-features-and-a-feature-export-marks-line-on/ticket.md",
-    "updated": "2026-11-04T20:40:51.619Z",
+    "updated": "2026-11-05T03:23:15.422Z",
     "after": [
       "AR0626"
     ]

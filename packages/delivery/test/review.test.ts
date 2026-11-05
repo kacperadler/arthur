@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -46,6 +46,17 @@ async function load(t: TestContext, { start = false } = {}) {
 	git(other, "commit", "--quiet", "-m", "first");
 	t.after(() => {
 		process.env.PATH = PATH;
+	});
+	// Each merge delivery started in this test that still runs is killed with its process group (its own session), its `sh` and `arthur merge`.
+	t.after(() => {
+		const runs = join(fake.host.folder, "merge-runs");
+		for (const name of existsSync(runs) ? readdirSync(runs) : []) {
+			const { pid } = JSON.parse(readFileSync(join(runs, name, "run.json"), "utf8"));
+			if (pid > 0)
+				try {
+					process.kill(-pid, "SIGKILL");
+				} catch {}
+		}
 	});
 	// Put first on `PATH`, before whatever a test put there (a fake ssh).
 	const agent = (run: AgentRun) => {
@@ -629,18 +640,20 @@ test("a worker's run that ends blocked keeps its hand-back, one that fails ends 
 });
 
 // `arthur` as `arthur run` starts it for a merge: the core's CLI in the folder the test then runs in, as `arthur run` runs in its
-// config's. That config loads a fake `merge`, which notes its arguments, prints `out` and `err` and exits `code` as `answer` sets.
+// config's. That config loads a fake `merge`, which notes its arguments, waits for the file `gate` if `answer` names one, prints
+// `out` and `err` and exits `code` as `answer` sets.
 function fakeMerge(t: TestContext) {
 	const folder = temporaryFolder();
 	const [log, answer] = [join(folder, "asked"), join(folder, "answer.json")];
 	writeFileSync(join(folder, "merge.md"), "# arthur merge\n");
-	const merge = `{ name: "merge", doc: new URL("./merge.md", import.meta.url), run({ args }) { appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + "\\n"); const { out, err, code } = JSON.parse(readFileSync(${JSON.stringify(answer)}, "utf8")); process.stdout.write(out); process.stderr.write(err); return code; } }`;
-	writeFileSync(join(folder, "arthur.config.ts"), `import { appendFileSync, readFileSync } from "node:fs";\nexport default { plugins: [{ name: "orchestration", setup() {} }, { name: "fake", setup(host) { host.commands.register(${merge}); } }] };\n`);
+	const wait = "while (gate !== undefined && !existsSync(gate)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);";
+	const merge = `{ name: "merge", doc: new URL("./merge.md", import.meta.url), run({ args }) { appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + "\\n"); const { out, err, code, gate } = JSON.parse(readFileSync(${JSON.stringify(answer)}, "utf8")); ${wait} process.stdout.write(out); process.stderr.write(err); return code; } }`;
+	writeFileSync(join(folder, "arthur.config.ts"), `import { appendFileSync, existsSync, readFileSync } from "node:fs";\nexport default { plugins: [{ name: "orchestration", setup() {} }, { name: "fake", setup(host) { host.commands.register(${merge}); } }] };\n`);
 	const cwd = process.cwd();
 	process.chdir(folder);
 	t.after(() => process.chdir(cwd));
 	return {
-		answer: (out: string, err: string, code: number) => writeFileSync(answer, JSON.stringify({ out, err, code })),
+		answer: (out: string, err: string, code: number, gate?: string) => writeFileSync(answer, JSON.stringify({ out, err, code, gate })),
 		asked: () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []),
 	};
 }
@@ -716,6 +729,124 @@ test("a no review of arthur review-needed, in its own process, is merged by arth
 	for (const id of ["../outside", "--unreviewed"]) fake.emit("no-review", { id, project: "acme", ticket: "AC0001", branch: job.branch, commit: "f".repeat(40) });
 	assert.equal(await forwarded(fake.host.folder, job.id), `no review ${job.commit}\n`, "no commit, no merge");
 	assert.deepEqual([existsSync(join(fake.host.folder, "..", "outside")), existsSync(join(fake.host.folder, "--unreviewed"))], [false, false], "an id that is no job's is never a path or a flag");
+});
+
+test("a merge delivery started outlives its arthur run: killed with its process group mid-merge, the merge ends all the same, and the next arthur run wakes the coordinator once with what it printed", async (t) => {
+	const merge = fakeMerge(t);
+	const { fake, worker, setAutoMerge, plugin } = await load(t);
+	t.after(() => plugin.stop?.());
+	setAutoMerge(true);
+	const job = await worker();
+	const [gate, never] = [join(temporaryFolder(), "gate"), join(temporaryFolder(), "never")];
+	merge.answer("merged arthur/x into main: 1a2b3c4\ngithub: pushed main to origin\n", "", 0, gate);
+	// `arthur run` in a process of its own, with only what delivery's merge start reads of its host.
+	const host = `{ folder: ${JSON.stringify(fake.host.folder)}, collect: () => [[{ name: "acme", pieces: { delivery: { autoMerge: true } } }]], events: { on() {}, emit() {} }, board: { projects: () => [] }, jobs: { list: () => [] } }`;
+	const code = `const { passForward } = await import(${JSON.stringify(import.meta.resolve("../src/pass-forward.ts"))}); const passes = passForward(${host}); passes.start(); passes.forward("acme", ${JSON.stringify(job.id)}, "Review x says PASS.", "x"); setInterval(() => {}, 60000);`;
+	const run = spawn(process.execPath, ["--input-type=module", "-e", code], { detached: true, stdio: "ignore" });
+	// A test that fails midway leaves no stand-in arthur run; load kills the merges.
+	t.after(() => void (run.exitCode === null && run.signalCode === null && process.kill(-(run.pid ?? 0), "SIGKILL")));
+	await until("the merge started", () => merge.asked().length === 1);
+	process.kill(-(run.pid ?? 0), "SIGKILL");
+	await until("arthur run gone", () => run.signalCode === "SIGKILL");
+	await plugin.start?.();
+	assert.deepEqual(told(fake), [], "a merge still running wakes nobody yet");
+	writeFileSync(gate, "");
+	await until("the coordinator woken", () => told(fake).length === 1);
+	const ran = `Review x says PASS. acme merges on its own (autoMerge), so delivery ran arthur merge --auto ${job.id}`;
+	assert.deepEqual(told(fake), [`${ran}: it went in; follow the procedure it printed last. What it printed:\n\nmerged arthur/x into main: 1a2b3c4\ngithub: pushed main to origin`]);
+	assert.deepEqual(readdirSync(join(fake.host.folder, "merge-runs")), [], "told once: its folder is gone");
+	// A merge killed with its own session, before its end and before any merge commit: one wake that says so.
+	merge.answer("", "", 0, never);
+	fake.emit("no-review", { id: job.id, project: "acme", ticket: "AC0001", branch: job.branch, commit: "f".repeat(40) });
+	await until("the second merge started", () => merge.asked().length === 2);
+	const [folder = ""] = readdirSync(join(fake.host.folder, "merge-runs"));
+	process.kill(-JSON.parse(readFileSync(join(fake.host.folder, "merge-runs", folder, "run.json"), "utf8")).pid, "SIGKILL");
+	await until("the coordinator woken again", () => told(fake).length === 2);
+	assert.match(told(fake)[1] ?? "", new RegExp(`so delivery ran arthur merge --auto ${job.id}: killed before its end, it did not go in; act on its last line .*What it printed:\n\n$`));
+});
+
+test("arthur run looks for the end of a merge an earlier one started every 5 seconds while it runs, and no more once stopped", async (t) => {
+	const { fake, plugin } = await load(t);
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const ended = (job: string) => {
+		const folder = join(fake.host.folder, "merge-runs", `${job}-x`);
+		mkdirSync(folder, { recursive: true });
+		writeFileSync(join(folder, "run.json"), JSON.stringify({ project: "acme", job, why: "Why.", pid: spawnSync("true").pid }));
+		writeFileSync(join(folder, "out"), "merged\n");
+		writeFileSync(join(folder, "exit"), "0\n");
+	};
+	await plugin.start?.();
+	ended("one");
+	t.mock.timers.tick(4999);
+	assert.deepEqual(told(fake), []);
+	t.mock.timers.tick(1);
+	assert.deepEqual(told(fake), ["Why. acme merges on its own (autoMerge), so delivery ran arthur merge --auto one: it went in; follow the procedure it printed last. What it printed:\n\nmerged"]);
+	await plugin.stop?.();
+	ended("two");
+	t.mock.timers.tick(5000);
+	assert.equal(told(fake).length, 1, "stopped: no look");
+});
+
+test("arthur run's start rolls back a merge that died half done, keeping the board, removes its lock and runs it again; a live lock, a merge whose checks passed or one a remote holds, and a HEAD that is not the dead job's merge commit are left alone", async (t) => {
+	const merge = fakeMerge(t);
+	const { root, fake, git, worker, setAutoMerge, plugin } = await load(t);
+	setAutoMerge(true);
+	const job = await worker();
+	const before = git(root, "rev-parse", "HEAD");
+	const board = readFileSync(join(root, "spec/build.json"), "utf8");
+	git(root, "-c", "user.name=t", "-c", "user.email=t@example.com", "merge", "--quiet", "--no-ff", "-m", "Merge AC0001: shop", job.branch);
+	const merged = git(root, "rev-parse", "HEAD");
+	merge.answer("merged again\n", "", 0);
+	const own = join(fake.host.folder, "acme");
+	const holder = (pid: number) => (mkdirSync(own, { recursive: true }), writeFileSync(join(own, "merge.lock"), `${pid}\n`), writeFileSync(join(own, "merging"), `${job.id}\n`));
+	const dead = spawnSync("true").pid ?? 0;
+	const tree = `${merged}^{tree}`;
+	const side = git(root, "commit-tree", `${before}^{tree}`, "-p", before, "-m", "side");
+	// Main moved to `commit`, the files of the merge kept; undone by moving it back.
+	const moved = (commit: string) => () => (holder(dead), git(root, "update-ref", "refs/heads/main", commit));
+	const back = () => git(root, "update-ref", "refs/heads/main", merged);
+	for (const [why, set, undo] of [
+		["a live holder", () => holder(process.ppid), () => assert.equal(readFileSync(join(own, "merge.lock"), "utf8"), `${process.ppid}\n`, "its lock kept")],
+		["its checks passed: last-merge names it", () => (holder(dead), writeFileSync(join(own, "last-merge"), `${merged}\n`)), () => rmSync(join(own, "last-merge"))],
+		["pushed: a remote branch holds it", () => (holder(dead), git(root, "update-ref", "refs/remotes/origin/main", merged)), () => git(root, "update-ref", "-d", "refs/remotes/origin/main")],
+		["merging names no job", () => (holder(dead), writeFileSync(join(own, "merging"), "2026-01-01-worker-00000000\n")), () => {}],
+		["a commit on top of the merge (the ticket's, or the coordinator's)", moved(git(root, "commit-tree", tree, "-p", merged, "-m", "spec: AC0001 merged")), back],
+		["a merge of another branch", moved(git(root, "commit-tree", tree, "-p", before, "-p", side, "-m", "Merge side")), back],
+		["a merge of three parents, the branch's tip second", moved(git(root, "commit-tree", tree, "-p", before, "-p", job.commit, "-p", side, "-m", "Merge three")), back],
+	] as const) {
+		set();
+		const head = git(root, "rev-parse", "HEAD");
+		await plugin.start?.();
+		await plugin.stop?.();
+		assert.deepEqual([git(root, "rev-parse", "HEAD"), merge.asked(), told(fake), existsSync(join(own, "merging"))], [head, [], [], why === "a live holder"], why);
+		undo();
+	}
+	assert.notEqual(board, git(root, "show", "HEAD:spec/build.json"), "the board has moves main does not hold");
+	// A local change to a file the merge brought: Git refuses to move the files, so main stays on the merge commit, and the coordinator is told.
+	const file = join(root, `${job.id}.ts`);
+	writeFileSync(file, "export const shop = 2;\n");
+	holder(dead);
+	await plugin.start?.();
+	await plugin.stop?.();
+	assert.deepEqual([git(root, "rev-parse", "HEAD"), merge.asked()], [merged, []], "refused: main and the change as they were");
+	assert.equal(readFileSync(file, "utf8"), "export const shop = 2;\n");
+	assert.match(told(fake)[0] ?? "", new RegExp(`^The merge of ${job.id} on acme died half done, its process gone: main still holds its merge commit ${merged.slice(0, 7)}, as git read-tree -m -u ${merged.slice(0, 7)} ${before.slice(0, 7)} refused: .+; reset main to ${before.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}$`));
+	git(root, "checkout", "--", `${job.id}.ts`);
+	holder(dead);
+	// The merge's own run folder, as a reboot leaves it: no exit status, its process gone. Its end is the rerun, not a wake of its own.
+	const killed = join(fake.host.folder, "merge-runs", `${job.id}-dead`);
+	mkdirSync(killed, { recursive: true });
+	writeFileSync(join(killed, "run.json"), JSON.stringify({ project: "acme", job: job.id, why: "Review x says PASS.", pid: dead }));
+	writeFileSync(join(killed, "out"), `merged ${job.branch} into main: ${merged.slice(0, 7)}\n`);
+	await plugin.start?.();
+	t.after(() => plugin.stop?.());
+	assert.deepEqual([git(root, "rev-parse", "HEAD"), readFileSync(join(root, "spec/build.json"), "utf8")], [before, board], "main at the merge's first parent, the board kept");
+	assert.deepEqual([existsSync(join(own, "merge.lock")), existsSync(join(own, "merging")), existsSync(file)], [false, false, false], "the files the merge brought gone with it");
+	await until("the coordinator woken", () => told(fake).length === 2);
+	assert.deepEqual(merge.asked(), [["--auto", job.id]]);
+	const why = `The merge of ${job.id} on acme died half done, its process gone: main went back from its merge commit ${merged.slice(0, 7)} to ${before.slice(0, 7)}, the board kept.`;
+	assert.deepEqual(told(fake).slice(1), [`${why} acme merges on its own (autoMerge), so delivery ran arthur merge --auto ${job.id}: it went in; follow the procedure it printed last. What it printed:\n\nmerged again`], "one wake, the rerun's; none for the killed run");
+	assert.equal(existsSync(killed), false);
 });
 
 // The hand-back's continue of a worker whose tip's checks did not pass, after the refusal.

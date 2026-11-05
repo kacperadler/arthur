@@ -45,7 +45,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 		check: checkOptions,
 		piece: autoMergePiece,
 		start: () => [loop, waits, passes].forEach((each) => each?.start()),
-		stop: () => waits?.stop(),
+		stop: () => [waits, passes].forEach((each) => each?.stop()),
 		setup(host) {
 			const back = handBack(host);
 			loop = back;

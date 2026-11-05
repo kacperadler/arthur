@@ -104,13 +104,11 @@ function waitUntil(response: Response, said: string): number | undefined {
 	return undefined;
 }
 
-// One run of the answer's `workflow_runs`, undefined when it lacks a field the plugin reads or is not a push to `repo` itself
-// (AR0504: a fork's pull request, a `workflow_dispatch` or a `schedule` may run less); GitHub's names ignore case. A server
-// without `run_attempt` (an older GitHub Enterprise Server) has first attempts only.
+// One run of the answer's `workflow_runs`, undefined when it lacks a field the plugin reads or is not a push to `repo` itself, its name in any case (AR0504);
+// a server without `run_attempt` (an older GitHub Enterprise Server) has first attempts only.
 function run(item: unknown, repo: string): Run | undefined {
 	const [id, attempt, sha, branch, status, conclusion, url, started, created, event] = ["id", "run_attempt", "head_sha", "head_branch", "status", "conclusion", "html_url", "run_started_at", "created_at", "event"].map((key) => field(item, key));
-	const from = field(field(item, "head_repository"), "full_name");
-	if (event !== "push" || typeof from !== "string" || from.toLowerCase() !== repo.toLowerCase()) return undefined;
+	if (event !== "push" || String(field(field(item, "head_repository"), "full_name")).toLowerCase() !== repo.toLowerCase()) return undefined;
 	if (typeof id !== "number" || typeof sha !== "string" || typeof status !== "string" || typeof url !== "string") return undefined;
 	const startedAt = typeof started === "string" ? started : typeof created === "string" ? created : null;
 	return { id, attempt: typeof attempt === "number" ? attempt : 1, sha, branch: typeof branch === "string" ? branch : null, status, conclusion: typeof conclusion === "string" ? conclusion : null, url, startedAt };

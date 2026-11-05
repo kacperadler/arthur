@@ -44,3 +44,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F6 of AR0404
+- 2026-11-05: AR0504: an unpushed job branch has no CI run until its own push, by the recommendation under AR-D500; the owner: "always go with the recommendation (AR-D500)" (AR-D505)

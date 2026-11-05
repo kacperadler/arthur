@@ -28,24 +28,24 @@ export function nearestRun(path: string, branch: string, runs: readonly Run[]): 
 }
 
 type Ran = { readonly code: number | null; readonly out: string; readonly why: string };
-// `git <args>` in the checkout at `path`, in a session of its own, which has no terminal to ask on, killed after PUSH_MS. `why`
-// is a failure's: git's first error line, a quoted word, a URL or a word holding an `@` said as `origin`, as each may hold a credential.
-function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<Ran> {
+// `git <args>` in `path`, in a session of its own with no terminal to ask on, killed after PUSH_MS, or with `limit` "progress" after PUSH_MS without a byte on
+// stderr (AR0391). `why` is a failure's: git's first error line, a quoted word, a URL or a word holding an `@` said as `origin`, as each may hold a credential.
+function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv, limit: "end" | "progress" = "end"): Promise<Ran> {
 	const child = spawn("git", [...UNHOOKED, "-C", path, ...args], { env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
-	let [out, err] = ["", ""];
-	child.stdout.on("data", (chunk: Buffer) => void (out += chunk));
-	child.stderr.on("data", (chunk: Buffer) => void (err += chunk));
-	const timer = setTimeout(() => {
+	const kill = () => {
 		try {
 			process.kill(-(child.pid ?? 0), "SIGKILL");
 		} catch {}
-	}, PUSH_MS);
+	};
+	let [out, err, timer] = ["", "", setTimeout(kill, PUSH_MS)];
+	child.stdout.on("data", (chunk: Buffer) => void (out += chunk));
+	child.stderr.on("data", (chunk: Buffer) => void ((err += chunk), limit === "progress" && (clearTimeout(timer), (timer = setTimeout(kill, PUSH_MS)))));
 	const { promise, resolve } = Promise.withResolvers<Ran>();
 	child.on("error", (error) => resolve({ code: null, out, why: error.message }));
 	child.on("close", (code, signal) => {
 		clearTimeout(timer);
-		const lines = err.split("\n").filter((line) => line.trim() !== "" && !line.includes("failed to push some refs"));
-		const why = signal !== null ? `no end in ${PUSH_MS / 1000} s` : (lines.find((line) => /^(fatal|error|remote: error|ERROR):/.test(line)) ?? lines.at(-1) ?? `git exited ${code}`);
+		const lines = err.split(/[\r\n]/).filter((line) => line.trim() !== "" && !line.includes("failed to push some refs"));
+		const why = signal !== null ? `no ${limit} in ${PUSH_MS / 1000} s` : (lines.find((line) => /^(fatal|error|remote: error|ERROR):/.test(line)) ?? lines.at(-1) ?? `git exited ${code}`);
 		resolve({ code, out, why: why.trim().replace(/(?<!transport )'[^']*'/g, "origin").replace(/\S+:\/\/\S+/g, "origin").replace(/\S*@\S+/g, "origin") });
 	});
 	return promise;
@@ -66,8 +66,8 @@ function originCheck(path: string): { readonly refusal: string; readonly pins: r
 
 // `git push origin <branch>`, resolving to one line: `github: pushed ...`, or `github: <branch> not pushed to origin: <why>`.
 // No prompt and no program of the checkout's or origin's (`quiet`, `originCheck`). No hook runs, so a branch whose
-// `.gitattributes` (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as Git LFS's pre-push hook would
-// (AR0379); git-lfs must be on PATH, as git would otherwise run a `lfs` alias of the config.
+// `.gitattributes` (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as Git LFS's pre-push hook does (AR0379); git-lfs must be on PATH,
+// as git would otherwise run a `lfs` alias of the config, and prints its progress to a pipe only with GIT_LFS_FORCE_PROGRESS (git-lfs-config(5)).
 export async function push(path: string, branch: string): Promise<string> {
 	const failed = (why: string) => `github: ${branch} not pushed to origin: ${why}`;
 	const { refusal: refused, pins } = originCheck(path);
@@ -76,7 +76,7 @@ export async function push(path: string, branch: string): Promise<string> {
 	const env = quiet();
 	if (git(path, "grep", "--quiet", "--fixed-strings", "-e", "filter=lfs", ref, "--", ":(glob)**/.gitattributes") !== undefined) {
 		if (spawnSync("git-lfs", ["version"]).status !== 0) return failed("its .gitattributes names filter=lfs, and git-lfs is not installed");
-		const lfs = await gitAway(path, [...pins, "lfs", "push", "origin", ref], env);
+		const lfs = await gitAway(path, [...pins, "lfs", "push", "origin", ref], { ...env, GIT_LFS_FORCE_PROGRESS: "1" }, "progress");
 		if (lfs.code !== 0) return failed(`its LFS objects were not pushed: ${lfs.why}`);
 	}
 	const ran = await gitAway(path, [...pins, "push", "--porcelain", "origin", `${ref}:${ref}`], env);

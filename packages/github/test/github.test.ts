@@ -658,7 +658,7 @@ test("github.push of a branch whose .gitattributes, in any folder, names filter=
 	const unknown = "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393";
 	const fake = `case "$1" in
 version) echo 'git-lfs/3.4.1 (GitHub; linux amd64; go 1.22.2)' ;;
-push) if [ -e '${fail}' ]; then echo 'Unable to find source for object ${unknown} (try running git lfs fetch --all)' >&2; exit 2; fi
+push) if [ -e '${fail}' ]; then printf 'Uploading LFS objects:   0%% (0/1), 0 B | 0 B/s\\r' >&2; echo 'Unable to find source for object ${unknown} (try running git lfs fetch --all)' >&2; exit 2; fi
 	echo "$PWD $* $(git --git-dir='${origin}' rev-parse --verify --quiet "$3" || echo absent)" >> '${log}'
 	echo "$GIT_CONFIG_PARAMETERS" > '${log}.config'
 	echo 'Uploading LFS objects: 100% (1/1), 6 B | 0 B/s, done.' >&2 ;;
@@ -683,6 +683,65 @@ esac\n`;
 	git(local.path, "replace", git(local.path, "rev-parse", "arthur/hidden"), first);
 	assert.equal(await push("arthur/hidden"), "github: pushed arthur/hidden to origin: [new branch]");
 	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(2), [`${local.path} push origin refs/heads/arthur/hidden absent`], "read past the replacement");
+});
+
+// AR0391: large files take longer than the 60 s a push gets; git-lfs, as git-lfs-config(5) says, prints its progress to a pipe only with GIT_LFS_FORCE_PROGRESS.
+test("github.push's git lfs push is killed after 60 s without progress, not after 60 s: an upload that moves goes on; the git push after it keeps its 60 s", async (t) => {
+	const [bin, work, origin] = [temporaryFolder(), temporaryFolder(), temporaryFolder()];
+	// Each line of progress, then its mark `<n>`, then a wait for `go<n>`.
+	const fake = `case "$1" in
+version) echo 'git-lfs/3.4.1 (GitHub; linux amd64; go 1.22.2)' ;;
+push) for n in 1 2; do [ "$GIT_LFS_FORCE_PROGRESS" = 1 ] && printf 'Uploading LFS objects:  %s%% (%s/2), 1.0 GB | 20 MB/s\\r' $((n * 50 - 50)) $((n - 1)) >&2
+	touch '${work}/'$n; while [ ! -e '${work}/go'$n ]; do sleep 0.01; done; done
+	echo 'Uploading LFS objects: 100% (2/2), 2.0 GB | 20 MB/s, done.' >&2 ;;
+esac\n`;
+	writeFileSync(join(bin, "git-lfs"), `#!/bin/sh\n${fake}`, { mode: 0o755 });
+	// Origin's receive-pack for the last push: a line, its mark `h1`, a wait for `goh`, a line, mark `h2`, and no end until `end`.
+	writeFileSync(join(bin, "hang"), `#!/bin/sh\necho 'hang: 1' >&2; touch '${work}/h1'\nwhile [ ! -e '${work}/goh' ]; do sleep 0.01; done\necho 'hang: 2' >&2; touch '${work}/h2'\nwhile [ ! -e '${work}/end' ]; do sleep 0.01; done\n`, { mode: 0o755 });
+	// A fake still waiting when the test ends, as one a push failed to kill, ends too.
+	t.after(() => ["go1", "go2", "goh", "end"].forEach((name) => writeFileSync(join(work, name), "")));
+	withEnv(t, { PATH: `${bin}${delimiter}${process.env.PATH}`, GIT_CONFIG_GLOBAL: FOLDERS_ALLOWED, GIT_CONFIG_NOSYSTEM: "1" });
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	const local = repository(origin);
+	writeFileSync(join(local.path, ".gitattributes"), "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+	git(local.path, "add", ".gitattributes");
+	git(local.path, "commit", "--quiet", "-m", "LFS");
+	t.mock.timers.enable({ apis: ["setTimeout"] });
+	// Mark `n` seen at two checks of until: a poll of the loop between them read the line the fake wrote before it.
+	const marked = async (n: string) => {
+		let seen = 0;
+		await until(`mark ${n}`, () => existsSync(join(work, n)) && ++seen === 2);
+	};
+	const pushed = push(local.path, "main");
+	for (const n of ["1", "2"]) {
+		await marked(n);
+		t.mock.timers.tick(59_999);
+		writeFileSync(join(work, `go${n}`), "");
+	}
+	assert.equal(await pushed, "github: pushed main to origin: [new branch]", "two minutes of upload, a line each 59.999 s");
+	// Its answer once the push resolves, undefined while it runs: a push never killed fails its until, instead of holding the test.
+	const settled = (pushing: Promise<string>) => {
+		let answer: string | undefined;
+		void pushing.then((text) => (answer = text));
+		return () => answer;
+	};
+	for (const name of ["1", "2", "go1", "go2"]) rmSync(join(work, name));
+	const stalled = settled(push(local.path, "main"));
+	await marked("1");
+	t.mock.timers.tick(60_000);
+	assert.equal(await until("the stalled upload killed", stalled), "github: main not pushed to origin: its LFS objects were not pushed: no progress in 60 s");
+	// The git push after the upload: its receive-pack, which the owner's ~/.gitconfig names, prints a line but never ends.
+	for (const name of ["go1", "go2"]) writeFileSync(join(work, name), "");
+	const config = join(work, "gitconfig");
+	writeFileSync(config, `[include]\n\tpath = ${FOLDERS_ALLOWED}\n[remote "origin"]\n\treceivepack = ${join(bin, "hang")}\n`);
+	process.env.GIT_CONFIG_GLOBAL = config;
+	const held = settled(push(local.path, "main"));
+	await marked("h1");
+	t.mock.timers.tick(59_999);
+	writeFileSync(join(work, "goh"), "");
+	await marked("h2");
+	t.mock.timers.tick(1);
+	assert.equal(await until("the git push killed", held), "github: main not pushed to origin: no end in 60 s");
 });
 
 test("pull request reviews, polled when wakeOn names them: each told once and woken on; the first poll tells none; a pull request not updated is not asked again", async (t) => {

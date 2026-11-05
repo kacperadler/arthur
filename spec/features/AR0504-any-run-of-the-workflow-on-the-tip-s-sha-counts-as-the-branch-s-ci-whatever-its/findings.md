@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/github/src/github.ts:85-111` (the `ended` map of a run to its branches, `rest`), `packages/github/docs/github.md` (`ci-finished`'s `branches`)
 - What: since AR0504 `nearestRun` counts only runs whose `head_branch` is the branch, so a run is the run of one branch at most; the grouping of several branches under one run, the `branches` list of `ci-finished` and the wake's `rest.join(", ")` always hold one branch. Behavior is right; the code and the event's shape carry a case that no longer happens.
 - Suggestion: fold the per-run grouping into one branch per run and decide whether `ci-finished` keeps `branches` (its consumers: delivery's CI waits, the docs); the event's shape is a contract, so it is the owner's call.
-- Status: open
+- Status: deferred (client summary)

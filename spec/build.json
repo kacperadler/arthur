@@ -3995,9 +3995,9 @@
   {
     "id": "AR0504",
     "title": "Any run of the workflow on the tip's sha counts as the branch's CI, whatever its event, branch or repository",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0504-any-run-of-the-workflow-on-the-tip-s-sha-counts-as-the-branch-s-ci-whatever-its/ticket.md",
-    "updated": "2026-11-05T14:24:18.867Z",
+    "updated": "2026-11-05T15:13:16.741Z",
     "after": [
       "AR0500"
     ]

@@ -4119,7 +4119,7 @@
     "title": "The copy's fetch of an ended job's branch, and the spawn's SSH steps, still block `arthur run` with no time limit",
     "status": "in-progress",
     "path": "spec/features/AR0520-the-copy-s-fetch-of-an-ended-job-s-branch-and-the-spawn-s-ssh-steps-still-block/ticket.md",
-    "updated": "2026-11-05T15:13:32.534Z",
+    "updated": "2026-11-05T17:08:44.352Z",
     "after": [
       "AR0504"
     ]

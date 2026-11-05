@@ -5037,9 +5037,9 @@
   {
     "id": "AR0626",
     "title": "Two tests fail now and then under the full suite: models server unreachable, discord refused slice",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0626-two-tests-fail-now-and-then-under-the-full-suite-models-server-unreachable/ticket.md",
-    "updated": "2026-11-04T20:40:50.966Z",
+    "updated": "2026-11-05T01:13:44.485Z",
     "after": [
       "AR0618"
     ]

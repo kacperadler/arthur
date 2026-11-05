@@ -8,6 +8,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0618 The checks extension misses a check run behind an env assignment or through bun run (720a6871)
 
+### Changed
+
+- AR0626 Two tests fail now and then under the full suite: models server unreachable, discord refused slice (be1b4929)
+
 ## 2026-11-04
 
 ### Added

@@ -4471,9 +4471,9 @@
   {
     "id": "AR0560",
     "title": "GitHub T4: list and delete branches on origin",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0560-github-t4-list-and-delete-branches-on-origin/ticket.md",
-    "updated": "2026-10-29T14:33:14.909Z",
+    "updated": "2026-11-05T21:20:36.016Z",
     "after": [
       "AR0605"
     ]
@@ -5101,5 +5101,12 @@
     "status": "planning",
     "path": "spec/features/AR0633-the-umask-test-walks-arthur-while-the-job-still-writes-and-fails-on-a-lock-file/ticket.md",
     "updated": "2026-11-05T15:27:44.679Z"
+  },
+  {
+    "id": "AR0634",
+    "title": "The roadmap page shows listen, video and Discord as not built, and the README status is from October",
+    "status": "planning",
+    "path": "spec/features/AR0634-the-roadmap-page-shows-listen-video-and-discord-as-not-built-and-the-readme/ticket.md",
+    "updated": "2026-11-05T21:25:27.452Z"
   }
 ]

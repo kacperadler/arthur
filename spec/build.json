@@ -3009,9 +3009,9 @@
   {
     "id": "AR0391",
     "title": "The 60 s limit of a push also bounds its LFS upload",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0391-the-60-s-limit-of-a-push-also-bounds-its-lfs-upload/ticket.md",
-    "updated": "2026-11-04T20:40:52.804Z",
+    "updated": "2026-11-05T05:48:25.288Z",
     "after": [
       "AR0625"
     ]

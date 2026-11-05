@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0391 The 60 s limit of a push also bounds its LFS upload (19fc7230)
 - AR0618 The checks extension misses a check run behind an env assignment or through bun run (720a6871)
 - AR0624 git fast-import with --allow-unsafe-features and a feature export-marks line on stdin writes a file anywhere past the worktree guard (47c9c31b)
 - AR0625 A git program called by its path (/usr/lib/git-core/git-*) passes the worktree guard (b445e4cb)

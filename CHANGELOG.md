@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-05
 
+### Added
+
+- AR0605 arthur config check type-checks arthur.config.ts and every project file with tsc (1cd256e9)
+
 ### Fixed
 
 - AR0391 The 60 s limit of a push also bounds its LFS upload (19fc7230)

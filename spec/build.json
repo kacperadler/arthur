@@ -4846,9 +4846,9 @@
   {
     "id": "AR0605",
     "title": "arthur config check type-checks arthur.config.ts and every project file with tsc",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0605-arthur-config-check-type-checks-arthur-config-ts-and-every-project-file-with-tsc/ticket.md",
-    "updated": "2026-11-05T20:41:51.417Z",
+    "updated": "2026-11-05T21:20:18.739Z",
     "after": [
       "AR0525"
     ]

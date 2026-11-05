@@ -5064,9 +5064,9 @@
   {
     "id": "AR0629",
     "title": "A delivery merge running when arthur run restarts dies half done, leaving an unpushed merge commit on main",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0629-a-delivery-merge-running-when-arthur-run-restarts-dies-half-done-leaving-an/ticket.md",
-    "updated": "2026-11-05T10:42:27.677Z"
+    "updated": "2026-11-05T11:31:16.213Z"
   },
   {
     "id": "AR0630",

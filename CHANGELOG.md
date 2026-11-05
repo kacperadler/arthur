@@ -11,6 +11,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0618 The checks extension misses a check run behind an env assignment or through bun run (720a6871)
 - AR0624 git fast-import with --allow-unsafe-features and a feature export-marks line on stdin writes a file anywhere past the worktree guard (47c9c31b)
 - AR0625 A git program called by its path (/usr/lib/git-core/git-*) passes the worktree guard (b445e4cb)
+- AR0629 A delivery merge running when arthur run restarts dies half done, leaving an unpushed merge commit on main (90e1b2e7)
 
 ### Changed
 

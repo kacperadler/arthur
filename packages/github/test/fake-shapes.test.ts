@@ -29,7 +29,7 @@ test("every route of the fake GitHub answers with the keys GitHub's documentatio
 	api.jobs[30433642] = [{ id: 399444496, name: "test", conclusion: "failure", steps: [{ name: "npm test", conclusion: "failure" }], log: "failed" }];
 	const reviews = [{ id: 80, user: "jane", state: "APPROVED" as const, body: "Looks good" }];
 	api.pulls["acme/shop"] = [{ number: 12, title: "Add the cart", branch: "arthur/12", updated: "2026-01-02T00:00:00Z", reviews, comments: [{ id: 1, user: "jane", body: "Me too" }] }];
-	const get = async (path: string, method = "GET") => (await fetch(new URL(path, api.apiUrl), { method })).json();
+	const get = async (path: string, method = "GET", body?: unknown) => (await fetch(new URL(path, api.apiUrl), { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })).json();
 	const routes: [string, unknown][] = [
 		["workflow-run-paginated", await get("repos/acme/shop/actions/workflows/ci.yml/runs?per_page=100&exclude_pull_requests=true")],
 		["job-paginated", await get("repos/acme/shop/actions/runs/30433642/attempts/2/jobs?per_page=100")],
@@ -39,6 +39,9 @@ test("every route of the fake GitHub answers with the keys GitHub's documentatio
 		["issue-comment-items", await get("repos/acme/shop/issues/12/comments?per_page=100&page=1")],
 		["empty-object", await get("repos/acme/shop/actions/runs/30433642/rerun", "POST")],
 		["empty-object", await get("repos/acme/shop/actions/runs/30433642/cancel", "POST")],
+		["pull-request", await get("repos/acme/shop/pulls", "POST", { title: "Amazing new feature", head: "arthur/13", base: "main", body: "Please pull these awesome changes in!" })],
+		["pull-request", await get("repos/acme/shop/pulls/12", "PATCH", { state: "closed" })],
+		["issue-comment", await get("repos/acme/shop/issues/12/comments", "POST", { body: "Me too" })],
 	];
 	assert.deepEqual(
 		routes.flatMap(([name, got]) => (name in shapes ? drift(got, shapes[name], name) : [`${name} not recorded`])),

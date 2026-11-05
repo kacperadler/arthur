@@ -6,9 +6,9 @@ import type { TestContext } from "node:test";
 // A fake GitHub REST API on a loopback port the OS picks, answering in the shape of GitHub's documentation, every field of it:
 // "List workflow runs for a workflow", "List jobs for a workflow run attempt", "Download job logs for a workflow run" (a 302
 // to the log's text), "Re-run a workflow" (201, the run's next attempt queued), "Cancel a workflow run" (202, the run
-// cancelled; 409 for one completed), "List pull requests", "Get a pull request", "List reviews for a pull request", "List
-// issue comments", with the `link` header of "Using pagination in the REST API" on each page that has a next one, and the
-// headers of "Rate limits for the REST API".
+// cancelled; 409 for one completed), "List pull requests", "Get a pull request", "Create a pull request" (201), "Update a pull
+// request", "List reviews for a pull request", "List issue comments", "Create an issue comment" (201), with the `link` header of
+// "Using pagination in the REST API" on each page that has a next one, and the headers of "Rate limits for the REST API".
 
 // `event` push and `repository` (its `head_repository`, a fork's for a fork's pull request) the watched one when left out.
 export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null; readonly started?: string; readonly event?: string; readonly repository?: string };
@@ -16,19 +16,20 @@ export type FakeStep = { readonly name: string; readonly conclusion: "success" |
 export type FakeJob = { readonly id: number; readonly name: string; readonly conclusion: "success" | "failure"; readonly steps: readonly FakeStep[]; readonly log: string };
 // `submitted`, GitHub's `submitted_at` of a review not pending: 2026-01-01 when left out, none when null.
 export type FakeReview = { readonly id: number; readonly user: string; readonly state: "APPROVED" | "CHANGES_REQUESTED" | "COMMENTED" | "PENDING"; readonly body: string; readonly submitted?: string | null };
-// A pull request: `state` open when left out, `merged` its `merged_at` (closed then), `user` octocat, `body` the docs' own.
+// A pull request: `state` open when left out, `merged` its `merged_at` (closed then), `user` octocat, `body` the docs' own, `base` main.
 export type FakePull = {
 	readonly number: number;
 	readonly title: string;
 	readonly branch: string;
 	updated: string;
 	readonly reviews: FakeReview[];
-	readonly state?: "open" | "closed";
+	state?: "open" | "closed";
 	readonly merged?: string;
 	readonly draft?: boolean;
 	readonly user?: string;
 	readonly body?: string | null;
-	readonly comments?: readonly FakeComment[];
+	readonly base?: string;
+	comments?: FakeComment[];
 };
 export type FakeComment = { readonly id: number; readonly user: string; readonly body: string; readonly created?: string };
 export type Reply = { readonly status: number; readonly headers?: Readonly<Record<string, string>>; readonly body: unknown };
@@ -77,7 +78,7 @@ const pullRepo = (full: string, shown: "listed" | "head" | "base") => ({
 	...(shown === "head" ? { allow_forking: true } : {}),
 });
 const branchOf = (full: string, ref: string, sha: string, shown: "listed" | "head" | "base") => ({ label: `${full.split("/")[0]}:${ref}`, ref, sha, user: user(full.split("/")[0] ?? "", 1), repo: pullRepo(full, shown) });
-const shapedPull = (full: string, { number, title, branch, updated, state = "open", merged, draft = false, user: login = "octocat", body = "Please pull these awesome changes" }: FakePull, listed = true) => {
+const shapedPull = (full: string, { number, title, branch, updated, state = "open", merged, draft = false, user: login = "octocat", body = "Please pull these awesome changes", base = "main" }: FakePull, listed = true) => {
 	const url = `${API}/repos/${full}/pulls/${number}`;
 	const links = { self: url, html: `https://github.com/${full}/pull/${number}`, issue: `${API}/repos/${full}/issues/${number}`, comments: `${API}/repos/${full}/issues/${number}/comments` };
 	const closed = merged ?? (state === "closed" ? updated : null);
@@ -86,7 +87,7 @@ const shapedPull = (full: string, { number, title, branch, updated, state = "ope
 		...{ review_comments_url: `${url}/comments`, review_comment_url: `${API}/repos/${full}/pulls/comments{/number}`, comments_url: links.comments, statuses_url: `${API}/repos/${full}/statuses/abc`, number, state: merged === undefined ? state : "closed", locked: false, title },
 		...{ user: user(login, 1), body, labels: [], milestone: null, active_lock_reason: null, created_at: T, updated_at: updated, closed_at: closed, merged_at: merged ?? null, merge_commit_sha: merged === undefined ? null : "e5bd3914e2e596debea16f433f57875b5b90bcd6" },
 		...{ assignee: null, assignees: [], requested_reviewers: [], requested_teams: [] },
-		...{ head: branchOf(full, branch, "6dcb09b5b57875f334f61aebed695e2e4193db5e", listed ? "listed" : "head"), base: branchOf(full, "main", "6dcb09b5b57875f334f61aebed695e2e4193db5e", listed ? "listed" : "base") },
+		...{ head: branchOf(full, branch, "6dcb09b5b57875f334f61aebed695e2e4193db5e", listed ? "listed" : "head"), base: branchOf(full, base, "6dcb09b5b57875f334f61aebed695e2e4193db5e", listed ? "listed" : "base") },
 		_links: Object.fromEntries(
 			Object.entries({ ...links, review_comments: `${url}/comments`, review_comment: `${API}/repos/${full}/pulls/comments{/number}`, commits: `${url}/commits`, statuses: `${API}/repos/${full}/statuses/abc` }).map(([key, href]) => [key, { href }]),
 		),
@@ -99,9 +100,10 @@ const fullPull = (full: string, pull: FakePull) => ({
 	...{ merged: pull.merged !== undefined, mergeable: true, rebaseable: true, mergeable_state: "clean", merged_by: pull.merged === undefined ? null : user("octocat", 1), comments: pull.comments?.length ?? 0 },
 	...{ review_comments: 0, maintainer_can_modify: true, commits: 3, additions: 100, deletions: 3, changed_files: 5 },
 });
-const shapedComment = (full: string, number: number, { id, user: login, body, created = T }: FakeComment) => ({
+// "Create an issue comment" answers one with `pin` too.
+const shapedComment = (full: string, number: number, { id, user: login, body, created = T }: FakeComment, made = false) => ({
 	...{ id, node_id: "MDEyOklzc3VlQ29tbWVudDE=", url: `${API}/repos/${full}/issues/comments/${id}`, html_url: `https://github.com/${full}/issues/${number}#issuecomment-${id}`, body, user: user(login, 3) },
-	...{ created_at: created, updated_at: created, issue_url: `${API}/repos/${full}/issues/${number}`, author_association: "COLLABORATOR", minimized: null },
+	...{ created_at: created, updated_at: created, issue_url: `${API}/repos/${full}/issues/${number}`, author_association: "COLLABORATOR", ...(made ? { pin: null } : {}), minimized: null },
 });
 const shapedReview = (full: string, number: number, { id, user: login, state, body, submitted = T }: FakeReview) => ({
 	...{ id, node_id: "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3ODA=", user: user(login, 2), body, state, html_url: `https://github.com/${full}/pull/${number}#pullrequestreview-${id}`, pull_request_url: `${API}/repos/${full}/pulls/${number}` },
@@ -115,18 +117,23 @@ const shapedReview = (full: string, number: number, { id, user: login, state, bo
 // comments, every list paged by `per_page` (GitHub's default 30) and `page`; `next` replies once each, before anything else;
 // `always` replies to every request while set, `post` to every POST; `clock` is GitHub's clock less this machine's, in ms, as
 // its `date` header says it (null: no `date`); `slow` the ms an answer waits after its request, its body taken at the request.
-// `seen` holds each request: its method, path, time and Authorization.
+// A pull request created takes the next number, a comment the next id, each by octocat. `seen` holds each request: its method,
+// path, time, Authorization, body and Content-Type.
 export async function fakeGithub(t: TestContext) {
 	const runs: Record<string, FakeRun[]> = {};
 	const jobs: Record<number, FakeJob[]> = {};
 	const pulls: Record<string, FakePull[]> = {};
 	const next: Reply[] = [];
 	const state: { always?: Reply; post?: Reply; clock?: number | null; slow?: number } = {};
-	const seen: { readonly method: string; readonly path: string; readonly at: number; readonly auth: string }[] = [];
-	const http = createServer((request, response) => {
+	const seen: { readonly method: string; readonly path: string; readonly at: number; readonly auth: string; readonly body: string; readonly type: string }[] = [];
+	const http = createServer(async (request, response) => {
 		const path = request.url ?? "";
-		seen.push({ method: request.method ?? "", path, at: Date.now(), auth: request.headers.authorization ?? "" });
-		const found = ((): Reply | undefined => {
+		const chunks: Buffer[] = [];
+		for await (const chunk of request) chunks.push(chunk as Buffer);
+		const sent = Buffer.concat(chunks).toString("utf8");
+		seen.push({ method: request.method ?? "", path, at: Date.now(), auth: request.headers.authorization ?? "", body: sent, type: request.headers["content-type"] ?? "" });
+		// Asked only when no `next` or `always` reply answers, so such a reply writes nothing.
+		const found = (): Reply | undefined => {
 			if (request.method === "POST" && state.post !== undefined) return state.post;
 			const match = (pattern: RegExp) => pattern.exec(path)?.slice(1).map(decodeURIComponent);
 			const [full = "", workflow = ""] = match(/^\/repos\/([^/]+\/[^/]+)\/actions\/workflows\/([^/]+)\/runs\?per_page=100&exclude_pull_requests=true$/) ?? [];
@@ -152,6 +159,13 @@ export async function fakeGithub(t: TestContext) {
 				return { status: 202, body: {} };
 			}
 			const url = new URL(path, "http://fake");
+			const asked = (sent === "" ? {} : JSON.parse(sent)) as Readonly<Record<string, string>>;
+			const [into = ""] = request.method === "POST" ? (match(/^\/repos\/([^/]+\/[^/]+)\/pulls$/) ?? []) : [];
+			if (pulls[into] !== undefined) {
+				const made: FakePull = { number: Math.max(0, ...pulls[into].map((each) => each.number)) + 1, title: asked.title ?? "", branch: asked.head ?? "", base: asked.base ?? "main", updated: T, reviews: [], body: asked.body ?? null };
+				pulls[into].push(made);
+				return { status: 201, body: fullPull(into, made) };
+			}
 			const paged = (items: readonly unknown[]): Reply => {
 				const [per, page] = [Number(url.searchParams.get("per_page") ?? 30), Number(url.searchParams.get("page") ?? 1)];
 				const after = new URLSearchParams({ ...Object.fromEntries(url.searchParams), page: String(page + 1) });
@@ -166,16 +180,22 @@ export async function fakeGithub(t: TestContext) {
 				return { of, pull: pulls[of]?.find((each) => String(each.number) === number) };
 			};
 			const got = find(/^\/repos\/([^/]+\/[^/]+)\/pulls\/(\d+)$/);
+			if (got.pull !== undefined && request.method === "PATCH") got.pull.state = (asked.state as "open" | "closed" | undefined) ?? got.pull.state;
 			if (got.pull !== undefined) return { status: 200, body: fullPull(got.of, got.pull) };
 			const reviewed = find(/^\/repos\/([^/]+\/[^/]+)\/pulls\/(\d+)\/reviews\?/);
 			if (reviewed.pull !== undefined) return paged(reviewed.pull.reviews.map((review) => shapedReview(reviewed.of, reviewed.pull!.number, review)));
-			const said = find(/^\/repos\/([^/]+\/[^/]+)\/issues\/(\d+)\/comments\?/);
+			const said = find(/^\/repos\/([^/]+\/[^/]+)\/issues\/(\d+)\/comments(?:\?|$)/);
+			if (said.pull !== undefined && request.method === "POST") {
+				const added = { id: Math.max(0, ...Object.values(pulls).flat().flatMap((each) => (each.comments ?? []).map((one) => one.id))) + 1, user: "octocat", body: asked.body ?? "" };
+				said.pull.comments = [...(said.pull.comments ?? []), added];
+				return { status: 201, body: shapedComment(said.of, said.pull.number, added, true) };
+			}
 			if (said.pull !== undefined) return paged((said.pull.comments ?? []).map((comment) => shapedComment(said.of, said.pull!.number, comment)));
 			return undefined;
-		})();
+		};
 		const log = /^\/blob\/logs\/(\d+)$/.exec(path)?.[1];
 		if (log !== undefined) return void response.writeHead(200, { "content-type": "text/plain" }).end(Object.values(jobs).flat().find((each) => String(each.id) === log)?.log ?? "");
-		const reply = next.shift() ?? state.always ?? found ?? { status: 404, body: { message: "Not Found", documentation_url: DOCS, status: "404" } };
+		const reply = next.shift() ?? state.always ?? found() ?? { status: 404, body: { message: "Not Found", documentation_url: DOCS, status: "404" } };
 		const answer = () => {
 			response.sendDate = false;
 			const date = state.clock === null ? {} : { date: new Date(Date.now() + (state.clock ?? 0)).toUTCString() };

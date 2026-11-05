@@ -1354,6 +1354,39 @@
 				"minimized": null
 			}
 		],
+		"issue-comment": {
+			"id": null,
+			"node_id": null,
+			"url": null,
+			"html_url": null,
+			"body": null,
+			"user": {
+				"login": null,
+				"id": null,
+				"node_id": null,
+				"avatar_url": null,
+				"gravatar_id": null,
+				"url": null,
+				"html_url": null,
+				"followers_url": null,
+				"following_url": null,
+				"gists_url": null,
+				"starred_url": null,
+				"subscriptions_url": null,
+				"organizations_url": null,
+				"repos_url": null,
+				"events_url": null,
+				"received_events_url": null,
+				"type": null,
+				"site_admin": null
+			},
+			"created_at": null,
+			"updated_at": null,
+			"issue_url": null,
+			"author_association": null,
+			"pin": null,
+			"minimized": null
+		},
 		"empty-object": {}
 	}
 }

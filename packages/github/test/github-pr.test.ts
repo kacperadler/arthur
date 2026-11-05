@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
 import { DOCS, type FakePull, fakeGithub } from "./fake-github.ts";
 
-// `arthur github` (AR0557): the command and its pull request reads, against the fake host and a fake GitHub REST API
-// (fake-github.ts); each project is a real repository whose origin names its GitHub repository.
+// `arthur github` (AR0557, AR0558): the command, its pull request reads and writes, against the fake host and a fake GitHub
+// REST API (fake-github.ts); each project is a real repository whose origin names its GitHub repository.
 
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
 const ACME_TOKEN = "ghp_AcmeT0kenNeverPrinted0123456789abcdef";
@@ -44,6 +46,12 @@ async function setUp(t: TestContext, projects: readonly Project[], instances: Gi
 
 const shop = () => ({ name: "shop", path: checkout("git@github.com:acme/shop.git"), prefix: "SH" });
 const pull = (number: number, more: Partial<FakePull> = {}): FakePull => ({ number, title: `pull ${number}`, branch: `arthur/${number}`, updated: "2026-01-02T08:00:00Z", reviews: [], ...more });
+// A file holding `content`, in a folder of its own.
+const file = (content: string) => {
+	const path = join(temporaryFolder(), "text.md");
+	writeFileSync(path, content);
+	return path;
+};
 
 test("pr list: the open pull requests, or every one with --all, a line each, the title after `> ` with control characters dropped; none says so", async (t) => {
 	const api = await fakeGithub(t);
@@ -161,9 +169,12 @@ test("refused before any request: wrong usage (exit 2), a number that is none; p
 	const api = await fakeGithub(t);
 	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
 	api.pulls["acme/shop"] = [pull(12)];
-	const usage = "usage: arthur github pr list [--all]|get <n>|merge <n> | branch list|delete <branch> [--unmerged]|sweep [--dry-run] [--project <name>]";
+	const usage =
+		"usage: arthur github pr list [--all]|get <n>|create <branch> <file> [--base <branch>]|comment <n> <file>|close <n>|merge <n> | branch list|delete <branch> [--unmerged]|sweep [--dry-run] [--project <name>]";
+	const writes = [["pr", "create", "a"], ["pr", "create", "a", "f", "--base"], ["pr", "create", "a", "f", "--base", "--all"], ["pr", "create", "a", "f", "--base", "x", "--base"], ["pr", "comment", "12"], ["pr", "close"]];
 	for (const args of [[], ["pr"], ["pr", "nope"], ["issue", "list"], ["pr", "get"], ["pr", "get", "1", "2"], ["pr", "list", "x"], ["pr", "get", "12", "--all"], ["pr", "list", "--force"], ["pr", "constructor", "x"], ["toString", "x"]])
 		assert.deepEqual(await run(args), { code: 2, out: "", err: usage }, args.join(" "));
+	for (const args of [...writes, ["pr", "list", "--base", "x"], ["pr", "list", "--all", "--all"], ["pr", "close", "12", "--base", "main"]]) assert.deepEqual(await run(args), { code: 2, out: "", err: usage }, args.join(" "));
 	for (const word of ["0", "012", "abc", "1.5", "１２"]) assert.deepEqual(await run(["pr", "get", word]), { code: 1, out: "", err: `${word} is not a pull request number such as 12; nothing was asked of GitHub` });
 	const merge = "a merge is arthur merge <job>; the push of main marks the pull request merged; nothing was asked of GitHub";
 	assert.deepEqual(await run(["pr", "merge", "12"]), { code: 1, out: "", err: merge });
@@ -173,6 +184,8 @@ test("refused before any request: wrong usage (exit 2), a number that is none; p
 	t.after(() => (was === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = was)));
 	const refusal = "arthur github pr merge: refused inside a job 2026-10-29-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message";
 	assert.deepEqual(await run(["pr", "merge", "12"]), { code: 1, out: "", err: refusal });
+	for (const args of [["pr", "create", "arthur/12", file("# Add the cart")], ["pr", "comment", "12", file("Me too")], ["pr", "close", "12"]])
+		assert.deepEqual(await run(args), { code: 1, out: "", err: refusal.replace("merge", args[1]!) });
 	assert.deepEqual(await run(["pr", "merge"]), { code: 2, out: "", err: usage }, "the usage is checked first");
 	assert.equal(api.seen.length, 0, "nothing was asked of GitHub");
 	assert.equal((await run(["pr", "get", "12"])).code, 0);
@@ -224,4 +237,134 @@ test("GitHub's refusals: a 401, a 403 naming Pull requests: read, a 404, a rate 
 	assert.match((await run(["pr", "list"])).err, /^instance \(unnamed\): 429, rate limited: API rate limit exceeded; no request until \d{4}-\d\d-\d\dT[\d:.]+Z$/);
 	api.next.push({ status: 200, body: { message: "not a list" } });
 	assert.equal((await run(["pr", "list"])).err, "instance (unnamed): the answer for the pull requests of acme/shop is no list");
+});
+
+test("pr create: the file's first line, its heading's `#` dropped, is the title, the rest the body; the base the checkout's branch, else --base", async (t) => {
+	const api = await fakeGithub(t);
+	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
+	api.pulls["acme/shop"] = [pull(12)];
+	assert.deepEqual(await run(["pr", "create", "arthur/13", file("\n## Add the cart  \n\n  It holds items.\n\nAnd prices.\n\n")]), { code: 0, out: "created pull request #13: https://github.com/acme/shop/pull/13", err: "" });
+	assert.deepEqual(await run(["pr", "create", "--base", "develop", "arthur/14", file("Plain title\r\n")]), { code: 0, out: "created pull request #14: https://github.com/acme/shop/pull/14", err: "" });
+	assert.deepEqual(
+		api.seen.map(({ method, path, body, type }) => [method, path, type, JSON.parse(body)]),
+		[
+			["POST", "/repos/acme/shop/pulls", "application/json", { title: "Add the cart", head: "arthur/13", base: "main", body: "It holds items.\n\nAnd prices." }],
+			["POST", "/repos/acme/shop/pulls", "application/json", { title: "Plain title", head: "arthur/14", base: "develop", body: "" }],
+		],
+	);
+	const listed = ["#12 open, arthur/12 -> main, by octocat, updated 2026-01-02", "> pull 12", "#13 open, arthur/13 -> main, by octocat, updated 2026-01-01", "> Add the cart"];
+	assert.deepEqual(await run(["pr", "list"]), { code: 0, out: [...listed, "#14 open, arthur/14 -> develop, by octocat, updated 2026-01-01", "> Plain title"].join("\n"), err: "" });
+});
+
+test("pr create refuses before any request: a file it cannot read, an empty one, one starting with an empty heading, a branch that is its base, a checkout on no branch without --base", async (t) => {
+	const api = await fakeGithub(t);
+	const project = shop();
+	const run = await setUp(t, [project], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
+	api.pulls["acme/shop"] = [];
+	const missing = join(temporaryFolder(), "none.md");
+	assert.deepEqual(await run(["pr", "create", "arthur/1", missing]), { code: 1, out: "", err: `cannot read ${missing}: ENOENT; nothing was asked of GitHub` });
+	for (const content of ["", " \n\n\t"]) {
+		const path = file(content);
+		assert.deepEqual(await run(["pr", "create", "arthur/1", path]), { code: 1, out: "", err: `${path} is empty; nothing was asked of GitHub` });
+	}
+	for (const content of ["#\nthe body", "##   \nthe body", "# "]) {
+		const path = file(content);
+		const err = `${path} starts with an empty heading; its first line is the title, the rest the body; nothing was asked of GitHub`;
+		assert.deepEqual(await run(["pr", "create", "arthur/1", path]), { code: 1, out: "", err });
+	}
+	const text = file("# Add the cart");
+	const same = "main is the base too: a pull request asks to merge a branch into another; nothing was asked of GitHub";
+	assert.deepEqual(await run(["pr", "create", "main", text]), { code: 1, out: "", err: same });
+	assert.deepEqual(await run(["pr", "create", "dev", text, "--base", "dev"]), { code: 1, out: "", err: same.replace("main", "dev") });
+	execFileSync("git", ["-C", project.path, "checkout", "--quiet", "--detach"]);
+	const detached = "the checkout of project shop is on no branch to be the base; give --base <branch>; nothing was asked of GitHub";
+	assert.deepEqual(await run(["pr", "create", "arthur/1", text]), { code: 1, out: "", err: detached });
+	assert.equal(api.seen.length, 0, "nothing was asked of GitHub");
+	assert.equal((await run(["pr", "create", "arthur/1", text, "--base", "main"])).out, "created pull request #1: https://github.com/acme/shop/pull/1");
+});
+
+test("pr create shows GitHub's 422 with each of its errors, a message or else its resource, field and code", async (t) => {
+	const api = await fakeGithub(t);
+	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
+	api.pulls["acme/shop"] = [];
+	const invalid = (...errors: readonly unknown[]) => ({ status: 422, body: { message: "Validation Failed", errors, documentation_url: `${DOCS}/pulls/pulls#create-a-pull-request`, status: "422" } });
+	api.next.push(
+		invalid({ resource: "PullRequest", code: "custom", message: "No commits between main and arthur/1" }),
+		invalid({ resource: "PullRequest", field: "head", code: "invalid" }, { resource: "PullRequest", code: "custom", message: `A pull request already exists for acme:arthur/1 ${TOKEN}.` }),
+		{ status: 422, body: { message: "Validation Failed", documentation_url: DOCS, status: "422" } },
+	);
+	const said = "instance (unnamed): 422 for a pull request of arthur/1 into main in acme/shop: Validation Failed";
+	const text = file("# Add the cart");
+	assert.deepEqual(await run(["pr", "create", "arthur/1", text]), { code: 1, out: "", err: `${said}: No commits between main and arthur/1` });
+	assert.deepEqual(await run(["pr", "create", "arthur/1", text]), { code: 1, out: "", err: `${said}: PullRequest head invalid: A pull request already exists for acme:arthur/1 [token].` });
+	assert.deepEqual(await run(["pr", "create", "arthur/1", text]), { code: 1, out: "", err: said });
+	assert.deepEqual(api.pulls["acme/shop"], [], "none was made");
+});
+
+test("pr comment: reads the pull request, then adds the whole file, trimmed, as a comment; refused for an empty file, and for a number no pull request has, as it may be an issue", async (t) => {
+	const api = await fakeGithub(t);
+	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
+	api.pulls["acme/shop"] = [pull(12, { comments: [{ id: 7, user: "jane", body: "First" }] })];
+	const empty = file("\n \n");
+	assert.deepEqual(await run(["pr", "comment", "12", empty]), { code: 1, out: "", err: `${empty} is empty; nothing was asked of GitHub` });
+	assert.deepEqual(await run(["pr", "comment", "abc", empty]), { code: 1, out: "", err: "abc is not a pull request number such as 12; nothing was asked of GitHub" });
+	assert.equal(api.seen.length, 0);
+	const out = "comment 8 added to pull request #12 of acme/shop: https://github.com/acme/shop/issues/12#issuecomment-8";
+	assert.deepEqual(await run(["pr", "comment", "12", file("\n# Looks good\n\nShip it.\n")]), { code: 0, out, err: "" });
+	assert.deepEqual(
+		api.seen.map(({ method, path, body }) => [method, path, body]),
+		[
+			["GET", "/repos/acme/shop/pulls/12", ""],
+			["POST", "/repos/acme/shop/issues/12/comments", JSON.stringify({ body: "# Looks good\n\nShip it." })],
+		],
+	);
+	assert.match((await run(["pr", "get", "12"])).out, /comment 8 by octocat on \d{4}-\d\d-\d\d\n> # Looks good\n> \n> Ship it\.\nno reviews$/);
+	const issue = "instance (unnamed): 404: pull request #5 of acme/shop not found, or the token in ARTHUR_GITHUB_TOKEN cannot see it; it may be an issue: arthur github issue comment 5";
+	assert.deepEqual(await run(["pr", "comment", "5", file("Me too")]), { code: 1, out: "", err: issue });
+	assert.equal(api.seen.filter((each) => each.method === "POST").length, 1, "none for #5");
+});
+
+test("pr close: closes an open pull request, a draft too, and says its branch stays on origin; one closed or merged is refused with nothing written", async (t) => {
+	const api = await fakeGithub(t);
+	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
+	api.pulls["acme/shop"] = [pull(12), pull(13, { draft: true }), pull(9, { state: "closed" }), pull(8, { merged: "2026-01-02T09:00:00Z" })];
+	assert.deepEqual(await run(["pr", "close", "12"]), { code: 0, out: "closed pull request #12 of acme/shop; its branch arthur/12 stays on origin", err: "" });
+	assert.deepEqual(await run(["pr", "close", "13"]), { code: 0, out: "closed pull request #13 of acme/shop; its branch arthur/13 stays on origin", err: "" });
+	assert.deepEqual(
+		api.seen.map(({ method, path, body }) => [method, path, body]),
+		[
+			["GET", "/repos/acme/shop/pulls/12", ""],
+			["PATCH", "/repos/acme/shop/pulls/12", JSON.stringify({ state: "closed" })],
+			["GET", "/repos/acme/shop/pulls/13", ""],
+			["PATCH", "/repos/acme/shop/pulls/13", JSON.stringify({ state: "closed" })],
+		],
+	);
+	assert.equal((await run(["pr", "list"])).out, "no open pull requests in acme/shop");
+	for (const [number, now] of [["12", "closed"], ["9", "closed"], ["8", "merged"]])
+		assert.deepEqual(await run(["pr", "close", number!]), { code: 1, out: "", err: `pull request #${number} of acme/shop is ${now} already; nothing was written` });
+	assert.equal(api.seen.filter((each) => each.method === "PATCH").length, 2);
+	assert.equal((await run(["pr", "close", "5"])).err, "instance (unnamed): 404: pull request #5 of acme/shop not found, or the token in ARTHUR_GITHUB_TOKEN cannot see it");
+});
+
+test("each write's refusals from GitHub: a 401, a 403 naming Pull requests: read and write, a 404, a rate limit; the token never said", async (t) => {
+	const api = await fakeGithub(t);
+	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
+	api.pulls["acme/shop"] = [pull(12)];
+	const text = file("# Add the cart");
+	const forbidden = { status: 403, body: { message: "Resource not accessible by personal access token", documentation_url: DOCS, status: "403" } };
+	const needs = "Resource not accessible by personal access token; the token in ARTHUR_GITHUB_TOKEN needs Pull requests: read and write on it";
+	api.next.push({ status: 401, body: { message: `Bad credentials ${TOKEN}`, documentation_url: DOCS, status: "401" } });
+	assert.deepEqual(await run(["pr", "create", "arthur/1", text]), { code: 1, out: "", err: "instance (unnamed): 401: the token in ARTHUR_GITHUB_TOKEN was refused: Bad credentials [token]" });
+	api.next.push(forbidden);
+	assert.equal((await run(["pr", "create", "arthur/1", text])).err, `instance (unnamed): 403 for a pull request of arthur/1 into main in acme/shop: ${needs}`);
+	api.next.push({ status: 200, body: {} }, forbidden);
+	assert.equal((await run(["pr", "comment", "12", text])).err, `instance (unnamed): 403 for a comment on pull request #12 of acme/shop: ${needs}`);
+	api.next.push({ status: 200, body: { state: "open" } }, forbidden);
+	assert.equal((await run(["pr", "close", "12"])).err, `instance (unnamed): 403 for pull request #12 of acme/shop: ${needs}`);
+	api.next.push({ status: 200, body: {} }, { status: 404, body: { message: "Not Found", documentation_url: DOCS, status: "404" } });
+	assert.equal((await run(["pr", "comment", "12", text])).err, "instance (unnamed): 404: a comment on pull request #12 of acme/shop not found, or the token in ARTHUR_GITHUB_TOKEN cannot see it");
+	const limited = { "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1767225600" };
+	api.next.push({ status: 403, headers: limited, body: { message: "API rate limit exceeded for user ID 1.", documentation_url: DOCS, status: "403" } });
+	assert.equal((await run(["pr", "create", "arthur/1", text])).err, "instance (unnamed): 403, rate limited: API rate limit exceeded for user ID 1.; no request until 2026-01-01T00:00:00.000Z");
+	assert.deepEqual(api.pulls["acme/shop"].map((each) => [each.number, each.state ?? "open", each.comments ?? []]), [[12, "open", []]], "nothing was written");
 });

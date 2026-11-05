@@ -30,7 +30,7 @@ import type { Outgoing } from "./send-command.ts";
 // `follow` is what `arthur run` follows the event log with; `project` is the project a name names (job-checkout.ts), refusing
 // one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`);
 // `doctor` checks the core's requirements, each project piece no loaded plugin reads, and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's;
-// `channels` asks every channel's `channel.send` (`arthur send`); `hide` names each value of the env file and of an enabled plugin's env variable (secret-names.ts).
+// `channels` asks every channel's `channel.send` (`arthur send`); `hide` names the env file's values, outside a job, and the plugins' (secret-names.ts).
 export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[]; readonly hide: Hide };
 export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 
@@ -47,7 +47,6 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const checked = await checkPlugins(config);
 	const record = join(config.core.home, "jobs", job ?? "", "project");
 	const own = job === undefined ? undefined : { id: job, project: existsSync(record) ? readFileSync(record, "utf8").trim() : "" };
-	// `hide` names every value of the env file, a disabled plugin's or no plugin's too, as the job's wrapper does; a job's CLI reads none.
 	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = envFileNames(job === undefined ? [config.core.envFile] : [], Object.assign({}, ...Object.values(values)));
 	const skipped = new Set<string>();
 	for (const plugin of checked) if (unset.has(plugin.name) || plugin.requires?.some((name) => skipped.has(name))) skipped.add(plugin.name);

@@ -34,3 +34,4 @@ Out:
 - Merges the owner runs by hand from a shell: they already end with the shell.
 
 ## Decisions
+- 2026-11-05: Delivery line budget raised from 2085 to 2195 for AR0629, by the recommendation under AR-D500; the owner: "AR-D500: always go with the recommendation" (AR-D504)

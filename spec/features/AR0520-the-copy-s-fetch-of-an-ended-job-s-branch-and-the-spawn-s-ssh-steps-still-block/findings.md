@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/job-records.ts:65` (`steer`), `:164` (`prune`'s `ssh(... "prune" ...)`), both through the synchronous `ssh` of `packages/core/src/job-machine.ts:118`
 - What: AR0520 bounds `ssh` to 60 s and 1 MiB, but it stays `spawnSync`, because `host.jobs.steer` and `host.jobs.prune` answer synchronously: a `/steer` or a prune of a job on a machine that stopped answering mid-call freezes the event loop (Telegram, `/stopall`, every plugin) for up to 60 s per job; a prune of many such jobs, 60 s each in turn.
 - Suggestion: make `steer` and `prune` of the host API return promises and call `sshAsync`, then delete `ssh`; every plugin caller and `docs/plugin-api.md` change with it. Out: the limits themselves.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. A killed fetch or push leaves git's ssh child running
 
@@ -20,4 +20,20 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/job-machine.ts:94` (`execute` kills only the process it started)
 - What: past its limit `gitOver` kills `git` (SIGKILL), not the `ssh` git started; that ssh lives on until its connection ends. On a link that hangs without closing, each sweep's timed-out fetch can leave one more ssh behind. [INFERENCE: from the code and the test's fake, whose ssh outlived git until its gate opened; not run against a real hanging link.]
 - Suggestion: spawn `git` in its own process group (`detached: true`) and kill the group (`process.kill(-pid, "SIGKILL")`) in `execute`'s cut, or add `-o ServerAliveInterval=15 -o ServerAliveCountMax=3` to `OPTIONS`.
-- Status: open
+- Status: deferred (client summary)
+
+## F3. `steer` and `prune` still use the blocking `ssh`, so each can freeze `arthur run` for up to 60 s
+
+- Kind: fix
+- Found by: 2026-11-05-review-0a2c0b39 (review), 2026-11-05
+- Where: `packages/core/src/job-records.ts:65,164`
+- What: This is recorded as F1 in `findings.md` and is outside the Scope's In list.
+- Status: deferred (client summary)
+
+## F4. when `gitOver` hits its limit, it kills only `git`, so the `ssh` that git started keeps running
+
+- Kind: fix
+- Found by: 2026-11-05-review-0a2c0b39 (review), 2026-11-05
+- Where: `packages/core/src/job-machine.ts:95`
+- What: This is recorded as F2 in `findings.md`.
+- Status: deferred (client summary)

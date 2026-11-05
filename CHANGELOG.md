@@ -10,6 +10,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0399 `git lfs push origin` reads origin's URL outside Git's transport policy (a186c156)
 - AR0500 The reviewer reads the diff through replacements under `refs/replace` that any job may write (875ef073)
 - AR0504 Any run of the workflow on the tip's sha counts as the branch's CI, whatever its event, branch or repository (57b24fad)
+- AR0520 The copy's fetch of an ended job's branch, and the spawn's SSH steps, still block `arthur run` with no time limit (c4d4abc7)
 - AR0521 A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline (5b6e46e6)
 - AR0618 The checks extension misses a check run behind an env assignment or through bun run (720a6871)
 - AR0624 git fast-import with --allow-unsafe-features and a feature export-marks line on stdin writes a file anywhere past the worktree guard (47c9c31b)

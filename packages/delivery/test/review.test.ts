@@ -358,6 +358,30 @@ test("the task's diff, run as the task names it, shows a changed text file's lin
 	}
 });
 
+// AR0500: a program of any job may write `refs/replace/<tip>` and set core.useReplaceRefs after the review's spawn; the reviewer's
+// own Git, run with the job's environment (an `omp` of the test's in place of the fake agent), still shows the commit as it is.
+test("the task's diff and log, run by the reviewer after a job replaced the tip under refs/replace, show the real commit", async (t) => {
+	const { fake, root, git, worker, ended, home } = await load(t);
+	const job = await worker();
+	const { task } = reviewTask(fake.host, workerOf(fake.host, job.id), undefined);
+	const [, diff = "", log = ""] = /`(git diff [^`]+)` and `(git log [^`]+)`/.exec(task) ?? [];
+	const base = diff.split(" ").at(-1)?.split("..")[0] ?? "";
+	const bin = temporaryFolder();
+	const plant = `planted=$(git commit-tree "${base}^{tree}" -p ${base} -m planted) && git replace -f HEAD "$planted" && git config core.useReplaceRefs true`;
+	const reads = `{ ${diff}; ${log}; } > "$ARTHUR_JOB/real" 2>&1; { env -u GIT_NO_REPLACE_OBJECTS ${diff}; env -u GIT_NO_REPLACE_OBJECTS ${log}; } > "$ARTHUR_JOB/through" 2>&1`;
+	writeFileSync(join(bin, "omp"), `#!/bin/sh\n${plant} && ${reads}\n`, { mode: 0o755 });
+	process.env.PATH = `${bin}${delimiter}${process.env.PATH}`;
+	const out: string[] = [];
+	t.mock.method(console, "log", (text: string) => out.push(text));
+	await fake.commands[0]?.run({ args: [job.id], project: undefined });
+	t.mock.restoreAll();
+	await ended(out[0] ?? "");
+	const read = (name: string) => readFileSync(join(home, "jobs", out[0] ?? "", name), "utf8");
+	// Without the job's GIT_NO_REPLACE_OBJECTS, the same calls show the planted commit: the replacement is in force.
+	assert.match(read("through"), /^[0-9a-f]+ planted\n$/);
+	assert.equal(read("real"), `${git(root, "--no-replace-objects", "diff", `${base}..${job.commit}`)}\n${git(root, "--no-replace-objects", "log", "--oneline", `${base}..${job.commit}`)}\n`);
+});
+
 test("a review is refused in a project other than its worker's, though that project has a job and its HEAD holds the ticket and the tip, and starts in the worker's", async (t) => {
 	const { fake, git, root, other, worker, agent, state, home, field } = await load(t);
 	const job = await worker();

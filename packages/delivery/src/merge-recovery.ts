@@ -8,7 +8,7 @@ import { lastMerge } from "./take-main.ts";
 
 // A merge of `project` that died half done (AR0629): its `merge.lock` names a process that is gone, and main's HEAD is still
 // its merge commit of the job `merging` names, its checks not passed (`last-merge` is not it) and on no remote branch. Main
-// goes back to the merge's first parent with `--keep`, so the board's uncommitted moves stay, and the lock goes. Returns the
+// goes back to the merge's first parent (below), and a dead lock goes with its `merging`, as a merge's own end removes both. Returns the
 // job and the cause of its merge's next run; undefined when nothing went back: no lock, a live holder, a HEAD of another kind,
 // or a reset Git refused, which the coordinator is told. docs/commands/merge.md, "On its own".
 export function recoverMerge(host: Host, project: string): { readonly job: string; readonly hash: string; readonly why: string } | undefined {
@@ -41,7 +41,6 @@ export function recoverMerge(host: Host, project: string): { readonly job: strin
 		}
 		return { job: job.id, hash, why: `${why}: main went back from its merge commit ${hash.slice(0, 7)} to ${parent.slice(0, 7)}, the board kept.` };
 	} finally {
-		// A dead lock goes with its `merging`, as a merge's own end removes both.
 		rmSync(join(own, "merging"), { force: true });
 		lock.release();
 	}

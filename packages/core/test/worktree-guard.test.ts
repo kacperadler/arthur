@@ -687,7 +687,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	assert.ok(fetched.includes("into the main checkout (git fetch . HEAD:refs/replace/0123abcd)"), fetched);
 	// A fast-import's refusal says its refs come on stdin, as `git update-ref --stdin`'s shows `--stdin`.
 	for (const command of ["git fast-import", `git -C ${main} fast-import`]) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /into the main checkout \(git fast-import with its refs on stdin\);/, command);
-	assert.match(worktreeRefusal(place, "bash", { command: "git -C /tmp/other fast-import --allow-unsafe-features" }) ?? "", /into the main checkout \(git fast-import --allow-unsafe-features with its export-marks on stdin\);/);
+	assert.match(worktreeRefusal(place, "bash", { command: "git -C /tmp/other fast-import --allow-unsafe-features" }) ?? "", /into the main checkout \(git fast-import --allow-unsafe-features\);/);
 });
 
 test("pkill and killall are refused wherever the guard finds a command, through a shell, eval, sudo or a wrapper too; kill <pid> and pgrep pass", async () => {

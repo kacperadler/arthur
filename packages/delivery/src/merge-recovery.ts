@@ -29,10 +29,14 @@ export function recoverMerge(host: Host, project: string): { readonly job: strin
 		if (more !== undefined || second !== git("rev-parse", "--verify", "--quiet", `${job.branch}^{commit}`).stdout.trim()) return undefined;
 		if (lastMerge(host, project, git)?.hash === hash || git("for-each-ref", "--contains", hash, "refs/remotes").stdout.trim() !== "") return undefined;
 		const why = `The merge of ${job.id} on ${project} died half done, its process gone`;
-		const reset = git("reset", "--quiet", "--keep", parent);
+		// Main moves only from the merge commit read above (compare-and-swap), so a commit that landed since stays; the index and
+		// files follow as `git reset --keep` would, the board's moves kept, and a local change to a file the merge changed undoes the move.
+		if (git("update-ref", "HEAD", parent, hash).status !== 0) return undefined;
+		const reset = git("read-tree", "-m", "-u", hash, parent);
 		if (reset.status !== 0) {
+			git("update-ref", "HEAD", hash, parent);
 			const said = (reset.stderr.trim() || reset.stdout.trim()).split("\n").at(-1);
-			host.events.emit("coordinator-message", { text: `${why}: main still holds its merge commit ${hash.slice(0, 7)}, as git reset --keep ${parent.slice(0, 7)} refused: ${said}; reset main to ${parent.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}` });
+			host.events.emit("coordinator-message", { text: `${why}: main still holds its merge commit ${hash.slice(0, 7)}, as git read-tree -m -u ${hash.slice(0, 7)} ${parent.slice(0, 7)} refused: ${said}; reset main to ${parent.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}` });
 			return undefined;
 		}
 		rmSync(join(own, "merging"), { force: true });

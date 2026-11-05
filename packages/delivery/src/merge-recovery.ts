@@ -39,9 +39,10 @@ export function recoverMerge(host: Host, project: string): { readonly job: strin
 			host.events.emit("coordinator-message", { text: `${why}: main still holds its merge commit ${hash.slice(0, 7)}, as git read-tree -m -u ${hash.slice(0, 7)} ${parent.slice(0, 7)} refused: ${said}; reset main to ${parent.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}` });
 			return undefined;
 		}
-		rmSync(join(own, "merging"), { force: true });
 		return { job: job.id, hash, why: `${why}: main went back from its merge commit ${hash.slice(0, 7)} to ${parent.slice(0, 7)}, the board kept.` };
 	} finally {
+		// A dead lock goes with its `merging`, as a merge's own end removes both.
+		rmSync(join(own, "merging"), { force: true });
 		lock.release();
 	}
 }

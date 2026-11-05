@@ -818,7 +818,7 @@ test("arthur run's start rolls back a merge that died half done, keeping the boa
 		const head = git(root, "rev-parse", "HEAD");
 		await plugin.start?.();
 		await plugin.stop?.();
-		assert.deepEqual([git(root, "rev-parse", "HEAD"), merge.asked(), told(fake)], [head, [], []], why);
+		assert.deepEqual([git(root, "rev-parse", "HEAD"), merge.asked(), told(fake), existsSync(join(own, "merging"))], [head, [], [], why === "a live holder"], why);
 		undo();
 	}
 	assert.notEqual(board, git(root, "show", "HEAD:spec/build.json"), "the board has moves main does not hold");

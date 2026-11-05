@@ -44,3 +44,4 @@ Out:
 - 2026-10-18: The owner asked how releases, installing and version checks will work; the coordinator proposes a plan first.
 - 2026-10-18: The owner approved it.
 - 2026-10-19: The owner: this plan stays at planning until the roadmap reaches it; nothing is built before.
+- 2026-11-05: AR0128 approved: its plan job runs at the next free slot, after AR0634; the owner: "AR-D508 - 1" (AR-D508)

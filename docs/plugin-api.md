@@ -130,6 +130,7 @@ Each decided in the ticket that made it.
 - AR0557 (AR0556's approved plan, Option 2; its Done means: `arthur github pr --help` prints `github-pr.md`): a command's group page, `<doc>-<word>.md` beside its `doc`, which `arthur <command> <word> … --help` prints when it exists and `<word>` is lowercase letters, digits and dashes, else the command's `doc` (`arthur help --help`). A plugin registers nothing more for it. No host member changed.
 - AR0392 (F1 of AR0380; its Done means: the keys Git reads by a fixed name passed with `-c` as well): `@arthur/core/git-config`'s `configRefusal(root)` becomes `checkConfig(root)`, `{ refusal, pins }`, the check's line and the `-c` arguments of the git call after it, so the check and those values come from one read of the config. No host member changed.
 - AR0528 (roadmap 99, from AR0527's approved plan, AR-D203): every event's `by: { actor, on? }` (below, "Who acted"), `Event.by`; the provided name `actor`; the core's events `command-ran`, `phone-command` and `run-started`, and schedule's `schedule-fired`; `@arthur/core/lock`'s `holds(path)`. No host member changed.
+- AR0649 (AR0480's approved plan, ticket 2, roadmap 108; the owner approved it on 2026-11-06, AR-D523): `JobRecord.usage`, the record's new `usage` file, which the wrapper writes after each message beside `cost`: per `<provider>/<model>`, `{ messages, input, output, cacheRead, cacheWrite, cost }`, summed over every run of the job, `{}` when the file is missing or not a JSON object (`arthur spawn --help`, `arthur jobs --help`). A sweep copies it from another machine with the run's other files. The test kit's fake agent takes `usage` (its tokens) and `model` on a message step. No host member changed.
 
 ### Project pieces
 
@@ -168,7 +169,7 @@ The types a plugin meets through the host, published by `@arthur/core/plugin`:
 | `Machine` | `{ name, ssh, home, labels }`. |
 | `Requires` | `{ os?, arch?, tools? }`: the labels a job needs. |
 | `Ran` | `{ code, stdout, stderr }`: what `jobs.run` resolves to. |
-| `JobRecord` | `id`, `kind`, `project`, `state`, `reason`, `hold`, `since`, `branch`, `machine`, `cost`, `budget` (text, as in the record), `tickets` and `seconds`. |
+| `JobRecord` | `id`, `kind`, `project`, `state`, `reason`, `hold`, `since`, `branch`, `machine`, `cost`, `budget` (text, as in the record), `usage` (per `<provider>/<model>`, `{ messages, input, output, cacheRead, cacheWrite, cost }`, numbers; above, "Changes since entry 51"), `tickets` and `seconds`. |
 | `Project` | `{ name, path, prefix }`. |
 | `Ticket` | `{ id, title, status, path, updated, after?, project }`. |
 | `Plugin`, `Host` | The two shapes above. |

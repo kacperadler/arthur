@@ -39,3 +39,6 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: the approved plan of AR0527 (AR-D203)
+- 2026-11-06: Raise the AR0528 budget to $16 so it finishes; the owner: "AR-D528 - 1" (AR-D528)
+- 2026-11-06: AR0528 plugin API changes (by stamp, four events, holds(path) in the lock module) and budget raises (core 7307, orchestration 2761, schedule 621) accepted; the owner: "AR-D533 - 1" (AR-D533)
+- 2026-11-06: Merge PR #4 (AR0528); the owner: "Approve (PR #4 comment, 2026-11-06 16:15)" (AR-D536)

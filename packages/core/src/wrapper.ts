@@ -13,7 +13,7 @@ import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
 import { commitsSince } from "./git.ts";
-import { runRecord } from "./run-record.ts";
+import { runRecord, usageOf } from "./run-record.ts";
 import { envFileNames, namedChunks } from "./secret-names.ts";
 import { closeSteers } from "./steer-inbox.ts";
 
@@ -115,7 +115,8 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	rmSync(join(folder, "continuing"), { recursive: true, force: true });
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
-	const record = runRecord(save, Number(spent ?? 0) || 0, (cost) => reached(cost, budgetUsd) && halt("budget"));
+	const used = existsSync(join(folder, "usage")) ? field("usage") : undefined; // Missing until a first message, and from a record an older Arthur wrote.
+	const record = runRecord(save, Number(spent ?? 0) || 0, usageOf(used), (cost) => reached(cost, budgetUsd) && halt("budget"));
 	// What went over a memory cap, the job's own or its ticket's.
 	let overCap = "";
 	const watching = watchMemory(id, memory, feature, featureMemory, (what) => {

@@ -4192,9 +4192,9 @@
   {
     "id": "AR0528",
     "title": "Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0528-who-did-it-an-actor-stamp-on-every-event-and-events-for-commands-phone-commands/ticket.md",
-    "updated": "2026-11-06T08:17:07.516Z"
+    "updated": "2026-11-06T15:04:45.471Z"
   },
   {
     "id": "AR0529",
@@ -4832,9 +4832,9 @@
   {
     "id": "AR0603",
     "title": "Dokploy T2: upload a file or folder and start a deploy, on the owner's word",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0603-dokploy-t2-upload-a-file-or-folder-and-start-a-deploy-on-the-owner-s-word/ticket.md",
-    "updated": "2026-11-06T08:22:47.514Z"
+    "updated": "2026-11-06T12:25:23.076Z"
   },
   {
     "id": "AR0604",
@@ -4867,9 +4867,9 @@
   {
     "id": "AR0607",
     "title": "Runbook: what the coordinator checks and does, in order, when a project site is down",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0607-runbook-what-the-coordinator-checks-and-does-in-order-when-a-project-site-is/ticket.md",
-    "updated": "2026-11-02T18:45:28.336Z",
+    "updated": "2026-11-06T16:05:39.758Z",
     "after": [
       "AR0603"
     ]
@@ -5112,30 +5112,30 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-06T01:14:11.872Z"
+    "updated": "2026-11-06T11:31:25.400Z"
   },
   {
     "id": "AR0636",
     "title": "A committed plan names the public IP addresses of the owner deploy host and this VPS",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0636-a-committed-plan-names-the-public-ip-addresses-of-the-owner-deploy-host-and-this/ticket.md",
-    "updated": "2026-11-06T01:14:12.470Z"
+    "updated": "2026-11-06T11:31:26.383Z"
   },
   {
     "id": "AR0637",
     "title": "Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0637-mutate-runs-capped-at-4-pass-the-review-gate-and-reviews-then-fail-on-survivors/ticket.md",
-    "updated": "2026-11-06T01:14:13.066Z"
+    "updated": "2026-11-06T11:31:27.390Z"
   },
   {
     "id": "AR0638",
     "title": "host.secrets holds only enabled plugins values, so the public decision log misses other env file values",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
-    "updated": "2026-11-06T01:14:13.666Z"
+    "updated": "2026-11-06T11:31:28.311Z"
   },
   {
     "id": "AR0639",
@@ -5147,9 +5147,9 @@
   {
     "id": "AR0640",
     "title": "Roadmap 104: one release version, arthur version with the hash, and the plugin check",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0640-roadmap-104-one-release-version-arthur-version-with-the-hash-and-the-plugin/ticket.md",
-    "updated": "2026-11-06T08:18:04.405Z"
+    "updated": "2026-11-06T17:02:07.401Z"
   },
   {
     "id": "AR0641",
@@ -5185,9 +5185,9 @@
   {
     "id": "AR0644",
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T08:22:32.581Z"
+    "updated": "2026-11-06T17:02:08.604Z"
   },
   {
     "id": "AR0645",
@@ -5229,9 +5229,9 @@
   {
     "id": "AR0649",
     "title": "Stats S2: tokens per model in the job record (roadmap 108)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0649-stats-s2-tokens-per-model-in-the-job-record-roadmap-108/ticket.md",
-    "updated": "2026-11-06T08:46:51.336Z",
+    "updated": "2026-11-06T17:09:17.850Z",
     "after": [
       "AR0648"
     ]
@@ -5279,11 +5279,18 @@
   {
     "id": "AR0654",
     "title": "Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0654-dokploy-t3-create-an-app-and-set-its-build-type-domain-volume-and-environment/ticket.md",
-    "updated": "2026-11-06T09:03:51.960Z",
+    "updated": "2026-11-06T16:48:03.421Z",
     "after": [
       "AR0603"
     ]
+  },
+  {
+    "id": "AR0655",
+    "title": "Plan: Dokploy T4, a whole project from Arthur: an app built from its Git repository, and a database it connects to",
+    "status": "planned",
+    "path": "spec/features/AR0655-plan-dokploy-t4-a-whole-project-from-arthur-an-app-built-from-its-git-repository/ticket.md",
+    "updated": "2026-11-06T11:47:40.069Z"
   }
 ]

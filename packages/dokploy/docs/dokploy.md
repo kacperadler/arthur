@@ -1,6 +1,6 @@
 # The dokploy plugin
 
-The owner's Dokploy servers (AR0588), one entry per server, named or unnamed, each with its address and the variable holding its API key, so no key passes through a chat; a project picks its server and application with its piece, `dokploy.project({ instance?, app })` in its project file. `arthur dokploy apps|app|status` reads each server's projects, applications and deployments. Only the coordinator runs it; a job never does. A token never appears in an error.
+The owner's Dokploy servers (AR0588), one entry per server, named or unnamed, each with its address and the variable holding its API key, so no key passes through a chat; a project picks its server and application with its piece, `dokploy.project({ instance?, app })` in its project file. `arthur dokploy apps|app|status` reads each server's projects, applications and deployments; `arthur dokploy upload|deploy` sends an application a file or folder or starts its deploy, on the owner's word (AR0603). Only the coordinator runs it; a job never does. A token never appears in an error.
 
 ```ts
 // arthur.config.ts
@@ -22,7 +22,7 @@ It needs the `projects` plugin, which sets up first.
 
 ## Options
 
-- `instances`: the Dokploy servers, at least one, each `{ name?, url, tokenEnv }`, at most one without a name, each name once. `name` is the one a project's `dokploy.project({ instance })` and `--instance` give: lowercase letters, digits and single dashes, from a letter. `url` is the server's address as Dokploy's panel answers on it (`https://dokploy.example.com`, or under a path, `https://host/dokploy`); calls go to `<url>/api/<procedure>` and nowhere else. `tokenEnv` names the variable holding an API key of the Dokploy user Arthur reads as (Dokploy: Settings, Profile, API/CLI): `ARTHUR_DOKPLOY_TOKEN` for the unnamed instance, `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one, as `arthur config check` holds every `...Env` name.
+- `instances`: the Dokploy servers, at least one, each `{ name?, url, tokenEnv }`, at most one without a name, each name once. `name` is the one a project's `dokploy.project({ instance })` and `--instance` give: lowercase letters, digits and single dashes, from a letter. `url` is the server's address as Dokploy's panel answers on it (`https://dokploy.example.com`, or under a path, `https://host/dokploy`); calls go to `<url>/api/<procedure>` and nowhere else. `tokenEnv` names the variable holding an API key of the Dokploy user Arthur acts as (Dokploy: Settings, Profile, API/CLI), one that may create deployments for `upload` and `deploy`: `ARTHUR_DOKPLOY_TOKEN` for the unnamed instance, `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one, as `arthur config check` holds every `...Env` name.
 - `timeoutSeconds`: how long one call to Dokploy may take before it is given up. Default 60, at most 600.
 
 `url` is `https` to any host; `http` only on loopback, a private or a Tailscale address (`localhost`, 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, `::1`, fc00::/7, a `*.ts.net` name; never the cloud metadata addresses inside them), since elsewhere the key would cross the network in plain text. A panel only at `http://<public address>:3000` is refused until it has a domain with TLS or is reached over Tailscale.

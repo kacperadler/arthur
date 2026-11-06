@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { watch } from "node:fs/promises";
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
@@ -800,6 +800,8 @@ test("a copy brings only the log's new bytes, appended here; arthur remote-job r
 	const before = read(there, job.id, "log");
 	assert.equal(read(home, job.id, "log"), before);
 	appendFileSync(join(there, "jobs", job.id, "log"), "one more line ✓\n");
+	// A lock file listed but gone by its stat, as one another copy or the wrapper there holds a moment: a link to nothing.
+	symlinkSync(join(there, "gone"), join(there, "jobs", job.id, "state.lock.99999999"));
 	// Two copies at once, as a stop's beside the sweep's: the new bytes are appended once.
 	await Promise.all([jobs.sweep(), jobs.sweep()]);
 	assert.equal(read(home, job.id, "log"), `${before}one more line ✓\n`);
@@ -812,6 +814,7 @@ test("a copy brings only the log's new bytes, appended here; arthur remote-job r
 	assert.deepEqual([records("0:0")?.logFrom, records("0:0")?.logSize, records("0:0")?.logTo, records(`0:${size + 1}`)?.logFrom], [0, size, size, 0], "a log shorter than asked comes whole");
 	assert.deepEqual([records(`0:${size}`)?.logFrom, records(`0:${size}`)?.files.log], [size, ""], "caught up exactly: nothing new, not the whole log");
 	writeFileSync(gate, "");
+	await endedThere(there, job.id);
 });
 
 test("a log grown by more than 1 MiB arrives whole over several copies, each cut at a character, and the job ends here only once all of it did", async () => {

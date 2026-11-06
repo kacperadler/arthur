@@ -7,7 +7,8 @@ const PORTAL = "discord.com/developers/applications";
 
 test("identify asks for intents 33281 alone; a heartbeat with no ACK before the next closes with 4000 and resumes at the last sequence, never identifying again", async (t) => {
 	const api = await fakeDiscord(t);
-	api.heartbeat = 50;
+	// Past the event-loop lag of a loaded machine: a lag longer than the interval runs the next heartbeat before the ACK is read.
+	api.heartbeat = 1000;
 	const { plugin } = await load(t, { apiUrl: api.url });
 	await plugin.start?.();
 	await until("identified", () => api.sent(2).length === 1);

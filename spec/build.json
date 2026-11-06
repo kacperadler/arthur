@@ -5218,5 +5218,62 @@
     "after": [
       "AR0646"
     ]
+  },
+  {
+    "id": "AR0648",
+    "title": "Stats S1: roadmap entries 108 to 112 and the vision's stats row, from the AR0480 plan",
+    "status": "planned",
+    "path": "spec/features/AR0648-stats-s1-roadmap-entries-108-to-112-and-the-vision-s-stats-row-from-the-ar0480/ticket.md",
+    "updated": "2026-11-06T08:46:49.488Z"
+  },
+  {
+    "id": "AR0649",
+    "title": "Stats S2: tokens per model in the job record (roadmap 108)",
+    "status": "planned",
+    "path": "spec/features/AR0649-stats-s2-tokens-per-model-in-the-job-record-roadmap-108/ticket.md",
+    "updated": "2026-11-06T08:46:51.336Z",
+    "after": [
+      "AR0648"
+    ]
+  },
+  {
+    "id": "AR0650",
+    "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
+    "status": "planned",
+    "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
+    "updated": "2026-11-06T08:46:53.226Z",
+    "after": [
+      "AR0649"
+    ]
+  },
+  {
+    "id": "AR0651",
+    "title": "Stats S4: the merged-ticket report moves from manage to stats (roadmap 110)",
+    "status": "planned",
+    "path": "spec/features/AR0651-stats-s4-the-merged-ticket-report-moves-from-manage-to-stats-roadmap-110/ticket.md",
+    "updated": "2026-11-06T08:46:55.115Z",
+    "after": [
+      "AR0650"
+    ]
+  },
+  {
+    "id": "AR0652",
+    "title": "Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111)",
+    "status": "planned",
+    "path": "spec/features/AR0652-stats-s5-arthur-stats-stats-and-the-morning-report-s-spend-roadmap-111/ticket.md",
+    "updated": "2026-11-06T08:46:56.937Z",
+    "after": [
+      "AR0651"
+    ]
+  },
+  {
+    "id": "AR0653",
+    "title": "Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112)",
+    "status": "planned",
+    "path": "spec/features/AR0653-stats-s6-claude-usage-windows-beside-the-costs-an-estimate-marked-roadmap-112/ticket.md",
+    "updated": "2026-11-06T08:46:58.977Z",
+    "after": [
+      "AR0652"
+    ]
   }
 ]

@@ -32,4 +32,6 @@ Out:
 - Words built at run time (a variable holding a flag): an existing gap of the whole guard.
 
 ## Decisions
+- 2026-11-06: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-11-06: core line budget 7238 to 7239 for AR0628, by recommendation under AR-D500; the owner: "do not ask me about them; always go with the recommendation (AR-D500)" (AR-D513)
 

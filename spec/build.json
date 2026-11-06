@@ -5181,5 +5181,42 @@
     "after": [
       "AR0642"
     ]
+  },
+  {
+    "id": "AR0644",
+    "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
+    "status": "planned",
+    "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
+    "updated": "2026-11-06T08:22:32.581Z"
+  },
+  {
+    "id": "AR0645",
+    "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
+    "status": "planned",
+    "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
+    "updated": "2026-11-06T08:22:34.727Z",
+    "after": [
+      "AR0644"
+    ]
+  },
+  {
+    "id": "AR0646",
+    "title": "Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half)",
+    "status": "planned",
+    "path": "spec/features/AR0646-docker-w3-a-job-s-containers-networks-volumes-and-images-go-with-its-worktree/ticket.md",
+    "updated": "2026-11-06T08:22:36.839Z",
+    "after": [
+      "AR0645"
+    ]
+  },
+  {
+    "id": "AR0647",
+    "title": "Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72)",
+    "status": "planned",
+    "path": "spec/features/AR0647-docker-w4-the-daily-sweep-of-docker-leftovers-arthur-docker-and-arthur-docker/ticket.md",
+    "updated": "2026-11-06T08:22:38.959Z",
+    "after": [
+      "AR0646"
+    ]
   }
 ]

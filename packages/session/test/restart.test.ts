@@ -369,7 +369,7 @@ test("/restart with a coordinator: the handoff first, the restart goes on with -
 	const health = "Health:\n- main not pushed for 2 h\n- github: CI token missing\n- test: health failed: no repository";
 	assert.deepEqual(box.notices(), [`Restarted.\n\nAfter the restart:\nLog in again: omp login.\n\n${health}`]);
 	assert.equal(existsSync(join(box.folder, "after-restart.md")), false, "the steps go once");
-	assert.ok(!box.fake.emitted.some((event) => JSON.stringify(event.data).includes("/restart")), "the command reaches no inbox");
+	assert.ok(!box.fake.emitted.some((event) => event.name !== "phone-command" && JSON.stringify(event.data).includes("/restart")), "the command reaches no inbox, only its own phone-command");
 });
 
 test("a handoff not written in time does not stop the restart, and Restarted. says so", async (t) => {

@@ -61,7 +61,7 @@ test("/silent twice: on, then off with what happened meanwhile, built from the e
 	fake.emit("job-ended", { id: "2026-10-19-worker-00000001", kind: "worker", project: "arthur", state: "ended", reason: "finished" });
 	assert.equal(await route("/silent"), "silent: on");
 	const on = state();
-	assert.deepEqual(on, { since: NOW.toISOString(), seq: 1, work: "" }, "the event before it is not part of it");
+	assert.deepEqual(on, { since: NOW.toISOString(), seq: 2, work: "" }, "the event before it, and its own phone-command, are not part of it");
 	const jobs = ["2026-10-19-worker-0000000a", "2026-10-19-worker-0000000b", "2026-10-19-worker-0000000c", "2026-10-19-worker-0000000d"];
 	fake.emit("job-ended", { id: jobs[0], kind: "worker", project: "arthur", state: "ended", reason: "finished" });
 	fake.emit("job-ended", { id: jobs[1], kind: "worker", project: "arthur", state: "ended", reason: "failed: the agent exited 1" });

@@ -56,6 +56,9 @@ export function takeLock(path: string): { readonly release: () => void } | { rea
 	};
 }
 
+// Whether this process holds the lock on `path`; a lock of another process, or one an earlier process of this pid left, is not its.
+export function holds(path: string): boolean { return holder(path)?.pid === process.pid; }
+
 // Waits its turn behind any live holder, this process included; past `waitMs` it is an error. The function it returns
 // releases the lock once: a second call never removes a lock taken since, whatever inode the new one got.
 export async function queueLock(path: string, waitMs = 60_000): Promise<() => void> {

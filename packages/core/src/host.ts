@@ -1,12 +1,14 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stamper } from "./actor.ts";
 import { type Board, board, projectList } from "./board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import { describe, type LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
+import { append as appendEvent, withLog } from "./event-log.ts";
 import { type Bus, eventBus } from "./events.ts";
 import { type DoctorLine, doctor, ownAnswers } from "./doctor.ts";
 import { knownProject } from "./job-checkout.ts";
@@ -30,8 +32,9 @@ import type { Outgoing } from "./send-command.ts";
 // `follow` is what `arthur run` follows the event log with; `project` is the project a name names (job-checkout.ts), refusing
 // one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`);
 // `doctor` checks the core's requirements, each project piece no loaded plugin reads, and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's;
-// `channels` asks every channel's `channel.send` (`arthur send`); `hide` names the env file's values, outside a job, and the plugins' (secret-names.ts).
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[]; readonly hide: Hide };
+// `append` only logs one, for `arthur run` to deliver, the next one if it ends (`command-ran`); `channels` asks every channel's `channel.send` (`arthur send`); `hide`
+// names the env file's values, outside a job, and the plugins' (secret-names.ts).
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly append: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[]; readonly hide: Hide };
 export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 
 const REQUIRED = "orchestration";
@@ -54,7 +57,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	if (skipped.size > 0) console.error(`arthur: inside a job, not loaded: ${[...skipped].join(", ")}: each names an env variable, and a job's CLI reads no env file`);
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
-	const bus = eventBus(config.core.home, hide);
+	const stamp = stamper(config.core.home, job, () => names.collect("actor", [])), bus = eventBus(config.core.home, hide, stamp);
 	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice }, config.core.agent.command, time, bus, names.collect);
 	// What a record takes from a request (a task, an instruction, a block's reason, a steer) and a channel's reply, each value named.
 	const jobs: JobRunner = { ...runner, spawn: (request) => runner.spawn({ ...request, task: hide(request.task) }), continue: (id, instruction, ...rest) => runner.continue(id, hide(instruction), ...rest), block: (id, reason, stop) => runner.block(id, hide(reason), stop), steer: (id, text) => runner.steer(id, hide(text)) };
@@ -89,7 +92,8 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const lists = names.collect("projects", []);
 		return doctor([...coreRequirements(config.core, () => [dirname(config.path), ...(lists.length === 0 ? [] : projectList(lists).map((each) => each.path))]), ...unreadPieces(sorted, lists)], answers);
 	};
-	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), channels: (message) => names.collectEach("channel.send", [message.caption === undefined ? message : { ...message, caption: hide(message.caption) }]), hide };
+	const append = (name: string, data: unknown) => void withLog(config.core.home, (fd) => appendEvent(fd, "core", stamp("core", name, data), name, data, hide));
+	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), append, channels: (message) => names.collectEach("channel.send", [message.caption === undefined ? message : { ...message, caption: hide(message.caption) }]), hide };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

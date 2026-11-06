@@ -31,6 +31,7 @@ function load(t: TestContext, entries: readonly Entry[], now: string, root = tem
 		at: (when: string) => fake.setNow(new Date(when)),
 		messages: () => said("coordinator-message"),
 		notices: () => said("notice"),
+		fired: () => fake.emitted.filter((event) => event.name === "schedule-fired").map((event) => event.data),
 		write(path: string, text: string) {
 			mkdirSync(dirname(join(root, path)), { recursive: true });
 			writeFileSync(join(root, path), text);
@@ -62,6 +63,8 @@ test("a daily entry missed for three days runs once and says it is late; its nex
 	box.at("2026-10-19T09:00:00+02:00");
 	await box.sweep();
 	assert.deepEqual(box.messages(), ["[scheduled standup] Plan the day.", "[scheduled standup] (late: due 2026-10-18 09:00) Plan the day.", "[scheduled standup] Plan the day."]);
+	const fired = (slot: string, late: boolean) => ({ id: "standup", slot, late, does: "action" });
+	assert.deepEqual(box.fired(), [fired("2026-10-15T07:00:00.000Z", false), fired("2026-10-18T07:00:00.000Z", true), fired("2026-10-19T07:00:00.000Z", false)], "each slot claimed, once");
 });
 
 test("a new daily entry does not run a slot from before its first sweep late; one at most 5 minutes before still runs", async (t) => {
@@ -221,6 +224,7 @@ test("an action's procedure goes under its message as the file reads when due; o
 	await box.sweep();
 	assert.deepEqual(box.messages(), ["[scheduled morning] Write the morning report.\n\n# Morning report\n\nFirst version.", "[scheduled morning] Write the morning report.\n\n# Morning report\n\nSecond version."]);
 	assert.equal(box.notices().length, 4, "a problem is said once while it lasts");
+	assert.deepEqual(box.fired().map((data) => (data as { readonly slot: string }).slot), ["2026-10-19T07:00:00.000Z", "2026-10-20T07:00:00.000Z"], "an entry held back fires nothing");
 });
 
 test("a job entry spawns a job of its kind, the kind the option table names when it names none, late saying so; a spawn the core refuses goes to the coordinator with the reason", async (t) => {
@@ -249,6 +253,8 @@ test("a job entry spawns a job of its kind, the kind the option table names when
 	box.at("2026-10-19T03:07:00+02:00");
 	await box.sweep();
 	assert.equal(box.fake.host.jobs.list().length, 1, "a claimed slot does not spawn again");
+	const fired = (id: string) => ({ id, slot: "2026-10-19T01:00:00.000Z", late: true, does: "job" });
+	assert.deepEqual(box.fired(), [fired("docs"), fired("audit")], "the refused spawn's slot fired too");
 });
 
 test("the options: entries and file as the example config has them; every wrong one refused, naming its path", () => {

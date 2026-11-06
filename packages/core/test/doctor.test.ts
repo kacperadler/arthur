@@ -93,7 +93,8 @@ test("arthur doctor: one line per requirement, the core's then each enabled plug
 	const tmux = arthur("doctor");
 	assert.deepEqual([tmux.status, tmux.stdout.split("\n")[CORE.length]], [1, TMUX], "one critical miss: exit 1");
 	assert.equal(tmux.stdout.split("\n").length, CORE.length + REST.length + 1, "every line is still printed");
-	assert.ok(!existsSync(join(home, "events.jsonl")) && !existsSync(join(home, "doctor.json")), "arthur doctor sends nothing and records nothing");
+	const logged = readFileSync(join(home, "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).name);
+	assert.deepEqual([logged, existsSync(join(home, "doctor.json"))], [["command-ran", "command-ran", "command-ran"], false], "arthur doctor sends nothing and records nothing but its own command-ran");
 	assert.deepEqual([arthur("doctor", "now").status, arthur("doctor", "now").stderr], [2, "usage: arthur doctor\n"]);
 });
 
@@ -420,7 +421,7 @@ test("arthur run with a home it cannot write: the refusal is printed only", { sk
 	const refused = unmade.arthur("run");
 	assert.equal(refused.status, 1);
 	assert.match(refused.stderr, new RegExp(`^arthur run: core home: missing: ${join(parent, "home")} is not writable \\(EACCES\\); .*\n${REFUSED}$`));
-	// A home that is there, read-only: the plugins load, and nothing is sent or recorded.
+	// A home that is there, read-only: the plugins load, and nothing is sent or recorded; its command-ran is said not logged.
 	const there = project();
 	there.say("tmux", "missing: tmux not found on PATH");
 	there.arthur("doctor");
@@ -429,6 +430,9 @@ test("arthur run with a home it cannot write: the refusal is printed only", { sk
 	const readOnly = there.arthur("run");
 	assert.equal(readOnly.status, 1);
 	assert.match(readOnly.stderr, /^arthur run: core home: missing: .* is not writable \(EACCES\); /);
-	assert.ok(readOnly.stderr.endsWith(REFUSED));
-	assert.deepEqual([there.log(), existsSync(join(there.home, "doctor.json")), existsSync(join(there.home, "events.jsonl"))], ["", false, false]);
+	const lines = readOnly.stderr.split("\n");
+	assert.deepEqual([`${lines.at(-3)}\n`, lines.at(-1)], [REFUSED, ""]);
+	assert.match(lines.at(-2) ?? "", /^arthur run: command-ran not logged: EACCES: permission denied, open '.*events\.jsonl/);
+	const logged = readFileSync(join(there.home, "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).data.command);
+	assert.deepEqual([there.log(), existsSync(join(there.home, "doctor.json")), logged], ["", false, ["doctor"]]);
 });

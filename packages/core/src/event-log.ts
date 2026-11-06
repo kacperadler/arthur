@@ -1,12 +1,13 @@
 import { closeSync, fstatSync, openSync, readFileSync, readSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { By } from "./actor.ts";
 import { withLock } from "./lock.ts";
 
-// The event log `<home>/events.jsonl` (spec/roadmap.md, entry 5): one JSON line per event, with its sequence number, time and
-// the plugin that emitted it. Every process that emits (the daemon, a command) appends under one lock, so lines never
-// interleave and numbers never repeat.
+// The event log `<home>/events.jsonl` (spec/roadmap.md, entry 5): one JSON line per event, with its sequence number, time, the
+// plugin that emitted it and who acted (`by`, actor.ts; absent on a line from before entry 99). Every process that emits (the
+// daemon, a command) appends under one lock, so lines never interleave and numbers never repeat.
 
-export type Event = { readonly seq: number; readonly time: string; readonly plugin: string; readonly name: string; readonly data: unknown };
+export type Event = { readonly seq: number; readonly time: string; readonly plugin: string; readonly by?: By; readonly name: string; readonly data: unknown };
 
 // How far a reader got: the bytes read (whole lines only) and the next number it takes.
 export type Position = { offset: number; next: number };
@@ -27,9 +28,9 @@ export function withLog<T>(home: string, run: (fd: number) => T): T {
 	});
 }
 
-export function append(fd: number, plugin: string, name: string, data: unknown, hide: (text: string) => string = (text) => text): Event {
+export function append(fd: number, plugin: string, by: By, name: string, data: unknown, hide: (text: string) => string = (text) => text): Event {
 	const { size } = fstatSync(fd);
-	const text = JSON.stringify({ seq: lastSeq(fd, size) + 1, time: new Date().toISOString(), plugin, name, data: data ?? null }, (_key, value: unknown) => (typeof value === "string" ? hide(value) : value));
+	const text = JSON.stringify({ seq: lastSeq(fd, size) + 1, time: new Date().toISOString(), plugin, by, name, data: data ?? null }, (_key, value: unknown) => (typeof value === "string" ? hide(value) : value));
 	// A torn last line (a crash while writing it) is ended here, so it stays one skipped line instead of spoiling this one.
 	const last = Buffer.alloc(1);
 	const torn = size > 0 && readSync(fd, last, 0, 1, size - 1) === 1 && last[0] !== 0x0a;

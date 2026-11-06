@@ -166,7 +166,7 @@ test("refusals print the reason, exit 1 and leave no record, worktree or branch"
 	assert.deepEqual(jobs(root), []);
 	assert.equal(existsSync(join(dirname(root), ".arthur-worktrees")) && readdirSync(join(dirname(root), ".arthur-worktrees")).length > 0, false);
 	assert.equal(git(root, "branch", "--list"), "* main");
-	assert.deepEqual(readEvents(join(root, ".arthur"), 1), []);
+	assert.deepEqual(readEvents(join(root, ".arthur"), 1).filter((event) => event.name !== "command-ran"), [], "no event but each refused command's own command-ran");
 });
 
 test("--ignore-restart reaches the beforeSpawn checks as ignoreRestart, anywhere among the flags", () => {
@@ -271,7 +271,7 @@ test("a worker on a ticket that cannot move to in-progress is refused before any
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "second");
 	const both = arthur(root, "spawn", `${task} Ticket: spec/features/AC0002-two/ticket.md`);
 	assert.equal(both.stderr, `arthur spawn: refused by core: AC0001 is dropped, which cannot move to in-progress; AC0002 is not on the board; ${starts}\n`);
-	assert.deepEqual([jobs(root), readEvents(join(root, ".arthur"), 1)], [[], []]);
+	assert.deepEqual([jobs(root), readEvents(join(root, ".arthur"), 1).filter((event) => event.name !== "command-ran")], [[], []]);
 	assert.equal(git(root, "branch", "--list"), "* main");
 	assert.equal(arthur(root, "spawn", "--kind", "review", task).status, 0);
 	for (const status of ["review", "done"]) {

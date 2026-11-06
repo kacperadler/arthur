@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { appendFileSync, closeSync, constants, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { stamper } from "./actor.ts";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { reason as endingOf, resumeFor, type Why } from "./job-ending.ts";
@@ -62,7 +63,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	const names = ["kind", "model", "thinking", "branch", "base", "timeout", "budget", "resume-on-budget", "idle-minutes"];
 	const [kind = "", model = "", thinking = "", branch = "", base = "", timeout = "", budget = "", resumes = "", idle = ""] = names.map(field);
 	const { project, root, worktree } = place;
-	const secrets = hidden(folder, place, process.env.ARTHUR_GUARDED ?? ""), hide = envFileNames(secrets), bus = eventBus(home, hide), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
+	const secrets = hidden(folder, place, process.env.ARTHUR_GUARDED ?? ""), hide = envFileNames(secrets), bus = eventBus(home, hide, stamper(home, id, () => [])), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
 	// A move from `from` to `to` (job-state.ts) only: a job a plugin holds stays `blocked` until its run ends, so it never moves here.
 	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.state === from ? [to, ""] : undefined)));
 	// The agent's output: `active` takes its time, an idle job works again, and it turns idle after `idle-minutes` without any.

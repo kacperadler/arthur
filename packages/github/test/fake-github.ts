@@ -2,13 +2,15 @@ import { once } from "node:events";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { TestContext } from "node:test";
+import { type FakeIssue, issueRoute } from "./fake-github-issues.ts";
 
 // A fake GitHub REST API on a loopback port the OS picks, answering in the shape of GitHub's documentation, every field of it:
 // "List workflow runs for a workflow", "List jobs for a workflow run attempt", "Download job logs for a workflow run" (a 302
 // to the log's text), "Re-run a workflow" (201, the run's next attempt queued), "Cancel a workflow run" (202, the run
 // cancelled; 409 for one completed), "List pull requests", "Get a pull request", "Create a pull request" (201), "Update a pull
-// request", "List reviews for a pull request", "List issue comments", "Create an issue comment" (201), with the `link` header of
-// "Using pagination in the REST API" on each page that has a next one, and the headers of "Rate limits for the REST API".
+// request", "List reviews for a pull request", "List issue comments", "Create an issue comment" (201), the issues of
+// fake-github-issues.ts, with the `link` header of "Using pagination in the REST API" on each page that has a next one, and the
+// headers of "Rate limits for the REST API".
 
 // `event` push and `repository` (its `head_repository`, a fork's for a fork's pull request) the watched one when left out.
 export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null; readonly started?: string; readonly event?: string; readonly repository?: string };
@@ -36,10 +38,10 @@ export type Reply = { readonly status: number; readonly headers?: Readonly<Recor
 
 export const DOCS = "https://docs.github.com/rest";
 const RATE = { "x-ratelimit-limit": "5000", "x-ratelimit-used": "1", "x-ratelimit-resource": "core" };
-const API = "https://api.github.com";
-const T = "2026-01-01T00:00:00Z";
+export const API = "https://api.github.com";
+export const T = "2026-01-01T00:00:00Z";
 
-const user = (login: string, id: number) => ({
+export const user = (login: string, id: number) => ({
 	...{ login, id, node_id: "MDQ6VXNlcjE=", avatar_url: `https://github.com/images/${login}.gif`, gravatar_id: "", url: `${API}/users/${login}`, html_url: `https://github.com/${login}` },
 	...Object.fromEntries(["followers", "following{/other_user}", "gists{/gist_id}", "starred{/owner}{/repo}", "subscriptions", "organizations", "repos", "events{/privacy}", "received_events"].map((each) => [`${each.split("{")[0]}_url`, `${API}/users/${login}/${each}`])),
 	...{ type: "User", site_admin: false },
@@ -101,7 +103,7 @@ const fullPull = (full: string, pull: FakePull) => ({
 	...{ review_comments: 0, maintainer_can_modify: true, commits: 3, additions: 100, deletions: 3, changed_files: 5 },
 });
 // "Create an issue comment" answers one with `pin` too.
-const shapedComment = (full: string, number: number, { id, user: login, body, created = T }: FakeComment, made = false) => ({
+export const shapedComment = (full: string, number: number, { id, user: login, body, created = T }: FakeComment, made = false) => ({
 	...{ id, node_id: "MDEyOklzc3VlQ29tbWVudDE=", url: `${API}/repos/${full}/issues/comments/${id}`, html_url: `https://github.com/${full}/issues/${number}#issuecomment-${id}`, body, user: user(login, 3) },
 	...{ created_at: created, updated_at: created, issue_url: `${API}/repos/${full}/issues/${number}`, author_association: "COLLABORATOR", ...(made ? { pin: null } : {}), minimized: null },
 });
@@ -117,12 +119,15 @@ const shapedReview = (full: string, number: number, { id, user: login, state, bo
 // comments, every list paged by `per_page` (GitHub's default 30) and `page`; `next` replies once each, before anything else;
 // `always` replies to every request while set, `post` to every POST; `clock` is GitHub's clock less this machine's, in ms, as
 // its `date` header says it (null: no `date`); `slow` the ms an answer waits after its request, its body taken at the request.
-// A pull request created takes the next number, a comment the next id, each by octocat. `seen` holds each request: its method,
-// path, time, Authorization, body and Content-Type.
+// A pull request created takes the next number, a comment the next id, each by octocat; `issues[<owner>/<repo>]` and
+// `labels[<owner>/<repo>]` as fake-github-issues.ts says. `seen` holds each request: its method, path, time, Authorization,
+// body and Content-Type.
 export async function fakeGithub(t: TestContext) {
 	const runs: Record<string, FakeRun[]> = {};
 	const jobs: Record<number, FakeJob[]> = {};
 	const pulls: Record<string, FakePull[]> = {};
+	const issues: Record<string, FakeIssue[]> = {};
+	const labels: Record<string, string[]> = {};
 	const next: Reply[] = [];
 	const state: { always?: Reply; post?: Reply; clock?: number | null; slow?: number } = {};
 	const seen: { readonly method: string; readonly path: string; readonly at: number; readonly auth: string; readonly body: string; readonly type: string }[] = [];
@@ -186,12 +191,12 @@ export async function fakeGithub(t: TestContext) {
 			if (reviewed.pull !== undefined) return paged(reviewed.pull.reviews.map((review) => shapedReview(reviewed.of, reviewed.pull!.number, review)));
 			const said = find(/^\/repos\/([^/]+\/[^/]+)\/issues\/(\d+)\/comments(?:\?|$)/);
 			if (said.pull !== undefined && request.method === "POST") {
-				const added = { id: Math.max(0, ...Object.values(pulls).flat().flatMap((each) => (each.comments ?? []).map((one) => one.id))) + 1, user: "octocat", body: asked.body ?? "" };
+				const added = { id: Math.max(0, ...[...Object.values(pulls), ...Object.values(issues)].flat().flatMap((each) => (each.comments ?? []).map((one) => one.id))) + 1, user: "octocat", body: asked.body ?? "" };
 				said.pull.comments = [...(said.pull.comments ?? []), added];
 				return { status: 201, body: shapedComment(said.of, said.pull.number, added, true) };
 			}
 			if (said.pull !== undefined) return paged((said.pull.comments ?? []).map((comment) => shapedComment(said.of, said.pull!.number, comment)));
-			return undefined;
+			return issueRoute(request.method ?? "", url, asked, issues, labels, pulls, paged);
 		};
 		const log = /^\/blob\/logs\/(\d+)$/.exec(path)?.[1];
 		if (log !== undefined) return void response.writeHead(200, { "content-type": "text/plain" }).end(Object.values(jobs).flat().find((each) => String(each.id) === log)?.log ?? "");
@@ -210,5 +215,5 @@ export async function fakeGithub(t: TestContext) {
 		http.close();
 	});
 	const apiUrl = `http://127.0.0.1:${(http.address() as AddressInfo).port}/`;
-	return { runs, jobs, pulls, next, state, seen, apiUrl, count: (path: string) => seen.filter((each) => each.path.startsWith(path)).length };
+	return { runs, jobs, pulls, issues, labels, next, state, seen, apiUrl, count: (path: string) => seen.filter((each) => each.path.startsWith(path)).length };
 }

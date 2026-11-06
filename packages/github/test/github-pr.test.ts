@@ -170,9 +170,9 @@ test("refused before any request: wrong usage (exit 2), a number that is none; p
 	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
 	api.pulls["acme/shop"] = [pull(12)];
 	const usage =
-		"usage: arthur github pr list [--all]|get <n>|create <branch> <file> [--base <branch>]|comment <n> <file>|close <n>|merge <n> | branch list|delete <branch> [--unmerged]|sweep [--dry-run] [--project <name>]";
+		"usage: arthur github pr list [--all]|get <n>|create <branch> <file> [--base <branch>]|comment <n> <file>|close <n>|merge <n> | issue list [--all]|get <n>|create <file>|comment <n> <file>|label <n> <label>|close <n> | branch list|delete <branch> [--unmerged]|sweep [--dry-run] [--project <name>]";
 	const writes = [["pr", "create", "a"], ["pr", "create", "a", "f", "--base"], ["pr", "create", "a", "f", "--base", "--all"], ["pr", "create", "a", "f", "--base", "x", "--base"], ["pr", "comment", "12"], ["pr", "close"]];
-	for (const args of [[], ["pr"], ["pr", "nope"], ["issue", "list"], ["pr", "get"], ["pr", "get", "1", "2"], ["pr", "list", "x"], ["pr", "get", "12", "--all"], ["pr", "list", "--force"], ["pr", "constructor", "x"], ["toString", "x"]])
+	for (const args of [[], ["pr"], ["pr", "nope"], ["issue", "nope"], ["pr", "get"], ["pr", "get", "1", "2"], ["pr", "list", "x"], ["pr", "get", "12", "--all"], ["pr", "list", "--force"], ["pr", "constructor", "x"], ["toString", "x"]])
 		assert.deepEqual(await run(args), { code: 2, out: "", err: usage }, args.join(" "));
 	for (const args of [...writes, ["pr", "list", "--base", "x"], ["pr", "list", "--all", "--all"], ["pr", "close", "12", "--base", "main"]]) assert.deepEqual(await run(args), { code: 2, out: "", err: usage }, args.join(" "));
 	for (const word of ["0", "012", "abc", "1.5", "１２"]) assert.deepEqual(await run(["pr", "get", word]), { code: 1, out: "", err: `${word} is not a pull request number such as 12; nothing was asked of GitHub` });

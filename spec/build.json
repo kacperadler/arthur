@@ -4199,9 +4199,9 @@
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-06T08:17:08.108Z",
+    "updated": "2026-11-06T20:58:45.992Z",
     "after": [
       "AR0528"
     ]
@@ -5185,9 +5185,9 @@
   {
     "id": "AR0644",
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T17:02:08.604Z"
+    "updated": "2026-11-06T21:00:32.146Z"
   },
   {
     "id": "AR0645",

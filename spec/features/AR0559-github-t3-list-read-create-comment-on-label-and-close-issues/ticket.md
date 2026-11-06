@@ -36,3 +36,5 @@ Out:
 ## Decisions
 
 - 2026-10-29: Source: the approved plan of AR0556 (AR-D327)
+- 2026-11-06: github line budget 1200 to 1288 for AR0559, by recommendation under AR-D500; the owner: "do not ask me about them; always go with the recommendation (AR-D500)" (AR-D511)
+- 2026-11-06: issue label refuses a pull request number, as built; by recommendation under AR-D500; the owner: "do not ask me about them; always go with the recommendation (AR-D500)" (AR-D512)

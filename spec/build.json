@@ -5081,9 +5081,9 @@
   {
     "id": "AR0631",
     "title": "Two tests fail now and then under the full suite: the discord 50 ms heartbeat, and the machine copy of only the log new bytes",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0631-two-tests-fail-now-and-then-under-the-full-suite-the-discord-50-ms-heartbeat-and/ticket.md",
-    "updated": "2026-11-05T08:29:41.056Z",
+    "updated": "2026-11-06T05:07:59.407Z",
     "after": [
       "AR0630"
     ]

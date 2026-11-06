@@ -16,6 +16,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0631 Two tests fail now and then under the full suite: the discord 50 ms heartbeat, and the machine copy of only the log new bytes (90fae4df)
 - AR0634 The roadmap page shows listen, video and Discord as not built, and the README status is from October (fff4f07d)
 
 ## 2026-11-05

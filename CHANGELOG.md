@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0556 Plan: the github plugin manages pull requests, issues and branches
 - AR0558 GitHub T2: create, comment on and close pull requests (f579072f)
 - AR0559 GitHub T3: list, read, create, comment on, label and close issues (999ed4be)
 
@@ -16,9 +17,11 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0561 Plan: agents do the right thing by default, every repeated correction moved up the pyramid
 - AR0631 Two tests fail now and then under the full suite: the discord 50 ms heartbeat, and the machine copy of only the log new bytes (90fae4df)
 - AR0634 The roadmap page shows listen, video and Discord as not built, and the README status is from October (fff4f07d)
 - AR0639 Roadmap entries 104 to 107 and the vision lines for releases, installing and updating, from the AR0128 plan (e86e09fc)
+- AR0648 Stats S1: roadmap entries 108 to 112 and the vision's stats row, from the AR0480 plan (34363352)
 
 ## 2026-11-05
 

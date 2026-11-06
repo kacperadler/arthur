@@ -45,3 +45,4 @@ Out:
 
 - 2026-10-27: The owner asked for a stats plugin that measures every job (coordinator, worker, reviewer and the rest) for tokens, costs and tasks; the coordinator prepares a plan ticket, left at planning for his approval.
 - 2026-10-27: AR0480 approved: a planner writes plan.md after the current day run; the owner: "AR-D154 1" (AR-D154)
+- 2026-11-06: Plan approved by the owner: plan.md at 658bb931, with every recommendation (window estimate marked ≈, coordinator counted from install on, roadmap 108 to 112 in a Stats section after Releases, stats first budget 200); the owner: "AR-D523 - 1" (AR-D523)

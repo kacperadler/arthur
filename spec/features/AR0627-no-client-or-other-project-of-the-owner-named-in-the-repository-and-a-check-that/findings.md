@@ -18,7 +18,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Kind: security
 - Found by: 2026-11-04-worker-331520f3 (worker), 2026-11-04
 - Where: `spec/decisions.jsonl:899`
-- What: the check takes its names from `projects/` only. A project of the owner that is not an Arthur project is not seen: AR-D446 to AR-D448 (`spec/decisions.jsonl:899-904`) name a course project of the owner, its private repository and its home folder.
+- What: the check takes its names from `projects/` only. A project of the owner that is not an Arthur project is not seen: AR-D446 to AR-D448 (`spec/decisions.jsonl:899-904`) name an outside project of the owner, its private repository and its home folder.
 - Suggestion: reword those decisions with a made-up name; and, if the owner wants such projects checked, a git-ignored file of extra names the check reads beside `projects/`.
 - Status: deferred (client summary)
 

@@ -20,7 +20,9 @@ Video (102, AR0551) follows listen (81): it needs only the parts of 49, `arthur 
 
 Releases (104 to 107) close the first version, after Docker (70 to 72), on the owner's approval of the AR0128 plan on 2026-11-06 (AR-D514): one version for the core and every plugin, released as a Git tag and a GitHub release, not on npm, since Node does not strip types under `node_modules` and the npm name `arthur` is taken. Each entry names the section of `spec/features/AR0128-plan-releases-installing-and-updating-arthur/plan.md` that holds its detail. They took the numbers after 103.
 
-Dokploy (108, AR0588 and AR0603) lets the coordinator read and deploy to the owner's Dokploy servers, so no API key passes through a chat. It needs only the project files (103), `arthur doctor` (80) and the option tables (93), all merged; its approved plan (AR0588) built it in two tickets, the reads and then upload and deploy. It took the next free number after the releases.
+Stats (108 to 112) follow the releases, on the owner's approval of the AR0480 plan on 2026-11-06 (AR-D523): a stats plugin that keeps the tokens, cost and time of every job and of the coordinator, and shows them per role, ticket, project, model and day. It only reads, and needs no channel or outside service. Each entry names the section of `spec/features/AR0480-plan-a-stats-plugin-token-use-cost-and-time-of-every-job-and-of-the-coordinator/plan.md` that holds its detail. They took the numbers after 107, since 99 to 101 are held for the activity log (AR0527).
+
+Dokploy (113, AR0588 and AR0603) lets the coordinator read and deploy to the owner's Dokploy servers, so no API key passes through a chat. It needs only the project files (103), `arthur doctor` (80) and the option tables (93), all merged; its approved plan (AR0588) built it in two tickets, the reads and then upload and deploy. It took the next free number after the stats entries.
 
 The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.md`, which wins over this summary): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `registerMachine`, `run`, `list`, `running`, `result`: a job's final message), `board` (its `projects()` is the project list), `clock`, `code` (the package folders of the code the load runs: the core's and each enabled plugin's), and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
@@ -725,7 +727,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 
 ## Dokploy
 
-### 108. Dokploy: reads, upload and deploy, for the coordinator
+### 113. Dokploy: reads, upload and deploy, for the coordinator
 
 - Package: dokploy; `packages/dokploy/docs/dokploy.md` and `docs/commands/dokploy.md`; the coordinator's role (23).
 - Tickets: AR0588, AR0603
@@ -754,6 +756,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 - Depends on: 54.
 - Size: half a day.
 - Covers: M2.
+- Moved: entry 110 moves this report, its test and its doc page into the stats plugin, unchanged, and 111 puts it under `arthur stats tickets`; manage keeps `mergedSince`, which the audit uses.
 
 ### 62. The audit
 
@@ -965,6 +968,53 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 - Size: half a day.
 - Covers: none (new: the owner approved the AR0128 plan on 2026-11-06, AR-D514).
 
+## Stats
+
+### 108. Usage in the job record
+
+- Package: core (`agent-stream.ts`, `run-record.ts`, `wrapper.ts`, `job-records.ts`, `machine-sync.ts`); core/testing (the fake agent).
+- Delivers (AR0480 plan, Approach, sections 1 and 3): the job record keeps a `usage` file beside `cost`: per `<provider>/<model>`, the messages, input, output, cacheRead, cacheWrite and cost of the assistant messages omp's `--mode json` reports, cumulative over the job's runs and written after each message, as `cost` is. `host.jobs.list()` gives it as `JobRecord.usage`. A job on another machine writes it there, and the sweep copies it here with the other run files (`usage` in `machine-sync.ts`'s `RUN`). The fake agent's message step takes tokens. A change to the frozen host API (51), recorded as a decision in its ticket and in `docs/plugin-api.md`.
+- Done means: edge cases: a continued job's `usage` adds to its first run's; a missing or broken `usage` file reads as `{}`; a model with tokens and a cost of 0 (a local model) keeps its tokens; a job on another machine has its `usage` copied.
+- Depends on: 11, 21, 51.
+- Size: half a day.
+- Covers: none (new: the owner approved the AR0480 plan on 2026-11-06, AR-D523).
+
+### 109. Stats: the record
+
+- Package: stats, created with `arthur plugin new` (66); its first line budget is the owner's.
+- Delivers (AR0480 plan, Approach, sections 1 and 2): `<home>/stats/runs.jsonl`, one line per `job-ended`, `{ seq, time, job, kind, project, tickets, machine, state, reason, seconds, cost, usage, missing?, backfill? }`, each holding what that run added: the record's totals minus the job's earlier lines. Only `arthur run` writes it, after its `start`; events before `start` wait in memory, and a line whose `seq` is not above the last one written is skipped. A record already gone gives a `missing: true` line, counted as unknown. At the first `start` with no `runs.jsonl`, one `backfill: true` line for each ended record `host.jobs.list()` still holds. An OMP extension, given to the coordinator through `collect("coordinator.extension")`, appends to `<home>/stats/sessions/<session>.jsonl` one line per real end of a turn (`agent_end` without `willContinue`), `{ time, session, seconds, until, sub?, cost, usage }`, counting only the assistant messages after the last line's `until`; a session without a UI is counted under its session with `sub: true`. Each line is one append ending in `\n`; a last line cut by a crash gets its line break first; a reader skips a line it cannot parse, and counts it. Kept forever, outside Git, untouched by `arthur prune`; numbers, ids, kinds and model names, never text.
+- Done means: tested against the fake host and the fake agent. Edge cases: a `job-ended` before `start` is written at `start`; a process that never starts (`arthur stop`) writes nothing; a replayed `seq` is skipped; a second end of the same run (blocked, then stopped) adds 0; a record that is gone gives a `missing` line; the backfill happens once; the extension writes one line per turn and counts nothing twice across a resume and a restart.
+- Depends on: 108, 23.
+- Size: a day.
+- Covers: none (new: the owner approved the AR0480 plan on 2026-11-06, AR-D523).
+
+### 110. The merged-ticket report moves to stats
+
+- Package: stats, manage.
+- Delivers (AR0480 plan, Approach, section 3): entry 61's report, its test and its doc page move from manage into stats as they are: `arthur stats` prints exactly what it prints today. Stats provides `stats.tickets`, through which manage's audit and retro prompts get their `### Stats` section; manage keeps `mergedSince` for the audit's deferred findings, and its line budget drops by what moves.
+- Done means: the moved test passes unchanged. Edge cases: without the stats plugin, the audit's and the retro's section reads `none: the stats plugin is not loaded`.
+- Depends on: 109, 61, 62, 63.
+- Size: half a day.
+- Covers: M2 (with 61).
+
+### 111. `arthur stats`, `/stats`, the morning report's Spend
+
+- Package: stats; orchestration (the morning report's procedure file and its eval).
+- Delivers (AR0480 plan, Approach, section 4): bare `arthur stats [--since today|yesterday|<n>d|YYYY-MM-DD] [--project <name>] [--role <role>] [--ticket <id>] [--model <provider/model>]`, by default the last 7 days of every project, prints: the total (cost at list price; tokens in, out, cache read, cache write; time; runs and turns); by role, the most expensive first, with cost, share, runs and how many failed or were stopped; by project; by model, the tokens on free models on their own line; by day; the 5 most expensive tickets, each split by role, with its board status, a run that names several tickets giving each an equal share; whether it pays (spend on tickets merged in the span and per merged ticket, on dropped tickets, on runs that failed or were stopped, on work with no ticket); the unknown and unparsed lines. A job's role is its kind; `coordinator` and `agent:<project>` are the sessions. `--ticket` lists that ticket's runs, one per line. Inside a job it says the job's home is hidden from it and exits 1. 110's report moves to `arthur stats tickets`, still allowed inside a job. `/stats [today|yesterday|7d|30d|YYYY-MM-DD] [<ticket id>]` answers the first two sections and the top 3 tickets without the model. The morning report (65) gains a sixth section, Spend: the first two lines of `arthur stats --since 1d`, left out when the reply is `unknown command stats`. Every view says "at list price".
+- Done means: edge cases: each filter; each limit of `--since`; an empty folder; an unparsed line; the refusal inside a job; `/stats`; the morning report eval, with a stub for `^arthur stats` and the Spend line expected in the reply.
+- Depends on: 110, 65.
+- Size: a day.
+- Covers: none (new: the owner approved the AR0480 plan on 2026-11-06, AR-D523).
+
+### 112. Usage windows beside the costs
+
+- Package: stats, models.
+- Delivers (AR0480 plan, Approach, section 5, and Not available directly): models keeps each Claude usage window's `durationMs` and provides `models.windows`; `arthur stats windows` prints one line per window, its share used and what Arthur spent in its span at list price, by role, with the estimate `≈ used × the role's share`, marked as an upper bound, since the owner's own use of the account counts in the window too.
+- Done means: edge cases: a window with a span; a window without `resetsAt`; no usage report.
+- Depends on: 111, 82.
+- Size: half a day.
+- Covers: none (new: the owner approved the AR0480 plan on 2026-11-06, AR-D523).
+
 ## Later
 
 ### 85. Project agents: their processes and `arthur attach <project>`
@@ -972,6 +1022,7 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 - Package: orchestration (its piece, `orchestration.project({ chat })`); telegram (its `doctor` requirement for topics).
 - Delivers: the project piece `orchestration.project({ chat: { plugin, instance?, place } })` in a project's file (103), checked by orchestration's `piece`; its presence turns that project's agent on, and a project without it changes nothing. Each project with a `chat` gets one interactive `omp`, supervised like the coordinator (23), in its own tmux session on the coordinator's socket, named the coordinator's session, `-`, and the project's name; started with `--cwd <project folder>` and `--session-dir <home>/orchestration/<project>/sessions`, so each agent keeps its conversations in its own folder and `--continue` never resumes the coordinator's conversation or a human's `omp` run in the same folder. Its role file is `roles/project-agent.md`: it works like the coordinator, directing that project's jobs through `arthur spawn` and `arthur ticket`, and edits no code itself; `roles.project` gives its model and thinking level (26). Each agent has its own pid file and stop mark, so one crashing in a loop never touches another; the sessions start one after another, so two `omp` never refresh the shared login at once. `arthur attach [<project>]` and `arthur coordinator stop [<project>]`; the doc page tells the owner that each agent takes about 0.7 GB outside the jobs' slice, so `jobs.memory` goes down for each agent added. Telegram's requirement for `arthur doctor` (80), whenever some project's `chat` names it: the bot's `getMe.has_topics_enabled` is true.
 - MCP (AR0234): each project agent starts with the servers of `mcp.roles.project`, else `mcp.all` (`mcpServers(options, env, "project")`, orchestration's mcp.ts), through `--plugin-dir` to a folder of its own, as the coordinator does; tested against the fake agent.
+- Stats (AR0480 plan, Approach, section 1): orchestration sets, for each session's `omp`, a variable that names its session (`agent:<project>`, `coordinator` for the coordinator), from which the stats extension (109) names its turn lines; until this entry, every session's lines are filed under `coordinator`.
 - Done means: tested with the fake agent and a tmux socket in the test's folder. Refused at load, naming the projects: a `chat` whose plugin provides no `channel.send`; two projects with one place on one channel; a `chat` of the wrong shape. Edge cases: no project with a `chat` starts only the coordinator, as before; one agent crashing in a loop leaves the coordinator and the other agents running; `attach` of a project without an agent names the projects that have one; topics turned off for the bot (doctor names the setting).
 - Depends on: 23, 41, 49.
 - Size: a day.
@@ -1063,8 +1114,9 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 - Package: server (its web page; the same plugin as 75 and 76).
 - Delivers: the board, the jobs with their states, the events and the coordinator's chat in a browser, served by `server` (75, 76) on the Tailscale network only; Tailscale identifies who connects, so the panel keeps no passwords.
 - Done means: refused at load: a bind address that is neither loopback nor Tailscale's `100.64.0.0/10` or `fd7a:115c:a1e0::/48`. Edge cases: a request from outside the Tailscale network is refused with no detail; the panel's job states are the ones `arthur jobs` prints; its events are the ones 75 streams; a command run from the panel gives the reply `arthur <cmd>` gives.
+- Spend (AR0480 plan, Approach, section 4): a Spend screen with the filters of `arthur stats` (111), by day and by role, read through the server's commands (76); its plan adds `--json` to `arthur stats`.
 - Before any code (the owner, 2026-10-16): the panel is planned with the owner first: the frontend libraries it uses, if any, and why each (the core and the other plugins keep no runtime dependencies), how it is built and served, and the screens; the owner approves the plan.
-- Depends on: 76.
+- Depends on: 76; 111 for the Spend screen.
 - Size: several days.
 - Covers: none (new: the owner asked for it on 2026-10-16).
 
@@ -1173,7 +1225,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | GH2 | Push the reviewed branch and main | 58 |
 | GH3 | The repository's own CI workflow | Out of scope as a capability: Arthur's `.github/workflows/ci.yml` exists; the github plugin watches it through `ci.workflow` (59) |
 | M1 | Health | 60 |
-| M2 | Stats | 61 |
+| M2 | Stats | 61; 110 |
 | M3 | The nightly audit | 62 |
 | M4 | The weekly retro and when it is due | 63 |
 | M5 | Clean old temporary folders | 64 |
@@ -1262,7 +1314,7 @@ Session options: `compactAt` 35; `compactOn` and `compactAtPercent` 35 (AR0614);
 | ci | `arthur ci` | 58 |
 | schedule | `arthur schedule` | 40 |
 | roles | `arthur roles` | 10 |
-| stats | `arthur stats` | 61 |
+| stats | `arthur stats`, `arthur stats tickets` | 61; 110, 111 |
 | retro-due | `arthur retro-due` | 63 |
 | health | `arthur health` | 60 |
 | send | `arthur send` | 49 |

@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: the approved plan of AR0527 (AR-D203)
+- 2026-11-06: Raise the AR0528 budget to $16 so it finishes; the owner: "AR-D528 - 1" (AR-D528)

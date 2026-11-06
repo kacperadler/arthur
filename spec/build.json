@@ -4832,9 +4832,9 @@
   {
     "id": "AR0603",
     "title": "Dokploy T2: upload a file or folder and start a deploy, on the owner's word",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0603-dokploy-t2-upload-a-file-or-folder-and-start-a-deploy-on-the-owner-s-word/ticket.md",
-    "updated": "2026-11-06T11:33:29.149Z"
+    "updated": "2026-11-06T11:46:20.862Z"
   },
   {
     "id": "AR0604",
@@ -5285,5 +5285,12 @@
     "after": [
       "AR0603"
     ]
+  },
+  {
+    "id": "AR0655",
+    "title": "Plan: Dokploy T4, a whole project from Arthur: an app built from its Git repository, and a database it connects to",
+    "status": "planning",
+    "path": "spec/features/AR0655-plan-dokploy-t4-a-whole-project-from-arthur-an-app-built-from-its-git-repository/ticket.md",
+    "updated": "2026-11-06T11:45:51.889Z"
   }
 ]

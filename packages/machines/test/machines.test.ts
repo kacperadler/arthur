@@ -83,7 +83,8 @@ const BUILD = { name: "build", ssh: "build-box", home: "/home/arthur/.arthur", l
 
 type Requirement = { readonly name: string; check(): Promise<string>; readonly costs: string; readonly fix: string; readonly critical: boolean };
 const requirements = (fake: FakeHost) => fake.collect<Requirement[]>("doctor").flat();
-const events = (fake: FakeHost) => fake.emitted.map((event) => [event.name, event.data]);
+// The machines' own events; a `/machines` the test routes is logged as a `phone-command` besides.
+const events = (fake: FakeHost) => fake.emitted.filter((event) => event.name !== "phone-command").map((event) => [event.name, event.data]);
 // The one command of a machine's check over ssh, as the core quotes it: its script and its `node -e` script, then the number
 // of paths its df reads, those paths and its tools labels.
 const CHECK = "'sh' '-c' '[^']+' 'sh' '[^']+'";
@@ -134,8 +135,8 @@ test("a check outside arthur run (the command, the doctor) tells nothing; arthur
 	assert.deepEqual(events(fake), []);
 	await plugin.start?.();
 	try {
-		await until("mac told", () => fake.emitted.length === 1);
-		assert.equal(fake.emitted[0]?.name, "machine-online");
+		await until("mac told", () => events(fake).length === 1);
+		assert.equal(events(fake)[0]?.[0], "machine-online");
 	} finally {
 		await plugin.stop?.();
 	}

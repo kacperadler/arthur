@@ -1,6 +1,8 @@
 import { closeSync, fstatSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { type Stamp, stamper } from "./actor.ts";
 import { append, type Event, LOG, logEnd, type Position, readEvents, readNew, withLog } from "./event-log.ts";
+import { insideJob } from "./inside-job.ts";
 
 // The event stream: appended to the log (event-log.ts), then delivered in this process; `arthur run` follows it (run.md).
 
@@ -30,8 +32,9 @@ export type Bus = {
 
 const DELIVERED = "events.delivered";
 
-// `hide` names each secret value in an event's text before it is logged (secret-names.ts), so every subscriber and reader gets the name.
-export function eventBus(home: string, hide: (text: string) => string = (text) => text): Bus {
+// `hide` names each secret value in an event's text before it is logged (secret-names.ts), so every subscriber and reader gets the
+// name; `stamp` says who acted (actor.ts), by default as a process with no plugin's `actor` sees it.
+export function eventBus(home: string, hide: (text: string) => string = (text) => text, stamp: Stamp = stamper(home, insideJob(home), () => [])): Bus {
 	const kept = join(home, DELIVERED);
 	const handlers = new Map<string, readonly { readonly plugin: string; readonly fn: Handler }[]>();
 	const queue: Event[] = [];
@@ -76,7 +79,7 @@ export function eventBus(home: string, hide: (text: string) => string = (text) =
 				const at = read;
 				const { size } = fstatSync(fd);
 				if (at !== undefined && size >= at.offset) catchUp(fd, at, size);
-				const event = append(fd, plugin, name, data, hide);
+				const event = append(fd, plugin, stamp(plugin, name, data), name, data, hide);
 				if (at === undefined) early.add(event.seq);
 				else read = { offset: fstatSync(fd).size, next: event.seq + 1 };
 				return event;

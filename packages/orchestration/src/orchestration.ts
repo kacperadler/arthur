@@ -3,6 +3,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Host, Plugin } from "@arthur/core/plugin";
+import { actor } from "./actor.ts";
 import { autopilot } from "./autopilot.ts";
 import { blockedNotice } from "./blocked-notice.ts";
 import { boardCommands } from "./board-commands.ts";
@@ -26,7 +27,7 @@ import { spawnRules } from "./spawn-rules.ts";
 // blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); autopilot (entry 29,
 // autopilot.ts); the silent mode (entry 47, silent.ts); tmux as its `arthur doctor` requirement (entry 80); the morning
 // report (entry 65): with `morningReport.at`, an action schedule sends the coordinator with roles/coordinator/morning-report.md;
-// and the decision log (entry 96, decision-log.ts), `arthur decision` and `arthur decisions`, with what only the owner's decision lets through (decision-use.ts); the merge's check of a worker's branch (paper-check.ts).
+// and the decision log (entry 96, decision-log.ts), `arthur decision` and `arthur decisions`, with what only the owner's decision lets through (decision-use.ts); the merge's check of a worker's branch (paper-check.ts); `actor`, the coordinator as who acts in its session (entry 99, actor.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -87,6 +88,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			decisionHooks(host);
 			decisionUse(host);
 			paperCheck(host);
+			host.provide("actor", actor(folder));
 			const at = (host.options as OrchestrationOptions).morningReport?.at;
 			const report = { id: "report", at, option: "morningReport.at", action: { message: "Write the morning report.", procedure: fileURLToPath(new URL("../roles/coordinator/morning-report.md", import.meta.url)) } };
 			if (at !== undefined && host.collect("schedule.register", host.name, [report], host.package).length === 0)

@@ -2,7 +2,6 @@ import { appendFileSync, existsSync, linkSync, readFileSync, rmSync, writeFileSy
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
-import type { AgentRun } from "./testing.ts";
 
 // The fake agent's player (spec/roadmap.md, entries 11, 14, 23, 24 and 35), started by the `omp` script `fakeAgent` writes, as `node fake-agent.ts
 // <run.json> <omp's arguments>`: it loads each `-e` extension as omp does (one may read the job's record) and calls its `session_start` handlers, only
@@ -11,6 +10,25 @@ import type { AgentRun } from "./testing.ts";
 // after it, noting each message they send (`sendUserMessage`) in `messages.jsonl` beside the run with the step it came in, the system prompt of each
 // turn in `system.jsonl` and each `agent_end` in `ends.jsonl`, and exits with the run's code. A handler's `ctx` has a UI (`hasUI`) unless omp runs
 // with `--mode`; `ui` calls are noted in `ui.jsonl`; it is idle outside a turn (`prompt` to `end`).
+
+// A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends` messages throw, the next `dropSends` sent while idle
+// are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`; with `clock`, a file, `Date.now()` in the agent and its extensions answers the
+// time in ms it holds while it exists, so a test moves time. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag.
+// `message`: an assistant message that ends a turn, with its `cost` in USD, its `usage` in tokens and its `model` (default `fake`, provider `anthropic`); `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` a
+// failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while idle, busy `compactMs` by `Date.now()` first (omp's compaction before it), after its
+// `before_agent_start` handlers; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a row at most) or, with `continues`, says it goes on and starts none
+// (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
+export type AgentStep =
+	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
+	| { readonly message: string; readonly cost?: number; readonly usage?: { readonly [key in "input" | "output" | "cacheRead" | "cacheWrite"]?: number }; readonly model?: string; readonly stopReason?: "stop" | "toolUse" | "error" | "aborted"; readonly error?: string }
+	| { readonly prompt: true; readonly compactMs?: number }
+	| { readonly end: true; readonly continues?: true }
+	| { readonly stdout: string }
+	| { readonly stderr: string }
+	| { readonly waitFor: string }
+	| { readonly signal: NodeJS.Signals };
+
+export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number; readonly compactError?: string; readonly clock?: string };
 
 const [file = "", ...args] = process.argv.slice(2);
 const run = JSON.parse(readFileSync(file, "utf8")) as AgentRun;
@@ -104,14 +122,14 @@ for (const [index, step] of run.steps.entries()) {
 		await ask("tool_result", { toolCallId, toolName: step.tool, input, ...result, isError });
 		await event({ type: "tool_execution_end", toolCallId, toolName: step.tool, result, isError });
 	} else if ("message" in step) {
-		const cost = step.cost ?? 0;
-		const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: cost, cacheRead: 0, cacheWrite: 0, total: cost } };
+		const [cost, { input = 0, output = 0, cacheRead = 0, cacheWrite = 0 } = {}] = [step.cost ?? 0, step.usage];
+		const usage = { input, output, cacheRead, cacheWrite, totalTokens: input + output + cacheRead + cacheWrite, cost: { input: 0, output: cost, cacheRead: 0, cacheWrite: 0, total: cost } };
 		const message = {
 			role: "assistant",
 			content: [{ type: "text", text: step.message }],
 			api: "anthropic-messages",
 			provider: "anthropic",
-			model: "fake",
+			model: step.model ?? "fake",
 			usage,
 			stopReason: step.stopReason ?? "stop",
 			timestamp: Date.now(),

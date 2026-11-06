@@ -24,7 +24,7 @@ export type Copy = {
 };
 
 // The files a copy brings besides `log`: the run's there, the wrapper's and those `remote-job continue` writes (as `continueJob` here); never the spawn's.
-const RUN = ["pid", "active", "cost", "tool-calls", "activity", "result", "commits", "budget", "continue", ...Object.keys(capFields({}))];
+const RUN = ["pid", "active", "cost", "usage", "tool-calls", "activity", "result", "commits", "budget", "continue", ...Object.keys(capFields({}))];
 const OFFLINE = "failed: machine offline";
 // The copy's limits: past either, the machine counts as not answering. `records` sends 256 KiB of log per job and 512 KiB per answer at most.
 const [COPY_SECONDS, COPY_CHARS] = [20, 64 * 1024 * 1024];

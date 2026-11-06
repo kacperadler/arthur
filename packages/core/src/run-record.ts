@@ -1,9 +1,25 @@
-import type { AgentEvent } from "./agent-stream.ts";
+import { type AgentEvent, count, type Spent } from "./agent-stream.ts";
 
-// What the agent's events make of the job record while the wrapper runs it (spec/roadmap.md, entry 11): `log`, `tool-calls`,
-// `activity` and `cost` kept current through `save`; `end` writes each with its final value and `result`.
+// What the agent's events make of the job record while the wrapper runs it (spec/roadmap.md, entries 11 and 108): `log`, `tool-calls`,
+// `activity`, `cost` and `usage` kept current through `save`; `end` writes `cost`, `tool-calls` and `activity` with their final value, and `result`.
 
 type Save = (name: string, text: string, append?: boolean) => void;
+// Per `<provider>/<model>`: its messages, its tokens and its cost in USD.
+export type Usage = { readonly [model: string]: Spent & { readonly messages: number } };
+const FIELDS = ["messages", "input", "output", "cacheRead", "cacheWrite", "cost"] as const;
+
+// The record's `usage` file, `{}` when it is missing or not a JSON object; a field that is no number counts 0.
+export function usageOf(text: string | undefined): Usage {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(text ?? "");
+	} catch {
+		return {};
+	}
+	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+	const models = Object.entries(parsed as Record<string, Record<string, unknown> | null>);
+	return Object.fromEntries(models.map(([model, each]) => [model, Object.fromEntries(FIELDS.map((key) => [key, count(each?.[key])]))])) as Usage;
+}
 
 export type RunRecord = {
 	apply(events: readonly AgentEvent[]): void;
@@ -18,8 +34,9 @@ export type RunRecord = {
 	end(): void;
 };
 
-// `cost` is what the record held at the start; `message` hears the cost after each message.
-export function runRecord(save: Save, cost: number, message: (cost: number) => void): RunRecord {
+// `cost` and `used` are what the record held at the start; `message` hears the cost after each message.
+export function runRecord(save: Save, cost: number, used: Usage, message: (cost: number) => void): RunRecord {
+	const usage: Record<string, Usage[string]> = { ...used };
 	let calls = 0;
 	let activity = "";
 	let result = "";
@@ -39,7 +56,10 @@ export function runRecord(save: Save, cost: number, message: (cost: number) => v
 					if (event.text !== "") result = event.text;
 					stopped = event.stopReason === "error" || event.stopReason === "aborted" ? [event.stopReason, event.error].filter(Boolean).join(": ") : "";
 					cost += event.cost;
+					const was = usage[event.model];
+					usage[event.model] = Object.fromEntries(FIELDS.map((key) => [key, (was?.[key] ?? 0) + (key === "messages" ? 1 : event[key])])) as Usage[string];
 					save("cost", cost.toFixed(4));
+					save("usage", JSON.stringify(usage));
 					message(cost);
 				}
 			}

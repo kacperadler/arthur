@@ -4832,9 +4832,9 @@
   {
     "id": "AR0603",
     "title": "Dokploy T2: upload a file or folder and start a deploy, on the owner's word",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0603-dokploy-t2-upload-a-file-or-folder-and-start-a-deploy-on-the-owner-s-word/ticket.md",
-    "updated": "2026-11-06T09:45:29.473Z"
+    "updated": "2026-11-06T11:14:07.126Z"
   },
   {
     "id": "AR0604",

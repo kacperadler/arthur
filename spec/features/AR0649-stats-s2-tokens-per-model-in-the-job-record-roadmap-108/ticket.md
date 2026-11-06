@@ -34,4 +34,5 @@ Out:
 - The activity log (AR0527), budgets, `arthur usage`.
 
 ## Decisions
+- 2026-11-06: The plugin API change JobRecord.usage is accepted, as the AR0480 plan the owner approved names it (AR-D523); the owner: "AR-D523 - 1" (AR-D529)
 

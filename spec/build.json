@@ -5143,5 +5143,43 @@
     "status": "merged",
     "path": "spec/features/AR0639-roadmap-entries-104-to-107-and-the-vision-lines-for-releases-installing-and/ticket.md",
     "updated": "2026-11-06T08:04:28.917Z"
+  },
+  {
+    "id": "AR0640",
+    "title": "Roadmap 104: one release version, arthur version with the hash, and the plugin check",
+    "status": "planned",
+    "path": "spec/features/AR0640-roadmap-104-one-release-version-arthur-version-with-the-hash-and-the-plugin/ticket.md",
+    "updated": "2026-11-06T08:18:04.405Z"
+  },
+  {
+    "id": "AR0641",
+    "title": "Roadmap 105: the release workflow and the changelog per release",
+    "status": "planned",
+    "path": "spec/features/AR0641-roadmap-105-the-release-workflow-and-the-changelog-per-release/ticket.md",
+    "updated": "2026-11-06T08:18:04.993Z",
+    "after": [
+      "AR0640"
+    ]
+  },
+  {
+    "id": "AR0642",
+    "title": "Roadmap 106: installing a release, arthur update and arthur machines update",
+    "status": "planned",
+    "path": "spec/features/AR0642-roadmap-106-installing-a-release-arthur-update-and-arthur-machines-update/ticket.md",
+    "updated": "2026-11-06T08:18:05.584Z",
+    "after": [
+      "AR0640",
+      "AR0641"
+    ]
+  },
+  {
+    "id": "AR0643",
+    "title": "Roadmap 107: a notice when a new release exists",
+    "status": "planned",
+    "path": "spec/features/AR0643-roadmap-107-a-notice-when-a-new-release-exists/ticket.md",
+    "updated": "2026-11-06T08:18:06.181Z",
+    "after": [
+      "AR0642"
+    ]
   }
 ]

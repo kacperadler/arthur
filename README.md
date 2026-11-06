@@ -47,12 +47,12 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).
 - **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads, creates, comments on and closes pull requests and issues, labels issues, and lists and deletes branches on origin ([github](packages/github/docs/github.md)).
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
-- **dokploy**, partly built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, each server's API key in a variable, for the coordinator only; upload and deploy planned ([dokploy](packages/dokploy/docs/dokploy.md)).
+- **dokploy**, built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, and uploads a file or folder to an app or starts its deploy on your word, each server's API key in a variable, for the coordinator only ([dokploy](packages/dokploy/docs/dokploy.md)).
 - **manage**, built: health, stats, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
-- Planned: project agents, dokploy's upload and deploy, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- Planned: project agents, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 
@@ -68,7 +68,7 @@ flowchart TD
     coord[coordinator<br/>orchestration, session, schedule]
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker planned]
-    deliv[delivery and trackers<br/>delivery, github, youtrack; dokploy reads, its deploys planned]
+    deliv[delivery and trackers<br/>delivery, github, youtrack, dokploy]
     self[Arthur itself<br/>manage, develop]
   end
   later[later plugins<br/>project agents, signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
@@ -79,8 +79,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class coord,proj,self,media,chan built;
-  class core,res,deliv partial;
+  class coord,proj,self,media,chan,deliv built;
+  class core,res partial;
   class later planned;
   class owner,repos outside;
 ```

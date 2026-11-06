@@ -20,6 +20,8 @@ Video (102, AR0551) follows listen (81): it needs only the parts of 49, `arthur 
 
 Releases (104 to 107) close the first version, after Docker (70 to 72), on the owner's approval of the AR0128 plan on 2026-11-06 (AR-D514): one version for the core and every plugin, released as a Git tag and a GitHub release, not on npm, since Node does not strip types under `node_modules` and the npm name `arthur` is taken. Each entry names the section of `spec/features/AR0128-plan-releases-installing-and-updating-arthur/plan.md` that holds its detail. They took the numbers after 103.
 
+Dokploy (108, AR0588 and AR0603) lets the coordinator read and deploy to the owner's Dokploy servers, so no API key passes through a chat. It needs only the project files (103), `arthur doctor` (80) and the option tables (93), all merged; its approved plan (AR0588) built it in two tickets, the reads and then upload and deploy. It took the next free number after the releases.
+
 The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.md`, which wins over this summary): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `registerMachine`, `run`, `list`, `running`, `result`: a job's final message), `board` (its `projects()` is the project list), `clock`, `code` (the package folders of the code the load runs: the core's and each enabled plugin's), and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
 ## Core
@@ -720,6 +722,18 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 - Depends on: 54, 57.
 - Size: half a day.
 - Covers: D3 (`--auto`), GH3 (Arthur's own workflow is its `ci.workflow`).
+
+## Dokploy
+
+### 108. Dokploy: reads, upload and deploy, for the coordinator
+
+- Package: dokploy; `packages/dokploy/docs/dokploy.md` and `docs/commands/dokploy.md`; the coordinator's role (23).
+- Tickets: AR0588, AR0603
+- Delivers (the AR0588 plan): `instances`, named and unnamed, each `{ name?, url, tokenEnv }`, its `url` https or http on a private or Tailscale address only, and a project's piece `dokploy.project({ instance?, app })`. `arthur dokploy apps|app|status` reads each server's projects, applications and deployments; `arthur dokploy upload [<app>] <file or folder> [--replace-source]` zips a file or folder (regular files only, no zip64) or takes a ready `.zip`, reads the app, and sends the zip to `application.dropDeployment` with the app's `dropBuildPath`; `arthur dokploy deploy [<app>]` calls `application.deploy`. Every call sends the key as `x-api-key` to the configured url only, follows no redirect and has a timeout; the command runs for the coordinator only, never in a job, and the role writes only on the owner's word.
+- Done means: refused before any request: an unknown or ambiguous instance, an app that is no id, a project without its piece; for `upload`, a missing or unreadable path, a symlink or special file (named by its path, never followed), an empty folder, more than 65535 files or a zip of more than 4 GiB. Refused after the read: an upload that would switch an app with deployments from another source, unless `--replace-source`. Each Dokploy error is one line naming the instance, the token never in it. Tested against a fake Dokploy in the shape its documentation and its source at v0.30.10 show, with the zip read back.
+- Depends on: 103, 80, 93.
+- Size: two days.
+- Covers: none (new: the owner's Dokploy servers, AR0588).
 
 ## Manage
 

@@ -289,8 +289,9 @@ export default defineConfig({
 
 		// One entry per Dokploy server of the owner, its address literal and its API key in a variable: the unnamed one's in
 		// ARTHUR_DOKPLOY_TOKEN, `client`'s in ARTHUR_DOKPLOY_CLIENT_TOKEN. `url` is https, or http on loopback, a private or a
-		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments, the
-		// coordinator only; a project's app is its `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
+		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments, and
+		// `upload|deploy` sends an app a file or folder or starts its deploy on the owner's word, the coordinator only; a
+		// project's app is its `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
 		dokploy({
 			instances: [
 				{ url: "https://dokploy.example.com", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" },
@@ -493,7 +494,7 @@ export default defineConfig({
 //			{ url: "https://shop.acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx page that holds "ok"
 //			{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
 //		]),
-//		dokploy.project({ instance: "client", app: "kXx3shopWeb01" }), // the application `arthur dokploy app` and `status` read without an id
+//		dokploy.project({ instance: "client", app: "kXx3shopWeb01" }), // the application `arthur dokploy app`, `status`, `upload` and `deploy` take without an id
 //		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // planned: its own agent answers in topic 12 of the bot's chat
 //	];
 //

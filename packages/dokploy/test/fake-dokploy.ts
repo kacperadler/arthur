@@ -27,12 +27,12 @@ export type FakeApp = {
 	readonly dropBuildPath?: string;
 };
 // What a procedure answers in place of its own: a status and body, a redirect to `location`, no answer at all, text that is not
-// JSON, or a 200 with no body.
-export type Scripted = { readonly status: number; readonly body: unknown } | { readonly redirect: string } | "hang" | "not-json" | "empty";
+// JSON, or no body at all under the status `empty`.
+export type Scripted = { readonly status: number; readonly body: unknown } | { readonly redirect: string } | { readonly empty: number } | "hang" | "not-json";
 // A request's body as Dokploy's REST handler reads it: JSON only under exactly `application/json` (co-body), a form under
 // `multipart/form-data` (Request.formData), else nothing; `fields` its JSON keys or form fields, `files` a form's files.
 export type Sent = { readonly fields: Readonly<Record<string, unknown>>; readonly files: Readonly<Record<string, { readonly name: string; readonly type: string; readonly bytes: Buffer }>> };
-// A request: `type` the Content-Type a POST came with, and `sent` its body.
+// A request: `type` the Content-Type it came with, and `sent` a POST's body.
 export type Seen = { readonly method: string; readonly path: string; readonly query: Readonly<Record<string, string>>; readonly key: string | undefined; readonly type?: string; readonly sent?: Sent };
 
 const DAY = "2026-10-30";
@@ -161,21 +161,24 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 		const url = new URL(request.url ?? "/", "http://localhost");
 		const [key, type] = [request.headers["x-api-key"], request.headers["content-type"]];
 		const sent = request.method === "POST" ? await bodyOf(request, type ?? "") : undefined;
-		seen.push({ method: request.method ?? "", path: url.pathname, query: Object.fromEntries(url.searchParams), key: typeof key === "string" ? key : undefined, ...(request.method === "POST" ? { type, sent } : {}) });
+		seen.push({ method: request.method ?? "", path: url.pathname, query: Object.fromEntries(url.searchParams), key: typeof key === "string" ? key : undefined, type, ...(sent === undefined ? {} : { sent }) });
 		// pages/api/[...trpc].ts: no session for the key, before any procedure.
 		if (key !== token) return send(response, 401, { message: "Unauthorized" });
 		const procedure = url.pathname.replace(/^.*\/api\//, "");
 		const script = scripted.get(procedure);
 		if (script === "hang") return;
 		if (script === "not-json") return response.writeHead(200, { "Content-Type": "text/html" }).end("<!DOCTYPE html><title>Dokploy</title>");
-		if (script === "empty") return response.writeHead(200, { "Content-Type": "application/json" }).end();
+		if (script !== undefined && typeof script === "object" && "empty" in script) return response.writeHead(script.empty).end();
 		if (script !== undefined && "redirect" in script) return response.writeHead(302, { Location: script.redirect }).end();
 		if (script !== undefined) return send(response, script.status, script.body);
 		const asked = request.method === "POST" ? sent?.fields.applicationId : url.searchParams.get("applicationId");
 		const app = apps.find((each) => each.id === asked);
 		const missing = app === undefined ? trpcError(404, "NOT_FOUND", "Application not found", procedure).body : undefined;
 		if (request.method === "GET" && procedure === "project.all") return send(response, 200, form === "documented" ? documentedRecord(apps) : projectsRecord(apps, empty));
-		if (request.method === "GET" && procedure === "application.one") return missing === undefined ? send(response, 200, applicationRecord(app as FakeApp)) : send(response, 404, missing);
+		if (request.method === "GET" && procedure === "application.one") {
+			if (app === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Application not found", procedure).body);
+			return send(response, 200, applicationRecord(app));
+		}
 		if (request.method === "GET" && procedure === "deployment.all") return send(response, 200, app === undefined ? [] : (app.deployments ?? []).map((deployment, index) => deploymentRecord(app, deployment, index)).toReversed());
 		// Each write answers when its job is queued: `deploy` with no body (its procedure returns nothing), `dropDeployment` with
 		// `true`; a body of another type is refused before any procedure.

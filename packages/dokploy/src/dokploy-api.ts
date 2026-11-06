@@ -30,7 +30,7 @@ export async function call(instance: Instance, procedure: string, query: Readonl
 	let response: Response;
 	let body: string;
 	try {
-		response = await fetch(url, { method: send === undefined ? "GET" : "POST", headers, body: send instanceof FormData || send === undefined ? send : JSON.stringify(send), redirect: "error", signal: AbortSignal.timeout(timeoutSeconds * 1000) });
+		response = await fetch(url, { method: send === undefined ? "GET" : "POST", headers, body: send instanceof FormData ? send : JSON.stringify(send), redirect: "error", signal: AbortSignal.timeout(timeoutSeconds * 1000) });
 		body = await response.text();
 	} catch (error) {
 		if (error instanceof DOMException && error.name === "TimeoutError") throw fail(`no answer in ${timeoutSeconds} s from ${base} for ${what}`);

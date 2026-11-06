@@ -24,9 +24,9 @@ export async function dokployCommand(servers: readonly Instance[], projects: rea
 		else words.push(args[index] ?? "");
 	}
 	const [verb = "", ...rest] = words;
-	const takes = Object.hasOwn(TAKES, verb) ? (TAKES[verb] ?? -1) : -1;
-	const wrong = rest.length > takes || (verb === "upload" && rest.length === 0) || replace > (verb === "upload" ? 1 : 0);
-	if (takes < 0 || wrong || named.length > 1 || [...rest, ...named].some((word) => word === "" || word.startsWith("-"))) {
+	const takes = Object.hasOwn(TAKES, verb) ? TAKES[verb] : undefined;
+	const wrong = takes === undefined || rest.length > takes || (verb === "upload" && rest.length === 0) || replace > (verb === "upload" ? 1 : 0);
+	if (wrong || named.length > 1 || [...rest, ...named].some((word) => word === "" || word.startsWith("-"))) {
 		console.error(USAGE);
 		return 2;
 	}
@@ -37,7 +37,7 @@ export async function dokployCommand(servers: readonly Instance[], projects: rea
 	const app = verb === "upload" ? rest.slice(0, -1)[0] : rest[0];
 	const [instance, id] = target(servers, projects, name, asked, app);
 	// The call that shows how a write goes on, picking the app the way this one did.
-	const next = ["arthur dokploy status", app && id, named[0] && `--instance ${named[0]}`, name && `--project ${name}`].filter(Boolean).join(" ");
+	const next = ["arthur dokploy status", app, named[0] && `--instance ${named[0]}`, name && `--project ${name}`].filter(Boolean).join(" ");
 	if (verb === "deploy") {
 		await call(instance, "application.deploy", {}, `app ${id}`, { applicationId: id });
 		console.log(`app ${id} on instance ${instance.label}: Dokploy queued a deployment; to follow it: ${next}`);

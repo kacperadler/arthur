@@ -279,7 +279,8 @@ test("upload zips a folder's regular files at the zip's root, sends the zip to d
 	const { code, out, err } = await run(undefined, "upload", site);
 	const { fields, name, type, zip } = dropped(main.seen);
 	assert.deepEqual({ code, out, err }, { code: 0, out: `Shop web (kXx3shopWeb01) on instance (unnamed): sent 5 files, ${560 + 21 + 300 + 2} bytes, as a zip of ${zip.length} bytes; Dokploy queued a deployment; to follow it: arthur dokploy status`, err: "" });
-	assert.deepEqual(main.seen.map(({ method, path, key }) => [method, path, key]), [["GET", "/api/application.one", TOKEN], ["POST", "/api/application.dropDeployment", TOKEN]]);
+	// A Content-Type only on what has a body: the read none, the form its multipart one.
+	assert.deepEqual(main.seen.map(({ method, path, key, type }) => [method, path, key, type?.split(";")[0]]), [["GET", "/api/application.one", TOKEN, undefined], ["POST", "/api/application.dropDeployment", TOKEN, "multipart/form-data"]]);
 	assert.match(main.seen[1]?.type ?? "", /^multipart\/form-data; boundary=/);
 	assert.deepEqual([fields, name, type], [{ applicationId: SHOP_WEB.id }, "upload.zip", "application/zip"], "no dropBuildPath: the app has none");
 	const entries = readZip(zip);
@@ -304,6 +305,11 @@ test("upload sends a ready .zip as it is; a .zip that is no zip, or a zip by ano
 		assert.equal((await run("client", "upload", join(files, name))).code, 0, name);
 		assert.deepEqual(readZip(dropped(client.seen).zip).map((entry) => entry.name), [name]);
 	}
+	// A folder named .zip is a folder: zipped, its files at the root.
+	mkdirSync(join(files, "dist.zip"));
+	writeFileSync(join(files, "dist.zip", "index.html"), "<p>dist</p>");
+	assert.equal((await run("client", "upload", join(files, "dist.zip"))).code, 0);
+	assert.deepEqual(readZip(dropped(client.seen).zip).map((entry) => entry.name), ["index.html"]);
 });
 
 test("upload refuses before any request: a missing or unreadable path, a symlink, an empty folder, a symlink or special file inside, past 65535 files or 4 GiB", async (t) => {
@@ -376,8 +382,10 @@ test("deploy posts the app's id to application.deploy as JSON, takes Dokploy's e
 	assert.equal(await refusal(run(undefined, "deploy")), "instance (unnamed): 403: the token's user may not change app kXx3shopWeb01: You don't have access to this service");
 	main.scripted.set("application.deploy", "not-json");
 	assert.equal(await refusal(run(undefined, "deploy")), "instance (unnamed): the answer for app kXx3shopWeb01 is not JSON");
-	// Only a write's answer may be empty.
-	main.scripted.set("application.one", "empty");
+	// Only a write's answer may be empty, and only when it succeeded.
+	main.scripted.set("application.deploy", { empty: 502 });
+	assert.equal(await refusal(run(undefined, "deploy")), "instance (unnamed): 502 for app kXx3shopWeb01: Bad Gateway");
+	main.scripted.set("application.one", { empty: 200 });
 	assert.equal(await refusal(run(undefined, "app")), "instance (unnamed): the answer for app kXx3shopWeb01 is not JSON");
 	const before = [main.seen.length, client.seen.length];
 	const ambiguous = `dokploy has 2 instances ((unnamed), client) and the call names none: add --instance <name>, or --project <name> of a project with dokploy.project(...); ${NOTHING}`;

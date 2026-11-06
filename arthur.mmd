@@ -77,7 +77,7 @@ flowchart TD
         delivery[delivery<br/>review, merge, hand-back, changelog<br/>auto-merge after a PASS and green CI]
         github[github<br/>polls CI runs, PR reviews<br/>arthur ci, reruns, pushes<br/>arthur github: PR and issue reads and writes, origin's branches]
         youtrack[youtrack<br/>reads and writes issues, articles<br/>comments, attachments, rules for jobs]
-        dokploy[dokploy<br/>reads projects, apps, deployments<br/>uploads a file or folder, deploys<br/>on the owner's word]
+        dokploy[dokploy<br/>reads projects, apps, deployments<br/>uploads a file or folder, deploys<br/>creates an app, sets it up<br/>on the owner's word]
         delivery ~~~ github ~~~ youtrack ~~~ dokploy
       end
       subgraph SELF[Arthur itself]

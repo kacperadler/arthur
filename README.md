@@ -47,7 +47,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).
 - **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads, creates, comments on and closes pull requests and issues, labels issues, and lists and deletes branches on origin ([github](packages/github/docs/github.md)).
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
-- **dokploy**, built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, and uploads a file or folder to an app or starts its deploy on your word, each server's API key in a variable, for the coordinator only ([dokploy](packages/dokploy/docs/dokploy.md)).
+- **dokploy**, built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, uploads a file or folder to an app or starts its deploy, and creates an app and sets its build type, domain, volume and environment, on your word, each server's API key in a variable, for the coordinator only ([dokploy](packages/dokploy/docs/dokploy.md)).
 - **manage**, built: health, stats, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).

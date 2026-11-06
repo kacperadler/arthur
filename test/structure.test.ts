@@ -9,6 +9,8 @@ import { checkStructure, type Structure } from "./structure.ts";
 // One budget per line in name order, a blank line after each, so Git merges raises to two neighbours, and two new budgets with an
 // existing budget's name sorting between theirs, without a conflict.
 const BUDGETS = {
+	activity: 350,
+
 	"commit-rules": 184,
 
 	core: 7341,

@@ -1,5 +1,5 @@
-// Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and commit-rules,
-// delivery, develop, discord, dokploy, findings, github, listen, machines, manage, models, nvm, orchestration, projects,
+// Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and activity,
+// commit-rules, delivery, develop, discord, dokploy, findings, github, listen, machines, manage, models, nvm, orchestration, projects,
 // resources, schedule, session, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
 // docker (first); server, signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first
 // planned import (`Cannot find package '@arthur/docker'`). Take a plugin from it once its package exists. Illustrative for the planned
@@ -25,6 +25,7 @@
 //   `derived` = added because the harness Arthur replaces already does it.
 
 import { defineConfig } from "@arthur/core";
+import { activity } from "@arthur/activity"; // first, named
 import { commitRules } from "@arthur/commit-rules"; // first, named
 import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
@@ -370,6 +371,14 @@ export default defineConfig({
 			retro: { day: "fri", at: "22:30", budgetUsd: 5 },
 			health: { everyMinutes: 30 }, // entry 60: arthur health and /health; this often under arthur run, new lines as a notice
 			prune: { keepJobsDays: 14 },
+		}),
+
+		// Who did what: `<home>/activity/days/YYYY-MM-DD.jsonl` in core.timeZone, one line per logged event with its actor and
+		// the messages it acted on (`on`), written by arthur run alone. Media without paths, forwarded words left out.
+		// packages/activity/docs/activity.md.
+		activity({
+			keepDays: 90, // a day file more than this many days old is removed at arthur run's start and at each new day
+			textChars: 300, // the characters of an event's text a line keeps, its full length as `cut`; 0 keeps none
 		}),
 
 		// Plugins for developing Arthur: `arthur plugin new` and `arthur eval`. The test kit (fake host, fake agent) is core's

@@ -8,10 +8,10 @@ plugins: [orchestration({}), activity({ keepDays: 90, textChars: 300 })],
 
 ## Options
 
-- `keepDays`: a whole number of days, 0 or more, default 90. A day file more than `keepDays` days before today (in `core.timeZone`) is removed, by its name, at `arthur run`'s start and at the first line of each new day; 0 keeps today's alone.
+- `keepDays`: a whole number of days, 0 to 36500 (a hundred years), default 90. A day file more than `keepDays` days before today (in `core.timeZone`) is removed, by its name, at `arthur run`'s start and at the first line of each new day; 0 keeps today's alone.
 - `textChars`: a whole number of characters, 0 or more, default 300: how much of an event's text a line keeps. 0 keeps none, the line then only pointing at the event by its `seq`.
 
-Refused at load, with the option's path: an unknown option (`activity.<key>: unknown option; options: keepDays, textChars`), and either option not a whole number from 0 (`activity.keepDays: expected a whole number of days, 0 or more, got -1`).
+Refused at load, with the option's path: an unknown option (`activity.<key>: unknown option; options: keepDays, textChars`), `keepDays` not a whole number from 0 to 36500 (`activity.keepDays: expected a whole number of days, 0 to 36500, got -1`), and `textChars` not a whole number from 0 (`activity.textChars: expected a whole number of characters, 0 or more, got -1`).
 
 ## Lines
 

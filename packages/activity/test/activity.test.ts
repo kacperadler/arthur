@@ -31,14 +31,16 @@ function load(fake: FakeHost, options: ActivityOptions = {}) {
 const written = (fake: FakeHost, date: string): Line[] => readFileSync(join(fake.host.folder, "days", `${date}.jsonl`), "utf8").trim().split("\n").map((text) => JSON.parse(text));
 const seqs = (fake: FakeHost, date: string) => written(fake, date).map((line) => line.seq);
 
-test("options: keepDays and textChars, whole numbers from 0; anything else refused naming the option", () => {
+test("options: keepDays a whole number from 0 to 36500, textChars one from 0; anything else refused naming the option", () => {
 	assert.deepEqual(checkOptions({}), []);
 	assert.deepEqual(checkOptions({ keepDays: 0, textChars: 0 }), [], "0, at the limit");
-	assert.deepEqual(checkOptions({ keepDays: 365, textChars: 1000 }), []);
+	assert.deepEqual(checkOptions({ keepDays: 36500, textChars: 1_000_000_000 }), [], "keepDays at its top");
 	for (const [value, got] of [[-1, "-1"], [1.5, "1.5"], ["7", '"7"'], [null, "null"]] as const) {
-		assert.deepEqual(checkOptions({ keepDays: value }), [{ path: "keepDays", problem: `expected a whole number of days, 0 or more, got ${got}` }], got);
+		assert.deepEqual(checkOptions({ keepDays: value }), [{ path: "keepDays", problem: `expected a whole number of days, 0 to 36500, got ${got}` }], got);
 		assert.deepEqual(checkOptions({ textChars: value }), [{ path: "textChars", problem: `expected a whole number of characters, 0 or more, got ${got}` }], got);
 	}
+	for (const [value, got] of [[36501, "36501"], [2e8, "200000000"]] as const)
+		assert.deepEqual(checkOptions({ keepDays: value }), [{ path: "keepDays", problem: `expected a whole number of days, 0 to 36500, got ${got}` }], got);
 	assert.deepEqual(checkOptions({ days: 7, toString: 1 }), ["days", "toString"].map((path) => ({ path, problem: "unknown option; options: keepDays, textChars" })));
 	assert.deepEqual([KEEP_DAYS, TEXT_CHARS, table.keepDays?.default, table.textChars?.default], [90, 300, "90", "300"]);
 });
@@ -105,6 +107,20 @@ test("a gap after the last line written is filled once from the log, a replay of
 	assert.deepEqual([seqs(fake, date), third.reads()], [[1, 2, 3, 4, 6], 1], "nothing held: the log read once all the same");
 });
 
+// The smallest gap, one delivery lost: the event right after the last line, the held one the next after it.
+test("a gap of one event, between the last line and the first held event, is read from the log and written", () => {
+	const fake = fakeHost({ name: "activity" });
+	const [one, two, three] = ["one", "two", "three"].map((text) => fake.emit("notice", { text })) as [Event, Event, Event];
+	const date = fake.host.clock.local(new Date(three.time)).date;
+	const first = load(fake);
+	first.deliver(one);
+	first.start();
+	const second = load(fake);
+	second.deliver(one, three);
+	second.start();
+	assert.deepEqual([seqs(fake, date), second.reads(), two.seq], [[1, 2, 3], 1, 2]);
+});
+
 test("a job's later lines carry the kind and ticket of its job-started", () => {
 	const fake = fakeHost({ name: "activity" });
 	const box = load(fake);
@@ -150,4 +166,9 @@ test("day files older than keepDays (90) go at the start and at the first line o
 	writeFileSync(join(kept.host.folder, "days", "2025-12-01.jsonl"), "");
 	load(kept, { keepDays: 30 }).start();
 	assert.deepEqual(readdirSync(join(kept.host.folder, "days")), [], "keepDays 30");
+	const most = fakeHost({ name: "activity", now: new Date("2026-01-01T12:00:00Z") });
+	mkdirSync(join(most.host.folder, "days"));
+	for (const date of ["1926-01-01", "2000-01-01"]) writeFileSync(join(most.host.folder, "days", `${date}.jsonl`), "");
+	load(most, { keepDays: 36500 }).start();
+	assert.deepEqual(readdirSync(join(most.host.folder, "days")), ["2000-01-01.jsonl"], "keepDays at its top, 100 years back");
 });

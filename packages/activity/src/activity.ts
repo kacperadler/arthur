@@ -16,8 +16,11 @@ export const tools: readonly Tool[] = [];
 
 export const KEEP_DAYS = 90;
 export const TEXT_CHARS = 300;
-const whole = (what: string): Check => (value) => (Number.isInteger(value) && (value as number) >= 0 ? undefined : `a whole number of ${what}, 0 or more`);
-const checks = { keepDays: whole("days"), textChars: whole("characters") };
+// keepDays has a top: a cut further back than Date's range (about 1e8 days) would throw at arthur run's start.
+const MOST_DAYS = 36_500;
+const whole = (what: string, most?: number): Check => (value) =>
+	Number.isInteger(value) && (value as number) >= 0 && (most === undefined || (value as number) <= most) ? undefined : `a whole number of ${what}, 0 ${most === undefined ? "or more" : `to ${most}`}`;
+const checks = { keepDays: whole("days", MOST_DAYS), textChars: whole("characters") };
 
 export const table: OptionTable = {
 	keepDays: { about: "Days a day file is kept after its day, then removed at arthur run's start or its first line of a new day", default: String(KEEP_DAYS), check: checks.keepDays },

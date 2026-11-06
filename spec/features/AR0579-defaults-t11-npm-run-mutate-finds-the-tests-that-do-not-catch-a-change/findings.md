@@ -19,7 +19,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-10-31-review-df0c53f4 (review), 2026-10-31
 - Where: `test/mutate.ts:51-56`
 - What: On this branch a default run tries 25 of 608 mutants. A reviewer who "starts from mutate's survivors" sees only a slice of the change. The summary does say how many were not run.
-- Status: deferred (client summary)
+- Status: ticket AR0637
 
 ## F3. a `mutate` line is judged `clean` by commit and status only
 

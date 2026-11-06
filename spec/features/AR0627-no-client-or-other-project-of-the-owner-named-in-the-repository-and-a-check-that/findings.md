@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/merge-outcome.ts:76`
 - What: `arthur merge` commits `spec: <id> merged` after the checks on main, with hooks off, and `github.push` pushes it at once. Its files are written by the merge itself: `outcome.md` (the worker's `## What went in` lines, copied from its final message), `CHANGELOG.md` and `spec/build.json` (ticket titles). A project name in them is caught by `test/other-projects.ts` only at the next `npm test` or the next commit with `.githooks` on, after it is on GitHub.
 - Suggestion: before the spec: commit, run a command the project names (for Arthur, `node test/other-projects.ts` on the paths it commits) and leave the commit to the coordinator when it fails, as a config key set during the checks does today. The hooks stay off.
-- Status: deferred (client summary)
+- Status: ticket AR0635
 
 ## F2. Other projects of the owner that are not in projects/ are not checked
 
@@ -47,7 +47,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/features/AR0604-plan-the-docker-plugin-and-the-core-cleanup-hook-roadmap-70-to-72/plan.md:43`
 - What: the line names the public IP address of the owner's deploy host and of this VPS, which the vision keeps out of the repository (its folders on a server).
 - Suggestion: replace both with `<deploy host>` and `<this VPS>`.
-- Status: deferred (client summary)
+- Status: ticket AR0636
 
 ## F6. On another machine the check has no names
 
@@ -64,7 +64,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-04-review-416e6684 (review), 2026-11-04
 - Where: `packages/delivery/src/merge-command.ts:89`
 - What: Its files are checked only by the next `npm test` on main, after the push. The worker filed this as F1, and the line at `docs/setup.md:121` says "every commit there" without this exception.
-- Status: deferred (client summary)
+- Status: ticket AR0635
 
 ## F8. when `projects/` is missing or can't be read (a job on another machine, a sandbox that hides it), the check sees no names and passes without saying so
 

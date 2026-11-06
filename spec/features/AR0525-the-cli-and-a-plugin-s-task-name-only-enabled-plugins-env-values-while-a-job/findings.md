@@ -10,4 +10,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-05-review-a290a81b (review), 2026-11-05
 - Where: `packages/orchestration/src/credential.ts:8`
 - What: An env-file value of a disabled plugin, or one no plugin reads, can therefore be written raw into a plugin's own files, such as the decision log, which do not go through `hide`. This is outside this ticket's scope (CLI output and a task's error).
-- Status: deferred (client summary)
+- Status: ticket AR0638

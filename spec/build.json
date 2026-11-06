@@ -4192,9 +4192,9 @@
   {
     "id": "AR0528",
     "title": "Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0528-who-did-it-an-actor-stamp-on-every-event-and-events-for-commands-phone-commands/ticket.md",
-    "updated": "2026-11-06T19:01:49.578Z"
+    "updated": "2026-11-06T20:00:35.142Z"
   },
   {
     "id": "AR0529",

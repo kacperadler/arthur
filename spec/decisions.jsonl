@@ -1038,3 +1038,4 @@
 {"record":"ask","id":"AR-D515","time":"2026-11-06T08:32:45+01:00","project":"arthur","kind":"job","question":"Start AR0639: write the approved release plan (AR0128) into the roadmap (entries 104 to 107) and the vision, docs only, budget $4?","options":["Start it now","Not yet"],"recommend":1,"ticket":"AR0639"}
 {"record":"answer","id":"AR-D515","time":"2026-11-06T08:39:13+01:00","decided":"Start AR0639 now, budget $4","picked":1,"words":"AR-D515 - 1"}
 {"record":"ask","id":"AR-D516","time":"2026-11-06T08:50:03+01:00","project":"arthur","kind":"merge","question":"Merge AR0639 (release plan written into the roadmap, entries 104 to 107, and one vision line) to Arthur main?","options":["Merge it","Change the vision line first (say how)","Do not merge"],"recommend":1,"ticket":"AR0639"}
+{"record":"answer","id":"AR-D516","time":"2026-11-06T08:51:39+01:00","decided":"Merge AR0639 to Arthur main","picked":1,"words":"AR-D516 - 1"}

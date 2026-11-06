@@ -39,4 +39,5 @@ Out:
 
 ## Decisions
 - 2026-11-06: Start AR0639 now, budget $4; the owner: "AR-D515 - 1" (AR-D515)
+- 2026-11-06: Merge AR0639 to Arthur main; the owner: "AR-D516 - 1" (AR-D516)
 

@@ -2,11 +2,11 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Command, Host, JobRecord } from "@arthur/core/plugin";
-import { failsSincePass, LIMIT } from "./review-records.ts";
+import { failsSincePass, LIMIT, noReview } from "./review-records.ts";
 
-// `arthur review <worker job> [--round <n>]` (spec/roadmap.md, entry 52): a review of a worker's branch at its tip, its task
-// built here so it carries the ticket, the branch and the commit; refused at the limit with the procedure for the owner's
-// choice, and before the job's checks passed on the tip (AR0580). docs/commands/review.md.
+// `arthur review <worker job> [--round <n>]` (spec/roadmap.md, entry 52): a review of a worker's branch at its tip, its task built
+// here so it carries the ticket, the branch and the commit; refused at the limit with the procedure for the owner's choice, before
+// the job's checks passed on the tip (AR0580), and on a tip review-needed answered `no review` for (AR0630). docs/commands/review.md.
 
 const USAGE = "usage: arthur review <worker job> [--round <n>]";
 export const FEATURE = /(?:^|\/)(spec\/features\/[A-Z]+\d{4,}-[^/]+)\//;
@@ -22,6 +22,8 @@ export function reviewCommand(host: Host, procedure: URL): Command {
 				return 2;
 			}
 			const job = worker(host, parsed.job);
+			const answer = noReview(host, job.id, branchOf(host, job).commit);
+			if (answer !== undefined) throw new Error(`arthur review-needed answered "${answer}" for ${job.branch}'s tip: it merges without a review; no review starts`);
 			const { task, commit } = reviewTask(host, job, parsed.round);
 			let started;
 			try {

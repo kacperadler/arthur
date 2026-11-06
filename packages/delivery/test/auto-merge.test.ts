@@ -151,7 +151,7 @@ test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused,
 });
 
 test("--auto takes arthur review-needed's no review for the tip as its PASS; not for an older tip, nor beside a review of the tip that runs, has no verdict or says FAIL, nor a review answer", async (t) => {
-	const { fake, commit, worker, review, run, merge, answers, head } = await load(t);
+	const { fake, commit, worker, run, merge, answers, head } = await load(t);
 	const docs = (n: number) => `no review: ${n} file${n === 1 ? "" : "s"}, all docs (*.md)\nAC0001 moves to done.\nacme merges on its own (autoMerge): arthur run runs arthur merge --auto `;
 	const job = await worker(1, { "notes.md": "# Notes\n" });
 	assert.ok((await run("review-needed", [job.id])).out.startsWith(docs(1)));
@@ -167,8 +167,10 @@ test("--auto takes arthur review-needed's no review for the tip as its PASS; not
 	assert.equal((await merge(job.id, "--auto")).err, refused(`its review ${pending.id} has no verdict`), "a review that runs");
 	saveReview(fake.host, { ...pending, verdict: "none" });
 	assert.equal((await merge(job.id, "--auto")).err, refused(`its review ${pending.id} has no verdict`), "a review that ended with no verdict");
-	const failed = await review(job.id, "Wrong file.\n\nFAIL");
-	assert.equal((await merge(job.id, "--auto")).err, refused(`its newest review, ${failed}, says FAIL`));
+	// arthur review refuses a tip with a no review (AR0630); a review that exists anyway, as a hand-back's, still outranks it.
+	const failed = { ...pending, id: "2026-01-01-review-0000cafe", at: 2, verdict: "FAIL" as const };
+	saveReview(fake.host, failed);
+	assert.equal((await merge(job.id, "--auto")).err, refused(`its newest review, ${failed.id}, says FAIL`));
 	assert.equal(head(), start);
 	const other = await worker(2, { "notes.md": "# Notes\n" });
 	await run("review-needed", [other.id]);

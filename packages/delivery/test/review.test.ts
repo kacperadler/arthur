@@ -300,6 +300,30 @@ test("refused before any job: not a worker, in a run, no ticket, nothing to revi
 	});
 });
 
+test("a tip arthur review-needed answered no review for is refused before any job, naming the answer; a no review of an older commit, a review answer or none starts the review", async (t) => {
+	const { fake, git, worker, review, home, field } = await load(t);
+	const jobs = () => readdirSync(join(home, "jobs")).length;
+	const job = await worker();
+	const answer = (text: string, commit: string) => writeFileSync(join(fake.host.folder, job.id, "review-needed"), `${JSON.stringify({ answer: text, ticket: "AC0001", branch: job.branch, commit, at: 1 })}\n`);
+	mkdirSync(join(fake.host.folder, job.id), { recursive: true });
+	const no = "no review: 26 lines changed; the job's checks: check pass, test pass 12/12";
+	answer(no, job.commit);
+	const count = jobs();
+	assert.deepEqual(await review("PASS", job.id.slice(-8)), { id: "", code: 1, err: `arthur review: arthur review-needed answered "${no}" for ${job.branch}'s tip: it merges without a review; no review starts` });
+	assert.equal(jobs(), count, "no record for a refused review");
+	answer("review: 71 lines changed, over 30", job.commit);
+	assert.equal((await review("PASS", job.id)).code, undefined, "a review answer is reviewed");
+	const worktree = field(job.id, "worktree") ?? "";
+	writeFileSync(join(worktree, "more.ts"), "export const more = 1;\n");
+	git(worktree, "add", "more.ts");
+	git(worktree, "commit", "--quiet", "-m", "more");
+	answer(no, job.commit);
+	assert.equal((await review("PASS", job.id)).code, undefined, "a no review of an older commit is reviewed");
+	rmSync(join(fake.host.folder, job.id, "review-needed"));
+	assert.equal((await review("PASS", job.id)).code, undefined, "no answer is reviewed");
+	assert.equal(jobs(), count + 3);
+});
+
 test("a review's task is only what arthur review builds for an ended worker at its branch's tip: a hand-written one, another commit, a worker in a run, a moved tip are refused", async (t) => {
 	const { fake, git, root, worker, agent, state, home } = await load(t);
 	const job = await worker();

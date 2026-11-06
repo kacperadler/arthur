@@ -5054,9 +5054,9 @@
   {
     "id": "AR0628",
     "title": "git fast-import appends to any file named by a stdin option git export-pack-edges line, past the worktree guard",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0628-git-fast-import-appends-to-any-file-named-by-a-stdin-option-git-export-pack/ticket.md",
-    "updated": "2026-11-06T00:36:59.788Z",
+    "updated": "2026-11-06T02:11:12.652Z",
     "after": [
       "AR0559"
     ]

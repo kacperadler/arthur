@@ -9,6 +9,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0558 GitHub T2: create, comment on and close pull requests (f579072f)
 - AR0559 GitHub T3: list, read, create, comment on, label and close issues (999ed4be)
 
+### Fixed
+
+- AR0628 git fast-import appends to any file named by a stdin option git export-pack-edges line, past the worktree guard (631ac206)
+
 ### Changed
 
 - AR0634 The roadmap page shows listen, video and Discord as not built, and the README status is from October (fff4f07d)

@@ -41,7 +41,7 @@ Refused at load, each refusal naming the machine and the option's path: a missin
 
 1. The address, as at load: `ssh -G <ssh>` and the name it prints resolved here, each address private.
 2. One command over the core's SSH, `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <ssh> sh -c '<script>' sh <free> <n> <paths> <tools>`: the script runs `uname -sm && arthur version && node -e "$1"`, then `df -Pk` on each of the `<n>` `<paths>` (`missing` for one not there; it stops at df's first failure, whose line it keeps), then `command -v` on each of `<tools>`, then `git var GIT_AUTHOR_IDENT` and `git var GIT_COMMITTER_IDENT`, printing df's exit code and output last, after a line `disk <code>`, only with paths. `<free>` is a Node script that prints one JSON line of the machine's free CPU and memory over one second, `<paths>` the ones the round's answers name (below), both for the `resources` plugin, `<tools>` the machine's `tools` labels: ssh never asks for a password and never accepts a host key on its own.
-3. What the machine says compared with its labels (`os`, `arch`, where given) and with this core's version: `arthur version` prints `<release> <hash>` (`arthur version --help`), and only the hash, the last word, must be the same, so two releases of one core agree.
+3. What the machine says compared with its labels (`os`, `arch`, where given) and with this core's version: `arthur version` prints `<release> <hash>` (`arthur version --help`), and only the hash, the last word, must be the same, so two releases of one core agree. An online machine is shown, and told in `machine-online`, with its own line.
 
 The machine is online when all three pass. Otherwise it is offline, the reason one of:
 

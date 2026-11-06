@@ -6,7 +6,7 @@ import type { Requirement } from "./plugin.ts";
 // npm's own field, `peerDependencies["@arthur/core"]`; a core outside them is one `arthur doctor` line that never stops the start.
 // Only `^x.y.z`, `~x.y.z` and an exact `x.y.z` are read. docs/commands/doctor.md.
 
-const RANGE = /^([~^]?)(\d+)\.(\d+)\.(\d+)$/;
+const RANGE = /^([~^]?)(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 // Whether the release `version` (`x.y.z`) is within `range`, as npm reads it; undefined for a range not read.
 export function inRange(range: unknown, version: string): boolean | undefined {

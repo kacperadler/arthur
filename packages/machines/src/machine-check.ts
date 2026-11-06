@@ -92,7 +92,7 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 	const none = /^identity git ?(.*)$/m.exec(lines.join("\n"));
 	if (none !== null) return offline(`git is not there (${none[1] || "exit code 127"})`, "install git there, on the PATH of a command over ssh (docs/deploy.md)");
 	const identity = lines.find((line) => line.startsWith("identity "))?.replace(/^identity (\S+) ?/, "git var $1 there: ") ?? "";
-	return { online: true, os, arch, version: ours, free, ...disk, missing: missing(lines), identity };
+	return { online: true, os, arch, version: theirs, free, ...disk, missing: missing(lines), identity };
 }
 
 // The `tools` that `command -v` does not find on the PATH of `arthur run`, by the loop of a listed machine's check; the

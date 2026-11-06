@@ -245,7 +245,7 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		["old", `missing: it runs arthur 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on old", false],
 		["alone", `missing: it runs arthur ${hash}, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on alone", false],
 		["other", `missing: it runs arthur 0.1.0 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on other", false],
-		["next", `ok (linux x64, arthur ${arthurVersion()})`, "ssh next-box true, by hand", "no job runs on next", false],
+		["next", `ok (linux x64, arthur 9.9.9 ${hash})`, "ssh next-box true, by hand", "no job runs on next", false],
 		[
 			"bare",
 			"missing: arthur is not there (sh: 1: arthur: not found)",

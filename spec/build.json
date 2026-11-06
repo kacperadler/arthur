@@ -4192,16 +4192,16 @@
   {
     "id": "AR0528",
     "title": "Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0528-who-did-it-an-actor-stamp-on-every-event-and-events-for-commands-phone-commands/ticket.md",
-    "updated": "2026-10-27T20:06:08.949Z"
+    "updated": "2026-11-06T08:17:07.516Z"
   },
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-10-27T20:06:09.854Z",
+    "updated": "2026-11-06T08:17:08.108Z",
     "after": [
       "AR0528"
     ]
@@ -4209,9 +4209,9 @@
   {
     "id": "AR0530",
     "title": "`arthur log` and `/log`: read the activity log by day, user, actor, ticket or job",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0530-arthur-log-and-log-read-the-activity-log-by-day-user-actor-ticket-or-job/ticket.md",
-    "updated": "2026-10-27T20:06:10.719Z",
+    "updated": "2026-11-06T08:17:08.705Z",
     "after": [
       "AR0529"
     ]
@@ -4437,9 +4437,9 @@
   {
     "id": "AR0556",
     "title": "Plan: the github plugin manages pull requests, issues and branches",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0556-plan-the-github-plugin-manages-pull-requests-issues-and-branches/ticket.md",
-    "updated": "2026-10-29T07:16:24.561Z"
+    "updated": "2026-11-06T08:17:15.249Z"
   },
   {
     "id": "AR0557",
@@ -4481,9 +4481,9 @@
   {
     "id": "AR0561",
     "title": "Plan: agents do the right thing by default, every repeated correction moved up the pyramid",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0561-plan-agents-do-the-right-thing-by-default-every-repeated-correction-moved-up-the/ticket.md",
-    "updated": "2026-10-29T19:12:53.615Z"
+    "updated": "2026-11-06T08:17:16.461Z"
   },
   {
     "id": "AR0562",

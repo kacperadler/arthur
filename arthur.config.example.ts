@@ -269,13 +269,14 @@ export default defineConfig({
 		// findings stay open. No options. packages/findings/docs/findings.md.
 		findings(),
 
-		// Each project's sites, its `uptime.project([...])`, checked over plain HTTP while `arthur run` runs (no model, so no
-		// usage). A site is down after 2 failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text
-		// missing): one notice with its URL, the reason and since when, and `uptime-down`; one more with how long when it
-		// answers, and `uptime-up`. When no site answers, nor any of `probes` (https URLs outside the projects, each a public
-		// host; default https://1.1.1.1/ and https://dns.google/, [] for none), this machine looks offline: no notice, no site
-		// checked, only the probes until one answers, so no site is ever down for this machine's own lost connection.
-		// packages/uptime/docs/uptime.md.
+		// Each project's sites, its `uptime.project([...], { runbook? })`, checked over plain HTTP while `arthur run` runs (no
+		// model, so no usage). A site is down after 2 failed checks in a row (no answer in time, refused, a TLS error, a wrong
+		// status, the text missing): one notice with its URL, the reason and since when, and `uptime-down`; one more with how long
+		// when it answers, and `uptime-up`. Each also wakes the coordinator with a runbook to work through, the project's own
+		// (`runbook`, a path from its project folder) or the boilerplate: reads first, a redeploy only on the owner's word. When
+		// no site answers, nor any of `probes` (https URLs outside the projects, each a public host; default https://1.1.1.1/ and
+		// https://dns.google/, [] for none), this machine looks offline: no notice, no site checked, only the probes until one
+		// answers, so no site is ever down for this machine's own lost connection. packages/uptime/docs/uptime.md.
 		uptime({ probes: ["https://1.1.1.1/", "https://dns.google/"] }),
 
 		// One entry per YouTrack server. The names are the variables, not their values. The unnamed one uses
@@ -493,7 +494,7 @@ export default defineConfig({
 //			{ url: "https://shop.acme.example/" }, // any 2xx status, checked every 60 s
 //			{ url: "https://shop.acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx page that holds "ok"
 //			{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
-//		]),
+//		], { runbook: "site-down.md" }), // optional: projects/acme-shop/site-down.md, the steps the coordinator works through when a site is down
 //		dokploy.project({ instance: "client", app: "kXx3shopWeb01" }), // the application `arthur dokploy app`, `status`, `upload` and `deploy` take without an id
 //		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // planned: its own agent answers in topic 12 of the bot's chat
 //	];

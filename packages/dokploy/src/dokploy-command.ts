@@ -106,8 +106,8 @@ export async function dokployCommand(servers: readonly Instance[], projects: rea
 // only if it is that one; with one, on `--instance`, else on the `--project` project's instance, else on the only instance.
 function target(servers: readonly Instance[], projects: readonly Deployed[], name: string | undefined, asked: Instance | undefined, app: string | undefined): readonly [Instance, string] {
 	const project = name === undefined ? projects[0] : projects.find((each) => each.name === name);
+	if (name !== undefined && project === undefined) throw new Error(`unknown project ${name}; ${NOTHING}`);
 	if (app === undefined) {
-		if (name !== undefined && project === undefined) throw new Error(`unknown project ${name}; ${NOTHING}`);
 		const others = projects.filter((each) => each.app !== undefined).map((each) => each.name);
 		const which = others.length > 0 ? `projects with one: ${others.join(", ")}` : "no project has one";
 		if (project?.app === undefined) throw new Error(`${project === undefined ? "there is no project" : `project ${project.name} has no dokploy.project(...)`}: give the app's id, or --project <name>; ${which}; ${NOTHING}`);

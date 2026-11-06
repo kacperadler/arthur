@@ -5136,5 +5136,12 @@
     "status": "planning",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
     "updated": "2026-11-06T01:14:13.666Z"
+  },
+  {
+    "id": "AR0639",
+    "title": "Roadmap entries 104 to 107 and the vision lines for releases, installing and updating, from the AR0128 plan",
+    "status": "planning",
+    "path": "spec/features/AR0639-roadmap-entries-104-to-107-and-the-vision-lines-for-releases-installing-and/ticket.md",
+    "updated": "2026-11-06T07:32:29.164Z"
   }
 ]

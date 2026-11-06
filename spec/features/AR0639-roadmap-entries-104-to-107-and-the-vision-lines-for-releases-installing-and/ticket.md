@@ -38,4 +38,5 @@ Out:
 - The `@arthur` npm scope: not needed under the approved option.
 
 ## Decisions
+- 2026-11-06: Start AR0639 now, budget $4; the owner: "AR-D515 - 1" (AR-D515)
 

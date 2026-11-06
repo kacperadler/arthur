@@ -1036,3 +1036,4 @@
 {"record":"ask","id":"AR-D514","time":"2026-11-06T07:56:36+01:00","project":"arthur","kind":"plan","question":"Approve the plan of AR0128?","options":["Approve as recommended, first release 0.1.0","Approve, first release 1.0.0","Plan it again (say what changes)"],"recommend":1,"ticket":"AR0128"}
 {"record":"answer","id":"AR-D514","time":"2026-11-06T08:31:37+01:00","decided":"Plan approved by the owner: plan.md at a5cf22e6 (first release 0.1.0)","picked":1,"words":"AR-D514 - 1"}
 {"record":"ask","id":"AR-D515","time":"2026-11-06T08:32:45+01:00","project":"arthur","kind":"job","question":"Start AR0639: write the approved release plan (AR0128) into the roadmap (entries 104 to 107) and the vision, docs only, budget $4?","options":["Start it now","Not yet"],"recommend":1,"ticket":"AR0639"}
+{"record":"answer","id":"AR-D515","time":"2026-11-06T08:39:13+01:00","decided":"Start AR0639 now, budget $4","picked":1,"words":"AR-D515 - 1"}

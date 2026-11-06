@@ -82,7 +82,8 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | uptime (named) | first | Checks each project's sites over HTTP while `arthur run` runs; one notice when a site goes down (2 failed checks in a row) and one when it is back, with `uptime-down` and `uptime-up` events; this machine offline is told apart from a site down. Roadmap 98. |
 | delivery (derived) | first | Review, always-review list, merge after PASS and green CI, the changelog. |
 | github (derived) | first | Polls CI runs and pull requests, wakes the coordinator. |
-| manage (named: managing Arthur) | first | The audit, the retro, health, prune, stats. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |
+| manage (named: managing Arthur) | first | The audit, the retro, health, prune. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |
+| stats (named) | first | The tokens, cost at list price and time of every job and of the coordinator, per role, ticket, project, model and day. `arthur stats`, `/stats` and the morning report's Spend; manage's merged-ticket report as `arthur stats tickets`; each Claude usage window beside what each role spent in its span, an estimate marked `≈`. Roadmap 108 to 112. |
 | develop (named: developing Arthur) | first | A command that creates a plugin, evals of the coordinator's turns. |
 | docker (named) | first | Labels the Docker resources a job creates with its id and removes them with its worktree, on every machine; keeps the build cache under a cap; a daily sweep of leftovers. Below. |
 | signal (named) | later | A channel, through signal-cli. |

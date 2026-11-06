@@ -1065,3 +1065,5 @@
 {"record":"answer","id":"AR-D528","time":"2026-11-06T12:33:58+01:00","decided":"Raise the AR0528 budget to $16 so it finishes","picked":1,"words":"AR-D528 - 1"}
 {"record":"ask","id":"AR-D529","time":"2026-11-06T12:34:54+01:00","project":"arthur","kind":"plan","question":"AR0649 adds usage to the job record (JobRecord.usage), a change to the frozen plugin API (entry 51): accept it as the approved AR0480 plan names it?","options":["Accept, as approved with the plan","Refuse"],"recommend":1,"ticket":"AR0649"}
 {"record":"answer","id":"AR-D529","time":"2026-11-06T12:34:55+01:00","decided":"The plugin API change JobRecord.usage is accepted, as the AR0480 plan the owner approved names it (AR-D523)","picked":1,"words":"AR-D523 - 1"}
+{"record":"ask","id":"AR-D530","time":"2026-11-06T12:45:40+01:00","project":"arthur","kind":"merge","question":"Merge pull request #2 (AR0603, dokploy upload and deploy) to Arthur main?","options":["Merge it","Not yet"],"recommend":1,"ticket":"AR0603"}
+{"record":"answer","id":"AR-D530","time":"2026-11-06T12:45:47+01:00","decided":"Merge pull request #2 (AR0603) to Arthur main","picked":1,"words":"Approved"}

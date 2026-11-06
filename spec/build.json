@@ -5229,9 +5229,9 @@
   {
     "id": "AR0649",
     "title": "Stats S2: tokens per model in the job record (roadmap 108)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0649-stats-s2-tokens-per-model-in-the-job-record-roadmap-108/ticket.md",
-    "updated": "2026-11-06T10:14:59.200Z",
+    "updated": "2026-11-06T11:35:12.880Z",
     "after": [
       "AR0648"
     ]

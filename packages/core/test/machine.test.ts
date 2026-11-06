@@ -762,11 +762,13 @@ test("prune never deletes a worktree on a machine it cannot reach, nor one Git r
 	assert.equal(await jobs.stopAll(), `${job.id}: stopped`);
 	assert.equal(read(home, job.id, "state"), "ended");
 	writeFileSync(join(machine, "refuse"), "");
-	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: kept its worktree, branch and record: ${UNREACHABLE}`]);
+	// The hooks run before the SSH that does not answer; their text stays in the line of what was kept.
+	jobs.cleanup("docker", () => "nothing to clean");
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: docker: nothing to clean; kept its worktree, branch and record: ${UNREACHABLE}`]);
 	rmSync(join(machine, "refuse"));
 	writeFileSync(join(worktree, "notes.txt"), "not committed\n");
 	assert.deepEqual(await jobs.prune([job.id]), [
-		`${job.id}: kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree: fatal: '${worktree}' contains modified or untracked files, use --force to delete it`,
+		`${job.id}: docker: nothing to clean; kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree: fatal: '${worktree}' contains modified or untracked files, use --force to delete it`,
 	]);
 	assert.deepEqual([existsSync(join(worktree, "notes.txt")), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [true, true, true]);
 	const other = jobRunner(home, there, join(there, "env"), { timeoutMinutes: 1, budgetUsd: 1, idleMinutes: 1, offlineGraceMinutes: 1, unsandboxed: true, ...jobSlice }, "omp", clock("UTC", undefined), eventBus(home), () => []);

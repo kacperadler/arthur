@@ -162,15 +162,19 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 
 test("jobs.cleanup: the hooks in setup order right before the worktree goes, their texts first in the line; a throw or the time limit is a notice and the worktree goes; a kept job calls none; a later prune calls them again", async () => {
 	const { root, home, jobs } = setup();
-	const [job, busy] = [await worker(jobs, home), await worker(jobs, home)];
+	const [job, busy, dirty] = [await worker(jobs, home), await worker(jobs, home), await worker(jobs, home)];
 	const seen: string[] = [];
-	jobs.cleanup("docker", (each) => (seen.push(`docker ${each.id} ${each.machine} ${existsSync(each.worktree)}`), each.id === job.id ? " 2 containers removed " : undefined));
+	jobs.cleanup("docker", (each) => (seen.push(`docker ${each.id} ${each.machine} ${existsSync(each.worktree)}`), " 2 containers removed "));
 	jobs.cleanup("broken", () => {
 		seen.push("broken");
 		throw new Error("the daemon is down");
 	});
 	jobs.cleanup("slow", () => (seen.push("slow"), new Promise<string>(() => {})), 50);
+	// Nothing to say, or only blanks: no part in the line.
+	jobs.cleanup("quiet", () => void seen.push("quiet"));
+	jobs.cleanup("blank", async () => (seen.push("blank"), " \n"));
 	jobs.cleanup("last", async (each) => (seen.push("last"), `${each.kind} ${each.state} ${each.branch}`));
+	const calls = (id: string, there: boolean) => [`docker ${id} local ${there}`, "broken", "slow", "quiet", "blank", "last"];
 	// Kept before anything is removed: a job not ended, and a worktree whose config may name a program.
 	writeFileSync(join(home, "jobs", busy.id, "state"), "working");
 	git(root, "config", "filter.x.clean", "cat");
@@ -179,18 +183,24 @@ test("jobs.cleanup: the hooks in setup order right before the worktree goes, the
 	assert.deepEqual([planted[1], seen], [`${busy.id}: kept: it is working (finished), not ended`, []]);
 	git(root, "config", "--unset", "filter.x.clean");
 	git(job.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "work");
-	const [line = ""] = await jobs.prune([job.id]);
-	const hooks = `docker: 2 containers removed; last: worker ended arthur/${job.id}`;
-	assert.match(line, new RegExp(`^${job.id}: ${hooks}; worktree ${job.worktree} removed; kept branch arthur/${job.id} and the record: git branch: `));
-	assert.deepEqual(seen, [`docker ${job.id} local true`, "broken", "slow", "last"]);
-	const notice = (owner: string, why: string) => ({ text: `prune of job ${job.id} on machine local: ${owner}'s cleanup gave up: ${why}; the prune went on without it` });
-	await until("both notices", () => events(home, "notice").length === 2);
-	assert.deepEqual(events(home, "notice"), [notice("broken", "the daemon is down"), notice("slow", "no answer within 0.05 s")]);
+	writeFileSync(join(dirty.worktree, "notes.txt"), "not committed\n");
+	const hooks = (id: string) => `docker: 2 containers removed; last: worker ended arthur/${id}`;
+	const [line = "", kept = ""] = await jobs.prune([job.id, dirty.id]);
+	assert.match(line, new RegExp(`^${job.id}: ${hooks(job.id)}; worktree ${job.worktree} removed; kept branch arthur/${job.id} and the record: git branch: `));
+	// Git keeps a worktree with changes after the hooks ran; their texts stay in the line.
+	assert.equal(kept, `${dirty.id}: ${hooks(dirty.id)}; kept its worktree, branch and record: git worktree: fatal: '${dirty.worktree}' contains modified or untracked files, use --force to delete it`);
+	assert.deepEqual(seen, [...calls(job.id, true), ...calls(dirty.id, true)]);
+	const notices = (id: string) => [
+		{ text: `prune of job ${id} on machine local: broken's cleanup gave up: the daemon is down; the prune went on without it` },
+		{ text: `prune of job ${id} on machine local: slow's cleanup gave up: no answer within 0.05 s; the prune went on without it` },
+	];
+	await until("four notices", () => events(home, "notice").length === 4);
+	assert.deepEqual(events(home, "notice"), [...notices(job.id), ...notices(dirty.id)]);
 	// Once merged, the next prune runs every hook again, the worktree already gone.
 	git(root, "merge", "--quiet", "--ff-only", `arthur/${job.id}`);
-	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: ${hooks}; branch arthur/${job.id} deleted; record deleted`]);
-	assert.deepEqual(seen.slice(4), [`docker ${job.id} local false`, "broken", "slow", "last"]);
-	assert.equal(events(home, "notice").length, 4);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: ${hooks(job.id)}; branch arthur/${job.id} deleted; record deleted`]);
+	assert.deepEqual(seen.slice(12), calls(job.id, false));
+	assert.equal(events(home, "notice").length, 6);
 });
 
 test("arthur prune keeps a job's worktree, branch and record while the worktree reads a key that may name a program, from the shared config or its own", async () => {

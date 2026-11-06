@@ -4192,9 +4192,9 @@
   {
     "id": "AR0528",
     "title": "Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0528-who-did-it-an-actor-stamp-on-every-event-and-events-for-commands-phone-commands/ticket.md",
-    "updated": "2026-11-06T15:04:45.471Z"
+    "updated": "2026-11-06T19:01:49.578Z"
   },
   {
     "id": "AR0529",
@@ -5239,9 +5239,9 @@
   {
     "id": "AR0650",
     "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
-    "updated": "2026-11-06T08:46:53.226Z",
+    "updated": "2026-11-06T19:08:49.566Z",
     "after": [
       "AR0649"
     ]

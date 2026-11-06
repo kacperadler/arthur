@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/job-place.ts:21`
 - What: the comment above `guardedPlaces` says the guarded install folder is "`node_modules` of an install from npm". Under the approved AR0128 plan (AR-D514) Arthur is never installed from npm, and the plan's "Not available directly" shows such an install does not start (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`). AR0639's Scope leaves code out, so the comment stays.
 - Suggestion: drop the clause `` `node_modules` of an install from npm`` from the comment, in entry 106's ticket (installing a release), which touches the install anyway. The code does not change.
-- Status: open
+- Status: deferred (client summary)

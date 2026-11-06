@@ -5185,9 +5185,9 @@
   {
     "id": "AR0644",
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T23:02:06.676Z"
+    "updated": "2026-11-06T23:58:03.455Z"
   },
   {
     "id": "AR0645",

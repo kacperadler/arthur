@@ -70,7 +70,8 @@ test("the job's launch guards the config's folder and the env file core.envFile 
 	const root = repository(CONFIG.replace('timeZone: "UTC"', `timeZone: "UTC", envFile: "../secrets", agent: { command: ${JSON.stringify(agent)} }`));
 	const run = arthur(root, "spawn", "Go.");
 	assert.equal(run.status, 0, run.stderr);
-	await until("job-ended", () => readEvents(join(root, ".arthur"), 1).find((event) => event.name === "job-ended"));
+	const ended = await until("job-ended", () => readEvents(join(root, ".arthur"), 1).find((event) => event.name === "job-ended"));
+	assert.deepEqual(ended.by, { actor: `job:${run.stdout.trim()}` }, "the wrapper stamps its own events as the job's");
 	assert.deepEqual(readFileSync(`${agent}.guarded`, "utf8").split("\n").slice(0, 2), [`config ${root}`, `env ${join(dirname(root), "secrets")}`]);
 	assert.equal(existsSync(join(root, ".arthur/jobs", run.stdout.trim(), "guarded")), false);
 });

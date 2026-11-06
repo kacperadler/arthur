@@ -4201,7 +4201,7 @@
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
     "status": "in-progress",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-06T20:58:45.992Z",
+    "updated": "2026-11-06T21:46:18.310Z",
     "after": [
       "AR0528"
     ]

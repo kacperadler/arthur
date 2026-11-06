@@ -71,14 +71,15 @@ test("an end whose seq the file already holds is skipped, as a replay after a cr
 	const event = box.end(W1);
 	await later.plugin.start?.();
 	assert.deepEqual(box.runs().map((line) => line.seq), [event.seq], "the replayed end is not written again");
-	const runs = join(box.fake.host.folder, "runs.jsonl");
-	writeFileSync(runs, `${readFileSync(runs, "utf8")}{"seq":${event.seq + 50},"job":"`);
-	const third = await load(box.fake);
-	await third.plugin.start?.();
-	const next = box.end(W1);
-	assert.equal(readFileSync(runs, "utf8").split("\n").at(-2), JSON.stringify(third.runs().at(-1)));
-	assert.deepEqual(third.runs().at(-1)?.seq, next.seq, "the cut line counts no seq");
-	assert.equal(third.runs().at(-1)?.cost, 0, "the earlier line still counts for the job");
+	// A crash cut the last line: it is skipped, its seq counts for nothing, and the next line starts on a line of its own.
+	const torn = await load();
+	const runs = join(torn.fake.host.folder, "runs.jsonl");
+	writeFileSync(runs, `{"job":"${W1}","seconds":60,"cost":0.5,"usage":{},"backfill":true}\n{"seq":90,"job":"`);
+	job(torn.fake, W1);
+	await torn.plugin.start?.();
+	const next = torn.end(W1);
+	assert.deepEqual(readFileSync(runs, "utf8").split("\n").slice(1), [`{"seq":90,"job":"`, JSON.stringify(torn.runs().at(-1)), ""]);
+	assert.deepEqual([torn.runs().at(-1)?.seq, torn.runs().at(-1)?.cost], [next.seq, 0], "written, and the backfill line still counts for the job");
 });
 
 test("an end whose record is gone gives a missing line", async () => {
@@ -93,6 +94,7 @@ test("the first start backfills every record whose run is over, once; the ends h
 	job(box.fake, W1, { usage: JSON.stringify({ "anthropic/m1": usage(10, 2, 0.5) }) });
 	job(box.fake, W2, { kind: "review", state: "blocked", reason: "user: which?", since: "2026-11-05T09:00:00.000Z", ran: "12", cost: "0.1000", task: "Review" });
 	job(box.fake, W3, { state: "working" });
+	job(box.fake, "2026-11-06-worker-0000000e", { state: "idle" });
 	job(box.fake, "2026-11-06-worker-0000000d", { state: "blocked", reason: "dependency: x", hold: "x" });
 	box.end(W1);
 	await box.plugin.start?.();

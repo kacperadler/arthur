@@ -36,4 +36,5 @@ Out:
 - Deleting apps, databases, compose services.
 
 ## Decisions
+- 2026-11-06: AR0654 approved and joins the queue after AR0603; the owner: "AR0603 and AR0654 approved and join the queue" (AR-D524)
 

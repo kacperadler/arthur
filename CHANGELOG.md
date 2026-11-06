@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0558 GitHub T2: create, comment on and close pull requests (f579072f)
+- AR0559 GitHub T3: list, read, create, comment on, label and close issues (999ed4be)
 
 ### Changed
 

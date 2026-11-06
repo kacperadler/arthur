@@ -4461,9 +4461,9 @@
   {
     "id": "AR0559",
     "title": "GitHub T3: list, read, create, comment on, label and close issues",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0559-github-t3-list-read-create-comment-on-label-and-close-issues/ticket.md",
-    "updated": "2026-11-05T23:42:12.294Z",
+    "updated": "2026-11-06T00:36:44.464Z",
     "after": [
       "AR0558"
     ]

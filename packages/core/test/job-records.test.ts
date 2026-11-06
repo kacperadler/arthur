@@ -122,6 +122,8 @@ test("host.jobs.list(): a usage file that is broken or not an object is {}; a fi
 		["[{\"input\": 1}]", {}],
 		["null", {}],
 		["7", {}],
+		['"ab"', {}],
+		["true", {}],
 		["{}", {}],
 		['{"a/b": {"input": "9", "output": 2, "cost": null, "messages": 1e999}, "c/d": 5, "e/f": null}', { "a/b": { ...zero, output: 2 }, "c/d": zero, "e/f": zero }],
 	] as const;

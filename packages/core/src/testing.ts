@@ -18,6 +18,8 @@ import type { Host, Options, Plugin, Provider, SpawnCheck } from "./plugin.ts";
 import { pluginHost, registry } from "./plugin-host.ts";
 import { checkPieces } from "./project-pieces.ts";
 export { until } from "./until.ts";
+import type { AgentRun } from "./fake-agent.ts";
+export type { AgentRun, AgentStep } from "./fake-agent.ts";
 
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process (`--import`) as the safety net: its environment (test-env.ts) keeps live variables, folders and identities out of reach, so no test reaches
 // a live bot, token or tmux server; `omp` on `PATH` is the fake agent with no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
@@ -36,24 +38,6 @@ process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test
 export function temporaryFolder(): string {
 	return mkdtempSync(join(root, "tmp", "folder-"));
 }
-
-// A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends` messages throw, the next `dropSends` sent while idle
-// are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`; with `clock`, a file, `Date.now()` in the agent and its extensions answers the
-// time in ms it holds while it exists, so a test moves time. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag.
-// `message`: an assistant message that ends a turn, with its `cost` in USD, its `usage` in tokens and its `model` (default `fake`, provider `anthropic`); `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` a
-// failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while idle, busy `compactMs` by `Date.now()` first (omp's compaction before it), after its
-// `before_agent_start` handlers; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a row at most) or, with `continues`, says it goes on and starts none (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
-export type AgentStep =
-	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
-	| { readonly message: string; readonly cost?: number; readonly usage?: { readonly [key in "input" | "output" | "cacheRead" | "cacheWrite"]?: number }; readonly model?: string; readonly stopReason?: "stop" | "toolUse" | "error" | "aborted"; readonly error?: string }
-	| { readonly prompt: true; readonly compactMs?: number }
-	| { readonly end: true; readonly continues?: true }
-	| { readonly stdout: string }
-	| { readonly stderr: string }
-	| { readonly waitFor: string }
-	| { readonly signal: NodeJS.Signals };
-
-export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number; readonly compactError?: string; readonly clock?: string };
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
 // (`pid`, `cwd`, `args`) in `starts.jsonl` beside it once its `-e` extensions are loaded, each message they send (`content`, `options`, `step`) in

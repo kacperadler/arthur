@@ -524,6 +524,7 @@ test("a drop ends the hand-back of its ticket's worker, which goes with its bran
 	const said: string[] = [];
 	t.mock.method(console, "log", (text: string) => void said.push(text));
 	fake.host.board.move("AC0002", "dropped");
+	await until("the drop's lines", () => said.length > 0);
 	t.mock.restoreAll();
 	assert.ok(said.includes(`delivery: AC0002 dropped: ${one.branch} deleted, not merged: AC0002 is dropped`), said.join("\n"));
 	assert.deepEqual([step(one.id), field(one.id, "state"), git(root, "branch", "--list", one.branch), reviews(fake)], [undefined, undefined, "", []]);
@@ -554,6 +555,7 @@ test("a review in its run when its ticket is dropped is kept, then pruned when i
 	const id = said[0] ?? "";
 	const checkout = readFileSync(join(home, "jobs", id, "worktree"), "utf8");
 	fake.host.board.move("AC0002", "dropped");
+	await until("the drop's lines", () => said.some((line) => line.includes(" dropped: ")));
 	assert.ok(said.includes(`delivery: AC0002 dropped: ${id}: kept: it is in a run; once it ends, delivery prunes it, its branch too`), said.join("\n"));
 	assert.ok(said.includes(`delivery: AC0002 dropped: ${one.branch} deleted, not merged: AC0002 is dropped`), said.join("\n"));
 	const failed: string[] = [];

@@ -184,7 +184,7 @@ test("jobs.cleanup: the hooks in setup order right before the worktree goes, the
 	assert.match(line, new RegExp(`^${job.id}: ${hooks}; worktree ${job.worktree} removed; kept branch arthur/${job.id} and the record: git branch: `));
 	assert.deepEqual(seen, [`docker ${job.id} local true`, "broken", "slow", "last"]);
 	const notice = (owner: string, why: string) => ({ text: `prune of job ${job.id} on machine local: ${owner}'s cleanup gave up: ${why}; the prune went on without it` });
-	await until("both notices", () => events(home, "notice").length === 2 || undefined);
+	await until("both notices", () => events(home, "notice").length === 2);
 	assert.deepEqual(events(home, "notice"), [notice("broken", "the daemon is down"), notice("slow", "no answer within 0.05 s")]);
 	// Once merged, the next prune runs every hook again, the worktree already gone.
 	git(root, "merge", "--quiet", "--ff-only", `arthur/${job.id}`);

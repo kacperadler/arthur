@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { once } from "node:events";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeHost } from "@arthur/core/testing";
 import { type DokployOptions, dokploy } from "../src/dokploy.ts";
-import { type FakeDeployment, fakeDokploy, SECRETS, TOKEN, trpcError } from "./fake-dokploy.ts";
+import { type FakeDeployment, fakeDokploy, readZip, SECRETS, type Seen, TOKEN, trpcError } from "./fake-dokploy.ts";
 
 // The dokploy plugin on the fake host, against two fake Dokploy servers: the unnamed instance answering as Dokploy
 // v0.30.10, `client` as the documentation's example. docs/commands/dokploy.md.
 
 const CLIENT_TOKEN = "cl1entT0kenN3verPr1ntedcl1entT0kenN3verPr1ntedcl1entT0kenN3verPr1nt";
-const USAGE = "usage: arthur dokploy apps [--instance <name>]|app [<app>] [--instance <name>]|status [<app>] [--instance <name>]; --project <name> for another project than the main one";
+const USAGE = "usage: arthur dokploy apps|app [<app>]|status [<app>]|upload [<app>] <file or folder> [--replace-source]|deploy [<app>], each [--instance <name>]; --project <name> for another project than the main one";
 const NOTHING = "nothing was asked of Dokploy";
 const ENV = { ARTHUR_DOKPLOY_TOKEN: TOKEN, ARTHUR_DOKPLOY_CLIENT_TOKEN: CLIENT_TOKEN };
 
@@ -171,7 +176,10 @@ test("which instance: the project's, the unnamed one when it names none, --proje
 test("wrong usage prints the usage line and exits 2, asking nothing", async (t) => {
 	const { main, client, instances } = await servers(t);
 	const run = await load(t, { instances });
-	const wrong = [[], ["upload"], ["deploy"], ["apps", "x"], ["app", "a", "b"], ["status", "a", "b"], ["app", "--instance"], ["app", "--instance", "--project"], ["app", "--instance", "client", "--instance", "client"], ["app", "--all"], ["status", "-x"]];
+	const wrong = [[], ["apps", "x"], ["app", "a", "b"], ["status", "a", "b"], ["app", "--instance"], ["app", "--instance", "--project"], ["app", "--instance", "client", "--instance", "client"], ["app", "--all"], ["status", "-x"]];
+	// The writes: upload without a path or with a word too many, deploy with a word too many; --replace-source only on upload,
+	// once; a verb an object has by its prototype.
+	wrong.push(["upload"], ["upload", "a", "b", "c"], ["deploy", "a", "b"], ["deploy", "--replace-source"], ["app", "--replace-source"], ["upload", "dist", "--replace-source", "--replace-source"], ["toString"], ["constructor", "x"]);
 	for (const args of wrong) assert.deepEqual(await run(undefined, ...args), { code: 2, out: "", err: USAGE }, args.join(" "));
 	assert.deepEqual([main.seen, client.seen], [[], []]);
 });
@@ -231,4 +239,149 @@ test("refused at load, naming the option and the variable but never its value: a
 	for (const token of ["", `${TOKEN} `, `${TOKEN}\n`, `${TOKEN}é`])
 		assert.equal(await refusal(load(t, { instances }, { env: { ...ENV, ARTHUR_DOKPLOY_TOKEN: token } })), "instances[0].tokenEnv: ARTHUR_DOKPLOY_TOKEN is empty or holds a space or a character outside ASCII, which a header cannot carry");
 	assert.equal(await refusal(load(t, { instances }, { env: { ARTHUR_DOKPLOY_TOKEN: TOKEN } })), "instances[1].tokenEnv: ARTHUR_DOKPLOY_CLIENT_TOKEN is empty or holds a space or a character outside ASCII, which a header cannot carry", "a variable not set");
+});
+
+// The writes (AR0603) against a fake of their own: SHOP_WEB deploys from drop with deployments, SHOP_API from GitHub
+// without any, LIVE from GitHub with deployments, BUILT from drop under a build path the owner set.
+const LIVE = { id: "kXx3liveApi04", name: "Live API", status: "done", project: "Shop", environment: "production", sourceType: "github", deployments: [deployed(27, "done")] } as const;
+const BUILT = { id: "kXx3built05", name: "Built site", status: "done", project: "Shop", environment: "production", dropBuildPath: "apps/web" } as const;
+async function writes(t: TestContext) {
+	const main = await fakeDokploy(t, { apps: [SHOP_WEB, SHOP_API, LIVE, BUILT] });
+	const client = await fakeDokploy(t, { apps: [CLIENT_SITE], form: "documented", token: CLIENT_TOKEN });
+	const run = await load(t, { instances: [{ url: main.url, tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }, { name: "client", url: client.url, tokenEnv: "ARTHUR_DOKPLOY_CLIENT_TOKEN" }] });
+	return { main, client, run };
+}
+
+// A folder of the test's own, removed at its end, holding `files` by their path in it.
+function folder(t: TestContext, files: Readonly<Record<string, string | Buffer>> = {}) {
+	const root = mkdtempSync(join(tmpdir(), "arthur-dokploy-test-"));
+	t.after(() => rmSync(root, { recursive: true, force: true }));
+	for (const [name, data] of Object.entries(files)) {
+		mkdirSync(dirname(join(root, name)), { recursive: true });
+		writeFileSync(join(root, name), data);
+	}
+	return root;
+}
+
+// What a fake's last dropDeployment got: its form's fields, and its file, the zip.
+function dropped(seen: readonly Seen[]) {
+	const sent = seen.findLast(({ path }) => path === "/api/application.dropDeployment")?.sent;
+	const file = sent?.files.zip;
+	assert.ok(sent !== undefined && file !== undefined, "a dropDeployment with its zip");
+	return { fields: sent.fields, name: file.name, type: file.type, zip: file.bytes };
+}
+
+test("upload zips a folder's regular files at the zip's root, sends the zip to dropDeployment as a form, and says what went where and how to follow it", async (t) => {
+	const { main, run } = await writes(t);
+	const noise = randomBytes(300);
+	const site = folder(t, { "index.html": "<h1>Shop</h1>\n".repeat(40), "assets/app.js": "console.log('shop');\n", "assets/img/logo.bin": noise, "empty.txt": "", "é.txt": "é" });
+	mkdirSync(join(site, "assets", "unused"));
+	const { code, out, err } = await run(undefined, "upload", site);
+	const { fields, name, type, zip } = dropped(main.seen);
+	assert.deepEqual({ code, out, err }, { code: 0, out: `Shop web (kXx3shopWeb01) on instance (unnamed): sent 5 files, ${560 + 21 + 300 + 2} bytes, as a zip of ${zip.length} bytes; Dokploy queued a deployment; to follow it: arthur dokploy status`, err: "" });
+	assert.deepEqual(main.seen.map(({ method, path, key }) => [method, path, key]), [["GET", "/api/application.one", TOKEN], ["POST", "/api/application.dropDeployment", TOKEN]]);
+	assert.match(main.seen[1]?.type ?? "", /^multipart\/form-data; boundary=/);
+	assert.deepEqual([fields, name, type], [{ applicationId: SHOP_WEB.id }, "upload.zip", "application/zip"], "no dropBuildPath: the app has none");
+	const entries = readZip(zip);
+	assert.deepEqual(entries.map(({ name, method, mode }) => [name, method, mode]), [["assets/app.js", 0, 0o100644], ["assets/img/logo.bin", 0, 0o100644], ["empty.txt", 0, 0o100644], ["index.html", 8, 0o100644], ["é.txt", 0, 0o100644]], "deflated only when smaller; no folder entry");
+	assert.deepEqual(entries.map(({ data }) => data), [Buffer.from("console.log('shop');\n"), noise, Buffer.alloc(0), Buffer.from("<h1>Shop</h1>\n".repeat(40)), Buffer.from("é")]);
+	// One file: itself at the zip's root; the owner's build path sent back, so Dokploy keeps it.
+	const page = join(folder(t, { "page.html": "<p>hi</p>" }), "page.html");
+	assert.match((await run("shop", "upload", BUILT.id, page)).out, /^Built site \(kXx3built05\) on instance \(unnamed\): sent 1 file, 9 bytes, as a zip of \d+ bytes; Dokploy queued a deployment; to follow it: arthur dokploy status kXx3built05 --project shop$/);
+	const built = dropped(main.seen);
+	assert.deepEqual(built.fields, { applicationId: BUILT.id, dropBuildPath: "apps/web" });
+	assert.deepEqual(readZip(built.zip).map(({ name, data }) => [name, data.toString()]), [["page.html", "<p>hi</p>"]]);
+});
+
+test("upload sends a ready .zip as it is; a .zip that is no zip, or a zip by another name, goes inside a zip as a file", async (t) => {
+	const { main, client, run } = await writes(t);
+	assert.equal((await run(undefined, "upload", folder(t, { "a.txt": "a" }))).code, 0);
+	const { zip } = dropped(main.seen);
+	const files = folder(t, { "site.ZIP": zip, "notes.zip": "not a zip", "bundle.jar": zip });
+	assert.equal((await run("client", "upload", join(files, "site.ZIP"))).out, `Client site (cl1entSite) on instance client: sent site.ZIP as it is, ${zip.length} bytes; Dokploy queued a deployment; to follow it: arthur dokploy status --project client`);
+	assert.deepEqual(dropped(client.seen).zip, zip);
+	for (const name of ["notes.zip", "bundle.jar"]) {
+		assert.equal((await run("client", "upload", join(files, name))).code, 0, name);
+		assert.deepEqual(readZip(dropped(client.seen).zip).map((entry) => entry.name), [name]);
+	}
+});
+
+test("upload refuses before any request: a missing or unreadable path, a symlink, an empty folder, a symlink or special file inside, past 65535 files or 4 GiB", async (t) => {
+	const { main, client, run } = await writes(t);
+	const root = folder(t, { "site/index.html": "<h1>Shop</h1>", "secret.txt": "x", "site/sub/page.html": "p" });
+	const refused = async (path: string, why: string) => assert.equal(await refusal(run(undefined, "upload", path)), `${path}: ${why}; ${NOTHING}`, path);
+	await refused(join(root, "gone"), "cannot be read (ENOENT)");
+	symlinkSync(join(root, "site"), join(root, "link"));
+	await refused(join(root, "link"), "is a symlink; give the path it points to");
+	mkdirSync(join(root, "hollow", "inner"), { recursive: true });
+	await refused(join(root, "hollow"), "is a folder without any file");
+	symlinkSync("../../secret.txt", join(root, "site", "sub", "leak.txt"));
+	await refused(join(root, "site"), "sub/leak.txt is a symlink, not a regular file");
+	rmSync(join(root, "site", "sub", "leak.txt"));
+	symlinkSync(join(root, "nowhere"), join(root, "site", "dangling"));
+	await refused(join(root, "site"), "dangling is a symlink, not a regular file");
+	rmSync(join(root, "site", "dangling"));
+	execFileSync("mkfifo", [join(root, "site", "sub", "pipe")]);
+	await refused(join(root, "site"), "sub/pipe is a special file, not a regular file");
+	await refused(join(root, "site", "sub", "pipe"), "is no file or folder");
+	rmSync(join(root, "site", "sub", "pipe"));
+	if (process.getuid?.() !== 0) {
+		chmodSync(join(root, "secret.txt"), 0);
+		await refused(join(root, "secret.txt"), "cannot be read (EACCES)");
+		chmodSync(join(root, "site", "sub"), 0);
+		await refused(join(root, "site"), "cannot be read (EACCES)");
+		chmodSync(join(root, "site", "sub"), 0o700);
+	}
+	// The zip's size: every file stored as it is, a 30 and a 46 byte header and its name twice each, then 22 bytes.
+	const big = folder(t, { "big.bin": "" });
+	truncateSync(join(big, "big.bin"), 2 ** 32 - 112);
+	await refused(big, "its files come to 4294967296 bytes as a zip, more than the 4 GiB a zip without zip64 holds");
+	const halves = folder(t, { "a.bin": "", "b.bin": "" });
+	for (const name of ["a.bin", "b.bin"]) truncateSync(join(halves, name), 2 ** 31);
+	await refused(halves, `its files come to ${2 ** 32 + 2 * (76 + 10) + 22} bytes as a zip, more than the 4 GiB a zip without zip64 holds`);
+	assert.deepEqual([main.seen, client.seen], [[], []]);
+	// 65535 files go, one more is refused.
+	const many = folder(t);
+	for (let index = 0; index < 65536; index++) writeFileSync(join(many, `${index}`), "");
+	await refused(many, "holds 65536 files, more than the 65535 a zip holds");
+	assert.deepEqual([main.seen, client.seen], [[], []]);
+	rmSync(join(many, "0"));
+	assert.equal((await run(undefined, "upload", many)).code, 0);
+	assert.equal(readZip(dropped(main.seen).zip).length, 65535);
+});
+
+test("upload refuses an app that deploys from another source and has deployments, after reading it and before sending, unless --replace-source", async (t) => {
+	const { main, run } = await writes(t);
+	const site = folder(t, { "index.html": "<h1>Live</h1>" });
+	const switched = "deploys from github and has deployments; an upload makes it deploy from drop: add --replace-source for that; nothing was sent";
+	assert.equal(await refusal(run("shop", "upload", LIVE.id, site)), `Live API (kXx3liveApi04) on instance (unnamed) ${switched}`);
+	assert.deepEqual(main.seen.map(({ method, path }) => [method, path]), [["GET", "/api/application.one"]]);
+	assert.equal((await run("shop", "upload", LIVE.id, site, "--replace-source")).code, 0);
+	assert.equal(dropped(main.seen).fields.applicationId, LIVE.id);
+	assert.equal((await run("shop", "upload", SHOP_API.id, site)).code, 0, "from GitHub but never deployed: Dokploy's default source of a new app");
+	assert.equal(dropped(main.seen).fields.applicationId, SHOP_API.id);
+	// A server that leaves out the source or the deployments is taken as one that would be switched.
+	main.scripted.set("application.one", { status: 200, body: { applicationId: LIVE.id, name: "Odd" } });
+	assert.equal(await refusal(run("shop", "upload", LIVE.id, site)), `Odd (kXx3liveApi04) on instance (unnamed) deploys from unknown and has deployments; an upload makes it deploy from drop: add --replace-source for that; nothing was sent`);
+	assert.equal(main.seen.filter(({ path }) => path === "/api/application.dropDeployment").length, 2);
+});
+
+test("deploy posts the app's id to application.deploy as JSON, takes Dokploy's empty answer, and refuses as reads do", async (t) => {
+	const { main, client, run } = await writes(t);
+	assert.deepEqual(await run(undefined, "deploy"), { code: 0, out: "app kXx3shopWeb01 on instance (unnamed): Dokploy queued a deployment; to follow it: arthur dokploy status", err: "" });
+	assert.deepEqual(main.seen.map(({ method, path, key, type, sent }) => [method, path, key, type, sent?.fields]), [["POST", "/api/application.deploy", TOKEN, "application/json", { applicationId: SHOP_WEB.id }]]);
+	assert.equal((await run(undefined, "deploy", CLIENT_SITE.id, "--instance", "client")).out, "app cl1entSite on instance client: Dokploy queued a deployment; to follow it: arthur dokploy status cl1entSite --instance client");
+	assert.equal(await refusal(run(undefined, "deploy", "kXx3gone", "--instance", "client")), "instance client: 404: app kXx3gone not found");
+	main.scripted.set("application.deploy", trpcError(403, "FORBIDDEN", "You don't have access to this service", "application.deploy"));
+	assert.equal(await refusal(run(undefined, "deploy")), "instance (unnamed): 403: the token's user may not change app kXx3shopWeb01: You don't have access to this service");
+	main.scripted.set("application.deploy", "not-json");
+	assert.equal(await refusal(run(undefined, "deploy")), "instance (unnamed): the answer for app kXx3shopWeb01 is not JSON");
+	// Only a write's answer may be empty.
+	main.scripted.set("application.one", "empty");
+	assert.equal(await refusal(run(undefined, "app")), "instance (unnamed): the answer for app kXx3shopWeb01 is not JSON");
+	const before = [main.seen.length, client.seen.length];
+	const ambiguous = `dokploy has 2 instances ((unnamed), client) and the call names none: add --instance <name>, or --project <name> of a project with dokploy.project(...); ${NOTHING}`;
+	assert.equal(await refusal(run(undefined, "deploy", SHOP_API.id)), ambiguous);
+	assert.equal(await refusal(run(undefined, "upload", SHOP_API.id, "/nowhere")), ambiguous);
+	assert.deepEqual([main.seen.length, client.seen.length], before);
 });

@@ -1,27 +1,32 @@
-import { call, field, ID, type Instance, text } from "./dokploy-api.ts";
+import { call, field, ID, type Instance, NOTHING, text } from "./dokploy-api.ts";
+import { zipOf } from "./dokploy-zip.ts";
 
-// `arthur dokploy apps|app|status` (AR0588): the projects, applications and deployments of the owner's Dokploy servers,
-// read on the instance a call names or a project's `dokploy.project(...)` picks: docs/commands/dokploy.md. Every refusal
-// comes before the first request, so a refused call asks Dokploy nothing.
+// `arthur dokploy apps|app|status|upload|deploy` (AR0588, AR0603): the projects, applications and deployments of the owner's
+// Dokploy servers, on the instance a call names or a project's `dokploy.project(...)` picks, and an upload or a deploy, on
+// the owner's word: docs/commands/dokploy.md. Every refusal comes before the first request, so a refused call asks Dokploy nothing.
 
 // A project of the list, and what its `dokploy.project(...)` names: the instance and the application's id.
 export type Deployed = { readonly name: string; readonly app: { readonly instance: Instance; readonly id: string } | undefined };
 
-const USAGE = "usage: arthur dokploy apps [--instance <name>]|app [<app>] [--instance <name>]|status [<app>] [--instance <name>]; --project <name> for another project than the main one";
-const NOTHING = "nothing was asked of Dokploy";
+const USAGE = "usage: arthur dokploy apps|app [<app>]|status [<app>]|upload [<app>] <file or folder> [--replace-source]|deploy [<app>], each [--instance <name>]; --project <name> for another project than the main one";
+// What a verb takes after it, at most; `upload` takes its path, and one word more for the app.
+const TAKES: Readonly<Record<string, number>> = { apps: 0, app: 1, status: 1, upload: 2, deploy: 1 };
 // How many deployments `status` shows, the newest first.
 const SHOWN = 5;
 
 // Writes its output; a refusal throws, wrong usage is exit code 2.
 export async function dokployCommand(servers: readonly Instance[], projects: readonly Deployed[], args: readonly string[], name: string | undefined): Promise<number> {
 	const [words, named] = [[] as string[], [] as string[]];
+	let replace = 0;
 	for (let index = 0; index < args.length; index++) {
 		if (args[index] === "--instance") named.push(args[++index] ?? "");
+		else if (args[index] === "--replace-source") replace++;
 		else words.push(args[index] ?? "");
 	}
 	const [verb = "", ...rest] = words;
-	const takes = verb === "apps" ? 0 : verb === "app" || verb === "status" ? 1 : -1;
-	if (takes < 0 || rest.length > takes || named.length > 1 || [...rest, ...named].some((word) => word === "" || word.startsWith("-"))) {
+	const takes = Object.hasOwn(TAKES, verb) ? (TAKES[verb] ?? -1) : -1;
+	const wrong = rest.length > takes || (verb === "upload" && rest.length === 0) || replace > (verb === "upload" ? 1 : 0);
+	if (takes < 0 || wrong || named.length > 1 || [...rest, ...named].some((word) => word === "" || word.startsWith("-"))) {
 		console.error(USAGE);
 		return 2;
 	}
@@ -29,9 +34,30 @@ export async function dokployCommand(servers: readonly Instance[], projects: rea
 	const asked = named[0] === undefined ? undefined : servers.find((each) => each.name === named[0]);
 	if (named[0] !== undefined && asked === undefined) throw new Error(`--instance ${text(named[0])} is not an instance of dokploy; its instances: ${names}; ${NOTHING}`);
 	if (verb === "apps") return apps(asked === undefined ? servers : [asked]);
-	const [instance, id] = target(servers, projects, name, asked, rest[0]);
+	const app = verb === "upload" ? rest.slice(0, -1)[0] : rest[0];
+	const [instance, id] = target(servers, projects, name, asked, app);
+	// The call that shows how a write goes on, picking the app the way this one did.
+	const next = ["arthur dokploy status", app && id, named[0] && `--instance ${named[0]}`, name && `--project ${name}`].filter(Boolean).join(" ");
+	if (verb === "deploy") {
+		await call(instance, "application.deploy", {}, `app ${id}`, { applicationId: id });
+		console.log(`app ${id} on instance ${instance.label}: Dokploy queued a deployment; to follow it: ${next}`);
+		return 0;
+	}
+	const upload = verb === "upload" ? zipOf(rest.at(-1) ?? "") : undefined;
 	const item = await call(instance, "application.one", { applicationId: id }, `app ${id}`);
 	const heading = `${text(field(item, "name"))} (${id}) on instance ${instance.label}`;
+	if (upload !== undefined) {
+		// Dokploy's dropDeployment makes the app's source `drop`, and its build path the one sent, else "".
+		const [source, ran, kept] = [text(field(item, "sourceType")), field(item, "deployments"), field(item, "dropBuildPath")];
+		if (source !== "drop" && !(Array.isArray(ran) && ran.length === 0) && replace === 0) throw new Error(`${heading} deploys from ${source} and has deployments; an upload makes it deploy from drop: add --replace-source for that; nothing was sent`);
+		const form = new FormData();
+		form.set("applicationId", id);
+		form.set("zip", new Blob([upload.zip], { type: "application/zip" }), "upload.zip");
+		if (typeof kept === "string") form.set("dropBuildPath", kept);
+		await call(instance, "application.dropDeployment", {}, `app ${id}`, form);
+		console.log(`${heading}: sent ${upload.said}; Dokploy queued a deployment; to follow it: ${next}`);
+		return 0;
+	}
 	if (verb === "app") {
 		const environment = field(item, "environment");
 		const domains = field(item, "domains");

@@ -1,7 +1,9 @@
+import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { TestContext } from "node:test";
+import { crc32, inflateRawSync } from "node:zlib";
 
 // The fake Dokploy the dokploy tests share: a `node:http` server on a port the OS picks, answering as Dokploy v0.30.10
 // does, every field of each answer that test/dokploy-shapes.json records, or `project.all` as the documentation's example.
@@ -22,10 +24,16 @@ export type FakeApp = {
 	readonly sourceType?: string;
 	readonly domains?: readonly { readonly host: string; readonly https: boolean; readonly path?: string }[];
 	readonly deployments?: readonly FakeDeployment[];
+	readonly dropBuildPath?: string;
 };
-// What a procedure answers in place of its own: a status and body, a redirect to `location`, no answer at all, or text that is not JSON.
-export type Scripted = { readonly status: number; readonly body: unknown } | { readonly redirect: string } | "hang" | "not-json";
-export type Seen = { readonly method: string; readonly path: string; readonly query: Readonly<Record<string, string>>; readonly key: string | undefined };
+// What a procedure answers in place of its own: a status and body, a redirect to `location`, no answer at all, text that is not
+// JSON, or a 200 with no body.
+export type Scripted = { readonly status: number; readonly body: unknown } | { readonly redirect: string } | "hang" | "not-json" | "empty";
+// A request's body as Dokploy's REST handler reads it: JSON only under exactly `application/json` (co-body), a form under
+// `multipart/form-data` (Request.formData), else nothing; `fields` its JSON keys or form fields, `files` a form's files.
+export type Sent = { readonly fields: Readonly<Record<string, unknown>>; readonly files: Readonly<Record<string, { readonly name: string; readonly type: string; readonly bytes: Buffer }>> };
+// A request: `type` the Content-Type a POST came with, and `sent` its body.
+export type Seen = { readonly method: string; readonly path: string; readonly query: Readonly<Record<string, string>>; readonly key: string | undefined; readonly type?: string; readonly sent?: Sent };
 
 const DAY = "2026-10-30";
 const environmentId = (project: string, environment: string) => `env-${project}-${environment}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
@@ -58,7 +66,7 @@ function applicationRecord(app: FakeApp) {
 		...{ gitlabProjectId: null, gitlabRepository: null, gitlabOwner: null, gitlabBranch: null, gitlabBuildPath: "/", gitlabPathNamespace: null, giteaRepository: null, giteaOwner: null, giteaBranch: null },
 		...{ giteaBuildPath: "/", bitbucketRepository: null, bitbucketRepositorySlug: null, bitbucketOwner: null, bitbucketBranch: null, bitbucketBuildPath: "/", username: "deploy", password: "s3cr3t-registry" },
 		...{ dockerImage: null, registryUrl: null, customGitUrl: null, customGitBranch: null, customGitBuildPath: null, customGitSSHKeyId: null, enableSubmodules: false, dockerfile: null, dockerContextPath: null },
-		...{ dockerBuildStage: null, dropBuildPath: null, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null, rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null },
+		...{ dockerBuildStage: null, dropBuildPath: app.dropBuildPath ?? null, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null, rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null },
 		...{ networkSwarm: null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, applicationStatus: app.status, buildType: "nixpacks", railpackVersion: "0.2.2", herokuVersion: "24" },
 		...{ publishDirectory: null, isStaticSpa: null, createEnvFile: true, createdAt: `${DAY}T08:00:00.000Z`, registryId: null, rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment) },
 		...{ githubId: null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: null, buildServerId: null, buildRegistryId: null, networkIds: [], detachDokployNetwork: false },
@@ -97,31 +105,87 @@ function documentedRecord(apps: readonly FakeApp[]) {
 
 // tRPC's error as Dokploy's REST handler sends it (@dokploy/trpc-openapi): its shape, with Dokploy's errorFormatter's `zodError`.
 export const trpcError = (status: number, code: string, message: string, path: string) => ({ status, body: { message, code, data: { code, httpStatus: status, path, zodError: null } } });
+// The same for input zod refuses: `issues`, and errorFormatter's flattened `zodError`, naming each field.
+const inputError = (path: string, fields: readonly string[]) => {
+	const { body } = trpcError(400, "BAD_REQUEST", "Input validation failed", path);
+	const fieldErrors = Object.fromEntries(fields.map((each) => [each, ["Required"]]));
+	return { ...body, data: { ...body.data, zodError: { formErrors: [], fieldErrors } }, issues: fields.map((each) => ({ code: "invalid_type", expected: "string", received: "undefined", path: [each], message: "Required" })) };
+};
+
+async function bodyOf(request: IncomingMessage, type: string): Promise<Sent> {
+	const raw = Buffer.concat(await request.toArray());
+	// co-body refuses a body that is no JSON; its fields are then none, so zod refuses the input.
+	if (type === "application/json") return { fields: ((text) => { try { return JSON.parse(text); } catch { return {}; } })(raw.toString("utf8")), files: {} };
+	if (!type.startsWith("multipart/form-data")) return { fields: {}, files: {} };
+	const form = [...(await new Response(raw, { headers: { "content-type": type } }).formData())];
+	const files = await Promise.all(form.flatMap(([key, value]) => (typeof value === "string" ? [] : [(async () => [key, { name: value.name, type: value.type, bytes: Buffer.from(await value.arrayBuffer()) }] as const)()])));
+	return { fields: Object.fromEntries(form.filter(([, value]) => typeof value === "string")), files: Object.fromEntries(files) };
+}
+
+// The entries of a zip read back the way an unzip does, from the end of central directory: each central header checked
+// against its local header, the data inflated or stored, its CRC-32 and size checked; no byte left over between them.
+export function readZip(zip: Buffer): { readonly name: string; readonly method: number; readonly mode: number; readonly data: Buffer }[] {
+	const end = zip.length - 22;
+	assert.equal(zip.readUInt32LE(end), 0x06054b50, "the end of central directory, with no comment");
+	const [count, size, start] = [zip.readUInt16LE(end + 10), zip.readUInt32LE(end + 12), zip.readUInt32LE(end + 16)];
+	assert.equal(zip.readUInt16LE(end + 8), count, "the entries on this disk are all of them");
+	assert.equal(start + size, end, "the central directory ends where its end record starts");
+	const entries = [];
+	let [at, next] = [start, 0];
+	for (let index = 0; index < count; index++) {
+		assert.equal(zip.readUInt32LE(at), 0x02014b50, `central header ${index}`);
+		const [flags, method, crc, packed, length, nameLength] = [zip.readUInt16LE(at + 8), zip.readUInt16LE(at + 10), zip.readUInt32LE(at + 16), zip.readUInt32LE(at + 20), zip.readUInt32LE(at + 24), zip.readUInt16LE(at + 28)];
+		const [extra, comment, local] = [zip.readUInt16LE(at + 30), zip.readUInt16LE(at + 32), zip.readUInt32LE(at + 42)];
+		const name = zip.subarray(at + 46, at + 46 + nameLength);
+		assert.deepEqual([flags, extra, comment, local], [0x0800, 0, 0, next], `central header ${index}: UTF-8 names, no extra field or comment, right after the last entry`);
+		assert.equal(zip.readUInt32LE(local), 0x04034b50, `local header ${index}`);
+		const fields = [zip.readUInt16LE(local + 6), zip.readUInt16LE(local + 8), zip.readUInt32LE(local + 14), zip.readUInt32LE(local + 18), zip.readUInt32LE(local + 22), zip.readUInt16LE(local + 26), zip.readUInt16LE(local + 28)];
+		assert.deepEqual(fields, [flags, method, crc, packed, length, nameLength, 0], `local header ${index} agrees with its central header`);
+		assert.deepEqual(zip.subarray(local + 30, local + 30 + nameLength), name);
+		const body = zip.subarray(local + 30 + nameLength, local + 30 + nameLength + packed);
+		const data = method === 8 ? inflateRawSync(body) : method === 0 ? Buffer.from(body) : assert.fail(`method ${method}`);
+		assert.deepEqual([crc32(data), data.length], [crc, length], `${name}: its CRC-32 and size`);
+		entries.push({ name: name.toString("utf8"), method, mode: zip.readUInt32LE(at + 38) >>> 16, data });
+		[at, next] = [at + 46 + nameLength, local + 30 + nameLength + packed];
+	}
+	assert.deepEqual([at, next], [end, start], "nothing between the entries, the central directory and its end");
+	return entries;
+}
 
 // The fake, with `apps` on it, and `empty` projects without any; `form` the `project.all` it answers; `scripted` what a
 // procedure answers instead of its own, changed by a test as it goes. `seen`: every request, in order.
 export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeApp[], empty = [] as readonly string[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {}) {
 	const [seen, scripted] = [[] as Seen[], new Map<string, Scripted>()];
 	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
-	const fake = createServer((request: IncomingMessage, response: ServerResponse) => {
+	const fake = createServer(async (request: IncomingMessage, response: ServerResponse) => {
 		const url = new URL(request.url ?? "/", "http://localhost");
-		const key = request.headers["x-api-key"];
-		seen.push({ method: request.method ?? "", path: url.pathname, query: Object.fromEntries(url.searchParams), key: typeof key === "string" ? key : undefined });
+		const [key, type] = [request.headers["x-api-key"], request.headers["content-type"]];
+		const sent = request.method === "POST" ? await bodyOf(request, type ?? "") : undefined;
+		seen.push({ method: request.method ?? "", path: url.pathname, query: Object.fromEntries(url.searchParams), key: typeof key === "string" ? key : undefined, ...(request.method === "POST" ? { type, sent } : {}) });
 		// pages/api/[...trpc].ts: no session for the key, before any procedure.
 		if (key !== token) return send(response, 401, { message: "Unauthorized" });
 		const procedure = url.pathname.replace(/^.*\/api\//, "");
 		const script = scripted.get(procedure);
 		if (script === "hang") return;
 		if (script === "not-json") return response.writeHead(200, { "Content-Type": "text/html" }).end("<!DOCTYPE html><title>Dokploy</title>");
+		if (script === "empty") return response.writeHead(200, { "Content-Type": "application/json" }).end();
 		if (script !== undefined && "redirect" in script) return response.writeHead(302, { Location: script.redirect }).end();
 		if (script !== undefined) return send(response, script.status, script.body);
-		const app = apps.find((each) => each.id === url.searchParams.get("applicationId"));
+		const asked = request.method === "POST" ? sent?.fields.applicationId : url.searchParams.get("applicationId");
+		const app = apps.find((each) => each.id === asked);
+		const missing = app === undefined ? trpcError(404, "NOT_FOUND", "Application not found", procedure).body : undefined;
 		if (request.method === "GET" && procedure === "project.all") return send(response, 200, form === "documented" ? documentedRecord(apps) : projectsRecord(apps, empty));
-		if (request.method === "GET" && procedure === "application.one") {
-			if (app === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Application not found", procedure).body);
-			return send(response, 200, applicationRecord(app));
-		}
+		if (request.method === "GET" && procedure === "application.one") return missing === undefined ? send(response, 200, applicationRecord(app as FakeApp)) : send(response, 404, missing);
 		if (request.method === "GET" && procedure === "deployment.all") return send(response, 200, app === undefined ? [] : (app.deployments ?? []).map((deployment, index) => deploymentRecord(app, deployment, index)).toReversed());
+		// Each write answers when its job is queued: `deploy` with no body (its procedure returns nothing), `dropDeployment` with
+		// `true`; a body of another type is refused before any procedure.
+		const write = procedure === "application.deploy" || procedure === "application.dropDeployment";
+		if (request.method === "POST" && write && !/^(application\/json|multipart\/form-data)/.test(type ?? "")) return send(response, 415, trpcError(415, "UNSUPPORTED_MEDIA_TYPE", `Unsupported content-type "${type}`, procedure).body);
+		const lacking = ["applicationId", ...(procedure === "application.dropDeployment" ? ["zip"] : [])].filter((each) => (each === "zip" ? sent?.files.zip === undefined : typeof sent?.fields[each] !== "string"));
+		if (request.method === "POST" && write && lacking.length > 0) return send(response, 400, inputError(procedure, lacking));
+		if (request.method === "POST" && write && missing !== undefined) return send(response, 404, missing);
+		if (request.method === "POST" && procedure === "application.deploy") return response.writeHead(200, { "Content-Type": "application/json" }).end();
+		if (request.method === "POST" && procedure === "application.dropDeployment") return send(response, 200, true);
 		send(response, 404, { message: "Not found", code: "NOT_FOUND" });
 	});
 	fake.listen(0, "127.0.0.1");

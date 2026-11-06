@@ -39,7 +39,7 @@ const variable: Check = (value) => (typeof value === "string" && value !== "" ? 
 const INSTANCE: Readonly<Record<string, ValueOption>> = {
 	name: { about: "The instance's name, which a project's dokploy.project({ instance }) and --instance give", default: "none: the unnamed instance", check: (value) => (typeof value === "string" && /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(value) ? undefined : "lowercase letters, digits and single dashes, from a letter") },
 	url: { about: "The Dokploy server's address, as https://dokploy.example.com; calls go to <url>/api/<procedure>", check: url },
-	tokenEnv: { about: "The variable holding an API key of the Dokploy user Arthur reads as (Settings, Profile, API/CLI)", check: variable },
+	tokenEnv: { about: "The variable holding an API key of the Dokploy user Arthur acts as (Settings, Profile, API/CLI)", check: variable },
 };
 
 const instanceList: Check = (value) => (Array.isArray(value) && value.length > 0 ? undefined : "a list of at least one instance");

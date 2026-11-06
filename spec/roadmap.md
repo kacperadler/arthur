@@ -18,6 +18,8 @@ Uptime (98, AR0227) was built early, on the owner's word of 2026-10-20 after a c
 
 Video (102, AR0551) follows listen (81): it needs only the parts of 49, `arthur doctor` (80) and listen's `listen.transcribe` (AR0550) for the words of a video's sound track. It took 102, since the approved plan of AR0527 holds 99 to 101 for the activity log.
 
+Releases (104 to 107) close the first version, after Docker (70 to 72), on the owner's approval of the AR0128 plan on 2026-11-06 (AR-D514): one version for the core and every plugin, released as a Git tag and a GitHub release, not on npm, since Node does not strip types under `node_modules` and the npm name `arthur` is taken. Each entry names the section of `spec/features/AR0128-plan-releases-installing-and-updating-arthur/plan.md` that holds its detail. They took the numbers after 103.
+
 The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.md`, which wins over this summary): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `registerMachine`, `run`, `list`, `running`, `result`: a job's final message), `board` (its `projects()` is the project list), `clock`, `code` (the package folders of the code the load runs: the core's and each enabled plugin's), and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
 ## Core
@@ -305,7 +307,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 - Package: machines.
 - Delivers: the `list` option: each machine's `name`, `ssh` (a `Host` of `~/.ssh/config` or a Tailscale name), `home`, `labels` (`os`, `arch`, `tools`) and `maxJobs`; `local` (os and arch detected, `tools` and `maxJobs` from the option); each registered with the core's job runner (21). At start and every `check.everySeconds`, `ssh <host> arthur version` and the machine's os and arch, compared with its labels; `machine-online` and `machine-offline` (with the reason) emitted once per change. The address `ssh -G <host>` resolves to must be private (loopback, RFC 1918, Tailscale's `100.64.0.0/10` and `fd7a:115c:a1e0::/48`): Arthur reaches its machines only over the private network. `arthur machines` and `/machines`: each machine, its labels, online or why not, its jobs.
 - Done means: tested against the fake host and a fake `ssh` on `PATH`. Refused at load, naming the machine: two machines with one name, a machine named `local`, an `os` label other than `linux` or `macos`, a host that resolves to a public address. Edge cases: the SSH key refused (the machine offline with ssh's line, said once, never retried with a password); an unknown or changed host key (offline, never accepted on its own); labels that disagree with what the machine reports (`os: macos` on a Linux box: offline, both named); a machine that goes offline and back emits each change once; `arthur` missing there.
-- Also delivers (the owner, 2026-10-16: test the connections at start, the way the tools are checked): one `arthur doctor` (80) line per machine, `machines <name>: ok (linux x64, arthur <version>)` or `missing: <reason>` with the fix (`ssh-copy-id`, `ssh-keyscan` checked by the owner, `npm i -g arthur`), each check cut after 10 s; a machine is never critical, so `arthur run` starts with one offline and says which in the start notice; machines are checked in parallel, so ten offline machines cost 10 s, not 100.
+- Also delivers (the owner, 2026-10-16: test the connections at start, the way the tools are checked): one `arthur doctor` (80) line per machine, `machines <name>: ok (linux x64, arthur <version>)` or `missing: <reason>` with the fix (`ssh-copy-id`, `ssh-keyscan` checked by the owner, `arthur machines update` from entry 106), each check cut after 10 s; a machine is never critical, so `arthur run` starts with one offline and says which in the start notice; machines are checked in parallel, so ten offline machines cost 10 s, not 100.
 - Depends on: 22, 6.
 - Size: a day.
 - Covers: none (new: the owner asked for it on 2026-10-16).
@@ -910,6 +912,44 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 - Depends on: 71, 40.
 - Size: a day.
 - Covers: none (new: the owner asked for it on 2026-10-16).
+
+## Releases
+
+### 104. Versions: one release version, `arthur version` with the hash, and the plugin check
+
+- Package: core (`arthur version`, the plugin check at load); machines (what it compares, its refusal); every `package.json` and the lockfile (the version).
+- Delivers (AR0128 plan, Approach, sections 1 and 4): one version for the core and every first-party plugin, in every `package.json` and the lockfile, set by `npm version <v> --workspaces --include-workspace-root --no-git-tag-version`; semver, the first release `0.1.0`; on 0.x the minor goes up for a breaking change (the host API, an option removed or renamed, a file format that needs a manual step), the patch for anything else. `arthur version` prints `<version> <hash>`: the version from the core's `package.json`, the hash `coreVersion()` gives today. A spawn on another machine (21) and the machines check (30) still compare the hash, the last word, and a refusal names both whole lines. A plugin's `package.json` may name `peerDependencies["@arthur/core"]`; the host reads it at load from the package folder it already finds, and a core outside that range gives one `arthur doctor` (80) line that does not stop the start: `core plugin <name>: built for @arthur/core <range>, this core is <version>`. First-party plugins name no range.
+- Done means: edge cases: only `^x.y.z`, `~x.y.z` and an exact `x.y.z` are read, any other range is reported as unread; a plugin without the field gives no line; a machine whose Arthur prints the hash only is refused, naming both lines; a version is changed only by a release ticket merged through `arthur merge`, never by hand on main, where a `package.json` counts as code for the merge's check of main.
+- Depends on: 21, 30, 80.
+- Size: half a day.
+- Covers: none (new: the owner approved the AR0128 plan on 2026-11-06, AR-D514).
+
+### 105. The release workflow and the changelog per release
+
+- Package: repository root (`.github/workflows/release.yml`); delivery (`arthur changelog`).
+- Delivers (AR0128 plan, Approach, sections 2 and 6): a release is a ticket, "Release <version>", kind `chore`, whose worker runs only 104's version command, merged through `arthur merge` like any ticket. `.github/workflows/release.yml` runs on a push to `main` that changes `package.json`: when the tag `v<version>` does not exist yet, it runs `npm ci`, `npm run check` and `npm test`, then `gh release create v<version> --target <sha>` with that release's section of `CHANGELOG.md` as the notes, with the workflow's own `GITHUB_TOKEN` (`contents: write`), so there is no secret to keep. Nothing is published on npm. `arthur changelog` (56) puts the days under releases: a release is a commit on `main`'s first-parent line that changes the root `package.json` `version`, and a ticket belongs to the first such commit at or after its merge hash, read from `outcome.md`; the headings are `## Unreleased` on top, `## <version> (<date>)` per release, `###` per day and `####` per kind.
+- Done means: edge cases: a push whose version already has its tag makes no release; a failed check makes none; a project whose root version never changed gets the same `CHANGELOG.md` as before, byte for byte; the release ticket's own merge writes its section, which the workflow takes as the notes.
+- Depends on: 56, 104.
+- Size: half a day to a day.
+- Covers: none (new: the owner approved the AR0128 plan on 2026-11-06, AR-D514).
+
+### 106. Installing a release, `arthur update` and `arthur machines update`
+
+- Package: core (`arthur update`); machines (`arthur machines update`, its fix texts); `docs/setup.md` and `docs/deploy.md`.
+- Delivers (AR0128 plan, Approach, sections 3 and 5): installing is a full clone, not a shallow one, at the newest release tag, then `npm ci`: step 4 of `docs/setup.md` becomes the clone line, `cd ~/arthur`, `git checkout --quiet "$(git tag --list 'v*' --sort=-v:refname | head -n 1)"` and `npm ci`, the `PATH` lines unchanged, its check `arthur version` printing `0.1.0 <hash>`; the owner's VPS stays a checkout of `main`. `arthur update [<tag or commit>]`, a core command that does not run inside a job, works in the core's own checkout, found as the restart guard (37) finds it: `git fetch --tags origin`, the newest `v*` tag or the one given, `git checkout`, `npm ci`, then `updated <old> to <new>`, or `up to date: <version>` when that is HEAD already. The restart once no job runs is the restart guard's; without the session plugin the output names `systemctl --user restart arthur`. `arthur machines update [<name>]` runs `arthur update <this core's HEAD commit>` on each machine through `host.jobs.run`, and the machines doctor fixes (30) name it.
+- Done means: refused, naming what: a core outside a Git checkout; changed tracked files, each named; with no argument, a checkout on a branch (`<branch> is a development checkout; update it with git pull`). Edge cases: `npm ci` that fails goes back to the previous version, runs `npm ci` again and says so; an offline machine is named and skipped, the others updated; `machines update` targets the version here, not the newest release.
+- Depends on: 37, 104, 105.
+- Size: a day.
+- Covers: none (new: the owner approved the AR0128 plan on 2026-11-06, AR-D514).
+
+### 107. A notice when a new release exists
+
+- Package: manage.
+- Delivers (AR0128 plan, Approach, section 5, "Notice of a new release"): a daily entry registered through `schedule.register`, the way manage's prune is, runs `git ls-remote --tags --refs origin 'v*'` in the core's folder (`host.code[0]`), cut after 30 s; a newer tag sends one `notice` per release, `Arthur 0.3.0 is out; this one runs 0.2.0: arthur update`; what was already told is kept in `.arthur/manage/`.
+- Done means: edge cases: a release already told is not told again, after a restart too; a checkout that is not at a tag, like the owner's `main`, is not checked, with no option for it; nothing is checked without the schedule plugin.
+- Depends on: 39, 106.
+- Size: half a day.
+- Covers: none (new: the owner approved the AR0128 plan on 2026-11-06, AR-D514).
 
 ## Later
 

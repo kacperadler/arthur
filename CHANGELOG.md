@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0628 git fast-import appends to any file named by a stdin option git export-pack-edges line, past the worktree guard (631ac206)
+- AR0630 arthur review runs on a job whose review-needed said no review, and a stopped review then blocks the merge (44d3b3c8)
 
 ### Changed
 

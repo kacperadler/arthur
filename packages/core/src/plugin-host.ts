@@ -110,6 +110,7 @@ export function pluginHost(
 			registerExtension: (url) => runner.registerExtension(url),
 			beforeSpawn: (check) => runner.beforeSpawn(own.name, check),
 			prepare: (fn) => runner.prepare(own.name, fn),
+			cleanup: (fn) => runner.cleanup(own.name, fn),
 			registerMachine: (machine) => runner.registerMachine(own.name, machine),
 			run: (machine, argv, limitSeconds, input) => runner.run(machine, argv, limitSeconds, input),
 			machines: () => runner.machines(),

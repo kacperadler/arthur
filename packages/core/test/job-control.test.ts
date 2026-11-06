@@ -288,7 +288,7 @@ test("arthur stop ends a run that ended blocked on the user, which arthur prune 
 	const asked = "user: is AR0455 met by AR0454?";
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "blocked", reason: asked }]);
 	assert.throws(() => steerJob(home, job.id, "Also this."), { message: `${job.id} is blocked (${asked}), not in a run; a steer reaches only a job in a run, and arthur continue resumes an ended or blocked worker` });
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: kept: it is blocked (${asked}), not ended`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: kept: it is blocked (${asked}), not ended`]);
 	const continuing = join(home, "jobs", job.id, "continuing");
 	const live = spawn("sleep", ["300"]);
 	t.after(() => live.kill());
@@ -302,7 +302,7 @@ test("arthur stop ends a run that ended blocked on the user, which arthur prune 
 	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason"), existsSync(continuing)], ["ended", "stopped", false]);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: ended while blocked \(user: is AR0455 met by AR0454\?\)\n$/);
 	await assert.rejects(jobs.stop(job.id), { message: `${job.id} is ended (stopped), not in a run; nothing to stop` });
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${job.worktree} removed; branch ${job.branch} deleted; record deleted`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: worktree ${job.worktree} removed; branch ${job.branch} deleted; record deleted`]);
 	assert.equal(existsSync(join(home, "jobs", job.id)), false);
 });
 
@@ -673,7 +673,7 @@ test("continue of a worker whose worktree prune freed, while Git keeps its unmer
 	const job = await jobs.spawn({ task: "Go." });
 	await ended(home, job.id);
 	git(job.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "work");
-	const [line = ""] = jobs.prune([job.id]);
+	const [line = ""] = await jobs.prune([job.id]);
 	assert.match(line, new RegExp(`^${job.id}: worktree ${job.worktree} removed; kept branch arthur/${job.id} and the record: `));
 	assert.deepEqual([existsSync(job.worktree), git(root, "branch", "--list", `arthur/${job.id}`)], [false, `arthur/${job.id}`]);
 	const before = record(home, job.id);

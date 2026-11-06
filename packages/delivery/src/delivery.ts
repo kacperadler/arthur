@@ -71,7 +71,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				if (review !== undefined) host.board.move(review.ticket, "review");
 			});
 			// A dropped ticket's jobs freed, an unmerged branch too, and each that was in a run once it ends (AR0555); the lines go to the log.
-			const dropped = (project: string, ticket: string) => pruneTicket(host, project, ticket, [], true).forEach((line) => console.log(`delivery: ${ticket} dropped: ${line}`));
+			const dropped = async (project: string, ticket: string) => (await pruneTicket(host, project, ticket, [], true)).forEach((line) => console.log(`delivery: ${ticket} dropped: ${line}`));
 			host.events.on("job-ended", ({ data }) => {
 				const id = typeof data === "object" && data !== null && "id" in data ? data.id : undefined;
 				const review = readReview(host, id);
@@ -82,7 +82,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				// reads its final message), whatever the order of the plugins; the drop ended its hand-back already.
 				const job = host.jobs.list().find((each) => each.id === id);
 				for (const ticket of new Set(job?.tickets.map((path) => basename(FEATURE.exec(path)?.[1] ?? "").split("-")[0] ?? "")))
-					if (job !== undefined && host.board.get(ticket)?.status === "dropped") setImmediate(() => dropped(job.project, ticket));
+					if (job !== undefined && host.board.get(ticket)?.status === "dropped") setImmediate(() => dropped(job.project, ticket).catch((error: Error) => console.error(`delivery: ${ticket} dropped: ${error.message}`)));
 				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL") || host.board.get(review.ticket)?.status === "dropped") return;
 				host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
 				if (verdict === "FAIL") return;
@@ -94,7 +94,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.events.on("stop-all", () => back.cancel());
 			host.events.on("ticket-moved", ({ data }) => {
 				const { id, project, to } = (data ?? {}) as { readonly id?: unknown; readonly project?: unknown; readonly to?: unknown };
-				if (to === "dropped" && typeof id === "string" && typeof project === "string") dropped(project, id);
+				if (to === "dropped" && typeof id === "string" && typeof project === "string") return dropped(project, id);
 			});
 			// Asked by the core's prune: the job's own folder here (`checks`, `review-needed`, the CI wait) goes with its record;
 			// delivery's record of a review, `reviews/<id>.json`, stays for the FAIL counts and the costs.

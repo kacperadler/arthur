@@ -6,6 +6,7 @@ import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { checkConfig } from "./git-config.ts";
 import { onUser, steerJob, stopJob, wrappers } from "./job-control.ts";
+import type { CleanupJob } from "./job-cleanup.ts";
 import { type Machine, ssh, sshAsync } from "./job-machine.ts";
 import { unpruned } from "./job-sandbox.ts";
 import { blockJob, current, field, ID, inRun, jobIds, moveJob, STATES, told } from "./job-state.ts";
@@ -31,8 +32,9 @@ export function findJob(home: string, query: string): string {
 
 // `sweep` ends a working or idle job whose wrapper and agent are both gone, on this sweep and the one before. `there` is the
 // machine of a job on another one, where `stop`, `steer` and `prune` run through `arthur remote-job` (spec/roadmap.md, entry
-// 22); a machine that does not answer refuses them, naming it. `checkout` names a project's checkout now, which `prune` checks a record against.
-export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: FinishedJob) => readonly unknown[], there: (id: string) => Machine | undefined, checkout: (project: string) => string) {
+// 22); a machine that does not answer refuses them, naming it. `checkout` names a project's checkout now, which `prune` checks a record
+// against; `cleanup` runs the plugins' `jobs.cleanup` on a job right before its worktree goes.
+export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: FinishedJob) => readonly unknown[], there: (id: string) => Machine | undefined, checkout: (project: string) => string, cleanup: (job: CleanupJob) => Promise<string[]>) {
 	let gone = new Set<string>();
 	// A job there blocked on the user, its run over, is no longer copied from there: its state here is the one that counts, and it ends here.
 	const stop = async (id: string): Promise<string> => {
@@ -64,12 +66,14 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			const machine = there(id);
 			return machine === undefined ? steerJob(home, id, text) : ssh(machine, ["arthur", "remote-job", "steer", machine.home, id], text).trim();
 		},
-		// `"all"` frees every finished job; an empty list is refused, never read as everything.
-		prune(ids: readonly string[] | "all") {
+		// `"all"` frees every finished job, one after another; an empty list is refused, never read as everything.
+		async prune(ids: readonly string[] | "all"): Promise<string[]> {
 			if (ids.length === 0) throw new Error('prune needs one or more ids, or "all" for every finished job');
 			// Every id is found first, so a typo refuses the prune before anything is removed.
 			const all = ids === "all" ? jobIds(home) : [...new Set(ids.map((query) => findJob(home, query)))];
-			return all.length === 0 ? ["no jobs"] : all.map((id) => `${id}: ${prune(home, id, keep, there, checkout)}`);
+			const lines: string[] = [];
+			for (const id of all) lines.push(`${id}: ${await prune(home, id, keep, there, checkout, cleanup)}`);
+			return all.length === 0 ? ["no jobs"] : lines;
 		},
 		records,
 		result(id: string): string {
@@ -134,8 +138,9 @@ function jobsText(home: string, time: Clock, only?: string): string {
 // Git decides what is safe: a worktree with changes, or a branch with commits HEAD does not have, stays with the record. On
 // another machine `arthur remote-job prune` removes the worktree there, Git deciding there, the branch there when it is the
 // one here (`tip`), and the record there; a machine that does not answer keeps everything. A record whose job changed where
-// its spawn put it (`unpruned`, AR0610), against `checkout`, its project's checkout now, keeps everything, saying why.
-function prune(home: string, id: string, keep: (job: FinishedJob) => readonly unknown[], there: (id: string) => Machine | undefined, checkout: (project: string) => string): string {
+// its spawn put it (`unpruned`, AR0610), against `checkout`, its project's checkout now, keeps everything, saying why. The
+// `cleanup` hooks run after every check that keeps everything, right before the worktree goes, their texts first in the line.
+async function prune(home: string, id: string, keep: (job: FinishedJob) => readonly unknown[], there: (id: string) => Machine | undefined, checkout: (project: string) => string, cleanup: (job: CleanupJob) => Promise<string[]>): Promise<string> {
 	const read = field(home, id);
 	const [root, worktree, branch] = ["root", "worktree", "branch"].map(read) as [string, string, string];
 	const now = current(home, id);
@@ -147,7 +152,8 @@ function prune(home: string, id: string, keep: (job: FinishedJob) => readonly un
 		const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8" });
 		return run.status === 0 ? undefined : `git ${args[0]}: ${(run.error?.message ?? run.stderr).trim().split("\n")[0]}`;
 	};
-	let [done, tip] = [[] as string[], ""];
+	let [done, tip, said] = [[] as string[], "", [] as string[]];
+	const job = { id, kind: read("kind"), project: read("project"), task: read("task"), state: now.state, reason: now.reason, branch, worktree };
 	try {
 		const machine = there(id);
 		const moved = unpruned(id, { project: read("project"), root, worktree, branch }, checkout(read("project")), machine !== undefined);
@@ -158,19 +164,23 @@ function prune(home: string, id: string, keep: (job: FinishedJob) => readonly un
 			// `git worktree remove` runs `git status` in the worktree, which runs a clean filter the shared config or the worktree's own names (AR0400).
 			const planted = present ? checkConfig(worktree).refusal : "";
 			if (planted !== "") return `kept its worktree, branch and record: git worktree: ${planted}`;
+			said = await cleanup({ ...job, machine: read("machine") || "local" });
 			const refused = present ? git("worktree", "remove", worktree) : git("worktree", "prune");
-			if (refused !== undefined) return `kept its worktree, branch and record: ${refused}`;
-			done = present ? [`worktree ${worktree} removed`] : [];
-		} else done = [ssh(machine, ["arthur", "remote-job", "prune", machine.home, id, tip]).trim()].filter((line) => line !== "");
+			if (refused !== undefined) return [...said, `kept its worktree, branch and record: ${refused}`].join("; ");
+			done = [...said, ...(present ? [`worktree ${worktree} removed`] : [])];
+		} else {
+			said = await cleanup({ ...job, machine: machine.name });
+			done = [...said, ssh(machine, ["arthur", "remote-job", "prune", machine.home, id, tip]).trim()].filter((line) => line !== "");
+		}
 	} catch (error) {
-		return `kept its worktree, branch and record: ${error instanceof Error ? error.message : String(error)}`;
+		return [...said, `kept its worktree, branch and record: ${error instanceof Error ? error.message : String(error)}`].join("; ");
 	}
 	if (tip !== "") {
 		const kept = git("branch", "--quiet", "-d", branch);
 		if (kept !== undefined) return [...done, `kept branch ${branch} and the record: ${kept}`].join("; ");
 		done.push(`branch ${branch} deleted`);
 	}
-	const reasons = keep({ id, kind: read("kind"), project: read("project"), task: read("task"), state: now.state, reason: now.reason, branch, worktree }).filter((reason) => typeof reason === "string" && reason.trim() !== "");
+	const reasons = keep(job).filter((reason) => typeof reason === "string" && reason.trim() !== "");
 	if (reasons.length > 0) return [...done, `kept the record: ${reasons.join("; ")}`].join("; ");
 	rmSync(join(home, "jobs", id), { recursive: true, force: true });
 	return [...done, "record deleted"].join("; ");

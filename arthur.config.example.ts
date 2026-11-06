@@ -1,6 +1,6 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and commit-rules,
 // delivery, develop, discord, dokploy, findings, github, listen, machines, manage, models, nvm, orchestration, projects,
-// resources, schedule, session, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
+// resources, schedule, session, stats, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
 // docker (first); server, signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first
 // planned import (`Cannot find package '@arthur/docker'`). Take a plugin from it once its package exists. Illustrative for the planned
 // ones: their option names are proposed, not final.
@@ -46,6 +46,7 @@ import { server } from "@arthur/server"; // later, named
 import { session } from "@arthur/session"; // first, named
 import { signal } from "@arthur/signal"; // later, named
 import { slack } from "@arthur/slack"; // later, named
+import { stats } from "@arthur/stats"; // first, named
 import { telegram } from "@arthur/telegram"; // first, named
 import { uptime } from "@arthur/uptime"; // first, named
 import { video } from "@arthur/video"; // first, named
@@ -225,6 +226,12 @@ export default defineConfig({
 			// Registers `arthur restart [fresh]` and the phone commands `/restart` and `/restart fresh`: answered without the model,
 			// refused while any job runs; after the handoff, one `Restarted.` notice with `.arthur/session/after-restart.md`.
 		}),
+
+		// The tokens, cost at list price and time of every job run (`.arthur/stats/runs.jsonl`, one line per `job-ended`, what
+		// the run added to its record) and of every coordinator turn (`.arthur/stats/sessions/coordinator.jsonl`, through an
+		// extension the coordinator loads); at its first start one line per job record whose run is over. No options but
+		// `enabled`. packages/stats/docs/stats.md.
+		stats(),
 
 		// Actions and jobs at set times (packages/schedule/docs/commands/schedule.md). An entry is a daily "HH:MM" (optionally on
 		// some `days`) or a one-off "YYYY-MM-DDTHH:MM", in core.timeZone, and does one of: an action (a message for the coordinator,

@@ -47,6 +47,8 @@ const BUDGETS = {
 
 	session: 953,
 
+	stats: 200,
+
 	telegram: 680,
 
 	uptime: 344,

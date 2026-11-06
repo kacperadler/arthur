@@ -69,7 +69,7 @@ flowchart TD
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker planned]
     deliv[delivery and trackers<br/>delivery, github, youtrack, dokploy]
-    self[Arthur itself<br/>manage, develop]
+    self[Arthur itself<br/>manage, develop; stats partly built]
   end
   later[later plugins<br/>project agents, signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
   core <-->|events, commands| FIRST

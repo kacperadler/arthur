@@ -42,6 +42,8 @@ import { schedule } from "@arthur/schedule";
 import * as scheduleFile from "@arthur/schedule/options";
 import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
+import { stats } from "@arthur/stats";
+import * as statsFile from "@arthur/stats/options";
 import { telegram } from "@arthur/telegram";
 import * as telegramFile from "@arthur/telegram/options";
 import { uptime } from "@arthur/uptime";
@@ -78,6 +80,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	findings: [findingsFile, findings()],
 	listen: [listenFile, listen()],
 	video: [videoFile, video()],
+	stats: [statsFile, stats()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one
@@ -100,7 +103,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	}
 	assert.deepEqual(
 		Object.entries(PLUGINS).flatMap(([name, [file]]) => (everyOption(file.table).length === 0 ? [name] : [])),
-		["nvm", "commit-rules", "findings"],
+		["nvm", "commit-rules", "findings", "stats"],
 		"the plugins without options are checked here too, and only they have an empty table",
 	);
 	assert.deepEqual(

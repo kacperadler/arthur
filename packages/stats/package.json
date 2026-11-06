@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/stats",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/stats.ts",
+    "./options": "./src/stats.ts"
+  }
+}

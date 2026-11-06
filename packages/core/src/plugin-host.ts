@@ -103,7 +103,16 @@ export function pluginHost(
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call(own.name, name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		collectEach: <T>(name: string, ...args: readonly unknown[]) => names.collectEach(name, args) as Answer<T>[],
-		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone, docs: commands.docs },
+		commands: {
+			register: (command) => commands.register(own.name, command),
+			// Each `/name text` a channel hands over is logged first, so the events its reply makes come after it; a job gets none.
+			route: (text, from) => {
+				if (own.job === undefined) bus.emit(own.name, "phone-command", { ...from, channel: from?.channel ?? own.name, text });
+				return commands.route(text, from);
+			},
+			phone: commands.phone,
+			docs: commands.docs,
+		},
 		jobs: {
 			registerKind: (kind) => runner.registerKind(own.name, kind),
 			registerRole: (role) => runner.registerRole(own.name, role),

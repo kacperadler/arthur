@@ -11,6 +11,7 @@ import { type Machine, ssh, sshAsync } from "./job-machine.ts";
 import { unpruned } from "./job-sandbox.ts";
 import { blockJob, current, field, ID, inRun, jobIds, moveJob, STATES, told } from "./job-state.ts";
 import { syncMachine } from "./machine-sync.ts";
+import { type Usage, usageOf } from "./run-record.ts";
 import { processTable } from "./process-table.ts";
 
 // Every project's job records `<home>/jobs/<id>/`: docs/commands/jobs.md, prune.md and stopall.md.
@@ -19,8 +20,8 @@ import { processTable } from "./process-table.ts";
 export type FinishedJob = { readonly [key in "id" | "kind" | "project" | "task" | "state" | "reason" | "branch" | "worktree"]: string };
 // A job as `host.jobs.list()` gives it, in any state; `tickets` are the paths its task names on `Ticket:`, `hold` empty unless held,
 // `machine` the one it runs on, `local` for a record that names none; `since` when it took its state (ISO 8601); `cost` and
-// `budget` its files (USD), `seconds` the time it spent in a run, the current one up to now.
-export type JobRecord = { readonly [key in "id" | "kind" | "project" | "state" | "reason" | "hold" | "since" | "branch" | "machine" | "cost" | "budget"]: string } & { readonly tickets: readonly string[]; readonly seconds: number };
+// `budget` its files (USD), `usage` its file per model, `{}` when missing or broken; `seconds` the time it spent in a run, the current one up to now.
+export type JobRecord = { readonly [key in "id" | "kind" | "project" | "state" | "reason" | "hold" | "since" | "branch" | "machine" | "cost" | "budget"]: string } & { readonly tickets: readonly string[]; readonly seconds: number; readonly usage: Usage };
 
 // The full id of the one job `query` names; refused when none or several match, naming them.
 export function findJob(home: string, query: string): string {
@@ -50,7 +51,7 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			const read = field(home, id);
 			const [now, since] = [current(home, id), read("since")];
 			const seconds = (Number(read("ran")) || 0) + (inRun(now) ? Math.max(0, time.now().getTime() - Date.parse(since)) / 1000 || 0 : 0);
-			return { id, kind: read("kind"), project: read("project"), ...now, since, branch: read("branch"), machine: read("machine") || "local", cost: read("cost"), budget: read("budget"), seconds, tickets: taskTickets(read("task")) };
+			return { id, kind: read("kind"), project: read("project"), ...now, since, branch: read("branch"), machine: read("machine") || "local", cost: read("cost"), budget: read("budget"), usage: usageOf(read("usage")), seconds, tickets: taskTickets(read("task")) };
 		});
 	const running = (): string[] => records().filter(inRun).map((job) => job.id);
 	return {

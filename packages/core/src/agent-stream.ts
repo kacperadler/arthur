@@ -6,9 +6,11 @@ export type AgentEvent =
 	| { readonly kind: "tool"; readonly name: string; readonly detail: string }
 	| { readonly kind: "tool-end" }
 	| { readonly kind: "turn" }
-	// `stopReason` as omp says it (`stop` ends the run, `toolUse` a turn); `error` omp's text for a failed one; `cost` in USD.
-	| { readonly kind: "message"; readonly text: string; readonly stopReason: string; readonly error: string; readonly cost: number }
+	// `stopReason` as omp says it (`stop` ends the run, `toolUse` a turn); `error` omp's text for a failed one; `model` `<provider>/<model>`.
+	| ({ readonly kind: "message"; readonly text: string; readonly stopReason: string; readonly error: string; readonly model: string } & Spent)
 	| { readonly kind: "line"; readonly line: string };
+// What a message spent: its tokens as omp counts them, and its `cost` in USD.
+export type Spent = { readonly [key in "input" | "output" | "cacheRead" | "cacheWrite" | "cost"]: number };
 
 type Part = { readonly type?: unknown; readonly text?: unknown };
 type Raw = {
@@ -20,7 +22,9 @@ type Raw = {
 		readonly content?: unknown;
 		readonly stopReason?: unknown;
 		readonly errorMessage?: unknown;
-		readonly usage?: { readonly cost?: { readonly total?: unknown } };
+		readonly provider?: unknown;
+		readonly model?: unknown;
+		readonly usage?: { readonly [key: string]: unknown; readonly cost?: { readonly total?: unknown } };
 	};
 };
 
@@ -65,17 +69,25 @@ function interpret(event: Raw): AgentEvent[] {
 	if (event.type === "turn_start") return [{ kind: "turn" }];
 	const message = event.message;
 	if (event.type !== "message_end" || message?.role !== "assistant") return [];
-	const total = message.usage?.cost?.total;
+	const usage = message.usage;
 	return [
 		{
 			kind: "message",
 			text: text(message.content).trim(),
 			stopReason: typeof message.stopReason === "string" ? message.stopReason : "",
 			error: typeof message.errorMessage === "string" ? message.errorMessage.trim() : "",
-			cost: typeof total === "number" && Number.isFinite(total) ? total : 0,
+			cost: count(usage?.cost?.total),
+			model: [message.provider, message.model].map((name) => (typeof name === "string" ? name : "")).join("/"),
+			input: count(usage?.input),
+			output: count(usage?.output),
+			cacheRead: count(usage?.cacheRead),
+			cacheWrite: count(usage?.cacheWrite),
 		},
 	];
 }
+
+// A number omp gave, or 0 for anything else: a missing field, a broken one.
+export const count = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : 0);
 
 // The text parts of a content list joined; anything else in it (thinking, a tool call, an image) is left out.
 function text(content: unknown): string {

@@ -432,6 +432,28 @@ test("arthur continue resumes an ended worker in place: same id, branch, worktre
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur continue: Also fix the README\.\n/);
 });
 
+test("usage keeps each model's messages, tokens and cost, written after each message and summed over the runs of a continued job; a free model keeps its tokens", async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { agent } = resuming(
+		{ steps: [{ message: "Reading.", cost: 0.5, usage: { input: 10, output: 2, cacheRead: 100, cacheWrite: 7 }, stopReason: "toolUse" }, { waitFor: gate }, { message: "First.", cost: 0.25, usage: { input: 1, output: 3 } }] },
+		{ steps: [{ message: "Second.", model: "local", usage: { input: 4, output: 5, cacheRead: 6, cacheWrite: 8 } }, { message: "Done.", cost: 1, usage: { output: 1 } }] },
+	);
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const usage = () => JSON.parse(field(home, job.id, "usage") ?? "null") as unknown;
+	const first = { messages: 1, input: 10, output: 2, cacheRead: 100, cacheWrite: 7, cost: 0.5 };
+	await until("the first message's usage", () => field(home, job.id, "usage") !== undefined);
+	assert.deepEqual(usage(), { "anthropic/fake": first }, "written while the job runs");
+	writeFileSync(gate, "");
+	await ended(home, job.id);
+	assert.deepEqual(usage(), { "anthropic/fake": { messages: 2, input: 11, output: 5, cacheRead: 100, cacheWrite: 7, cost: 0.75 } });
+	await jobs.continue(job.id, "Go on.");
+	await ended(home, job.id, 2);
+	const local = { messages: 1, input: 4, output: 5, cacheRead: 6, cacheWrite: 8, cost: 0 };
+	assert.deepEqual(usage(), { "anthropic/fake": { messages: 3, input: 11, output: 6, cacheRead: 100, cacheWrite: 7, cost: 1.75 }, "anthropic/local": local });
+	assert.equal(field(home, job.id, "cost"), "1.7500");
+});
+
 // AR0487: omp takes `--version`, `--tools=...` or `@<file>` before `--` as its own option or a file to include.
 test("an instruction that starts with - or @ reaches the resumed agent as its message, after --", async () => {
 	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });

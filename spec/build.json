@@ -4192,16 +4192,16 @@
   {
     "id": "AR0528",
     "title": "Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0528-who-did-it-an-actor-stamp-on-every-event-and-events-for-commands-phone-commands/ticket.md",
-    "updated": "2026-11-06T15:04:45.471Z"
+    "updated": "2026-11-06T20:19:51.847Z"
   },
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-06T08:17:08.108Z",
+    "updated": "2026-11-06T23:00:49.003Z",
     "after": [
       "AR0528"
     ]
@@ -5147,9 +5147,9 @@
   {
     "id": "AR0640",
     "title": "Roadmap 104: one release version, arthur version with the hash, and the plugin check",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0640-roadmap-104-one-release-version-arthur-version-with-the-hash-and-the-plugin/ticket.md",
-    "updated": "2026-11-06T08:18:04.405Z"
+    "updated": "2026-11-06T23:01:54.428Z"
   },
   {
     "id": "AR0641",
@@ -5185,9 +5185,9 @@
   {
     "id": "AR0644",
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T08:22:32.581Z"
+    "updated": "2026-11-06T21:00:32.146Z"
   },
   {
     "id": "AR0645",
@@ -5229,9 +5229,9 @@
   {
     "id": "AR0649",
     "title": "Stats S2: tokens per model in the job record (roadmap 108)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0649-stats-s2-tokens-per-model-in-the-job-record-roadmap-108/ticket.md",
-    "updated": "2026-11-06T14:44:56.417Z",
+    "updated": "2026-11-06T17:09:17.850Z",
     "after": [
       "AR0648"
     ]
@@ -5239,9 +5239,9 @@
   {
     "id": "AR0650",
     "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
-    "updated": "2026-11-06T08:46:53.226Z",
+    "updated": "2026-11-06T19:08:49.566Z",
     "after": [
       "AR0649"
     ]
@@ -5292,5 +5292,36 @@
     "status": "planned",
     "path": "spec/features/AR0655-plan-dokploy-t4-a-whole-project-from-arthur-an-app-built-from-its-git-repository/ticket.md",
     "updated": "2026-11-06T11:47:40.069Z"
+  },
+  {
+    "id": "AR0656",
+    "title": "A worker is told before its run ends that its checks did not pass on its clean committed tip",
+    "status": "planning",
+    "path": "spec/features/AR0656-a-worker-is-told-before-its-run-ends-that-its-checks-did-not-pass-on-its-clean/ticket.md",
+    "updated": "2026-11-06T21:40:20.085Z"
+  },
+  {
+    "id": "AR0657",
+    "title": "A reviewer does not file again what the ticket's findings.md already holds",
+    "status": "planning",
+    "path": "spec/features/AR0657-a-reviewer-does-not-file-again-what-the-ticket-s-findings-md-already-holds/ticket.md",
+    "updated": "2026-11-06T21:40:21.112Z"
+  },
+  {
+    "id": "AR0658",
+    "title": "`npm run mutate` ends by itself before the call's 1800 s, with its summary",
+    "status": "planning",
+    "path": "spec/features/AR0658-npm-run-mutate-ends-by-itself-before-the-call-s-1800-s-with-its-summary/ticket.md",
+    "updated": "2026-11-06T21:40:22.174Z",
+    "after": [
+      "AR0637"
+    ]
+  },
+  {
+    "id": "AR0659",
+    "title": "The README's Status paragraph stops copying the roadmap's state",
+    "status": "planning",
+    "path": "spec/features/AR0659-the-readme-s-status-paragraph-stops-copying-the-roadmap-s-state/ticket.md",
+    "updated": "2026-11-06T21:40:24.101Z"
   }
 ]

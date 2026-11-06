@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { appendFileSync, closeSync, constants, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { stamper } from "./actor.ts";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { reason as endingOf, resumeFor, type Why } from "./job-ending.ts";
@@ -12,7 +13,7 @@ import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
 import { commitsSince } from "./git.ts";
-import { runRecord } from "./run-record.ts";
+import { runRecord, usageOf } from "./run-record.ts";
 import { envFileNames, namedChunks } from "./secret-names.ts";
 import { closeSteers } from "./steer-inbox.ts";
 
@@ -62,7 +63,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	const names = ["kind", "model", "thinking", "branch", "base", "timeout", "budget", "resume-on-budget", "idle-minutes"];
 	const [kind = "", model = "", thinking = "", branch = "", base = "", timeout = "", budget = "", resumes = "", idle = ""] = names.map(field);
 	const { project, root, worktree } = place;
-	const secrets = hidden(folder, place, process.env.ARTHUR_GUARDED ?? ""), hide = envFileNames(secrets), bus = eventBus(home, hide), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
+	const secrets = hidden(folder, place, process.env.ARTHUR_GUARDED ?? ""), hide = envFileNames(secrets), bus = eventBus(home, hide, stamper(home, id, () => [])), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
 	// A move from `from` to `to` (job-state.ts) only: a job a plugin holds stays `blocked` until its run ends, so it never moves here.
 	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.state === from ? [to, ""] : undefined)));
 	// The agent's output: `active` takes its time, an idle job works again, and it turns idle after `idle-minutes` without any.
@@ -114,7 +115,8 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	rmSync(join(folder, "continuing"), { recursive: true, force: true });
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
-	const record = runRecord(save, Number(spent ?? 0) || 0, (cost) => reached(cost, budgetUsd) && halt("budget"));
+	const used = existsSync(join(folder, "usage")) ? field("usage") : undefined; // Missing until a first message, and from a record an older Arthur wrote.
+	const record = runRecord(save, Number(spent ?? 0) || 0, usageOf(used), (cost) => reached(cost, budgetUsd) && halt("budget"));
 	// What went over a memory cap, the job's own or its ticket's.
 	let overCap = "";
 	const watching = watchMemory(id, memory, feature, featureMemory, (what) => {

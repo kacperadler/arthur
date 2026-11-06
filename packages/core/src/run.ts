@@ -70,6 +70,7 @@ export async function runPlugins(
 				}
 			}
 			if (code === 0 && signalled === undefined) {
+				emit("run-started", { pid: process.pid, plugins: started.map((plugin) => plugin.name) });
 				console.log(`arthur run: pid ${process.pid} started ${started.map((plugin) => plugin.name).join(", ")}`);
 				await stopping;
 			}

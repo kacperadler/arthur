@@ -4,7 +4,7 @@ Usage: `arthur run`
 
 Runs Arthur as a process: loads `arthur.config.ts` from the working folder, sets up every enabled plugin, calls each plugin's `start` in dependency order (a plugin after the plugins it `requires`, and after those of its `after` that are loaded, otherwise in the config's order), and stays until it gets SIGTERM (or SIGINT, Ctrl-C). Then it calls each started plugin's `stop`, in reverse order, and exits. A systemd user service keeps it running on a server: `docs/setup.md`.
 
-It prints one line when every plugin has started, `arthur run: pid <pid> started <plugins>`, one when it begins to stop, `arthur run: SIGTERM: stopping <plugins>`, and `arthur run: stopped` at the end.
+It prints one line when every plugin has started, `arthur run: pid <pid> started <plugins>`, after it logs the event `run-started` `{ pid, plugins }`; one when it begins to stop, `arthur run: SIGTERM: stopping <plugins>`, and `arthur run: stopped` at the end. Its stop is the `command-ran` of `run`, which the next start delivers (docs/plugin-api.md, "Core events").
 
 First, before the lock and any plugin's `start`, it checks what Arthur needs, as `arthur doctor` does, and prints each missing line, `arthur run: <line>`. A critical one refuses the start; the others go first in the start notice, each sent at most once a day (`arthur doctor --help`).
 

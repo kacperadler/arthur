@@ -6,10 +6,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0528 Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts (dd5907a9)
 - AR0556 Plan: the github plugin manages pull requests, issues and branches
 - AR0558 GitHub T2: create, comment on and close pull requests (f579072f)
 - AR0559 GitHub T3: list, read, create, comment on, label and close issues (999ed4be)
 - AR0603 Dokploy T2: upload a file or folder and start a deploy, on the owner's word (39c9f9a0)
+- AR0649 Stats S2: tokens per model in the job record (roadmap 108) (97c9cc09)
 
 ### Fixed
 

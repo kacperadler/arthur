@@ -5112,30 +5112,30 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-06T01:14:11.872Z"
+    "updated": "2026-11-06T11:31:25.400Z"
   },
   {
     "id": "AR0636",
     "title": "A committed plan names the public IP addresses of the owner deploy host and this VPS",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0636-a-committed-plan-names-the-public-ip-addresses-of-the-owner-deploy-host-and-this/ticket.md",
-    "updated": "2026-11-06T01:14:12.470Z"
+    "updated": "2026-11-06T11:31:26.383Z"
   },
   {
     "id": "AR0637",
     "title": "Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0637-mutate-runs-capped-at-4-pass-the-review-gate-and-reviews-then-fail-on-survivors/ticket.md",
-    "updated": "2026-11-06T01:14:13.066Z"
+    "updated": "2026-11-06T11:31:27.390Z"
   },
   {
     "id": "AR0638",
     "title": "host.secrets holds only enabled plugins values, so the public decision log misses other env file values",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
-    "updated": "2026-11-06T01:14:13.666Z"
+    "updated": "2026-11-06T11:31:28.311Z"
   },
   {
     "id": "AR0639",

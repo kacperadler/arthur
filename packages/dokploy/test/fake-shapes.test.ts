@@ -29,6 +29,10 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 	const current = await fakeDokploy(t, { apps: [app], empty: ["Archive"] });
 	const documented = await fakeDokploy(t, { apps: [app], form: "documented" });
 	const get = async (base: string, path: string, headers: Record<string, string> = { "x-api-key": TOKEN }) => (await fetch(new URL(path, base), { headers })).json();
+	const post = async (path: string, body: FormData | string, headers: Record<string, string> = {}) => (await fetch(new URL(path, current.url), { method: "POST", headers: { "x-api-key": TOKEN, ...headers }, body })).json();
+	const form = new FormData();
+	form.set("applicationId", "kXx3");
+	form.set("zip", new Blob(["PK\x05\x06".padEnd(22, "\0")], { type: "application/zip" }), "upload.zip");
 	const routes: [string, unknown][] = [
 		["project-all", await get(current.url, "/api/project.all")],
 		["project-all-documented", await get(documented.url, "/api/project.all")],
@@ -36,7 +40,10 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 		["deployment-all", await get(current.url, "/api/deployment.all?applicationId=kXx3")],
 		["error", await get(current.url, "/api/application.one?applicationId=gone")],
 		["error-unauthorized", await get(current.url, "/api/project.all", {})],
+		["application-drop-deployment", await post("/api/application.dropDeployment", form)],
+		["error-input", await post("/api/application.deploy", "{}", { "Content-Type": "application/json" })],
 	];
+	assert.equal(routes.at(-2)?.[1], true, "dropDeployment answers true");
 	assert.deepEqual(
 		routes.flatMap(([name, got]) => (name in shapes ? drift(got, shapes[name], name) : [`${name} not recorded`])),
 		[],

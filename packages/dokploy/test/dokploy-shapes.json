@@ -1,10 +1,10 @@
 {
 	"sources": {
 		"project-all-documented": "https://docs.dokploy.com/docs/api, the example answer of GET /api/project.all, verbatim",
-		"dokploy-v0.30.10": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/project.ts (all, as an owner or admin), routers/application.ts (one), routers/deployment.ts (all), packages/server/src/services/application.ts (findApplicationById), services/deployment.ts (findAllDeploymentsByApplicationId), the tables of packages/server/src/db/schema/ (project, environment, application, domain, deployment, tag), and the error body of @dokploy/trpc-openapi 0.0.18 (adapters/node-http/core.js) with apps/dokploy/server/api/trpc.ts (errorFormatter) and pages/api/[...trpc].ts (the 401 without a key)"
+		"dokploy-v0.30.10": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/project.ts (all, as an owner or admin), routers/application.ts (one; deploy, which returns nothing on a server of its own, so its 200 has no body; dropDeployment, which returns true), routers/deployment.ts (all), packages/server/src/services/application.ts (findApplicationById), services/deployment.ts (findAllDeploymentsByApplicationId), the tables of packages/server/src/db/schema/ (project, environment, application, domain, deployment, tag), and the error body of @dokploy/trpc-openapi 0.0.18 (adapters/node-http/core.js, with `issues` when zod refuses the input, and input.js, which parses JSON only under exactly application/json) with apps/dokploy/server/api/trpc.ts (errorFormatter, its flattened zodError) and pages/api/[...trpc].ts (the 401 without a key)"
 	},
-	"recorded": "2026-10-31",
-	"how": "the keys of each answer at every depth; a list holds its first item's keys, any other value null. Dokploy's openapi.json gives {} for every 200, so the shapes come from the documentation's one example (project-all-documented) and from the source at v0.30.10 (the rest). A related record findApplicationById reads that the fake answers empty or null (mounts, redirects, security, ports, previewDeployments; the git providers, server and registries) is [] or null here: not compared below",
+	"recorded": "2026-10-31, the writes (application-drop-deployment, error-input) 2026-11-06",
+	"how": "the keys of each answer at every depth; a list holds its first item's keys, any other value null. Dokploy's openapi.json gives {} for every 200, so the shapes come from the documentation's one example (project-all-documented) and from the source at v0.30.10 (the rest). A related record findApplicationById reads that the fake answers empty or null (mounts, redirects, security, ports, previewDeployments; the git providers, server and registries) is [] or null here: not compared below. application.deploy answers no JSON at all, so it has no shape",
 	"shapes": {
 		"project-all-documented": [
 			{
@@ -357,6 +357,29 @@
 		},
 		"error-unauthorized": {
 			"message": null
+		},
+		"application-drop-deployment": null,
+		"error-input": {
+			"message": null,
+			"code": null,
+			"data": {
+				"code": null,
+				"httpStatus": null,
+				"path": null,
+				"zodError": {
+					"formErrors": [],
+					"fieldErrors": null
+				}
+			},
+			"issues": [
+				{
+					"code": null,
+					"expected": null,
+					"received": null,
+					"path": [],
+					"message": null
+				}
+			]
 		}
 	}
 }

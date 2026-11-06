@@ -3,10 +3,9 @@ import { ID, type Instance } from "./dokploy-api.ts";
 import { type Deployed, dokployCommand } from "./dokploy-command.ts";
 import { checkOptions } from "./dokploy-options.ts";
 
-// The dokploy plugin (AR0588): the owner's Dokploy servers as instances, named and unnamed, each project's
-// `dokploy.project({ instance?, app })` picking one and its application; `arthur dokploy apps|app|status` reads them:
-// docs/commands/dokploy.md. The coordinator only: the command runs in no job. It needs the project list, so `projects`
-// sets up first.
+// The dokploy plugin (AR0588): the owner's Dokploy servers as instances, each project's `dokploy.project({ instance?, app })`
+// picking one and its application; `arthur dokploy` reads them, and uploads or deploys on the owner's word (AR0603):
+// docs/commands/dokploy.md. The coordinator only: the command runs in no job. It needs the project list: `projects` first.
 
 export type InstanceOptions = { readonly name?: string; readonly url: string; readonly tokenEnv: string };
 // A project's piece: its Dokploy application, on the instance it names, else the unnamed one.

@@ -59,7 +59,7 @@ flowchart TD
     youtrack[youtrack]
     github[github<br/>polls CI and PRs<br/>arthur github: PR and issue reads and writes, origin's branches]
     delivery[delivery<br/>review, merge]
-    dokploy[dokploy<br/>the owner's Dokploy servers<br/>reads built, upload and deploy planned]
+    dokploy[dokploy<br/>the owner's Dokploy servers<br/>reads, uploads and deploys]
     commit[commit-rules<br/>regex, words, file]
     projects ~~~ nvm ~~~ findings ~~~ youtrack ~~~ github ~~~ delivery ~~~ dokploy ~~~ commit
   end

@@ -1,5 +1,6 @@
-// Dokploy's REST API (AR0588): a GET of `<url>/api/<procedure>` with the API key as `x-api-key`, never following a redirect,
-// so the key goes only to the configured server. Every failure is one line naming the instance, the key never in it.
+// Dokploy's REST API (AR0588): a GET of `<url>/api/<procedure>`, or a POST of JSON or a multipart form, with the API key as
+// `x-api-key`, never following a redirect, so the key goes only to the configured server. Every failure is one line naming
+// the instance, the key never in it.
 
 export type Instance = {
 	readonly name: string | undefined;
@@ -15,16 +16,21 @@ export type Instance = {
 // A Dokploy id (nanoid's alphabet), the only text a command puts into a query.
 export const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
-// The JSON `procedure` (e.g. `application.one`) answers with `query`; `what` names what was asked, for a 404 and any other refusal.
-export async function call(instance: Instance, procedure: string, query: Readonly<Record<string, string>>, what: string): Promise<unknown> {
+export const NOTHING = "nothing was asked of Dokploy";
+
+// The JSON `procedure` (e.g. `application.one`) answers with `query`, or to `send` posted; `what` names what was asked, for a
+// 404 and any other refusal.
+export async function call(instance: Instance, procedure: string, query: Readonly<Record<string, string>>, what: string, send?: FormData | Readonly<Record<string, string>>): Promise<unknown> {
 	const { label, tokenEnv, token, base, timeoutSeconds } = instance;
 	const url = new URL(`${base}/api/${procedure}`);
 	for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
 	const fail = (said: string) => new Error(`instance ${label}: ${text(said.replaceAll(token, "[token]").replace(/\s+/g, " ")).slice(0, 300)}`);
+	// Dokploy's REST handler parses a body only under exactly `application/json`; fetch sets a form's own type.
+	const headers = { "x-api-key": token, Accept: "application/json", ...(send === undefined || send instanceof FormData ? {} : { "Content-Type": "application/json" }) };
 	let response: Response;
 	let body: string;
 	try {
-		response = await fetch(url, { headers: { "x-api-key": token, Accept: "application/json" }, redirect: "error", signal: AbortSignal.timeout(timeoutSeconds * 1000) });
+		response = await fetch(url, { method: send === undefined ? "GET" : "POST", headers, body: send instanceof FormData ? send : JSON.stringify(send), redirect: "error", signal: AbortSignal.timeout(timeoutSeconds * 1000) });
 		body = await response.text();
 	} catch (error) {
 		if (error instanceof DOMException && error.name === "TimeoutError") throw fail(`no answer in ${timeoutSeconds} s from ${base} for ${what}`);
@@ -34,6 +40,8 @@ export async function call(instance: Instance, procedure: string, query: Readonl
 		const code = cause !== undefined && "code" in cause && typeof cause.code === "string" ? ` (${cause.code})` : "";
 		throw fail(`cannot reach ${base} for ${what}${code}`);
 	}
+	// `application.deploy` answers its 200 with no body at all.
+	if (response.ok && send !== undefined && body === "") return undefined;
 	let answer: unknown;
 	try {
 		answer = JSON.parse(body);
@@ -44,7 +52,7 @@ export async function call(instance: Instance, procedure: string, query: Readonl
 	// Dokploy's error body: `{ message, code, issues }`, or `{ message }` alone for a key it does not know.
 	const said = [field(answer, "message"), response.statusText].find((each) => typeof each === "string" && each.trim() !== "") ?? "no reason given";
 	if (response.status === 401) throw fail(`401: the token in ${tokenEnv} was refused: ${said}`);
-	if (response.status === 403) throw fail(`403: the token's user may not read ${what}: ${said}`);
+	if (response.status === 403) throw fail(`403: the token's user may not ${send === undefined ? "read" : "change"} ${what}: ${said}`);
 	if (response.status === 404) throw fail(`404: ${what} not found`);
 	throw fail(`${response.status} for ${what}: ${said}`);
 }

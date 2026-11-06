@@ -86,7 +86,7 @@ test("the held events are written in number order; a replay after a crash writes
 	assert.equal(next.reads(), 0, "no gap after the last line: the log is not read");
 });
 
-test("a gap after the last line written is filled once from the log, its events of the list alone; no line written yet, no read", () => {
+test("a gap after the last line written is filled once from the log, a replay of that line held besides; no line written yet, no read", () => {
 	const fake = fakeHost({ name: "activity" });
 	const logged = ["one", "two", "three", "four"].map((text) => fake.emit("notice", { text }));
 	fake.emit("job-steered", { id: "j", kind: "worker", text: "x", via: "steer" });
@@ -97,7 +97,7 @@ test("a gap after the last line written is filled once from the log, its events 
 	first.start();
 	assert.deepEqual([seqs(fake, date), first.reads()], [[1], 0], "nothing written before: no read");
 	const second = load(fake);
-	second.deliver(fifth);
+	second.deliver(logged[0] as Event, fifth);
 	second.start();
 	assert.deepEqual([seqs(fake, date), second.reads()], [[1, 2, 3, 4, 6], 1]);
 	const third = load(fake);
@@ -121,10 +121,10 @@ test("text is cut at 300 characters by default, at textChars when given", () => 
 	box.start();
 	box.deliver({ ...notice(1), data: { text: "a".repeat(301) } });
 	const short = fakeHost({ name: "activity" });
-	const other = load(short, { textChars: 2 });
+	const other = load(short, { textChars: 1 });
 	other.start();
 	other.deliver(notice(1));
-	assert.deepEqual([written(fake, "2026-01-01")[0], written(short, "2026-01-01")[0]].map((line) => [line?.text.length, line?.cut]), [[300, 301], [2, undefined]]);
+	assert.deepEqual([written(fake, "2026-01-01")[0], written(short, "2026-01-01")[0]].map((line) => [line?.text.length, line?.cut]), [[300, 301], [1, 2]]);
 });
 
 test("day files older than keepDays (90) go at the start and at the first line of a new day, never at a later line of that day", () => {

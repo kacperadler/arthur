@@ -63,6 +63,8 @@ test("an owner's message: its text parts, each media part by kind and seconds wi
 	const made = line(event("message-received", { channel: "telegram", instance: "work", parts }, { actor: "user:telegram/work" }, "telegram"), 300, none);
 	assert.deepEqual(made, { seq: 7, time: TIME, actor: "user:telegram/work", plugin: "telegram", what: "message-received", text: "Look at this: [voice 12 s] [photo] [forwarded, 15 chars] [forwarded, 0 chars]" });
 	assert.equal(line(event("message-received", { channel: "telegram", parts: "x" }), 300, none)?.text, "");
+	const broken = [null, undefined, 5, { kind: 3, seconds: 2 }, { kind: "text" }];
+	assert.equal(line(event("message-received", { channel: "telegram", parts: broken }), 300, none)?.text, "[part] [part] [part] [part 2 s]", "a part not as the contract says");
 });
 
 test("a job's own lines carry its kind and ticket from its job-started; its event's own fields win", () => {

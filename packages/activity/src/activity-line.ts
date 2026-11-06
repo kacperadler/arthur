@@ -27,7 +27,8 @@ const text = (data: Data) => (typeof data.text === "string" ? data.text : "");
 // A part of an owner's message: a forward's words and every path left out.
 function part(value: unknown): string {
 	const { kind, text, seconds } = (typeof value === "object" && value !== null ? value : {}) as Data;
-	if (kind !== "text") return typeof seconds === "number" ? `[${kind} ${Math.round(seconds)} s]` : `[${kind}]`;
+	const name = typeof kind === "string" ? kind : "part";
+	if (kind !== "text") return typeof seconds === "number" ? `[${name} ${Math.round(seconds)} s]` : `[${name}]`;
 	const said = typeof text === "string" ? text : "";
 	const forward = /^\[forwarded from [^\]]*\] ?/.exec(said);
 	return forward === null ? said : `[forwarded, ${[...said.slice(forward[0].length)].length} chars]`;

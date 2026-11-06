@@ -69,7 +69,7 @@ export function activity(options: ActivityOptions = {}): Plugin {
 			// Events past the last line that never reached this plugin (`events.delivered` lost): read from the log once. A held
 			// event at or below the last line is a replay, so the first above it tells.
 			const next = queue.find((event) => last !== undefined && event.seq > last)?.seq ?? Number.POSITIVE_INFINITY;
-			const gap = last !== undefined && next > last + 1 ? host.events.read(last + 1).filter((event) => LOGGED.includes(event.name)) : [];
+			const gap = last !== undefined && next > last + 1 ? host.events.read(last + 1) : [];
 			for (const event of [...gap, ...queue]) write(host, event);
 		},
 	};

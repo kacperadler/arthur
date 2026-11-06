@@ -77,15 +77,10 @@ export function failsSincePass(host: Host, branch: string): string[] {
 	return verdicts.slice(pass + 1).flatMap(([review, verdict]) => (verdict === "FAIL" ? [review.id] : []));
 }
 
-// The `no review` answer `arthur review-needed` gave for job `id` at `tip`, as `<folder>/<id>/review-needed` keeps it, or
-// undefined: a missing or broken answer, a `review` answer, or one for another commit.
+// The `no review` answer `arthur review-needed` kept for job `id` at `tip` (`<folder>/<id>/review-needed`); none when missing or broken.
 export function noReview(host: Host, id: string, tip: string): string | undefined {
-	let kept: unknown;
 	try {
-		kept = JSON.parse(readFileSync(join(host.folder, id, "review-needed"), "utf8"));
-	} catch {
-		return undefined;
-	}
-	const answer = typeof kept === "object" && kept !== null && "answer" in kept && "commit" in kept && kept.commit === tip ? String(kept.answer) : "";
-	return answer.startsWith("no review") ? answer : undefined;
+		const { answer, commit } = JSON.parse(readFileSync(join(host.folder, id, "review-needed"), "utf8")) as { readonly answer?: unknown; readonly commit?: unknown };
+		return commit === tip && typeof answer === "string" && answer.startsWith("no review") ? answer : undefined;
+	} catch {}
 }

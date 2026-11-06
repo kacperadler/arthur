@@ -4,10 +4,9 @@ import { join } from "node:path";
 import type { Command, Host, JobRecord } from "@arthur/core/plugin";
 import { failsSincePass, LIMIT, noReview } from "./review-records.ts";
 
-// `arthur review <worker job> [--round <n>]` (spec/roadmap.md, entry 52): a review of a worker's branch at its tip, its task
-// built here so it carries the ticket, the branch and the commit; refused at the limit with the procedure for the owner's
-// choice, before the job's checks passed on the tip (AR0580), and for a tip `arthur review-needed` answered `no review` for,
-// which merges without one: a review someone started outranks that answer at the merge (AR0630). docs/commands/review.md.
+// `arthur review <worker job> [--round <n>]` (spec/roadmap.md, entry 52): a review of a worker's branch at its tip, its task built
+// here so it carries the ticket, the branch and the commit; refused at the limit with the procedure for the owner's choice, before
+// the job's checks passed on the tip (AR0580), and on a tip review-needed answered `no review` for (AR0630). docs/commands/review.md.
 
 const USAGE = "usage: arthur review <worker job> [--round <n>]";
 export const FEATURE = /(?:^|\/)(spec\/features\/[A-Z]+\d{4,}-[^/]+)\//;
@@ -23,9 +22,8 @@ export function reviewCommand(host: Host, procedure: URL): Command {
 				return 2;
 			}
 			const job = worker(host, parsed.job);
-			const tip = branchOf(host, job).commit;
-			const answer = noReview(host, job.id, tip);
-			if (answer !== undefined) throw new Error(`${job.branch} at ${tip.slice(0, 7)}: arthur review-needed answered "${answer}" for this tip, so the branch merges without a review; no review starts`);
+			const answer = noReview(host, job.id, branchOf(host, job).commit);
+			if (answer !== undefined) throw new Error(`arthur review-needed answered "${answer}" for ${job.branch}'s tip: it merges without a review; no review starts`);
 			const { task, commit } = reviewTask(host, job, parsed.round);
 			let started;
 			try {

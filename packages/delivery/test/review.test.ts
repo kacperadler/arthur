@@ -309,7 +309,7 @@ test("a tip arthur review-needed answered no review for is refused before any jo
 	const no = "no review: 26 lines changed; the job's checks: check pass, test pass 12/12";
 	answer(no, job.commit);
 	const count = jobs();
-	assert.deepEqual(await review("PASS", job.id.slice(-8)), { id: "", code: 1, err: `arthur review: ${job.branch} at ${job.commit.slice(0, 7)}: arthur review-needed answered "${no}" for this tip, so the branch merges without a review; no review starts` });
+	assert.deepEqual(await review("PASS", job.id.slice(-8)), { id: "", code: 1, err: `arthur review: arthur review-needed answered "${no}" for ${job.branch}'s tip: it merges without a review; no review starts` });
 	assert.equal(jobs(), count, "no record for a refused review");
 	answer("review: 71 lines changed, over 30", job.commit);
 	assert.equal((await review("PASS", job.id)).code, undefined, "a review answer is reviewed");

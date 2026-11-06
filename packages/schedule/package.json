@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/schedule.ts",
     "./options": "./src/schedule-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

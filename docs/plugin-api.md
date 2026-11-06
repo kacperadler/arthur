@@ -129,6 +129,7 @@ Each decided in the ticket that made it.
 - AR0590 (AR0589's approved plan, ticket 3): inside a job's sandbox a plugin reads nothing of its `folder` nor of the rest of the home but the job's own record, the records of its project and the projects plugin's lists; `host.jobs.list()` there gives those records alone (`arthur spawn --help`, "The sandbox").
 - AR0557 (AR0556's approved plan, Option 2; its Done means: `arthur github pr --help` prints `github-pr.md`): a command's group page, `<doc>-<word>.md` beside its `doc`, which `arthur <command> <word> … --help` prints when it exists and `<word>` is lowercase letters, digits and dashes, else the command's `doc` (`arthur help --help`). A plugin registers nothing more for it. No host member changed.
 - AR0392 (F1 of AR0380; its Done means: the keys Git reads by a fixed name passed with `-c` as well): `@arthur/core/git-config`'s `configRefusal(root)` becomes `checkConfig(root)`, `{ refusal, pins }`, the check's line and the `-c` arguments of the git call after it, so the check and those values come from one read of the config. No host member changed.
+- AR0640 (roadmap 104, the owner's approved AR0128 plan, AR-D514): the export `arthurVersion()`, what `arthur version` prints, `<release> <hash>`, beside `coreVersion()`, the hash alone; the machines plugin names both whole lines in a refusal and compares the hash. A plugin's `package.json` may name the core releases it was built for, `peerDependencies["@arthur/core"]`, which the host reads at load from the package folder around its `module`: a core outside it is one `arthur doctor` line, `core plugin <name>`, that does not stop the start (`arthur doctor --help`). No host member changed.
 
 ### Project pieces
 
@@ -252,9 +253,9 @@ An `OptionEntry` is a `ValueOption`, `{ about, default?, check, each?, keys? }`,
 
 ### `@arthur/core`
 
-Exports: `ArthurConfig`, `CoreOptions`, `LoadedConfig`, `QuietHours`, `coreVersion`, `defineConfig`, `describe`, `loadConfig`, `memoryBytes`.
+Exports: `ArthurConfig`, `CoreOptions`, `LoadedConfig`, `QuietHours`, `arthurVersion`, `coreVersion`, `defineConfig`, `describe`, `loadConfig`, `memoryBytes`.
 
-`defineConfig(config)` types `arthur.config.ts` (`ArthurConfig`: `core` as `CoreOptions`, with `QuietHours`, and `plugins`); `loadConfig(path)` loads and checks one, every core option set (`LoadedConfig`). `describe(value)` is a value as an error names it (`"text"`, `a list`, `3`). `coreVersion()` is what `arthur version` prints. `memoryBytes(text, total)` is systemd's `MemoryMax` syntax in bytes, undefined when systemd would refuse it.
+`defineConfig(config)` types `arthur.config.ts` (`ArthurConfig`: `core` as `CoreOptions`, with `QuietHours`, and `plugins`); `loadConfig(path)` loads and checks one, every core option set (`LoadedConfig`). `describe(value)` is a value as an error names it (`"text"`, `a list`, `3`). `arthurVersion()` is what `arthur version` prints, `<release> <hash>`; `coreVersion()` is its hash, which another machine must share. `memoryBytes(text, total)` is systemd's `MemoryMax` syntax in bytes, undefined when systemd would refuse it.
 
 ### `@arthur/core/cli`
 

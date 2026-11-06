@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/models.ts",
     "./options": "./src/model-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

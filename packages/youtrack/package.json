@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/youtrack.ts",
     "./options": "./src/youtrack-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

@@ -4199,9 +4199,9 @@
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-06T21:46:18.310Z",
+    "updated": "2026-11-06T23:00:49.003Z",
     "after": [
       "AR0528"
     ]
@@ -5147,9 +5147,9 @@
   {
     "id": "AR0640",
     "title": "Roadmap 104: one release version, arthur version with the hash, and the plugin check",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0640-roadmap-104-one-release-version-arthur-version-with-the-hash-and-the-plugin/ticket.md",
-    "updated": "2026-11-06T21:00:47.838Z"
+    "updated": "2026-11-06T23:01:54.428Z"
   },
   {
     "id": "AR0641",

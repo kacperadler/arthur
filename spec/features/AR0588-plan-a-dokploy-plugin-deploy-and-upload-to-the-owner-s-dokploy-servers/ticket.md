@@ -12,7 +12,7 @@
 
 The owner, 2026-10-30: "i think we will need a dokploy plugin for athur".
 
-In a MEGA.dev Challenge that day, the coordinator put a page on the owner's Dokploy server through curl and a token the owner pasted into the chat. Dokploy's drop deploy is `POST /api/application.dropDeployment` with an `x-api-key` header and the form fields `applicationId` and `zip`, and `GET /api/project.all` lists the projects and their applications. There was no plugin, so nothing kept the token out of the chat, checked the address, or told the coordinator how to do it again.
+That day, in an outside task, the coordinator put a page on the owner's Dokploy server through curl and a token the owner pasted into the chat. Dokploy's drop deploy is `POST /api/application.dropDeployment` with an `x-api-key` header and the form fields `applicationId` and `zip`, and `GET /api/project.all` lists the projects and their applications. There was no plugin, so nothing kept the token out of the chat, checked the address, or told the coordinator how to do it again.
 
 ## Goal
 

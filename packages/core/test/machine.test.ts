@@ -75,7 +75,7 @@ const events = (home: string, name: string) => readEvents(home, 1).filter((event
 
 test("a worker on another machine runs there over SSH; the sweep copies its record and brings its branch back, running no hook of the checkout's config", async () => {
 	const gate = join(temporaryFolder(), "go");
-	const fake = fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0.25 }] });
+	const fake = fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0.25, usage: { input: 3, output: 4 } }] });
 	// The agent there notes the guarded list its launch gave it, then plays the fake agent.
 	const agent = join(dirname(fake), "guarded-omp");
 	writeFileSync(agent, `#!/bin/sh\nprintf '%s' "$ARTHUR_GUARDED" > '${agent}.part' && mv '${agent}.part' '${agent}.guarded'\nexec '${fake}' "$@"\n`, { mode: 0o755 });
@@ -117,6 +117,7 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	writeFileSync(join(hooks, "reference-transaction"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
 	await jobs.sweep();
 	assert.deepEqual(["state", "reason", "result", "cost"].map((name) => read(home, job.id, name)), ["ended", "finished", "Built it.", "0.2500"]);
+	assert.deepEqual(JSON.parse(read(home, job.id, "usage")), { "anthropic/fake": { messages: 1, input: 3, output: 4, cacheRead: 0, cacheWrite: 0, cost: 0.25 } }, "usage is copied with the run's files");
 	assert.match(read(home, job.id, "commits"), /the change/);
 	assert.equal(git(root, "rev-parse", job.branch ?? ""), tip, "the branch is fetched over the one from the earlier run");
 	assert.deepEqual(git(root, "branch", "--list", "arthur/*", "--format=%(refname:short)").split("\n"), [job.branch]);

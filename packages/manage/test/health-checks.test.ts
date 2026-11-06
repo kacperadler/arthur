@@ -29,6 +29,7 @@ const job = (id: string, minutes: number, more: Partial<JobRecord> = {}): JobRec
 	machine: "local",
 	cost: "0.5",
 	budget: "2",
+	usage: {},
 	tickets: [PATH],
 	seconds: 600,
 	...more,

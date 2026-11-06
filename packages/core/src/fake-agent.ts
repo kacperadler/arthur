@@ -104,14 +104,14 @@ for (const [index, step] of run.steps.entries()) {
 		await ask("tool_result", { toolCallId, toolName: step.tool, input, ...result, isError });
 		await event({ type: "tool_execution_end", toolCallId, toolName: step.tool, result, isError });
 	} else if ("message" in step) {
-		const cost = step.cost ?? 0;
-		const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: cost, cacheRead: 0, cacheWrite: 0, total: cost } };
+		const [cost, { input = 0, output = 0, cacheRead = 0, cacheWrite = 0 } = {}] = [step.cost ?? 0, step.usage];
+		const usage = { input, output, cacheRead, cacheWrite, totalTokens: input + output + cacheRead + cacheWrite, cost: { input: 0, output: cost, cacheRead: 0, cacheWrite: 0, total: cost } };
 		const message = {
 			role: "assistant",
 			content: [{ type: "text", text: step.message }],
 			api: "anthropic-messages",
 			provider: "anthropic",
-			model: "fake",
+			model: step.model ?? "fake",
 			usage,
 			stopReason: step.stopReason ?? "stop",
 			timestamp: Date.now(),

@@ -4192,9 +4192,9 @@
   {
     "id": "AR0528",
     "title": "Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0528-who-did-it-an-actor-stamp-on-every-event-and-events-for-commands-phone-commands/ticket.md",
-    "updated": "2026-11-06T08:17:07.516Z"
+    "updated": "2026-11-06T10:47:54.940Z"
   },
   {
     "id": "AR0529",
@@ -4834,7 +4834,7 @@
     "title": "Dokploy T2: upload a file or folder and start a deploy, on the owner's word",
     "status": "in-progress",
     "path": "spec/features/AR0603-dokploy-t2-upload-a-file-or-folder-and-start-a-deploy-on-the-owner-s-word/ticket.md",
-    "updated": "2026-11-06T08:22:47.514Z"
+    "updated": "2026-11-06T09:45:29.473Z"
   },
   {
     "id": "AR0604",
@@ -5229,9 +5229,9 @@
   {
     "id": "AR0649",
     "title": "Stats S2: tokens per model in the job record (roadmap 108)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0649-stats-s2-tokens-per-model-in-the-job-record-roadmap-108/ticket.md",
-    "updated": "2026-11-06T08:46:51.336Z",
+    "updated": "2026-11-06T10:14:59.200Z",
     "after": [
       "AR0648"
     ]

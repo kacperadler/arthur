@@ -4867,9 +4867,9 @@
   {
     "id": "AR0607",
     "title": "Runbook: what the coordinator checks and does, in order, when a project site is down",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0607-runbook-what-the-coordinator-checks-and-does-in-order-when-a-project-site-is/ticket.md",
-    "updated": "2026-11-02T18:45:28.336Z",
+    "updated": "2026-11-06T16:05:39.758Z",
     "after": [
       "AR0603"
     ]
@@ -5279,9 +5279,9 @@
   {
     "id": "AR0654",
     "title": "Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0654-dokploy-t3-create-an-app-and-set-its-build-type-domain-volume-and-environment/ticket.md",
-    "updated": "2026-11-06T09:03:51.960Z",
+    "updated": "2026-11-06T16:02:09.264Z",
     "after": [
       "AR0603"
     ]

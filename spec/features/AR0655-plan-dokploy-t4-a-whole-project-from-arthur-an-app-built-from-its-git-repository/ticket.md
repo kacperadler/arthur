@@ -35,4 +35,5 @@ Out:
 - Upload and deploy (AR0603), create and setup of an app from a zip (AR0654).
 
 ## Decisions
+- 2026-11-06: AR0655 approved: a planner writes the plan for a whole Dokploy project from Git with a database; joins the queue; the owner: "AR-D531 - 1" (AR-D531)
 

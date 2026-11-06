@@ -115,8 +115,9 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 			const files: Record<string, string> = {};
 			let [at, logFrom, logSize, logTo] = [0, 0, 0, Infinity];
 			for (const name of readdirSync(folder)) {
-				const stat = statSync(join(folder, name));
-				if (name.startsWith(".") || name.includes(".lock") || !stat.isFile()) continue;
+				// A lock another copy or the wrapper holds a moment may be gone by its stat.
+				const stat = statSync(join(folder, name), { throwIfNoEntry: false });
+				if (stat === undefined || name.startsWith(".") || name.includes(".lock") || !stat.isFile()) continue;
 				at = Math.max(at, stat.mtimeMs);
 				if (name === "log") logSize = stat.size;
 				if (stat.mtimeMs < Number(from)) continue;

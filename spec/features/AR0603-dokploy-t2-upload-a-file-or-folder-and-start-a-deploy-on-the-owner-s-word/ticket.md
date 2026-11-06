@@ -48,4 +48,5 @@ Out:
 - Deploys started by a job: never; writes are the coordinator's on the owner's word.
 
 ## Decisions
+- 2026-11-06: Raise the AR0603 budget to $16 so it finishes its tests (owner approved the ticket and its queue, AR-D518 and AR-D524); the owner: "AR0603 and AR0654 approved and join the queue" (AR-D525)
 

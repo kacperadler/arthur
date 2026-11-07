@@ -4199,9 +4199,9 @@
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-06T23:24:02.126Z",
+    "updated": "2026-11-07T08:06:11.596Z",
     "after": [
       "AR0528"
     ]
@@ -5239,9 +5239,9 @@
   {
     "id": "AR0650",
     "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
-    "updated": "2026-11-06T19:08:49.566Z",
+    "updated": "2026-11-07T08:06:10.621Z",
     "after": [
       "AR0649"
     ]

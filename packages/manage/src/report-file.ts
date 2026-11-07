@@ -2,12 +2,13 @@ import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, rmSync, wri
 import { join } from "node:path";
 import type { Filing } from "@arthur/core/plugin";
 
-// How `arthur ticket file <job>` files the report of one of manage's read-only kinds, the audit (spec/roadmap.md, entry 62) and
-// the retro (entry 63), and the reports read back: docs/manage.md, "The audit" and "The retro".
+// How `arthur ticket file <job>` files the report of one of manage's read-only kinds, the audit (spec/roadmap.md, entry 62),
+// the retro (entry 63) and the pyramid audit (AR0563), and the reports read back: docs/manage.md, "The audit", "The retro"
+// and "The pyramid audit".
 
-// Where a kind's reports go, their title, the line naming the commit the next one starts from, and whether a phone page goes
-// beside each.
-export type Reports = { readonly folder: string; readonly title: string; readonly commit: string; readonly page?: boolean };
+// Where a kind's reports go, their title, the line naming the commit the next one starts from, and the page written beside
+// each, from the report's text.
+export type Reports = { readonly folder: string; readonly title: string; readonly commit: string; readonly page?: (report: string) => string };
 
 // A report's name: the day its job started, then `-2`, `-3` for a second and third that day.
 const NAME = /^(\d{4}-\d{2}-\d{2})(?:-(\d+))?\.(md|html)$/;
@@ -25,7 +26,7 @@ export function fileReport(reports: Reports, { root, job }: Filing): string {
 	for (let n = 2; names.includes(`${name}.md`) || names.includes(`${name}.html`); n++) name = `${date}-${n}`;
 	const text = `# ${reports.title} ${date}\n\n- Job: ${job.id}\n- ${reports.commit}: ${job.base}\n\n## Final message\n\n${job.result}`;
 	// The page first: the report, which the next filing and the next job read, appears only beside its page.
-	const files = [...(reports.page === true ? [[`${name}.html`, page(text)]] : []), [`${name}.md`, text]];
+	const files = [...(reports.page === undefined ? [] : [[`${name}.html`, reports.page(text)]]), [`${name}.md`, text]];
 	const draft = join(folder, `.report.${process.pid}`);
 	const linked: string[] = [];
 	try {
@@ -52,8 +53,9 @@ export function fileReport(reports: Reports, { root, job }: Filing): string {
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// A report as one self-contained page for a phone: each `#` heading line a heading, the lines between as they are, wrapped.
-function page(text: string): string {
+// A report as one self-contained page for a phone, its plain page: each `#` heading line a heading, the lines between as they
+// are, wrapped.
+export function page(text: string): string {
 	const body = text
 		.split(/^(#{1,3} .*)$/m)
 		.map((part, index) => {
@@ -65,6 +67,62 @@ function page(text: string): string {
 	const title = escape(/^# (.*)$/m.exec(text)?.[1] ?? "");
 	const style = "body{margin:1em;font:16px/1.5 system-ui,sans-serif}p{white-space:pre-wrap;overflow-wrap:anywhere}";
 	return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${style}</style></head>\n<body>${body}</body></html>\n`;
+}
+
+// The rules a page in the report style uses of .agents/arthur/criteria/report.md's base style (AR-D298), with `.cols` and
+// `.tag`; its header never holds a code span.
+const STYLE = [
+	":root{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000}*{box-sizing:border-box}",
+	'body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif}',
+	"header{background:var(--ink);color:var(--paper);padding:32px 18px 24px;text-align:center;border-bottom:6px solid var(--blue)}header ul{list-style:none;padding:0}",
+	"header h1{margin:0 auto;max-width:860px;font-size:30px;line-height:1.1;font-weight:800}header p{margin:12px auto 0;max-width:720px;color:#cfcfcf}",
+	"main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}.red{color:var(--red)}",
+	"h2{font-size:22px;line-height:1.2;font-weight:800;margin:40px 0 6px;padding-bottom:6px;border-bottom:3px solid var(--ink);text-align:center}",
+	"code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);padding:1px 4px;overflow-wrap:anywhere}",
+	".cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}.cols>div{border:2px solid var(--ink);padding:0 14px}.cols>div.after{border-color:var(--blue)}",
+	".cols p{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 ui-monospace,Menlo,monospace}@media (max-width:640px){.cols{grid-template-columns:1fr}}",
+	".tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 6px;border:1.5px solid var(--ink);border-radius:3px;background:var(--paper);color:var(--ink)}",
+	".tag.code{background:var(--ink);color:var(--paper)}.tag.static{border-color:var(--blue);color:var(--blue)}.tag.prose{border-color:#555555;color:#555555}.tag.you{border-color:var(--red);color:var(--red)}",
+].join("");
+const TAGS: Readonly<Record<string, string>> = { codebase: "code", "static analysis": "static", prose: "prose", "human review": "you" };
+
+// Markdown as one self-contained page in the report style (`/repeats`, a pyramid's before and after page): its title and the
+// lines before its first `## ` in the header, the rest in `main`, a backticked span as code, each line of a `red` section in
+// red, the `> ` lines after a `Before:` and an `After:` line side by side, and the layer of a `Now at:` or `Move to:` line as its tag.
+export function reportPage(text: string, red: readonly string[] = []): string {
+	const inline = (line: string) => escape(line).replace(/`([^`]+)`/g, "<code>$1</code>");
+	const out: string[] = [];
+	let [side, section, quote] = ["", "", [] as string[]];
+	// The open side's quote and its end; `close` ends the pair too.
+	const column = () => void out.push(`<p>${quote.splice(0).join("\n")}</p></div>`);
+	const close = () => {
+		if (side !== "") (column(), out.push("</div>"));
+		side = "";
+	};
+	for (const line of text.split("\n")) {
+		if (line === "Before:" || line === "After:") {
+			if (side === "Before" && line === "After:") column();
+			else (close(), out.push(`<div class="cols">${line === "After:" ? "<div><h3>Before</h3><p></p></div>" : ""}`));
+			out.push(line === "After:" ? '<div class="after"><h3>After</h3>' : "<div><h3>Before</h3>");
+			side = line.slice(0, -1);
+		} else if (side !== "" && (line.startsWith(">") || line.trim() === "")) {
+			if (line.startsWith(">")) quote.push(inline(line.replace(/^> ?/, "")));
+		} else {
+			close();
+			const level = /^(#{1,3}) /.exec(line)?.[1]?.length;
+			const layer = /^(Now at|Move to): (.+)$/.exec(line);
+			if (level === 2) section = line.slice(3);
+			if (level !== undefined && line !== "## Final message") out.push(`<h${level}>${inline(line.slice(level + 1))}</h${level}>`);
+			else if (layer !== null) out.push(`<p>${layer[1]}: <span class="tag ${TAGS[layer[2]?.trim().toLowerCase() ?? ""] ?? ""}">${inline(layer[2] ?? "")}</span></p>`);
+			else if (line.startsWith("- ")) out.push(`<li${red.includes(section) ? ' class="red"' : ""}>${inline(line.slice(2))}</li>`);
+			else if (line.trim() !== "" && level === undefined) out.push(`<p>${inline(line)}</p>`);
+		}
+	}
+	close();
+	const body = out.join("\n").replace(/(?:^<li.*<\/li>$\n?)+/gm, (items) => `<ul>\n${items.trimEnd()}\n</ul>\n`);
+	const at = body.includes("<h2>") ? body.indexOf("<h2>") : body.length;
+	const head = `<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(/^# (.*)$/m.exec(text)?.[1] ?? "")}</title>`;
+	return `<!doctype html>\n<html lang="en"><head>${head}<style>${STYLE}</style></head>\n<body>\n<header>\n${body.slice(0, at).trimEnd()}\n</header>\n<main>\n${body.slice(at).trimEnd()}\n</main>\n</body></html>\n`;
 }
 
 // The reports in `root` with extension `ext`, newest first by their date and number, each `<folder>/<name>`; none without the

@@ -14,7 +14,7 @@ test("no options, health.everyMinutes from 1 up and prune.keepJobsDays from 0 up
 });
 
 test("refused: an unknown option, health not an object, an unknown key, everyMinutes below 1 or not whole", () => {
-	assert.deepEqual(checkOptions({ backup: {} }), [{ path: "backup", problem: "unknown option; options: health, prune, audit, retro" }]);
+	assert.deepEqual(checkOptions({ backup: {} }), [{ path: "backup", problem: "unknown option; options: health, prune, audit, retro, pyramid" }]);
 	for (const health of [30, [], null]) assert.equal(checkOptions({ health })[0]?.path, "health", String(health));
 	assert.deepEqual(checkOptions({ health: 30 }), [{ path: "health", problem: "expected { everyMinutes }, got 30" }]);
 	assert.deepEqual(checkOptions({ health: { every: 30 } }), [{ path: "health.every", problem: "unknown key; keys: everyMinutes" }]);
@@ -64,4 +64,12 @@ test("retro.day, retro.at and retro.budgetUsd pass at their limits; refused: ret
 	for (const day of ["Fri", "friday", ["fri"], 5]) assert.equal(checkOptions({ retro: { day, at: "22:30" } })[0]?.path, "retro.day", JSON.stringify(day));
 	for (const at of ["24:00", "9:00", 2230]) assert.equal(checkOptions({ retro: { day: "fri", at } })[0]?.path, "retro.at", String(at));
 	for (const budgetUsd of [-0.01, "5"]) assert.equal(checkOptions({ retro: { day: "fri", at: "22:30", budgetUsd } })[0]?.path, "retro.budgetUsd", String(budgetUsd));
+});
+
+test("pyramid.budgetUsd passes at 0 and left out; refused: pyramid not an object, an unknown key, a budget below 0 or not a number", () => {
+	assert.deepEqual(checkOptions({ pyramid: {} }), []);
+	assert.deepEqual(checkOptions({ pyramid: { budgetUsd: 0 } }), [], "budget 0, no limit");
+	assert.deepEqual(checkOptions({ pyramid: 5 }), [{ path: "pyramid", problem: "expected { budgetUsd }, got 5" }]);
+	assert.deepEqual(checkOptions({ pyramid: { at: "02:00" } }), [{ path: "pyramid.at", problem: "unknown key; keys: budgetUsd" }]);
+	for (const budgetUsd of [-0.01, "5"]) assert.equal(checkOptions({ pyramid: { budgetUsd } })[0]?.path, "pyramid.budgetUsd", String(budgetUsd));
 });

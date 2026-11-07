@@ -4199,9 +4199,9 @@
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-06T08:17:08.108Z",
+    "updated": "2026-11-07T08:06:11.596Z",
     "after": [
       "AR0528"
     ]
@@ -4495,9 +4495,9 @@
   {
     "id": "AR0563",
     "title": "arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0563-arthur-pyramid-and-pyramid-a-pyramid-audit-of-any-project-one-planning-ticket/ticket.md",
-    "updated": "2026-10-29T19:12:54.686Z",
+    "updated": "2026-11-07T12:39:43.191Z",
     "after": [
       "AR0562"
     ]
@@ -4867,9 +4867,9 @@
   {
     "id": "AR0607",
     "title": "Runbook: what the coordinator checks and does, in order, when a project site is down",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0607-runbook-what-the-coordinator-checks-and-does-in-order-when-a-project-site-is/ticket.md",
-    "updated": "2026-11-06T16:05:39.758Z",
+    "updated": "2026-11-07T08:16:43.289Z",
     "after": [
       "AR0603"
     ]
@@ -5112,30 +5112,30 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-06T11:31:25.400Z"
+    "updated": "2026-11-07T14:23:48.403Z"
   },
   {
     "id": "AR0636",
     "title": "A committed plan names the public IP addresses of the owner deploy host and this VPS",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0636-a-committed-plan-names-the-public-ip-addresses-of-the-owner-deploy-host-and-this/ticket.md",
-    "updated": "2026-11-06T11:31:26.383Z"
+    "updated": "2026-11-07T12:34:25.360Z"
   },
   {
     "id": "AR0637",
     "title": "Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0637-mutate-runs-capped-at-4-pass-the-review-gate-and-reviews-then-fail-on-survivors/ticket.md",
-    "updated": "2026-11-06T11:31:27.390Z"
+    "updated": "2026-11-07T12:13:53.800Z"
   },
   {
     "id": "AR0638",
     "title": "host.secrets holds only enabled plugins values, so the public decision log misses other env file values",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
-    "updated": "2026-11-06T11:31:28.311Z"
+    "updated": "2026-11-07T12:29:27.142Z"
   },
   {
     "id": "AR0639",
@@ -5147,9 +5147,9 @@
   {
     "id": "AR0640",
     "title": "Roadmap 104: one release version, arthur version with the hash, and the plugin check",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0640-roadmap-104-one-release-version-arthur-version-with-the-hash-and-the-plugin/ticket.md",
-    "updated": "2026-11-06T20:58:29.182Z"
+    "updated": "2026-11-07T08:32:05.254Z"
   },
   {
     "id": "AR0641",
@@ -5187,7 +5187,7 @@
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
     "status": "in-progress",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T17:02:08.604Z"
+    "updated": "2026-11-07T14:14:42.415Z"
   },
   {
     "id": "AR0645",
@@ -5239,9 +5239,9 @@
   {
     "id": "AR0650",
     "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
-    "updated": "2026-11-06T19:08:49.566Z",
+    "updated": "2026-11-07T13:42:30.622Z",
     "after": [
       "AR0649"
     ]
@@ -5279,9 +5279,9 @@
   {
     "id": "AR0654",
     "title": "Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0654-dokploy-t3-create-an-app-and-set-its-build-type-domain-volume-and-environment/ticket.md",
-    "updated": "2026-11-06T16:48:03.421Z",
+    "updated": "2026-11-07T08:23:41.722Z",
     "after": [
       "AR0603"
     ]
@@ -5292,5 +5292,43 @@
     "status": "planned",
     "path": "spec/features/AR0655-plan-dokploy-t4-a-whole-project-from-arthur-an-app-built-from-its-git-repository/ticket.md",
     "updated": "2026-11-06T11:47:40.069Z"
+  },
+  {
+    "id": "AR0656",
+    "title": "A worker is told before its run ends that its checks did not pass on its clean committed tip",
+    "status": "planning",
+    "path": "spec/features/AR0656-a-worker-is-told-before-its-run-ends-that-its-checks-did-not-pass-on-its-clean/ticket.md",
+    "updated": "2026-11-06T21:40:20.085Z"
+  },
+  {
+    "id": "AR0657",
+    "title": "A reviewer does not file again what the ticket's findings.md already holds",
+    "status": "planning",
+    "path": "spec/features/AR0657-a-reviewer-does-not-file-again-what-the-ticket-s-findings-md-already-holds/ticket.md",
+    "updated": "2026-11-06T21:40:21.112Z"
+  },
+  {
+    "id": "AR0658",
+    "title": "`npm run mutate` ends by itself before the call's 1800 s, with its summary",
+    "status": "planning",
+    "path": "spec/features/AR0658-npm-run-mutate-ends-by-itself-before-the-call-s-1800-s-with-its-summary/ticket.md",
+    "updated": "2026-11-06T21:40:22.174Z",
+    "after": [
+      "AR0637"
+    ]
+  },
+  {
+    "id": "AR0659",
+    "title": "The README's Status paragraph stops copying the roadmap's state",
+    "status": "planning",
+    "path": "spec/features/AR0659-the-readme-s-status-paragraph-stops-copying-the-roadmap-s-state/ticket.md",
+    "updated": "2026-11-06T21:40:24.101Z"
+  },
+  {
+    "id": "AR0660",
+    "title": "The model test reads every file of a job folder while the job still writes, and fails on a lock file that vanished",
+    "status": "planning",
+    "path": "spec/features/AR0660-the-model-test-reads-every-file-of-a-job-folder-while-the-job-still-writes-and/ticket.md",
+    "updated": "2026-11-07T12:37:31.220Z"
   }
 ]

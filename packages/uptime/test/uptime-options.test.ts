@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkOptions, checkSites, PROBES, table } from "../src/uptime-options.ts";
+import { checkOptions, checkPiece, checkSites, PROBES, table } from "../src/uptime-options.ts";
 
 // The uptime plugin's option check, and its check of a project's piece, its sites: every refusal names its place.
 
@@ -57,4 +57,15 @@ test("refused: a url on a port fetch blocks, naming the port; fetch indeed never
 		assert.equal(refused(url), undefined, url);
 	const ports = Array.from({ length: 65535 }, (_, index) => index + 1).filter((port) => refused(`http://127.0.0.1:${port}/`) !== undefined);
 	for (const port of ports) await assert.rejects(fetch(`http://127.0.0.1:${port}/`), (error: Error) => (error.cause as Error).message === "bad port", String(port));
+});
+
+test("a project's piece passes as sites alone or with a runbook inside its folder; refused: a runbook outside it, empty or no string, an unknown key, no { sites }", () => {
+	const sites = [{ url: "https://acme.example/" }];
+	for (const runbook of [undefined, "site-down.md", "ops/site-down.md", "ops/../site-down.md", "..site-down.md"]) assert.equal(checkPiece({ sites, runbook }), undefined, String(runbook));
+	for (const runbook of ["/etc/site-down.md", "../site-down.md", "ops/../../site-down.md", "..", "", 5])
+		assert.equal(checkPiece({ sites, runbook }), `runbook: expected a path inside the project's folder, such as "site-down.md", got ${JSON.stringify(runbook)}`, String(runbook));
+	assert.equal(checkPiece({ sites, runbok: "x.md" }), "runbok: unknown key; keys: sites, runbook");
+	for (const piece of [sites, "https://acme.example/", null, 5]) assert.match(checkPiece(piece) ?? "", /^expected \{ sites, runbook\? \}, as uptime\.project\(\[\.\.\.sites\], \{ runbook\? \}\) builds it, got /, JSON.stringify(piece));
+	assert.equal(checkPiece({ sites: [{ url: "ftp://a.example/" }], runbook: "" }), '[0].url: expected an http or https URL, got "ftp://a.example/"; runbook: expected a path inside the project\'s folder, such as "site-down.md", got ""', "each problem, sites first");
+	assert.equal(checkPiece({ runbook: "site-down.md" }), "expected a list of at least one site { url, expect?, everySeconds? }, got nothing");
 });

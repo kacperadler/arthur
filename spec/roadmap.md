@@ -24,6 +24,8 @@ Stats (108 to 112) follow the releases, on the owner's approval of the AR0480 pl
 
 Dokploy (113, AR0588 and AR0603) lets the coordinator read and deploy to the owner's Dokploy servers, so no API key passes through a chat. It needs only the project files (103), `arthur doctor` (80) and the option tables (93), all merged; its approved plan (AR0588) built it in two tickets, the reads and then upload and deploy. It took the next free number after the stats entries.
 
+The site-down runbook (114, AR0607) follows Dokploy (113): its redeploy step is `arthur dokploy deploy` (AR0603), asked of the owner through the decision log (96) and its classes (97). It adds to uptime (98) only the coordinator's wake and the runbook's path, and took the next free number after Dokploy.
+
 The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.md`, which wins over this summary): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `registerMachine`, `run`, `list`, `running`, `result`: a job's final message), `board` (its `projects()` is the project list), `clock`, `code` (the package folders of the code the load runs: the core's and each enabled plugin's), and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
 ## Core
@@ -649,6 +651,16 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 - Size: half a day.
 - Covers: none of the harness Arthur replaces: a new capability, the first stimulus of AR0216.
 
+### 114. Uptime: the coordinator's runbook when a site is down
+
+- Package: uptime; `packages/uptime/docs/uptime.md`, "The coordinator's runbook"; `packages/uptime/roles/coordinator/site-down.md`.
+- Tickets: AR0607
+- Delivers: with each `uptime-down` and `uptime-up`, one `coordinator-message` naming the site, its project, since when, the reason (or how long it was down) and the runbook to work through. A boilerplate runbook ships with the plugin: confirm from this machine, this machine online, the Dokploy server reachable (`arthur dokploy app`), the app's status and last deployments (`arthur dokploy status`), a redeploy only when those point to one and only on the owner's word (`arthur decision ask`, answered by him or by a class he approved for the project, never by a silent-mode grant; then `arthur dokploy deploy`), the report, and how it ended. A project names its own with `uptime.project([...], { runbook })`, a path from its project folder.
+- Done means: tested against the fake host and a local HTTP server. Refused at load: a `runbook` absolute, climbing out with `..`, empty or no string; another key beside `sites` and `runbook`; a piece that is not `{ sites, runbook? }`. Edge cases: the project's own runbook missing, a folder, a symlink or under a symlinked folder (the boilerplate is named, with a note); a down site that keeps failing (no second message); this machine offline (no message); a restart while a site is down (no second down message, the up message after it).
+- Depends on: 98, 113.
+- Size: half a day.
+- Covers: none of the harness Arthur replaces: a new capability, the owner's request of 2026-11-02 (AR-D460).
+
 ## Delivery
 
 ### 52. Review jobs
@@ -730,8 +742,8 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 ### 113. Dokploy: reads, upload and deploy, for the coordinator
 
 - Package: dokploy; `packages/dokploy/docs/dokploy.md` and `docs/commands/dokploy.md`; the coordinator's role (23).
-- Tickets: AR0588, AR0603
-- Delivers (the AR0588 plan): `instances`, named and unnamed, each `{ name?, url, tokenEnv }`, its `url` https or http on a private or Tailscale address only, and a project's piece `dokploy.project({ instance?, app })`. `arthur dokploy apps|app|status` reads each server's projects, applications and deployments; `arthur dokploy upload [<app>] <file or folder> [--replace-source]` zips a file or folder (regular files only, no zip64) or takes a ready `.zip`, reads the app, and sends the zip to `application.dropDeployment` with the app's `dropBuildPath`; `arthur dokploy deploy [<app>]` calls `application.deploy`. Every call sends the key as `x-api-key` to the configured url only, follows no redirect and has a timeout; the command runs for the coordinator only, never in a job, and the role writes only on the owner's word.
+- Tickets: AR0588, AR0603, AR0654
+- Delivers (the AR0588 plan): `instances`, named and unnamed, each `{ name?, url, tokenEnv }`, its `url` https or http on a private or Tailscale address only, and a project's piece `dokploy.project({ instance?, app })`. `arthur dokploy apps|app|status` reads each server's projects, applications and deployments; `arthur dokploy upload [<app>] <file or folder> [--replace-source]` zips a file or folder (regular files only, no zip64) or takes a ready `.zip`, reads the app, and sends the zip to `application.dropDeployment` with the app's `dropBuildPath`; `arthur dokploy deploy [<app>]` calls `application.deploy`. Every call sends the key as `x-api-key` to the configured url only, follows no redirect and has a timeout; the command runs for the coordinator only, never in a job, and the role writes only on the owner's word. AR0654: `arthur dokploy create <name> --dokploy-project <name> [--environment <name>]` calls `application.create`, refused when the name is taken in that environment; `setup <app>` sets the build type `dockerfile` (`saveBuildType`), adds an https domain with Let's Encrypt (`domain.create`, a warning when `domain.validateDomain` finds the host not pointing at the server) and a named volume (`mounts.create`), each only when not already in place; `env <app> names|set <NAME> <value>` prints names only and sets one variable, every other line kept, the value never printed.
 - Done means: refused before any request: an unknown or ambiguous instance, an app that is no id, a project without its piece; for `upload`, a missing or unreadable path, a symlink or special file (named by its path, never followed), an empty folder, more than 65535 files or a zip of more than 4 GiB. Refused after the read: an upload that would switch an app with deployments from another source, unless `--replace-source`. Each Dokploy error is one line naming the instance, the token never in it. Tested against a fake Dokploy in the shape its documentation and its source at v0.30.10 show, with the zip read back.
 - Depends on: 103, 80, 93.
 - Size: two days.

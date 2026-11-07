@@ -58,7 +58,7 @@ test("setup runs in dependency order, then in the config's order; each plugin ge
 	}
 });
 
-test("host.secrets hands every plugin each enabled plugin's set values, from the env file or the shell, never their names nor a disabled plugin's", async () => {
+test("host.secrets hands every plugin each value of the env file, a disabled plugin's, no plugin's and one the shell overrides too, and each enabled plugin's shell value, never their names; a job's the shell's alone", async () => {
 	const hosts: Host[] = [];
 	const keep = (host: Host) => void hosts.push(host);
 	const loaded = config([
@@ -67,13 +67,14 @@ test("host.secrets hands every plugin each enabled plugin's set values, from the
 		fake([], "orchestration", { setup: keep }),
 		fake([], "signal", { options: { enabled: false, accountEnv: "ARTHUR_SIGNAL_ACCOUNT" } }),
 	]);
-	writeFileSync(loaded.core.envFile, "ARTHUR_SCHEDULE_TOKEN=from-the-file\nARTHUR_TELEGRAM_BOT_TOKEN=overridden\nARTHUR_SIGNAL_ACCOUNT=disabled-one\n");
+	writeFileSync(loaded.core.envFile, "ARTHUR_SCHEDULE_TOKEN=from-the-file\nARTHUR_TELEGRAM_BOT_TOKEN=overridden\nARTHUR_SIGNAL_ACCOUNT=disabled-one\nARTHUR_LOOSE_KEY=no-plugin-one\n");
+	const shell = { ARTHUR_TELEGRAM_BOT_TOKEN: "from-the-shell", ARTHUR_SCHEDULE_TOKEN: "schedule-shell" };
 	await loadPlugins(loaded, { ARTHUR_TELEGRAM_BOT_TOKEN: "from-the-shell" });
-	assert.deepEqual(hosts.map((host) => [host.name, host.secrets]), [
-		["schedule", ["from-the-file", "from-the-shell"]],
-		["telegram", ["from-the-file", "from-the-shell"]],
-		["orchestration", ["from-the-file", "from-the-shell"]],
-	]);
+	const all = ["from-the-shell", "from-the-file", "no-plugin-one", "disabled-one", "overridden"];
+	assert.deepEqual(hosts.map((host) => [host.name, host.secrets]), [["schedule", all], ["telegram", all], ["orchestration", all]]);
+	hosts.length = 0;
+	await loadPlugins(loaded, shell, undefined, "2026-10-30-worker-0a1b2c3d");
+	assert.deepEqual(hosts.map((host) => host.secrets), [["schedule-shell", "from-the-shell"], ["schedule-shell", "from-the-shell"], ["schedule-shell", "from-the-shell"]]);
 });
 
 test("hide names every value of the env file, a disabled plugin's, no plugin's and one the shell overrides too; a job's, which reads no env file, the shell's alone", async () => {

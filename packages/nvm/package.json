@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/nvm.ts",
     "./options": "./src/nvm-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

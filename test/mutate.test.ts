@@ -78,6 +78,27 @@ test("--max caps the mutants run and says how many were not; a wrong argument is
 	assert.equal(existsSync(join(root, "far.ran")), false);
 });
 
+test("a capped run takes its mutants round-robin, the files' first, then each file's hunks' in turn, so it reaches every changed file", () => {
+	// Package c has no tests, so each of its mutants survives and is named, in the order the run takes them.
+	const root = repo({ ...TESTS, "packages/c/package.json": "{}\n", "packages/c/src/one.ts": "export const a = 1;\nexport const b = 2;\nexport const c = 3;\nexport const d = 4;\n" });
+	writeFileSync(join(root, "packages/c/src/one.ts"), "export const a = 10;\nexport const b = 2;\nexport const c = 3;\nexport const d = 40;\n");
+	writeFileSync(join(root, "packages/c/src/two.ts"), "export const e = 5;\n");
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "c");
+	const run = mutate(root, "--max", "5");
+	assert.equal(
+		run.stdout,
+		[
+			"survived: packages/c/src/one.ts:1: hunk reverted to the base",
+			"survived: packages/c/src/two.ts:1: hunk reverted to the base",
+			"survived: packages/c/src/one.ts:4: hunk reverted to the base",
+			"mutate: 5 mutants, 2 caught, 3 survived; 19 not run (--max 5)",
+			"",
+		].join("\n"),
+	);
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
+});
+
 test("a signal mid-run writes the file's bytes back and stops the running tests", async () => {
 	const blocks = `${HEAD}test("blocks", async () => {\n\twriteFileSync(new URL("../../../blocked.pid", import.meta.url), String(process.pid));\n\tawait new Promise(() => setInterval(() => {}, 1000));\n});\n`;
 	const root = repo({ ...TESTS, "packages/a/test/limit.test.ts": blocks });

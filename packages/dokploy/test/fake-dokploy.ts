@@ -15,6 +15,7 @@ export const TOKEN = "kdQ7uZ3sA0pT1mN2vB4xC6yD8eF9gH0iJ1kL2mN3oP4qR5sT6uV7wX8yZ9
 export const SECRETS = ["DATABASE_URL=postgres://shop:s3cr3t-db@db/shop", "NPM_TOKEN=npm_s3cr3tBuildArg", "SENTRY_AUTH=s3cr3tBuildSecret", "PREVIEW_KEY=s3cr3tPreview", "ghr_s3cr3tRefresh", "s3cr3t-registry", "PROJECT_KEY=s3cr3tProject", "ENVIRONMENT_KEY=s3cr3tEnvironment", "h13BzO6y3KYSHaQg", "mM1b7JeoPA7jArxj", "Yvb8gqClfomjcue8"];
 
 export type FakeDeployment = { readonly title: string; readonly status: "running" | "done" | "error" | "cancelled"; readonly createdAt: string; readonly finishedAt?: string; readonly errorMessage?: string };
+// An app; the keys after `dropBuildPath` are what the setup writes change, each left out as Dokploy's default or the fake's.
 export type FakeApp = {
 	readonly id: string;
 	readonly name: string;
@@ -22,9 +23,14 @@ export type FakeApp = {
 	readonly project: string;
 	readonly environment: string;
 	readonly sourceType?: string;
-	readonly domains?: readonly { readonly host: string; readonly https: boolean; readonly path?: string }[];
+	readonly domains?: readonly { readonly host: string; readonly https: boolean; readonly path?: string; readonly port?: number }[];
 	readonly deployments?: readonly FakeDeployment[];
 	readonly dropBuildPath?: string;
+	readonly buildType?: string;
+	readonly dockerfile?: string | null;
+	readonly dockerContextPath?: string | null;
+	readonly env?: string | null;
+	readonly mounts?: readonly { readonly type: "volume" | "bind" | "file"; readonly volumeName?: string; readonly mountPath: string }[];
 };
 // What a procedure answers in place of its own: a status and body, a redirect to `location`, no answer at all, text that is not
 // JSON, or no body at all under the status `empty`.
@@ -49,31 +55,41 @@ const deploymentRecord = (app: FakeApp, deployment: FakeDeployment, index: numbe
 	...{ finishedAt: deployment.finishedAt ?? null, errorMessage: deployment.errorMessage ?? null, scheduleId: null, backupId: null, rollbackId: null, volumeBackupId: null, buildServerId: null },
 });
 
+// A domain and a mount as `domain.create` and `mounts.create` answer them, and `application.one` lists them: every column.
+const domainRecord = (app: FakeApp, domain: NonNullable<FakeApp["domains"]>[number], index: number) => ({
+	...{ domainId: `dom-${app.id}-${index}`, host: domain.host, https: domain.https, port: domain.port ?? 3000, customEntrypoint: null, path: domain.path ?? "/", serviceName: null, domainType: "application" },
+	...{ uniqueConfigKey: index + 1, createdAt: `${DAY}T08:00:00.000Z`, composeId: null, customCertResolver: null, applicationId: app.id, previewDeploymentId: null, certificateType: domain.https ? "letsencrypt" : "none" },
+	...{ internalPath: "/", stripPath: false, middlewares: null, forwardAuthEnabled: false, enabled: true },
+});
+const mountRecord = (app: FakeApp, mount: NonNullable<FakeApp["mounts"]>[number], index: number) => ({
+	...{ mountId: `mnt-${app.id}-${index}`, type: mount.type, hostPath: null, volumeName: mount.volumeName ?? null, filePath: null, content: null, serviceType: "application", mountPath: mount.mountPath },
+	...{ applicationId: app.id, composeId: null, libsqlId: null, mariadbId: null, mongoId: null, mysqlId: null, postgresId: null, redisId: null },
+});
+// The related records findApplicationById adds to the application's own columns, which `application.create` answers alone.
+const RELATED = ["environment", "domains", "deployments", "mounts", "redirects", "security", "ports", "gitlab", "github", "bitbucket", "gitea", "server", "previewDeployments", "registry", "buildRegistry", "rollbackRegistry", "hasGitProviderAccess", "unauthorizedProvider"];
+
 // `application.one`: every column of the application table, its environment with its project, and the related records
 // findApplicationById reads, the git providers, server and registries none, as for an app without them.
 function applicationRecord(app: FakeApp) {
-	const domains = (app.domains ?? []).map((domain, index) => ({
-		...{ domainId: `dom-${app.id}-${index}`, host: domain.host, https: domain.https, port: 3000, customEntrypoint: null, path: domain.path ?? "/", serviceName: null, domainType: "application" },
-		...{ uniqueConfigKey: index + 1, createdAt: `${DAY}T08:00:00.000Z`, composeId: null, customCertResolver: null, applicationId: app.id, previewDeploymentId: null, certificateType: domain.https ? "letsencrypt" : "none" },
-		...{ internalPath: "/", stripPath: false, middlewares: null, forwardAuthEnabled: false, enabled: true },
-	}));
 	return {
-		...{ applicationId: app.id, name: app.name, appName: `${app.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-a1b2c3`, description: null, env: "DATABASE_URL=postgres://shop:s3cr3t-db@db/shop", previewEnv: "PREVIEW_KEY=s3cr3tPreview" },
+		...{ applicationId: app.id, name: app.name, appName: `${app.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-a1b2c3`, description: null, env: app.env === undefined ? "DATABASE_URL=postgres://shop:s3cr3t-db@db/shop" : app.env, previewEnv: "PREVIEW_KEY=s3cr3tPreview" },
 		...{ watchPaths: null, previewBuildArgs: null, previewBuildSecrets: null, previewLabels: null, previewWildcard: null, previewPort: 3000, previewHttps: false, previewPath: "/", previewCertificateType: "none" },
 		...{ previewCustomCertResolver: null, previewLimit: 3, isPreviewDeploymentsActive: false, previewRequireCollaboratorPermissions: true, rollbackActive: false, buildArgs: "NPM_TOKEN=npm_s3cr3tBuildArg" },
 		...{ buildSecrets: "SENTRY_AUTH=s3cr3tBuildSecret", memoryReservation: null, memoryLimit: null, cpuReservation: null, cpuLimit: null, title: null, enabled: null, subtitle: null, command: null, args: null, icon: null },
 		...{ refreshToken: "ghr_s3cr3tRefresh", sourceType: app.sourceType ?? "drop", cleanCache: false, repository: null, owner: null, branch: null, buildPath: "/", triggerType: "push", autoDeploy: true },
 		...{ gitlabProjectId: null, gitlabRepository: null, gitlabOwner: null, gitlabBranch: null, gitlabBuildPath: "/", gitlabPathNamespace: null, giteaRepository: null, giteaOwner: null, giteaBranch: null },
 		...{ giteaBuildPath: "/", bitbucketRepository: null, bitbucketRepositorySlug: null, bitbucketOwner: null, bitbucketBranch: null, bitbucketBuildPath: "/", username: "deploy", password: "s3cr3t-registry" },
-		...{ dockerImage: null, registryUrl: null, customGitUrl: null, customGitBranch: null, customGitBuildPath: null, customGitSSHKeyId: null, enableSubmodules: false, dockerfile: null, dockerContextPath: null },
-		...{ dockerBuildStage: null, dropBuildPath: app.dropBuildPath ?? null, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null, rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null },
-		...{ networkSwarm: null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, applicationStatus: app.status, buildType: "nixpacks", railpackVersion: "0.2.2", herokuVersion: "24" },
-		...{ publishDirectory: null, isStaticSpa: null, createEnvFile: true, createdAt: `${DAY}T08:00:00.000Z`, registryId: null, rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment) },
-		...{ githubId: null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: null, buildServerId: null, buildRegistryId: null, networkIds: [], detachDokployNetwork: false },
+		...{ dockerImage: null, registryUrl: null, customGitUrl: null, customGitBranch: null, customGitBuildPath: null, customGitSSHKeyId: null, enableSubmodules: false, dockerfile: app.dockerfile ?? null },
+		...{ dockerContextPath: app.dockerContextPath ?? null, dockerBuildStage: null, dropBuildPath: app.dropBuildPath ?? null, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null },
+		...{ rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null, networkSwarm: null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, applicationStatus: app.status },
+		...{ buildType: app.buildType ?? "nixpacks", railpackVersion: "0.2.2", herokuVersion: "24", publishDirectory: null, isStaticSpa: null, createEnvFile: true, createdAt: `${DAY}T08:00:00.000Z`, registryId: null },
+		...{ rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment), githubId: null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: null, buildServerId: null },
+		...{ buildRegistryId: null, networkIds: [], detachDokployNetwork: false },
 		environment: { ...environmentRecord(app.project, app.environment), project: projectRecord(app.project) },
-		domains,
+		domains: (app.domains ?? []).map((domain, index) => domainRecord(app, domain, index)),
 		deployments: (app.deployments ?? []).map((deployment, index) => deploymentRecord(app, deployment, index)),
-		...{ mounts: [], redirects: [], security: [], ports: [], gitlab: null, github: null, bitbucket: null, gitea: null, server: null, previewDeployments: [], registry: null, buildRegistry: null, rollbackRegistry: null },
+		mounts: (app.mounts ?? []).map((mount, index) => mountRecord(app, mount, index)),
+		...{ redirects: [], security: [], ports: [], gitlab: null, github: null, bitbucket: null, gitea: null, server: null, previewDeployments: [], registry: null, buildRegistry: null, rollbackRegistry: null },
 		...{ hasGitProviderAccess: true, unauthorizedProvider: null },
 	};
 }
@@ -111,6 +127,26 @@ const inputError = (path: string, fields: readonly string[]) => {
 	const fieldErrors = Object.fromEntries(fields.map((each) => [each, ["Required"]]));
 	return { ...body, data: { ...body.data, zodError: { formErrors: [], fieldErrors } }, issues: fields.map((each) => ({ code: "invalid_type", expected: "string", received: "undefined", path: [each], message: "Required" })) };
 };
+
+// What each write's input requires (apiCreateApplication, apiSaveBuildType, apiSaveEnvironmentVariables, apiCreateDomain,
+// apiCreateMount at v0.30.10); `applicationId` or `serviceId` names the app it changes.
+const REQUIRED: Readonly<Record<string, readonly string[]>> = {
+	"application.deploy": ["applicationId"],
+	"application.dropDeployment": ["applicationId", "zip"],
+	"application.create": ["name", "environmentId"],
+	"application.saveBuildType": ["applicationId", "buildType", "dockerfile", "dockerContextPath", "dockerBuildStage", "herokuVersion", "railpackVersion"],
+	"application.saveEnvironment": ["applicationId", "env", "buildArgs", "buildSecrets", "createEnvFile"],
+	"domain.create": ["host", "applicationId"],
+	"mounts.create": ["type", "mountPath", "serviceType", "serviceId"],
+	"domain.validateDomain": ["domain"],
+};
+// What `domain.validateDomain` answers (validateDomain at v0.30.10): a host under `.invalid` does not resolve, one starting
+// `elsewhere.` resolves to another server, any other to this one.
+function validated(host: string) {
+	if (host.endsWith(".invalid")) return { isValid: false, error: `queryA ENOTFOUND ${host}` };
+	if (host.startsWith("elsewhere.")) return { isValid: false, resolvedIp: "198.51.100.7", error: "Domain resolves to 198.51.100.7 but should point to 203.0.113.10" };
+	return { isValid: true, resolvedIp: "203.0.113.10" };
+}
 
 async function bodyOf(request: IncomingMessage, type: string): Promise<Sent> {
 	const raw = Buffer.concat(await request.toArray());
@@ -153,9 +189,12 @@ export function readZip(zip: Buffer): { readonly name: string; readonly method: 
 }
 
 // The fake, with `apps` on it, and `empty` projects without any; `form` the `project.all` it answers; `scripted` what a
-// procedure answers instead of its own, changed by a test as it goes. `seen`: every request, in order.
+// procedure answers instead of its own, changed by a test as it goes. `seen`: every request, in order; `live`: the apps as
+// the writes left them.
 export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeApp[], empty = [] as readonly string[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {}) {
-	const [seen, scripted] = [[] as Seen[], new Map<string, Scripted>()];
+	const [seen, scripted, live] = [[] as Seen[], new Map<string, Scripted>(), [...apps]];
+	// Each environment's id, and its project and name, so `application.create` can place the app it makes.
+	const places = new Map([...apps.map((app) => [app.project, app.environment]), ...empty.map((name) => [name, "production"])].map(([project = "", name = ""]) => [environmentId(project, name), { project, environment: name }]));
 	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
 	const fake = createServer(async (request: IncomingMessage, response: ServerResponse) => {
 		const url = new URL(request.url ?? "/", "http://localhost");
@@ -171,25 +210,48 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 		if (script !== undefined && typeof script === "object" && "empty" in script) return response.writeHead(script.empty).end();
 		if (script !== undefined && "redirect" in script) return response.writeHead(302, { Location: script.redirect }).end();
 		if (script !== undefined) return send(response, script.status, script.body);
-		const asked = request.method === "POST" ? sent?.fields.applicationId : url.searchParams.get("applicationId");
-		const app = apps.find((each) => each.id === asked);
-		const missing = app === undefined ? trpcError(404, "NOT_FOUND", "Application not found", procedure).body : undefined;
-		if (request.method === "GET" && procedure === "project.all") return send(response, 200, form === "documented" ? documentedRecord(apps) : projectsRecord(apps, empty));
+		const asked = request.method === "POST" ? (sent?.fields.applicationId ?? sent?.fields.serviceId) : url.searchParams.get("applicationId");
+		const index = live.findIndex((each) => each.id === asked);
+		const app = live[index];
+		if (request.method === "GET" && procedure === "project.all") return send(response, 200, form === "documented" ? documentedRecord(live) : projectsRecord(live, empty));
 		if (request.method === "GET" && procedure === "application.one") {
 			if (app === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Application not found", procedure).body);
 			return send(response, 200, applicationRecord(app));
 		}
 		if (request.method === "GET" && procedure === "deployment.all") return send(response, 200, app === undefined ? [] : (app.deployments ?? []).map((deployment, index) => deploymentRecord(app, deployment, index)).toReversed());
-		// Each write answers when its job is queued: `deploy` with no body (its procedure returns nothing), `dropDeployment` with
-		// `true`; a body of another type is refused before any procedure.
-		const write = procedure === "application.deploy" || procedure === "application.dropDeployment";
-		if (request.method === "POST" && write && !/^(application\/json|multipart\/form-data)/.test(type ?? "")) return send(response, 415, trpcError(415, "UNSUPPORTED_MEDIA_TYPE", `Unsupported content-type "${type}`, procedure).body);
-		const lacking = ["applicationId", ...(procedure === "application.dropDeployment" ? ["zip"] : [])].filter((each) => (each === "zip" ? sent?.files.zip === undefined : typeof sent?.fields[each] !== "string"));
-		if (request.method === "POST" && write && lacking.length > 0) return send(response, 400, inputError(procedure, lacking));
-		if (request.method === "POST" && write && missing !== undefined) return send(response, 404, missing);
-		if (request.method === "POST" && procedure === "application.deploy") return response.writeHead(200, { "Content-Type": "application/json" }).end();
-		if (request.method === "POST" && procedure === "application.dropDeployment") return send(response, 200, true);
-		send(response, 404, { message: "Not found", code: "NOT_FOUND" });
+		const required = request.method === "POST" && Object.hasOwn(REQUIRED, procedure) ? REQUIRED[procedure] : undefined;
+		if (required === undefined || sent === undefined) return send(response, 404, { message: "Not found", code: "NOT_FOUND" });
+		// Each write answers when it is done or queued: `deploy` with no body (its procedure returns nothing), `dropDeployment`
+		// and the saves with `true`, a create with the record it made; a body of another type is refused before any procedure.
+		if (!/^(application\/json|multipart\/form-data)/.test(type ?? "")) return send(response, 415, trpcError(415, "UNSUPPORTED_MEDIA_TYPE", `Unsupported content-type "${type}`, procedure).body);
+		const { fields } = sent;
+		const lacking = required.filter((each) => (each === "zip" ? sent.files.zip === undefined : fields[each] === undefined));
+		if (lacking.length > 0) return send(response, 400, inputError(procedure, lacking));
+		if (procedure === "domain.validateDomain") return send(response, 200, validated(String(fields.domain)));
+		if (procedure === "application.create") {
+			const place = places.get(String(fields.environmentId));
+			if (place === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Environment not found", procedure).body);
+			const made: FakeApp = { id: `kXx3new${live.length}`, name: String(fields.name), status: "idle", ...place, sourceType: "github", dockerfile: "Dockerfile", env: null };
+			live.push(made);
+			return send(response, 200, Object.fromEntries(Object.entries(applicationRecord(made)).filter(([key]) => !RELATED.includes(key))));
+		}
+		if (app === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Application not found", procedure).body);
+		if (procedure === "application.deploy") return response.writeHead(200, { "Content-Type": "application/json" }).end();
+		if (procedure === "application.dropDeployment") return send(response, 200, true);
+		const changed = (more: Partial<FakeApp>) => (live[index] = { ...app, ...more });
+		if (procedure === "application.saveBuildType") changed({ buildType: String(fields.buildType), dockerfile: fields.dockerfile as string, dockerContextPath: fields.dockerContextPath as string | null });
+		if (procedure === "application.saveEnvironment") changed({ env: String(fields.env) });
+		if (procedure === "domain.create") {
+			const domain = { host: String(fields.host), https: fields.https === true, port: Number(fields.port) };
+			changed({ domains: [...(app.domains ?? []), domain] });
+			return send(response, 200, domainRecord(app, domain, (app.domains ?? []).length));
+		}
+		if (procedure === "mounts.create") {
+			const mount = { type: fields.type as "volume", volumeName: String(fields.volumeName), mountPath: String(fields.mountPath) };
+			changed({ mounts: [...(app.mounts ?? []), mount] });
+			return send(response, 200, mountRecord(app, mount, (app.mounts ?? []).length));
+		}
+		send(response, 200, true);
 	});
 	fake.listen(0, "127.0.0.1");
 	await once(fake, "listening");
@@ -197,5 +259,5 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 		fake.closeAllConnections();
 		fake.close();
 	});
-	return { url: `http://127.0.0.1:${(fake.address() as AddressInfo).port}`, seen, scripted };
+	return { url: `http://127.0.0.1:${(fake.address() as AddressInfo).port}`, seen, scripted, live };
 }

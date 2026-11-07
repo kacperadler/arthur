@@ -12,10 +12,12 @@ import { append as appendEvent, withLog } from "./event-log.ts";
 import { type Bus, eventBus } from "./events.ts";
 import { type DoctorLine, doctor, ownAnswers } from "./doctor.ts";
 import { knownProject } from "./job-checkout.ts";
+import { release } from "./job-machine.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
 import { ownHome } from "./own-home.ts";
 import { coreRequirements } from "./requirements.ts";
 import { checkPieces, unreadPieces } from "./project-pieces.ts";
+import { rangeRequirements } from "./plugin-range.ts";
 import type { Answer, Plugin } from "./plugin.ts";
 import { asPlugin, pluginHost, pluginStep, registry } from "./plugin-host.ts";
 import { envFileNames, type Hide } from "./secret-names.ts";
@@ -31,7 +33,8 @@ import type { Outgoing } from "./send-command.ts";
 // ticket to in-progress (spec/roadmap.md, entry 18); a move the board refuses then is logged.
 // `follow` is what `arthur run` follows the event log with; `project` is the project a name names (job-checkout.ts), refusing
 // one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`);
-// `doctor` checks the core's requirements, each project piece no loaded plugin reads, and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's;
+// `doctor` checks the core's requirements, each project piece no loaded plugin reads, each plugin's range of this core read at load
+// (plugin-range.ts), and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's;
 // `append` only logs one, for `arthur run` to deliver, the next one if it ends (`command-ran`); `channels` asks every channel's `channel.send` (`arthur send`); `hide`
 // names the env file's values, outside a job, and the plugins' (secret-names.ts).
 export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly append: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[]; readonly hide: Hide };
@@ -50,7 +53,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const checked = await checkPlugins(config);
 	const record = join(config.core.home, "jobs", job ?? "", "project");
 	const own = job === undefined ? undefined : { id: job, project: existsSync(record) ? readFileSync(record, "utf8").trim() : "" };
-	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = envFileNames(job === undefined ? [config.core.envFile] : [], Object.assign({}, ...Object.values(values)));
+	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), hide = envFileNames(job === undefined ? [config.core.envFile] : [], Object.assign({}, ...Object.values(values))), secrets = [...new Set(hide.values)];
 	const skipped = new Set<string>();
 	for (const plugin of checked) if (unset.has(plugin.name) || plugin.requires?.some((name) => skipped.has(name))) skipped.add(plugin.name);
 	const sorted = checked.filter((plugin) => !skipped.has(plugin.name));
@@ -66,6 +69,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	// `Host.package`: the nearest folder with a package.json above each plugin's own `module`; `Host.code`: the core's, then those, once each.
 	const packages = sorted.map((plugin) => (plugin.module === undefined ? undefined : packageOf(fileURLToPath(plugin.module))));
 	const code = [...new Set([CORE, ...packages.filter((each) => each !== undefined)])];
+	const ranges = rangeRequirements(sorted.map((plugin, index) => [plugin.name, packages[index]] as const), release());
 	// Every command that loads the plugins makes the home before writing in it, so it is Arthur's user's alone from the first one.
 	ownHome(config.core.home);
 	for (const [index, plugin] of sorted.entries()) {
@@ -90,7 +94,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const provided = names.collectEach("doctor", []);
 		const answers = sorted.flatMap((plugin) => [...ownAnswers([plugin], config.core), ...provided.filter((answer) => answer.plugin === plugin.name)]);
 		const lists = names.collect("projects", []);
-		return doctor([...coreRequirements(config.core, () => [dirname(config.path), ...(lists.length === 0 ? [] : projectList(lists).map((each) => each.path))]), ...unreadPieces(sorted, lists)], answers);
+		return doctor([...coreRequirements(config.core, () => [dirname(config.path), ...(lists.length === 0 ? [] : projectList(lists).map((each) => each.path))]), ...unreadPieces(sorted, lists), ...ranges], answers);
 	};
 	const append = (name: string, data: unknown) => void withLog(config.core.home, (fd) => appendEvent(fd, "core", stamp("core", name, data), name, data, hide));
 	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), append, channels: (message) => names.collectEach("channel.send", [message.caption === undefined ? message : { ...message, caption: hide(message.caption) }]), hide };

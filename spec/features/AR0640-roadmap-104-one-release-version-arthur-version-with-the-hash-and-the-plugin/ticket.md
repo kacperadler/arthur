@@ -35,4 +35,5 @@ Out:
 - A version is set only by a release ticket (105); this ticket sets 0.1.0 once, as the plan says.
 
 ## Decisions
+- 2026-11-07: Core line budget raised 7341 to 7387 (+46) for AR0640, by approving its PR #8; the owner: "Approve (PR #8)" (AR-D537)
 

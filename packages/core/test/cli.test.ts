@@ -378,7 +378,7 @@ test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it ru
 		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", refusal], args.join(" "));
 	}
 	assert.deepEqual([home(), existsSync(join(folder, "spec"))], [before, false], "nothing was written in the home folder or the board");
-	for (const [args, out] of [[["quiet"], ""], [["echo", "--help"], "# arthur echo\n"], [["help", "echo"], "# arthur echo\n"], [["version"], /^[0-9a-f]{12}\n$/], [["jobs"], "no jobs\n"], [["remote-job", "records", join(folder, ".arthur")], "{}\n"]] as const) {
+	for (const [args, out] of [[["quiet"], ""], [["echo", "--help"], "# arthur echo\n"], [["help", "echo"], "# arthur echo\n"], [["version"], /^\d+\.\d+\.\d+ [0-9a-f]{12}\n$/], [["jobs"], "no jobs\n"], [["remote-job", "records", join(folder, ".arthur")], "{}\n"]] as const) {
 		const run = inJob(`${record}/`, ...args);
 		assert.deepEqual([run.status, run.stderr], [0, ""], args.join(" "));
 		if (typeof out === "string") assert.equal(run.stdout, out, args.join(" "));

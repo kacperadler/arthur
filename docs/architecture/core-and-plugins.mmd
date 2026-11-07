@@ -59,7 +59,7 @@ flowchart TD
     youtrack[youtrack]
     github[github<br/>polls CI and PRs<br/>arthur github: PR and issue reads and writes, origin's branches]
     delivery[delivery<br/>review, merge]
-    dokploy[dokploy<br/>the owner's Dokploy servers<br/>reads, uploads and deploys]
+    dokploy[dokploy<br/>the owner's Dokploy servers<br/>reads, uploads, deploys, sets up apps]
     commit[commit-rules<br/>regex, words, file]
     projects ~~~ nvm ~~~ findings ~~~ youtrack ~~~ github ~~~ delivery ~~~ dokploy ~~~ commit
   end
@@ -67,7 +67,8 @@ flowchart TD
   subgraph SELF[Arthur itself]
     manage[manage<br/>audit, retro, health]
     develop[develop<br/>plugin new, evals]
-    manage ~~~ develop
+    stats[stats<br/>tokens, cost and time of runs and turns]
+    manage ~~~ develop ~~~ stats
   end
 
   subgraph REACH[For clients]
@@ -95,5 +96,5 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,delivery,dokploy,projects,nvm,findings,youtrack,github,commit,manage,develop,listen,video first;
+  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,delivery,dokploy,projects,nvm,findings,youtrack,github,commit,manage,develop,stats,listen,video first;
   class whatsapp,signal,slack,agents,server later;

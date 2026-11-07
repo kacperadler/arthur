@@ -4,12 +4,12 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setImmediate as tick } from "node:timers/promises";
-import { coreVersion } from "@arthur/core";
+import { arthurVersion } from "@arthur/core";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { startWait } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
 import { handBack } from "../src/hand-back.ts";
-import { reviewTask, worker as workerOf } from "../src/review-command.ts";
+import { reviewTask, untested, worker as workerOf } from "../src/review-command.ts";
 import { saveReview, verdictOf } from "../src/review-records.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -243,7 +243,7 @@ test("a review carries its ticket, so placement reads the ticket's labels and th
 	const log = join(bin, "ssh.log");
 	// A fake ssh that notes where it was sent: there is this core's arthur, which holds every commit asked of it, then the
 	// worktree's step fails as an unreachable machine does.
-	writeFileSync(join(bin, "ssh"), `#!/bin/sh\necho "$@" >> '${log}'\ncase "$*" in *"'version'"*) echo '${coreVersion()}';; *"'repo'"*) echo present;; *) echo 'ssh: no route' >&2; exit 255;; esac\n`, { mode: 0o755 });
+	writeFileSync(join(bin, "ssh"), `#!/bin/sh\necho "$@" >> '${log}'\ncase "$*" in *"'version'"*) echo '${arthurVersion()}';; *"'repo'"*) echo present;; *) echo 'ssh: no route' >&2; exit 255;; esac\n`, { mode: 0o755 });
 	process.env.PATH = `${bin}${delimiter}${process.env.PATH}`;
 	fake.host.jobs.registerMachine({ name: "mac", ssh: "mac-mini", home: "/Users/test/.arthur", labels: { os: "macos" } });
 	const asked: unknown[] = [];
@@ -910,23 +910,33 @@ test("a review starts only on a tip whose check, test and mutate passed there: a
 	const job = await worker();
 	const tip = job.commit;
 	const checks = (lines: string) => (mkdirSync(join(fake.host.folder, job.id), { recursive: true }), writeFileSync(join(fake.host.folder, job.id, "checks"), lines));
-	// Each on the tip's clean tree: mutate with survivors left, which the worker names.
-	const passing = (at: string) => `check pass ${at} clean\ntest pass 3/3 ${at} clean\nmutate fail ${at} clean\n`;
-	const refusal = (at: string, gaps: string) => `${job.branch} at ${at.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran): ${gaps}`;
+	// Each on the tip's clean tree: mutate with survivors left, which the worker names, capped at 25 of its 29 mutants.
+	const passing = (at: string) => `check pass ${at} clean\ntest pass 3/3 ${at} clean\nmutate fail 25 run, 3 survived, 4 not run ${at} clean\n`;
+	const refusal = (at: string, gaps: string) => `${job.branch} at ${at.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(25, all) mutants): ${gaps}`;
 	const moved = (from: string) => ["check", "test", "mutate"].map((script) => `${script} ran on ${from.slice(0, 7)}, not the tip`).join(", ");
+	const mutated = (counts: string) => passing(tip).replace("mutate fail 25 run, 3 survived, 4 not run", `mutate ${counts}`);
 	for (const [lines, gaps] of [
 		["", "no check, no test, no mutate"],
-		[`test pass 3/3 ${tip} clean\nmutate pass ${tip} clean\n`, "no check"],
-		[`check pass ${tip} clean\nmutate pass ${tip} clean\n`, "no test"],
-		[`check pass ${tip} clean\ntest pass 3/3 ${tip} clean\n`, "no mutate"],
+		[passing(tip).replace(/^check .*\n/, ""), "no check"],
+		[passing(tip).replace(/^test .*\n/m, ""), "no test"],
+		[passing(tip).replace(/^mutate .*\n/m, ""), "no mutate"],
 		[passing(tip).replace("check pass", "check fail"), "check fail"],
 		[passing(tip).replace("test pass 3/3", "test fail 2/3"), "test fail 2/3"],
 		[passing(tip).replace(`test pass 3/3 ${tip} clean`, `test pass 3/3 ${tip} dirty`), "test ran on a dirty tree"],
-		[passing(tip).replace(`mutate fail ${tip}`, `mutate fail ${old}`), `mutate ran on ${old.slice(0, 7)}, not the tip`],
+		[passing(tip).replace(`not run ${tip}`, `not run ${old}`), `mutate ran on ${old.slice(0, 7)}, not the tip`],
+		// AR0637: a run capped below min(25, all its mutants), or one without its counts, did not reach the whole change.
+		[mutated("pass 4 run, 0 survived, 12 not run"), "mutate capped at --max 4 (4 run, 0 survived, 12 not run of 16; it counts at 16)"],
+		[mutated("fail 24 run, 2 survived, 1 not run"), "mutate capped at --max 24 (24 run, 2 survived, 1 not run of 25; it counts at 25)"],
+		[mutated("pass"), "mutate pass without its counts"],
+		[mutated("fail"), "mutate fail without its counts"],
 	] as const) {
 		checks(lines);
 		const refused = await review("PASS", job.id);
 		assert.deepEqual([refused.code, refused.err], [1, `arthur review: ${refusal(tip, gaps)}`], JSON.stringify(lines));
+	}
+	for (const counts of ["pass 3 run, 0 survived, 0 not run", "fail 25 run, 1 survived, 0 not run", "pass 26 run, 0 survived, 74 not run", "pass 0 run, 0 survived, 0 not run"]) {
+		checks(mutated(counts));
+		assert.equal(untested(fake.host, workerOf(fake.host, job.id)), undefined, counts);
 	}
 	assert.deepEqual(reviews(fake), [], "no review job for a tip without its checks");
 	checks(passing(tip));

@@ -555,6 +555,21 @@ test("asks at once, from four processes asking five times each, get one id each 
 	assert.match(log[0].time, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\+00:00$/, "UTC's offset written out");
 });
 
+// The real host's `secrets`, through the CLI: values too short and of one class for the shape rules, which only the env file names.
+test("an answer quoting an env file value no enabled plugin reads, a disabled plugin's or a loose one, is written to the decision log redacted", () => {
+	const folder = demo();
+	const env = join(temporaryFolder(), "env");
+	writeFileSync(env, "ARTHUR_SIGNAL_ACCOUNT=signalaccount\nARTHUR_LOOSE_WORD=loosewords\n");
+	const signal = `{ name: "signal", options: { enabled: false, accountEnv: "ARTHUR_SIGNAL_ACCOUNT" }, setup() {} }`;
+	const config = join(folder, "arthur.config.ts");
+	writeFileSync(config, readFileSync(config, "utf8").replace(`timeZone: "UTC" }`, `timeZone: "UTC", envFile: ${JSON.stringify(env)} }`).replace("orchestration(), ", `orchestration(), ${signal}, `));
+	const arthur = (...args: string[]) => execFileSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+	assert.equal(arthur("decision", "ask", "--kind", "question", "--question", "Which account?"), "DM-D1\n");
+	arthur("decision", "answer", "DM-D1", "--decided", "Use signalaccount", "signalaccount, then loosewords");
+	const [, answer] = readFileSync(join(folder, "spec/decisions.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+	assert.deepEqual([answer.decided, answer.words], ["Use [redacted]", "[redacted], then [redacted]"]);
+});
+
 // Whatever the timing: another process holds the log's lock, the ask waits on it (its own lock file beside it), and only then
 // does the holder write a record and let go. An ask that wrote without the lock is before that record, or its id is the same.
 test("an ask waits for the log's lock another process holds, and writes after that process's record", async () => {

@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `arthur.mmd:53`, `docs/architecture/core-and-plugins.mmd:98`, `docs/architecture/versions.mmd:7`, `spec/roadmap.md:19`
 - What: `spec/roadmap.md` names 99 to 101 as held for the activity log but has no entry for them, and no diagram has an `activity` node; this ticket's Scope In is the package, its docs and `arthur.config.example.ts`. The example config marks it `first, named`, an assumption: where 99 to 101 go in the order is AR0527's open question.
 - Suggestion: once the owner places 99 to 101, write their roadmap entries and add an `activity` node to the three diagrams, built.
-- Status: open
+- Status: deferred (client summary)
 
 ## F3. plugin-new's tests pin the budget that sorts next to `acme`
 
@@ -29,4 +29,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/develop/test/plugin-new.test.ts:126`, `:215`, `:294`
 - What: three assertions read `acme: 40,\n\n\t<the next budget>`; the new `activity: 350` budget sorted between `acme` and `"commit-rules"` and broke four tests, fixed on this branch by naming `activity`. Any later plugin whose name sorts between `acme` and `activity` breaks them again.
 - Suggestion: match the budget after `acme` as whatever the base's first budget is (read from the copy's `test/structure.test.ts`), not a name.
-- Status: open
+- Status: deferred (client summary)

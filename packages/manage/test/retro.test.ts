@@ -200,7 +200,7 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	);
 	assert.ok(section.includes("### Stats\n\nStats of acme: 2 merged tickets\n"), "no retro yet: every merged ticket");
 	assert.ok(section.includes("### Board\n\n"), section);
-	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, verify, audit, report, retro.\n`), section);
+	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, verify, audit, report, retro, pyramid.\n`), section);
 });
 
 test("a retro's prompt lists the corrections of the project's jobs since the last retro, grouped by their first sentence, the most frequent first", async (t) => {
@@ -276,7 +276,7 @@ test("/retro with no page answers so; with pages it sends the newest through the
 
 test("the wake of a retro carries its procedure, of no other kind", async (t) => {
 	const { fake } = await load(t);
-	assert.deepEqual(fake.collect("coordinator.wake", { id: "x", kind: "retro" }), [undefined, PROCEDURE]);
+	assert.deepEqual(fake.collect("coordinator.wake", { id: "x", kind: "retro" }), [undefined, PROCEDURE, undefined]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: "x", kind: "audit" })[1], undefined);
 });
 

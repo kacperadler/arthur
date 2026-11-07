@@ -35,4 +35,5 @@ Out:
 
 ## Decisions
 - 2026-11-07: AR0650 worker budget $8 -> $11 to merge main and rerun its checks, under the owner order to fix what cannot merge; the owner: "if you cant merge something check why and fix that on github" (AR-D544)
+- 2026-11-07: AR0650 worker budget $11 -> $12 to rerun mutate on its clean tip, under the owner order to fix what cannot merge; the owner: "if you cant merge something check why and fix that on github" (AR-D545)
 

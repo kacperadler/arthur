@@ -25,8 +25,8 @@ const roles = readdirSync(join(ROOT, "packages")).flatMap((name) => {
 });
 const jobRoles = roles.filter((path) => basename(path) !== "coordinator.md");
 
-test("the role files are the coordinator's and the seven job roles'", () => {
-	const expected = ["core/roles/worker.md", "delivery/roles/reviewer.md", "manage/roles/auditor.md", "manage/roles/retro.md", "orchestration/roles/coordinator.md", "orchestration/roles/plan-reviewer.md", "orchestration/roles/planner.md", "projects/roles/onboarding.md"];
+test("the role files are the coordinator's and the eight job roles'", () => {
+	const expected = ["core/roles/worker.md", "delivery/roles/reviewer.md", "manage/roles/auditor.md", "manage/roles/pyramid.md", "manage/roles/retro.md", "orchestration/roles/coordinator.md", "orchestration/roles/plan-reviewer.md", "orchestration/roles/planner.md", "projects/roles/onboarding.md"];
 	assert.deepEqual(roles.toSorted(), expected.map((path) => join("packages", path)));
 });
 

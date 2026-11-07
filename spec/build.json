@@ -4495,9 +4495,9 @@
   {
     "id": "AR0563",
     "title": "arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0563-arthur-pyramid-and-pyramid-a-pyramid-audit-of-any-project-one-planning-ticket/ticket.md",
-    "updated": "2026-11-07T04:16:54.045Z",
+    "updated": "2026-11-07T12:39:43.191Z",
     "after": [
       "AR0562"
     ]
@@ -5112,30 +5112,30 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-07T02:47:05.267Z"
+    "updated": "2026-11-07T13:25:46.843Z"
   },
   {
     "id": "AR0636",
     "title": "A committed plan names the public IP addresses of the owner deploy host and this VPS",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0636-a-committed-plan-names-the-public-ip-addresses-of-the-owner-deploy-host-and-this/ticket.md",
-    "updated": "2026-11-07T03:03:38.632Z"
+    "updated": "2026-11-07T12:34:25.360Z"
   },
   {
     "id": "AR0637",
     "title": "Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0637-mutate-runs-capped-at-4-pass-the-review-gate-and-reviews-then-fail-on-survivors/ticket.md",
-    "updated": "2026-11-07T01:40:04.131Z"
+    "updated": "2026-11-07T12:13:53.800Z"
   },
   {
     "id": "AR0638",
     "title": "host.secrets holds only enabled plugins values, so the public decision log misses other env file values",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
-    "updated": "2026-11-07T03:07:30.847Z"
+    "updated": "2026-11-07T12:29:27.142Z"
   },
   {
     "id": "AR0639",
@@ -5185,9 +5185,9 @@
   {
     "id": "AR0644",
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T23:58:03.455Z"
+    "updated": "2026-11-07T14:14:21.599Z"
   },
   {
     "id": "AR0645",
@@ -5239,9 +5239,9 @@
   {
     "id": "AR0650",
     "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
-    "updated": "2026-11-07T08:06:10.621Z",
+    "updated": "2026-11-07T13:42:30.622Z",
     "after": [
       "AR0649"
     ]
@@ -5323,5 +5323,12 @@
     "status": "planning",
     "path": "spec/features/AR0659-the-readme-s-status-paragraph-stops-copying-the-roadmap-s-state/ticket.md",
     "updated": "2026-11-06T21:40:24.101Z"
+  },
+  {
+    "id": "AR0660",
+    "title": "The model test reads every file of a job folder while the job still writes, and fails on a lock file that vanished",
+    "status": "planning",
+    "path": "spec/features/AR0660-the-model-test-reads-every-file-of-a-job-folder-while-the-job-still-writes-and/ticket.md",
+    "updated": "2026-11-07T12:37:31.220Z"
   }
 ]

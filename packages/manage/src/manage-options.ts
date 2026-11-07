@@ -3,21 +3,23 @@ import type { Day } from "@arthur/core/clock";
 import type { Check, OptionTable, Tool } from "@arthur/core/option-table";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 
-// The manage plugin's options file (spec/roadmap.md, entries 60, 62, 63, 64 and 93), checked before any setup by walking
-// `table`: docs/manage.md, "Options".
+// The manage plugin's options file (spec/roadmap.md, entries 60, 62, 63, 64 and 93, and AR0563), checked before any setup by
+// walking `table`: docs/manage.md, "Options".
 
 export type AuditOptions = { readonly at: string; readonly days?: readonly Day[]; readonly budgetUsd?: number; readonly model?: string | readonly string[] };
 export type RetroOptions = { readonly day: Day; readonly at: string; readonly budgetUsd?: number };
+export type PyramidOptions = { readonly budgetUsd?: number };
 export type ManageOptions = {
 	readonly enabled?: boolean;
 	readonly health?: { readonly everyMinutes?: number };
 	readonly prune?: { readonly keepJobsDays: number };
 	readonly audit?: AuditOptions;
 	readonly retro?: RetroOptions;
+	readonly pyramid?: PyramidOptions;
 };
 
 export const summary =
-	"managing Arthur: arthur health and /health, what should have happened by now and has not, its new lines sent as a notice; a daily prune of old jobs and temporary folders; the nightly audit; the weekly retro, arthur retro-due and /retro";
+	"managing Arthur: arthur health and /health, what should have happened by now and has not, its new lines sent as a notice; a daily prune of old jobs and temporary folders; the nightly audit; the weekly retro, arthur retro-due and /retro; arthur pyramid and /pyramid";
 
 // Git, which the checks of each project's checkout and the audit run, is the core's tool.
 export const tools: readonly Tool[] = [];
@@ -64,6 +66,10 @@ export const table: OptionTable = {
 			budgetUsd: { about: "Its budget in USD", default: "core's jobs.budgetUsd", check: usd },
 		},
 	},
+	pyramid: {
+		about: "The pyramid audit, arthur pyramid and /pyramid: a read-only job on a project's corrections, prose and checks, with proposals that move each correction up",
+		fields: { budgetUsd: { about: "Its budget in USD", default: "core's jobs.budgetUsd", check: usd } },
+	},
 };
 
 // An object option's keys, each checked by its own check; `required` refuses the object without them.
@@ -88,5 +94,6 @@ export function checkOptions(options: Options): OptionProblem[] {
 		...fields(options, "prune", { keepJobsDays: days }, ["keepJobsDays"]),
 		...fields(options, "audit", { at, days: weekdays, budgetUsd: usd, model }, ["at"]),
 		...fields(options, "retro", { day: weekday, at, budgetUsd: usd }, ["day", "at"]),
+		...fields(options, "pyramid", { budgetUsd: usd }, []),
 	];
 }

@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setImmediate as tick } from "node:timers/promises";
-import { coreVersion } from "@arthur/core";
+import { arthurVersion } from "@arthur/core";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { startWait } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
@@ -243,7 +243,7 @@ test("a review carries its ticket, so placement reads the ticket's labels and th
 	const log = join(bin, "ssh.log");
 	// A fake ssh that notes where it was sent: there is this core's arthur, which holds every commit asked of it, then the
 	// worktree's step fails as an unreachable machine does.
-	writeFileSync(join(bin, "ssh"), `#!/bin/sh\necho "$@" >> '${log}'\ncase "$*" in *"'version'"*) echo '${coreVersion()}';; *"'repo'"*) echo present;; *) echo 'ssh: no route' >&2; exit 255;; esac\n`, { mode: 0o755 });
+	writeFileSync(join(bin, "ssh"), `#!/bin/sh\necho "$@" >> '${log}'\ncase "$*" in *"'version'"*) echo '${arthurVersion()}';; *"'repo'"*) echo present;; *) echo 'ssh: no route' >&2; exit 255;; esac\n`, { mode: 0o755 });
 	process.env.PATH = `${bin}${delimiter}${process.env.PATH}`;
 	fake.host.jobs.registerMachine({ name: "mac", ssh: "mac-mini", home: "/Users/test/.arthur", labels: { os: "macos" } });
 	const asked: unknown[] = [];

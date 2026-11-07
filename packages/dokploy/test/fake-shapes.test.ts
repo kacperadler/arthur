@@ -25,11 +25,13 @@ const drift = (got: unknown, shape: unknown, at = ""): string[] => {
 
 test("every route of the fake Dokploy answers with the keys the documentation's example and Dokploy v0.30.10 show, at every depth", async (t) => {
 	const deployments = [{ title: "First", status: "done" as const, createdAt: "2026-10-29T09:00:00.000Z", finishedAt: "2026-10-29T09:02:00.000Z" }, { title: "Second", status: "error" as const, createdAt: "2026-10-30T09:00:00.000Z", errorMessage: "failed" }];
-	const app = { id: "kXx3", name: "Shop", status: "done" as const, project: "Shop", environment: "production", domains: [{ host: "shop.example", https: true }], deployments };
+	const app = { id: "kXx3", name: "Shop", status: "done" as const, project: "Shop", environment: "production", domains: [{ host: "shop.example", https: true }], deployments, mounts: [{ type: "volume" as const, volumeName: "data", mountPath: "/data" }] };
 	const current = await fakeDokploy(t, { apps: [app], empty: ["Archive"] });
 	const documented = await fakeDokploy(t, { apps: [app], form: "documented" });
 	const get = async (base: string, path: string, headers: Record<string, string> = { "x-api-key": TOKEN }) => (await fetch(new URL(path, base), { headers })).json();
 	const post = async (path: string, body: FormData | string, headers: Record<string, string> = {}) => (await fetch(new URL(path, current.url), { method: "POST", headers: { "x-api-key": TOKEN, ...headers }, body })).json();
+	const json = (path: string, body: unknown) => post(path, JSON.stringify(body), { "Content-Type": "application/json" });
+	const build = { applicationId: "kXx3", buildType: "dockerfile", dockerfile: "Dockerfile", dockerContextPath: ".", dockerBuildStage: null, herokuVersion: "24", railpackVersion: "0.2.2" };
 	const form = new FormData();
 	form.set("applicationId", "kXx3");
 	form.set("zip", new Blob(["PK\x05\x06".padEnd(22, "\0")], { type: "application/zip" }), "upload.zip");
@@ -42,8 +44,16 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 		["error-unauthorized", await get(current.url, "/api/project.all", {})],
 		["application-drop-deployment", await post("/api/application.dropDeployment", form)],
 		["error-input", await post("/api/application.deploy", "{}", { "Content-Type": "application/json" })],
+		["application-create", await json("/api/application.create", { name: "New", environmentId: "env-shop-production" })],
+		["application-save-build-type", await json("/api/application.saveBuildType", build)],
+		["application-save-environment", await json("/api/application.saveEnvironment", { applicationId: "kXx3", env: "A=1", buildArgs: "", buildSecrets: "", createEnvFile: true })],
+		["domain-create", await json("/api/domain.create", { host: "new.shop.example", port: 3000, https: true, certificateType: "letsencrypt", applicationId: "kXx3", domainType: "application" })],
+		["mounts-create", await json("/api/mounts.create", { type: "volume", volumeName: "files", mountPath: "/files", serviceType: "application", serviceId: "kXx3" })],
+		["domain-validate-domain", await json("/api/domain.validateDomain", { domain: "shop.example" })],
+		["domain-validate-domain-elsewhere", await json("/api/domain.validateDomain", { domain: "elsewhere.shop.example" })],
+		["domain-validate-domain-unresolved", await json("/api/domain.validateDomain", { domain: "shop.invalid" })],
 	];
-	assert.equal(routes.at(-2)?.[1], true, "dropDeployment answers true");
+	assert.deepEqual([routes[6]?.[1], routes[9]?.[1], routes[10]?.[1]], [true, true, true], "dropDeployment and the saves answer true");
 	assert.deepEqual(
 		routes.flatMap(([name, got]) => (name in shapes ? drift(got, shapes[name], name) : [`${name} not recorded`])),
 		[],

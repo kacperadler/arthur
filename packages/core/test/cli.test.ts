@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { userInfo } from "node:os";
 import { basename, join } from "node:path";
 import { test } from "node:test";
 import { JOB_SCOPE } from "../src/inside-job.ts";
@@ -45,6 +46,28 @@ test("a plugin's command runs with its arguments and exits with its code; --proj
 	assert.deepEqual([before.status, before.stdout], [3, `${JSON.stringify({ args: [], project: "acme" })}\n`]);
 	assert.equal(arthur(folder, "echo").stdout, `${JSON.stringify({ args: [] })}\n`);
 	assert.deepEqual([arthur(folder, "quiet").status, arthur(folder, "quiet").stdout], [0, ""]);
+});
+
+// AR0528: who ran what, after it returned; the config's plugin answers `actor` as the coordinator once `coordinator.md` exists.
+test("each command run logs command-ran with its arguments, --project and exit code, stamped with who ran it; an unknown command, --help and a config that does not load log none", () => {
+	const folder = project(CONFIG.replace("import { rmSync }", "import { existsSync, rmSync }").replace('rmSync(doc("gone"));', 'rmSync(doc("gone"));\n\thost.provide("actor", () => (existsSync(doc("coordinator")) ? { actor: "coordinator", on: [7, 9] } : undefined));'));
+	assert.equal(arthur(folder, "echo", "a b", "--project", "acme").status, 3);
+	assert.equal(arthur(folder, "boom").status, 1);
+	assert.equal(arthur(folder, "echo", "--project", "blog").status, 1);
+	for (const [args, code] of [[["nothing"], 2], [["echo", "--help"], 0], [["--project"], 2]] as const) assert.equal(arthur(folder, ...args).status, code, args.join(" "));
+	writeFileSync(join(folder, "coordinator.md"), "");
+	assert.equal(arthur(folder, "quiet").status, 0);
+	const terminal = { actor: `user:terminal:${userInfo().username}` };
+	const logged = readFileSync(join(folder, ".arthur", "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+	assert.deepEqual(logged.map(({ plugin, by, name, data }) => [plugin, by, name, data]), [
+		["core", terminal, "command-ran", { command: "echo", args: ["a b"], project: "acme", code: 3 }],
+		["core", terminal, "command-ran", { command: "boom", args: [], code: 1 }],
+		["core", terminal, "command-ran", { command: "echo", args: [], project: "blog", code: 1 }],
+		["core", { actor: "coordinator", on: [7, 9] }, "command-ran", { command: "quiet", args: [], code: 0 }],
+	]);
+	const broken = project(CONFIG.replace('"orchestration"', '"schedule"'));
+	assert.equal(arthur(broken, "version").status, 0);
+	assert.equal(existsSync(join(broken, ".arthur", "events.jsonl")), false, "without the load there is no log to write to");
 });
 
 test("--help and arthur help print a command's doc file, the core's and a plugin's", () => {
@@ -198,7 +221,7 @@ test("arthur ticket creates, moves and lists tickets on the project's board, and
 	assert.deepEqual([moved.status, moved.stdout], [0, "DM0001 dropped\n"]);
 	assert.equal(arthur(folder, "ticket", "new", "Next").stdout.split(" ")[0], "DM0002");
 	assert.deepEqual(arthur(folder, "board", "all").stdout, "DM0002 planning    -        Next\nDM0001 dropped     -        Board from the shell\n");
-	const log = readFileSync(join(folder, ".arthur", "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+	const log = readFileSync(join(folder, ".arthur", "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line)).filter((event) => event.name !== "command-ran");
 	assert.deepEqual(
 		log.map(({ plugin, name, data }) => [plugin, name, data.id]),
 		[["core", "ticket-created", "DM0001"], ["core", "ticket-moved", "DM0001"], ["core", "ticket-created", "DM0002"]],
@@ -355,14 +378,17 @@ test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it ru
 		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", refusal], args.join(" "));
 	}
 	assert.deepEqual([home(), existsSync(join(folder, "spec"))], [before, false], "nothing was written in the home folder or the board");
-	for (const [args, out] of [[["quiet"], ""], [["echo", "--help"], "# arthur echo\n"], [["help", "echo"], "# arthur echo\n"], [["version"], /^[0-9a-f]{12}\n$/], [["jobs"], "no jobs\n"], [["remote-job", "records", join(folder, ".arthur")], "{}\n"]] as const) {
+	for (const [args, out] of [[["quiet"], ""], [["echo", "--help"], "# arthur echo\n"], [["help", "echo"], "# arthur echo\n"], [["version"], /^\d+\.\d+\.\d+ [0-9a-f]{12}\n$/], [["jobs"], "no jobs\n"], [["remote-job", "records", join(folder, ".arthur")], "{}\n"]] as const) {
 		const run = inJob(`${record}/`, ...args);
 		assert.deepEqual([run.status, run.stderr], [0, ""], args.join(" "));
 		if (typeof out === "string") assert.equal(run.stdout, out, args.join(" "));
 		else assert.match(run.stdout, out, args.join(" "));
 	}
 	assert.match(inJob(record, "help").stdout, /^usage: arthur /);
+	const ran = () => readFileSync(join(folder, ".arthur", "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).data.command);
+	assert.deepEqual(ran(), ["quiet"], "no command-ran inside a job, for a command that ran there or was refused");
 	assert.deepEqual([inJob("", "echo", "x").status, inJob("", "echo", "x").stdout], [3, `${JSON.stringify({ args: ["x"] })}\n`]);
+	assert.deepEqual(ran(), ["quiet", "echo", "echo"]);
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`): the mark no process of it can change.

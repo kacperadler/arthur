@@ -56,7 +56,7 @@ grep -qs 'arthur/node_modules/.bin' ~/.bashrc || printf 'export PATH="$HOME/arth
 export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 ```
 
-**Check:** `arthur version` prints the version of the core, 12 hex digits such as `c88b660134fb`.
+**Check:** `arthur version` prints the release and the hash of the core, such as `0.1.0 c88b660134fb`.
 
 ## 5. `arthur.config.ts`
 
@@ -75,7 +75,7 @@ Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job
 
 The channels, `telegram` and `discord`, come in step 13, and other machines for jobs with the `machines` plugin of step 11.
 
-A project that runs on a Dokploy server of yours can add `dokploy`: `arthur dokploy apps|app|status` reads each server's projects, applications and deployments, and `arthur dokploy upload|deploy` sends an application a file or folder or starts its deploy when you ask, for the coordinator, never in a job. Each server is an entry of `instances`, its address in the config and its API key in a variable the env file of step 6 holds (`ARTHUR_DOKPLOY_TOKEN`, or `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one), and the project's application is its `dokploy.project({ instance?, app })`, as `packages/dokploy/docs/dokploy.md` says; it needs `projects`. Then `arthur config check` lists that variable too.
+A project that runs on a Dokploy server of yours can add `dokploy`: `arthur dokploy apps|app|status` reads each server's projects, applications and deployments, `arthur dokploy upload|deploy` sends an application a file or folder or starts its deploy, and `arthur dokploy create|setup|env` creates an application and sets its build type, domain, volume and environment, when you ask, for the coordinator, never in a job. Each server is an entry of `instances`, its address in the config and its API key in a variable the env file of step 6 holds (`ARTHUR_DOKPLOY_TOKEN`, or `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one), and the project's application is its `dokploy.project({ instance?, app })`, as `packages/dokploy/docs/dokploy.md` says; it needs `projects`. Then `arthur config check` lists that variable too.
 
 ```ts
 import { defineConfig } from "@arthur/core";

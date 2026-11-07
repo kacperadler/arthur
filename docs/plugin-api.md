@@ -129,7 +129,9 @@ Each decided in the ticket that made it.
 - AR0590 (AR0589's approved plan, ticket 3): inside a job's sandbox a plugin reads nothing of its `folder` nor of the rest of the home but the job's own record, the records of its project and the projects plugin's lists; `host.jobs.list()` there gives those records alone (`arthur spawn --help`, "The sandbox").
 - AR0557 (AR0556's approved plan, Option 2; its Done means: `arthur github pr --help` prints `github-pr.md`): a command's group page, `<doc>-<word>.md` beside its `doc`, which `arthur <command> <word> … --help` prints when it exists and `<word>` is lowercase letters, digits and dashes, else the command's `doc` (`arthur help --help`). A plugin registers nothing more for it. No host member changed.
 - AR0392 (F1 of AR0380; its Done means: the keys Git reads by a fixed name passed with `-c` as well): `@arthur/core/git-config`'s `configRefusal(root)` becomes `checkConfig(root)`, `{ refusal, pins }`, the check's line and the `-c` arguments of the git call after it, so the check and those values come from one read of the config. No host member changed.
+- AR0528 (roadmap 99, from AR0527's approved plan, AR-D203): every event's `by: { actor, on? }` (below, "Who acted"), `Event.by`; the provided name `actor`; the core's events `command-ran`, `phone-command` and `run-started`, and schedule's `schedule-fired`; `@arthur/core/lock`'s `holds(path)`. No host member changed.
 - AR0649 (AR0480's approved plan, ticket 2, roadmap 108; the owner approved it on 2026-11-06, AR-D523): `JobRecord.usage`, the record's new `usage` file, which the wrapper writes after each message beside `cost`: per `<provider>/<model>`, `{ messages, input, output, cacheRead, cacheWrite, cost }`, summed over every run of the job, `{}` when the file is missing or not a JSON object (`arthur spawn --help`, `arthur jobs --help`). A sweep copies it from another machine with the run's other files. The test kit's fake agent takes `usage` (its tokens) and `model` on a message step. No host member changed.
+- AR0640 (roadmap 104, the owner's approved AR0128 plan, AR-D514): the export `arthurVersion()`, what `arthur version` prints, `<release> <hash>`, beside `coreVersion()`, the hash alone; the machines plugin names both whole lines in a refusal and compares the hash. A plugin's `package.json` may name the core releases it was built for, `peerDependencies["@arthur/core"]`, which the host reads at load from the package folder around its `module`: a core outside it is one `arthur doctor` line, `core plugin <name>`, that does not stop the start (`arthur doctor --help`). No host member changed.
 
 ### Project pieces
 
@@ -152,7 +154,7 @@ The types a plugin meets through the host, published by `@arthur/core/plugin`:
 | `Requirement` | `{ name, check(), costs, fix, critical? }`: one thing a plugin needs (`arthur doctor`); `check` answers `ok`, `ok (<detail>)` or `missing: <reason>`. |
 | `Provider` | What `provide` takes: any function. |
 | `Answer` | `{ plugin, value }` or `{ plugin, error }`: one answer of `collectEach`. |
-| `Event` | `{ seq, time, plugin, name, data }`: an event as logged. |
+| `Event` | `{ seq, time, plugin, by?, name, data }`: an event as logged; `by` is who acted (below, "Who acted"), absent on a line from before AR0528. |
 | `Command` | `{ name, doc, run, phone?, inJob? }`: `doc` the URL of the page `arthur <name> --help` prints, and beside it `<doc>-<word>.md`, a group's page, the one `arthur <name> <word> --help` prints; `run(input)` writes its output and returns the exit code, `phone: { about, reply(text, from) }`, `inJob: true` when it runs inside a job too (above, "Changes since entry 51"). |
 | `CommandInput` | `{ args, project }`: what `run` gets; `project` is `--project`, undefined for the main one. |
 | `PhoneFrom` | `{ channel?, place?, instance? }`: where a phone command came from, its channel's plugin, the place in it, and the named bot. |
@@ -189,6 +191,9 @@ Emitted by the core, named `core` unless said otherwise; `data` holds the fields
 | `ticket-after` | `id`, `project`, `after` | `arthur ticket after` changed what a ticket waits for. |
 | `notice` | `text` | Something the owner must know: a machine running jobs without a systemd scope, a critical requirement missing at `arthur run`. |
 | `doctor` | `lines` | The requirements missing at `arthur run`'s start, none critical. |
+| `command-ran` | `command`, `args`, `project?`, `code` | A command run from a shell, the coordinator's included, after it returned; never inside a job, nor when `arthur.config.ts` did not load. Logged only: `arthur run` delivers it, the next start that of `run` itself. |
+| `phone-command` | `channel`, `place?`, `instance?`, `text` | A channel handed `/name text` to `commands.route`, named by that channel; never inside a job. |
+| `run-started` | `pid`, `plugins` | `arthur run` started every plugin. |
 
 The events plugins share, which channels and the coordinator keep (`arthur send --help`, "Channels"; `@arthur/core/parts`):
 
@@ -197,7 +202,20 @@ The events plugins share, which channels and the coordinator keep (`arthur send 
 | `message-received` | `channel`, `parts` (each `Part`), `place?`, `instance?` | A channel, once per owner's message. |
 | `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule, github). |
 | `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn; a claimed part's `reply`. |
+| `schedule-fired` | `id`, `slot` (ISO time), `late`, `does` (`action`, `job` or `run`) | Schedule, once an entry's slot is claimed, before it runs. |
 | `notice` | `text`, `place?` | Any plugin; every channel sends it unless `coordinator.silent` holds it. |
+
+### Who acted
+
+Every event carries `by: { actor, on? }`, set by the core as it logs the event (AR0528, roadmap 99). `on` is the event numbers of the messages acted on. `actor` is worked out in this order:
+
+1. Inside a job: `job:<id>`; the job's wrapper stamps its own events so too.
+2. A channel's `message-received` or `phone-command`: `user:<channel>[/<instance>]`, the owner on that channel.
+3. The first answer `{ actor, on? }` a plugin provides as `actor`: orchestration's `coordinator` in the coordinator's session, `on` the messages of its turn in progress.
+4. In the process that holds `<home>/run.pid` (`arthur run`): `arthur` for the core's own events, `plugin:<name>` for a plugin's.
+5. Else `user:terminal:<OS user>`, someone typing in a shell.
+
+An event whose data has `answers`, a list of event numbers (`coordinator-replied`), is `on` them unless the `actor` answer gives its own.
 
 ## Provided names
 
@@ -221,6 +239,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
 | `coordinator.extension` | session, stats | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
+| `actor` | orchestration | the core, `collect` at each event it logs | Who acts in this process, `{ actor, on? }`, or undefined (above, "Who acted"). |
 | `coordinator.silent` | orchestration | discord, telegram | Whether the silent mode holds a notice. |
 | `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |
 | `coordinator.checkoutContext` | orchestration | develop (`arthur eval`) | `{ root, at, context }`, a copy of the main project's repository, a `Date` and `{ <plugin>: <text> }`: the coordinator's context there at that instant, without the live jobs, open decisions and silent mode, each plugin's lines `context`'s instead of its live answer (above, "Changes since entry 51"). |
@@ -253,9 +272,9 @@ An `OptionEntry` is a `ValueOption`, `{ about, default?, check, each?, keys? }`,
 
 ### `@arthur/core`
 
-Exports: `ArthurConfig`, `CoreOptions`, `LoadedConfig`, `QuietHours`, `coreVersion`, `defineConfig`, `describe`, `loadConfig`, `memoryBytes`.
+Exports: `ArthurConfig`, `CoreOptions`, `LoadedConfig`, `QuietHours`, `arthurVersion`, `coreVersion`, `defineConfig`, `describe`, `loadConfig`, `memoryBytes`.
 
-`defineConfig(config)` types `arthur.config.ts` (`ArthurConfig`: `core` as `CoreOptions`, with `QuietHours`, and `plugins`); `loadConfig(path)` loads and checks one, every core option set (`LoadedConfig`). `describe(value)` is a value as an error names it (`"text"`, `a list`, `3`). `coreVersion()` is what `arthur version` prints. `memoryBytes(text, total)` is systemd's `MemoryMax` syntax in bytes, undefined when systemd would refuse it.
+`defineConfig(config)` types `arthur.config.ts` (`ArthurConfig`: `core` as `CoreOptions`, with `QuietHours`, and `plugins`); `loadConfig(path)` loads and checks one, every core option set (`LoadedConfig`). `describe(value)` is a value as an error names it (`"text"`, `a list`, `3`). `arthurVersion()` is what `arthur version` prints, `<release> <hash>`; `coreVersion()` is its hash, which another machine must share. `memoryBytes(text, total)` is systemd's `MemoryMax` syntax in bytes, undefined when systemd would refuse it.
 
 ### `@arthur/core/cli`
 
@@ -289,9 +308,9 @@ Exports: `JOB_SCOPE`, `insideJob`.
 
 ### `@arthur/core/lock`
 
-Exports: `queueLock`, `takeLock`, `withLock`.
+Exports: `holds`, `queueLock`, `takeLock`, `withLock`.
 
-A lock between processes on one machine, a file holding its holder's pid, taken over from a dead one. `withLock(path, run, waitMs?)` holds it while `run` runs; `takeLock(path)` takes it now or names its holder, for as long as a process runs; `queueLock(path, waitMs?)` waits for it without blocking and resolves to its release.
+A lock between processes on one machine, a file holding its holder's pid, taken over from a dead one. `withLock(path, run, waitMs?)` holds it while `run` runs; `takeLock(path)` takes it now or names its holder, for as long as a process runs; `queueLock(path, waitMs?)` waits for it without blocking and resolves to its release; `holds(path)` whether this process holds it (the core's stamp asks it of `<home>/run.pid`).
 
 ### `@arthur/core/option-table`
 

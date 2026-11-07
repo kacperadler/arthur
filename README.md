@@ -41,13 +41,13 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **nvm**, built: each project's Node version from its `.nvmrc` ([nvm](packages/nvm/docs/nvm.md)).
 - **commit-rules**, built: a commit-message hook, words or a file per project ([commit-rules](packages/commit-rules/docs/commit-rules.md)).
 - **findings**, built: the `findings.md` format, and what a merge makes of open findings ([findings](packages/findings/docs/findings.md)).
-- **uptime**, built: each project's sites checked over HTTP, a notice when one goes down and when it is back ([uptime](packages/uptime/docs/uptime.md)).
+- **uptime**, built: each project's sites checked over HTTP, a notice when one goes down and when it is back, and the coordinator woken with a runbook of checks and steps, the project's own or the boilerplate ([uptime](packages/uptime/docs/uptime.md)).
 - **telegram**, built: text, media and the phone menu ([telegram](packages/telegram/docs/telegram.md)).
 - **discord**, built: text, media and the phone commands through the gateway, on one private server, a channel per project ([discord](packages/discord/docs/discord.md)).
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).
 - **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads, creates, comments on and closes pull requests and issues, labels issues, and lists and deletes branches on origin ([github](packages/github/docs/github.md)).
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
-- **dokploy**, built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, and uploads a file or folder to an app or starts its deploy on your word, each server's API key in a variable, for the coordinator only ([dokploy](packages/dokploy/docs/dokploy.md)).
+- **dokploy**, built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, uploads a file or folder to an app or starts its deploy, and creates an app and sets its build type, domain, volume and environment, on your word, each server's API key in a variable, for the coordinator only ([dokploy](packages/dokploy/docs/dokploy.md)).
 - **manage**, built: health, stats, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **stats**, built: the tokens, cost at list price and time of every job run and coordinator turn, kept in its own folder; its views come next ([stats](packages/stats/docs/stats.md)).

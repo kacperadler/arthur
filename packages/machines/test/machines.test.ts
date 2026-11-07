@@ -5,7 +5,7 @@ import { availableParallelism, totalmem } from "node:os";
 import { arch, platform } from "node:process";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { coreVersion, loadConfig } from "@arthur/core";
+import { arthurVersion, loadConfig } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type MachinesOptions, machines } from "../src/machines.ts";
@@ -50,7 +50,7 @@ const FREE_LINE = JSON.stringify({ cores: 8, load: 1.5, free: 6 * 2 ** 30, total
 
 // A machine reached as `ssh <host>`, whose `uname -sm` says `system` and whose `arthur version` prints `version`; no `arthur`
 // when null. Its `node -e` prints FREE_LINE; its git has an identity in its `.gitconfig`.
-function machine(host: string, system = "Linux x86_64", version: string | null = coreVersion()): string {
+function machine(host: string, system = "Linux x86_64", version: string | null = arthurVersion()): string {
 	const there = join(root, host);
 	rmSync(there, { recursive: true, force: true });
 	mkdirSync(join(there, "bin"), { recursive: true });
@@ -83,7 +83,8 @@ const BUILD = { name: "build", ssh: "build-box", home: "/home/arthur/.arthur", l
 
 type Requirement = { readonly name: string; check(): Promise<string>; readonly costs: string; readonly fix: string; readonly critical: boolean };
 const requirements = (fake: FakeHost) => fake.collect<Requirement[]>("doctor").flat();
-const events = (fake: FakeHost) => fake.emitted.map((event) => [event.name, event.data]);
+// The machines' own events; a `/machines` the test routes is logged as a `phone-command` besides.
+const events = (fake: FakeHost) => fake.emitted.filter((event) => event.name !== "phone-command").map((event) => [event.name, event.data]);
 // The one command of a machine's check over ssh, as the core quotes it: its script and its `node -e` script, then the number
 // of paths its df reads, those paths and its tools labels.
 const CHECK = "'sh' '-c' '[^']+' 'sh' '[^']+'";
@@ -105,7 +106,7 @@ test("at start every machine is checked and told once; a key refused stays offli
 	try {
 		await until("both told", () => fake.emitted.length === 2);
 		const offline = { machine: "build", reason: "ssh build-box: arthur@build-box: Permission denied (publickey)." };
-		const told = [["machine-online", { machine: "mac", os: "macos", arch: "arm64", version: coreVersion() }], ["machine-offline", offline]];
+		const told = [["machine-online", { machine: "mac", os: "macos", arch: "arm64", version: arthurVersion() }], ["machine-offline", offline]];
 		assert.deepEqual(events(fake), told);
 		for (const call of calls()) assert.match(call, new RegExp(`^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 (mac-mini ${CHECK} '0' 'xcodebuild'|build-box ${CHECK} '0')$`));
 		// Two more rounds, as the doctor and the command ask for them: nothing changed, nothing told.
@@ -119,7 +120,7 @@ test("at start every machine is checked and told once; a key refused stays offli
 		writeFileSync(join(root, "build-box", "fail"), "ssh: connect to host build-box port 22: Connection timed out");
 		await Promise.all(requirements(fake).map((requirement) => requirement.check()));
 		await Promise.all(requirements(fake).map((requirement) => requirement.check()));
-		const back = ["machine-online", { machine: "build", os: "linux", arch: "x64", version: coreVersion() }];
+		const back = ["machine-online", { machine: "build", os: "linux", arch: "x64", version: arthurVersion() }];
 		const gone = ["machine-offline", { machine: "build", reason: "ssh build-box: ssh: connect to host build-box port 22: Connection timed out" }];
 		assert.deepEqual(events(fake), [...told, back, gone], "offline and back: each change told once");
 	} finally {
@@ -134,8 +135,8 @@ test("a check outside arthur run (the command, the doctor) tells nothing; arthur
 	assert.deepEqual(events(fake), []);
 	await plugin.start?.();
 	try {
-		await until("mac told", () => fake.emitted.length === 1);
-		assert.equal(fake.emitted[0]?.name, "machine-online");
+		await until("mac told", () => events(fake).length === 1);
+		assert.equal(events(fake)[0]?.[0], "machine-online");
 	} finally {
 		await plugin.stop?.();
 	}
@@ -180,7 +181,7 @@ test("each round's answers name the paths its checks' df reads, in the same one 
 		return answers.shift()?.();
 	});
 	const round = () => requirements(fake)[0]?.check();
-	const missingTool = `missing: command -v finds no no-such-tool there (linux x64, arthur ${coreVersion()})`;
+	const missingTool = `missing: command -v finds no no-such-tool there (linux x64, arthur ${arthurVersion()})`;
 	const header = "Filesystem 1024-blocks Used Available Capacity Mounted on";
 	assert.equal(await round(), missingTool, "the tools labels still read after the paths");
 	assert.deepEqual(await said[0], { free: FREE_LINE, disk: { code: 0, output: `${header}\n/dev/sda1 100 50 50 50% ${there}\nmissing` } });
@@ -207,7 +208,12 @@ test("a machine whose node -e fails in the check is offline with its line, so it
 test("each way a machine is offline, with its reason and its fix, and each tools label command -v does not find there, as the doctor says it", async () => {
 	machine("mac-mini", "Linux x86_64");
 	writeFileSync(join(machine("build-box"), "fail"), HOST_KEY);
+	// `arthur version` prints `<release> <hash>`; only the hash, its last word, is compared, and a line of the hash alone is an older Arthur.
+	const hash = arthurVersion().split(" ")[1] ?? "";
 	machine("old-box", "Linux x86_64", "0123456789ab");
+	machine("alone-box", "Linux x86_64", hash);
+	machine("other-box", "Linux x86_64", "0.1.0 0123456789ab");
+	machine("next-box", "Linux x86_64", `9.9.9 ${hash}`);
 	machine("bare-box", "Linux aarch64", null);
 	writeFileSync(join(machine("nogit-box"), "bin/git"), NO_GIT, { mode: 0o755 });
 	writeFileSync(join(machine("mute-box"), "bin/git"), "#!/bin/sh\nexit 127\n", { mode: 0o755 });
@@ -217,6 +223,9 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		MAC,
 		BUILD,
 		{ name: "old", ssh: "old-box", home: "/home/arthur/.arthur" },
+		{ name: "alone", ssh: "alone-box", home: "/home/arthur/.arthur" },
+		{ name: "other", ssh: "other-box", home: "/home/arthur/.arthur" },
+		{ name: "next", ssh: "next-box", home: "/home/arthur/.arthur" },
 		{ name: "bare", ssh: "bare-box", home: "/home/arthur/.arthur" },
 		{ name: "nogit", ssh: "nogit-box", home: "/home/arthur/.arthur", labels: { tools: ["no-such-tool"] } },
 		{ name: "mute", ssh: "mute-box", home: "/home/arthur/.arthur" },
@@ -234,7 +243,10 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 			"no job runs on build",
 			false,
 		],
-		["old", `missing: it runs arthur 0123456789ab, this one is ${coreVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on old", false],
+		["old", `missing: it runs arthur 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on old", false],
+		["alone", `missing: it runs arthur ${hash}, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on alone", false],
+		["other", `missing: it runs arthur 0.1.0 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on other", false],
+		["next", `ok (linux x64, arthur 9.9.9 ${hash})`, "ssh next-box true, by hand", "no job runs on next", false],
 		[
 			"bare",
 			"missing: arthur is not there (sh: 1: arthur: not found)",
@@ -244,10 +256,10 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		],
 		["nogit", "missing: git is not there (sh: 1: git: not found)", "install git there, on the PATH of a command over ssh (docs/deploy.md)", "no job runs on nogit", false],
 		["mute", "missing: git is not there (exit code 127)", "install git there, on the PATH of a command over ssh (docs/deploy.md)", "no job runs on mute", false],
-		["arm", `ok (linux arm64, arthur ${coreVersion()})`, "ssh arm-box true, by hand", "no job runs on arm", false],
+		["arm", `ok (linux arm64, arthur ${arthurVersion()})`, "ssh arm-box true, by hand", "no job runs on arm", false],
 		[
 			"gpu",
-			`missing: command -v finds no nvidia-smi, xcodebuild there (linux x64, arthur ${coreVersion()})`,
+			`missing: command -v finds no nvidia-smi, xcodebuild there (linux x64, arthur ${arthurVersion()})`,
 			"install nvidia-smi, xcodebuild on gpu, on the PATH of a command over ssh (docs/deploy.md), or drop what it does not need from its tools label",
 			"no job that needs nvidia-smi, xcodebuild runs on gpu",
 			false,
@@ -272,7 +284,7 @@ test("a machine online whose git has no identity is said in its doctor line, wit
 	];
 	const { fake } = await load({ list });
 	const lines = async () => Promise.all(requirements(fake).map(async (requirement) => [requirement.name, await requirement.check(), requirement.fix, requirement.costs, requirement.critical]));
-	const found = `linux x64, arthur ${coreVersion()}`;
+	const found = `linux x64, arthur ${arthurVersion()}`;
 	const fix = (name: string) => `git config --global user.name "<your name>" and git config --global user.email "<your email>" on ${name} (ssh ${name}-box)`;
 	const costs = (name: string) => `a job placed on ${name} fails at its first commit: git has no author there`;
 	assert.deepEqual(await lines(), [
@@ -315,7 +327,7 @@ test("a machine whose ssh resolves to a public address is refused at load; one t
 	const { fake: later } = await load({ list: [{ ...MAC, labels: {} }, BUILD] });
 	const [mac, build] = requirements(later);
 	assert.match((await mac?.check()) ?? "", /^missing: getaddrinfo ENOTFOUND no-such-machine\.invalid$/, "a name not found loads, and is offline");
-	assert.equal(await build?.check(), `ok (linux x64, arthur ${coreVersion()})`, "localhost is loopback");
+	assert.equal(await build?.check(), `ok (linux x64, arthur ${arthurVersion()})`, "localhost is loopback");
 	writeFileSync(join(root, "mac-mini", "hostname"), "1.1.1.1");
 	assert.equal(await requirements(later)[0]?.check(), "missing: ssh mac-mini resolves to 1.1.1.1, not a private address", "checked again at the next doctor run");
 	assert.equal(calls().filter((call) => call.includes("mac-mini")).length, 0, "nothing is sent to a public address");
@@ -359,9 +371,9 @@ test("arthur machines and /machines: local first with its detected labels, then 
 	record("2026-10-18-worker-0000000c", { state: "blocked", reason: "user: which?" });
 	const os = platform === "darwin" ? "macos" : platform;
 	const expected = [
-		`local: online (${os} ${arch}, arthur ${coreVersion()})`,
+		`local: online (${os} ${arch}, arthur ${arthurVersion()})`,
 		`  labels: os ${os}, arch ${arch}, tools docker; maxJobs: 3; jobs: 2026-10-18-worker-0000000c (blocked)`,
-		`mac (ssh mac-mini): online (macos arm64, arthur ${coreVersion()})`,
+		`mac (ssh mac-mini): online (macos arm64, arthur ${arthurVersion()})`,
 		"  labels: os macos, arch arm64, tools xcodebuild; maxJobs: 2; jobs: 2026-10-18-worker-0000000a (working)",
 		"build (ssh build-box): offline: ssh build-box: arthur@build-box: Permission denied (publickey).; fix: ssh-copy-id build-box",
 		"  labels: os linux, arch x64; maxJobs: not set; no jobs",
@@ -381,13 +393,13 @@ test("arthur machines and /machines: local first with its detected labels, then 
 test("without a list only local is there, and the doctor has no line", async () => {
 	const { fake } = await load({});
 	assert.deepEqual(requirements(fake), []);
-	assert.match(await fake.host.commands.route("/machines"), /^local: online \(\w+ \w+, arthur \w+\)\n {2}labels: os \w+, arch \w+; maxJobs: not set; no jobs$/);
+	assert.match(await fake.host.commands.route("/machines"), /^local: online \(\w+ \w+, arthur \d+\.\d+\.\d+ [0-9a-f]{12}\)\n {2}labels: os \w+, arch \w+; maxJobs: not set; no jobs$/);
 	assert.deepEqual(calls(), []);
 });
 
 test("local's tools labels are checked with command -v on the PATH of arthur run, its line first, in a listed machine's shape", async () => {
 	machine("build-box");
-	const here = `${platform === "darwin" ? "macos" : platform} ${arch}, arthur ${coreVersion()}`;
+	const here = `${platform === "darwin" ? "macos" : platform} ${arch}, arthur ${arthurVersion()}`;
 	const { fake } = await load({ local: { labels: { tools: ["sh", "no-such-tool-ar0172", "no-such-tool-ar0172b"] } }, list: [BUILD] });
 	const lines = await Promise.all(requirements(fake).map(async (requirement) => [requirement.name, await requirement.check(), requirement.fix, requirement.costs, requirement.critical]));
 	assert.deepEqual(lines, [
@@ -398,7 +410,7 @@ test("local's tools labels are checked with command -v on the PATH of arthur run
 			"no job that needs no-such-tool-ar0172, no-such-tool-ar0172b runs on local",
 			false,
 		],
-		["build", `ok (linux x64, arthur ${coreVersion()})`, "ssh build-box true, by hand", "no job runs on build", false],
+		["build", `ok (linux x64, arthur ${arthurVersion()})`, "ssh build-box true, by hand", "no job runs on build", false],
 	]);
 	assert.deepEqual(calls().filter((call) => !call.startsWith("-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 build-box ")), [], "local is checked here, never over ssh");
 	// A tool only in a folder of this process's PATH, which `arthur run` passes on to what it runs.

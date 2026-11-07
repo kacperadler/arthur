@@ -2,10 +2,19 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-07
+
+### Added
+
+- AR0607 Runbook: what the coordinator checks and does, in order, when a project site is down (37bc0bbc)
+- AR0640 Roadmap 104: one release version, arthur version with the hash, and the plugin check (b62e8f9f)
+- AR0654 Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word (53dbde54)
+
 ## 2026-11-06
 
 ### Added
 
+- AR0528 Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts (dd5907a9)
 - AR0556 Plan: the github plugin manages pull requests, issues and branches
 - AR0558 GitHub T2: create, comment on and close pull requests (f579072f)
 - AR0559 GitHub T3: list, read, create, comment on, label and close issues (999ed4be)

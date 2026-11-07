@@ -36,6 +36,7 @@ export function sweeper(host: Host, configured: readonly Entry[], registered: re
 				continue;
 			}
 			if (!claim(host.folder, entry.id, slot, now)) continue;
+			host.events.emit("schedule-fired", { id: entry.id, slot: slot.toISOString(), late: late !== "", does: entry.action !== undefined ? "action" : entry.job !== undefined ? "job" : "run" });
 			if (entry.action !== undefined) host.events.emit("coordinator-message", { text: scheduled(entry.id, entry.action.message, procedure?.text, late) });
 			if (entry.job !== undefined) jobs.push({ id: entry.id, job: entry.job, late });
 			const { run } = entry as Registered;

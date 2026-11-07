@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/commit-rules.ts",
     "./options": "./src/commit-rules-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

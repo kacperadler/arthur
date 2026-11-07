@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/telegram.ts",
     "./options": "./src/telegram-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

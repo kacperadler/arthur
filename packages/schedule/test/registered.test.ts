@@ -154,6 +154,8 @@ test("a registered entry may run its plugin's own code at its time: claimed once
 	await box.sweep("2026-10-21T04:07:00+02:00");
 	await until("the next day's failure", () => box.notices().length === 2);
 	assert.deepEqual([ran, box.notices()[1]], [["docker", "docker"], "schedule: sweep.prune (late: due 2026-10-21 04:00): its run failed: rm: Permission denied"]);
+	const fired = box.fake.emitted.filter((event) => event.name === "schedule-fired").map((event) => event.data as { readonly id: string; readonly late: boolean; readonly does: string });
+	assert.deepEqual(fired.map(({ id, late, does }) => [id, late, does]), [["sweep.docker", false, "run"], ["sweep.prune", false, "run"], ["sweep.docker", true, "run"], ["sweep.prune", true, "run"]]);
 	box.run("list");
 	assert.equal(box.logs.at(-1)?.split("\n").slice(0, 2).join("\n"), "sweep.docker (plugin sweep, option sweep.at): every day at 04:00, next 2026-10-22 04:00\n  run: the plugin's own code");
 	const refused = (entry: object, message: string) => assert.throws(() => box.register("sweep", [{ id: "other", at: "05:00", option: "sweep.at", ...entry }]), { message: `schedule.register from plugin sweep: entries[0].${message}` });

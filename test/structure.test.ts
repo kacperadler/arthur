@@ -49,7 +49,7 @@ const BUDGETS = {
 
 	telegram: 680,
 
-	uptime: 344,
+	uptime: 383,
 
 	video: 197,
 

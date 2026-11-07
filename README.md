@@ -41,7 +41,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **nvm**, built: each project's Node version from its `.nvmrc` ([nvm](packages/nvm/docs/nvm.md)).
 - **commit-rules**, built: a commit-message hook, words or a file per project ([commit-rules](packages/commit-rules/docs/commit-rules.md)).
 - **findings**, built: the `findings.md` format, and what a merge makes of open findings ([findings](packages/findings/docs/findings.md)).
-- **uptime**, built: each project's sites checked over HTTP, a notice when one goes down and when it is back ([uptime](packages/uptime/docs/uptime.md)).
+- **uptime**, built: each project's sites checked over HTTP, a notice when one goes down and when it is back, and the coordinator woken with a runbook of checks and steps, the project's own or the boilerplate ([uptime](packages/uptime/docs/uptime.md)).
 - **telegram**, built: text, media and the phone menu ([telegram](packages/telegram/docs/telegram.md)).
 - **discord**, built: text, media and the phone commands through the gateway, on one private server, a channel per project ([discord](packages/discord/docs/discord.md)).
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).

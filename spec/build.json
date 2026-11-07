@@ -5112,9 +5112,9 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-06T11:31:25.400Z"
+    "updated": "2026-11-07T00:09:30.860Z"
   },
   {
     "id": "AR0636",
@@ -5126,9 +5126,9 @@
   {
     "id": "AR0637",
     "title": "Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0637-mutate-runs-capped-at-4-pass-the-review-gate-and-reviews-then-fail-on-survivors/ticket.md",
-    "updated": "2026-11-06T11:31:27.390Z"
+    "updated": "2026-11-07T01:40:04.131Z"
   },
   {
     "id": "AR0638",

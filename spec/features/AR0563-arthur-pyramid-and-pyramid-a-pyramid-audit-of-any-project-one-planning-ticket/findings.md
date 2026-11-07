@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/manage/src/health-checks.ts`, `packages/manage/docs/commands/health.md:24`
 - What: the "report not filed" check covers only `audit` and `retro` jobs and their folders (`spec/quality/`, `spec/retro/`). A `pyramid` job that ended `finished` and was never filed (the coordinator missed its wake) is pruned later with its result, and nothing says so.
 - Suggestion: add the kind `pyramid` and `spec/pyramid/` to the check's list of kinds and report folders, and its doc line; nothing else changes.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. The vision's list of roles a model can be set for leaves out the newer roles
 
@@ -20,4 +20,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:36`
 - What: the settings table names "worker, reviewer, planner, auditor, retro, onboarding" as the roles of `roles`; `plan-reviewer` and now `pyramid` are roles too, which `roles.pyramid` sets like the rest. The vision is the owner's, so the worker left it.
 - Suggestion: the owner adds `plan-reviewer` and `pyramid` to the list, or ends it with "...".
-- Status: open
+- Status: deferred (client summary)

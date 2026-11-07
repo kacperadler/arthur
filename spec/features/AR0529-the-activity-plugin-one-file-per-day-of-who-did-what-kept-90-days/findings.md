@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `README.md:54`
 - What: the README lists every built plugin, one line each; a line for activity after `video` makes it 121 lines, and `test/structure.test.ts` ("the README holds at most 120 lines and one closed mermaid flowchart of at most 40") fails. The branch leaves activity out of it.
 - Suggestion: shorten the README by a line (say, fold the two channel lines into one) and add `- **activity**, built: one file per day of who did what, ... ([activity](packages/activity/docs/activity.md))`. Leave the diagram as it is.
-- Status: open
+- Status: fixed in c7cc8082
 
 ## F2. The diagrams and the roadmap do not show the activity plugin or entries 99 to 101
 

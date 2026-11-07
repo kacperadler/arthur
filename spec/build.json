@@ -5343,5 +5343,12 @@
     "status": "planned",
     "path": "spec/features/AR0661-the-retro-page-uses-the-report-style-like-the-pyramid-and-repeats-pages/ticket.md",
     "updated": "2026-11-07T18:04:32.210Z"
+  },
+  {
+    "id": "AR0662",
+    "title": "A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline",
+    "status": "planning",
+    "path": "spec/features/AR0662-a-bash-timeout-of-0-in-a-job-runs-the-checks-with-1800-s-not-without-a-deadline/ticket.md",
+    "updated": "2026-11-07T18:39:52.959Z"
   }
 ]

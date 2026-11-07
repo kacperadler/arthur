@@ -5279,9 +5279,9 @@
   {
     "id": "AR0654",
     "title": "Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0654-dokploy-t3-create-an-app-and-set-its-build-type-domain-volume-and-environment/ticket.md",
-    "updated": "2026-11-06T16:48:03.421Z",
+    "updated": "2026-11-07T08:23:41.722Z",
     "after": [
       "AR0603"
     ]

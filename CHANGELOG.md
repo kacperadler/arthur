@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0607 Runbook: what the coordinator checks and does, in order, when a project site is down (37bc0bbc)
+- AR0654 Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word (53dbde54)
 
 ## 2026-11-06
 

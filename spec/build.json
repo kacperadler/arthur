@@ -5119,9 +5119,9 @@
   {
     "id": "AR0636",
     "title": "A committed plan names the public IP addresses of the owner deploy host and this VPS",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0636-a-committed-plan-names-the-public-ip-addresses-of-the-owner-deploy-host-and-this/ticket.md",
-    "updated": "2026-11-07T03:03:38.632Z"
+    "updated": "2026-11-07T12:34:25.360Z"
   },
   {
     "id": "AR0637",

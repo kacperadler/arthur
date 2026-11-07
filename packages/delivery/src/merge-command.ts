@@ -149,7 +149,8 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	const cache = mkdtempSync(join(host.folder, "cache_"));
 	try {
 		const runner = (folder: string) => runs(host.sandbox(root, folder, console.log));
-		const steps = mainChecks(root, ask, runner(cache), console.log);
+		const run = runner(cache);
+		const steps = mainChecks(root, ask, run, console.log);
 		if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 		const failing = steps.filter(failed).map((each) => each.command);
 		if (failing.length > 0) {
@@ -162,7 +163,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 		saveLastMerge(host, job.project, made);
 		endWait(host, job.id);
 		if (ticket === undefined || folder === undefined) console.log(`no ticket: no outcome.md, nothing moved\n${writeChangelog(host, job.project)}`);
-		else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap, git }, console.log);
+		else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap, git, run: (command) => run(command, { ...process.env, ...(ask.path() && { PATH: ask.path() }) }) }, console.log);
 		return { project: job.project, branch: main, job: job.id, ticket: ticket?.id };
 	} finally {
 		rmSync(cache, { recursive: true, force: true });

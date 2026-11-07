@@ -34,3 +34,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: the approved plan of AR0527 (AR-D203)
+- 2026-11-07: AR0529 worker budget $13.63 -> $15 to rerun check and test on its clean tip, under the owner order to fix what cannot merge; the owner: "if you cant merge something check why and fix that on github" (AR-D549)

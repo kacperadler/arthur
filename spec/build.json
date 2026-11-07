@@ -5112,9 +5112,9 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-07T13:25:46.843Z"
+    "updated": "2026-11-07T14:44:52.723Z"
   },
   {
     "id": "AR0636",
@@ -5185,9 +5185,9 @@
   {
     "id": "AR0644",
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-07T14:14:21.599Z"
+    "updated": "2026-11-07T14:14:42.415Z"
   },
   {
     "id": "AR0645",

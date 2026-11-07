@@ -14,6 +14,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0635 The merge commits its spec files with hooks off, so the other-projects check never sees them before the push (a73083dd)
 - AR0636 A committed plan names the public IP addresses of the owner deploy host and this VPS (932354be)
 - AR0638 host.secrets holds only enabled plugins values, so the public decision log misses other env file values (39996965)
 

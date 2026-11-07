@@ -5112,9 +5112,9 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-07T00:09:30.860Z"
+    "updated": "2026-11-07T02:47:05.267Z"
   },
   {
     "id": "AR0636",

@@ -122,14 +122,19 @@ export function tipChecks(git: (...words: string[]) => string, tip: string, chec
 }
 
 // Why no review of the worker's tip starts yet (AR0580), or undefined: each script of `tipChecks` on the tip's clean tree, `check` and
-// `test` passing, `mutate` with any result (its survivors named by the worker); a job on another machine writes its checks there.
+// `test` passing, `mutate` with any result (its survivors named by the worker) but with its counts and not capped below min(25, all
+// its mutants) (AR0637), so it reached every changed file; a job on another machine writes its checks there.
 export function untested(host: Host, job: JobRecord, { git, commit: tip }: { readonly git: (...words: string[]) => string; readonly commit: string } = branchOf(host, job)): string | undefined {
 	const file = join(host.folder, job.id, "checks");
 	const latest = job.machine === "local" ? tipChecks(git, tip, existsSync(file) ? readFileSync(file, "utf8") : "") : [];
 	const gaps = latest.flatMap(([script, words]) => {
 		if (words === undefined) return [`no ${script}`];
 		if (`${words.at(-2)} ${words.at(-1)}` !== `${tip} clean`) return [`${script} ran on ${words.at(-2) === tip ? "a dirty tree" : `${words.at(-2)?.slice(0, 7)}, not the tip`}`];
-		return script === "mutate" || words[1] === "pass" ? [] : [words.slice(0, -2).join(" ")];
+		if (script !== "mutate") return words[1] === "pass" ? [] : [words.slice(0, -2).join(" ")];
+		const [, run = "", survived, unrun = ""] = /^mutate \w+ (\d+) run, (\d+) survived, (\d+) not run$/.exec(words.slice(0, -2).join(" ")) ?? [];
+		if (survived === undefined) return [`${words.slice(0, -2).join(" ")} without its counts`];
+		const all = Number(run) + Number(unrun);
+		return Number(run) >= Math.min(25, all) ? [] : [`mutate capped at --max ${run} (${run} run, ${survived} survived, ${unrun} not run of ${all}; it counts at ${Math.min(25, all)})`];
 	});
-	return gaps.length === 0 ? undefined : `${job.branch} at ${tip.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran): ${gaps.join(", ")}`;
+	return gaps.length === 0 ? undefined : `${job.branch} at ${tip.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(25, all) mutants): ${gaps.join(", ")}`;
 }

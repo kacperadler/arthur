@@ -62,11 +62,11 @@ function tree(cwd: string): Tree | undefined {
 	return { head: head.stdout.trim(), files: files.join("\n"), clean: status.stdout === "" && entries.every((entry) => entry.startsWith("H ")) };
 }
 
-// The lines of one bash call: `check pass|fail`, `test pass|fail <passed>/<total>` and `mutate pass|fail`, one per run `scripts`
-// finds, in the command's order; a call the bash tool moved to the background (it returned before the checks did), none.
-// Commands joined by `;`, `&&` or `|` give one exit status, so the output decides too: a check fails on a TypeScript error; a
-// test takes pass or fail from node --test's last summary (`fail 0` passes), and from the exit status without one; mutate
-// passes only on an exit status of 0 and a last summary with `0 survived`.
+// The lines of one bash call: `check pass|fail`, `test pass|fail <passed>/<total>` and `mutate pass|fail <run> run, <survived>
+// survived, <not run> not run`, one per run `scripts` finds, in the command's order; a call the bash tool moved to the background
+// (it returned before the checks did), none. Commands joined by `;`, `&&` or `|` give one exit status, so the output decides too:
+// a check fails on a TypeScript error; a test takes pass or fail from node --test's last summary (`fail 0` passes), and from the
+// exit status without one; mutate passes only on an exit status of 0 and a last summary with `0 survived`, its counts from it.
 function ran(event: ToolEvent, cwd: string): string[] {
 	if (event.details?.async !== undefined) return [];
 	const runs = scripts(event.input?.command, cwd);
@@ -76,7 +76,10 @@ function ran(event: ToolEvent, cwd: string): string[] {
 	const [tests, passed, failures] = [count("tests"), count("pass"), count("fail")];
 	return runs.map((name) => {
 		if (name === "check") return `check ${failed || /\berror TS\d+|^error:/m.test(output) ? "fail" : "pass"}`;
-		if (name === "mutate") return `mutate ${!failed && Array.from(output.matchAll(/^mutate: \d+ mutants, \d+ caught, (\d+) survived/gm)).at(-1)?.[1] === "0" ? "pass" : "fail"}`;
+		if (name === "mutate") {
+			const [, run, survived, unrun = "0"] = Array.from(output.matchAll(/^mutate: (\d+) mutants, \d+ caught, (\d+) survived(?:; (\d+) not run)?/gm)).at(-1) ?? [];
+			return `mutate ${!failed && survived === "0" ? "pass" : "fail"}${run === undefined ? "" : ` ${run} run, ${survived} survived, ${unrun} not run`}`;
+		}
 		if (tests === undefined || passed === undefined || failures === undefined) return `test ${failed ? "fail" : "pass"}`;
 		return `test ${failures === "0" ? "pass" : "fail"} ${passed}/${tests}`;
 	});

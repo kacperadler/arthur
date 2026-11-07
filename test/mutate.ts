@@ -49,12 +49,18 @@ if (git(root, "status", "--porcelain", "--untracked-files=no") !== "") refuse("r
 const base = git(root, "merge-base", "main", "HEAD").trim();
 const files = git(root, "diff", "--name-only", "--diff-filter=d", base, "HEAD", "--", "*.ts").split("\n").filter((file) => file !== "" && !/\.(test|d)\.ts$/.test(file));
 const changes = files.map((file) => ({ file, lines: readFileSync(join(root, file), "utf8").split("\n"), hunks: hunks(git(root, "diff", "--unified=0", "--no-color", base, "HEAD", "--", file)) }));
-const mutants = [
-	...changes.flatMap(({ file, lines, hunks }) => hunks.filter(({ at, size, old }) => [...lines.slice(at, at + size), ...old].some((line) => !INERT.test(line.trim()))).map(({ at, size, old }): Mutant => ({ file, line: at + 1, what: "hunk reverted to the base", text: [...lines.slice(0, at), ...old, ...lines.slice(at + size)].join("\n") }))),
-	...changes.flatMap(({ file, lines, hunks }) =>
-		hunks.flatMap(({ at, size }) => lines.slice(at, at + size).flatMap((line, index) => lineMutants(line).map((mutated): Mutant => ({ file, line: at + index + 1, what: `${line.trim()} => ${mutated.trim() || "(deleted)"}`, text: [...lines.slice(0, at + index), mutated, ...lines.slice(at + index + 1)].join("\n") })))),
+// Round-robin, so a capped run reaches every changed file and as many of its hunks as it can: each file's first mutant, then
+// each one's second; a file's own taken the same way from its hunks, each hunk's revert to the base first, then its lines'.
+const mutants = interleave(
+	changes.map(({ file, lines, hunks }) =>
+		interleave(
+			hunks.map(({ at, size, old }) => [
+				...([...lines.slice(at, at + size), ...old].some((line) => !INERT.test(line.trim())) ? [{ file, line: at + 1, what: "hunk reverted to the base", text: [...lines.slice(0, at), ...old, ...lines.slice(at + size)].join("\n") }] : []),
+				...lines.slice(at, at + size).flatMap((line, index) => lineMutants(line).map((mutated): Mutant => ({ file, line: at + index + 1, what: `${line.trim()} => ${mutated.trim() || "(deleted)"}`, text: [...lines.slice(0, at + index), mutated, ...lines.slice(at + index + 1)].join("\n") }))),
+			]),
+		),
 	),
-];
+);
 const run = mutants.slice(0, max);
 let survived = 0;
 for (const mutant of run) {
@@ -64,6 +70,11 @@ for (const mutant of run) {
 }
 console.log(`mutate: ${run.length} mutants, ${run.length - survived} caught, ${survived} survived${mutants.length > max ? `; ${mutants.length - max} not run (--max ${max})` : ""}`);
 process.exitCode = survived > 0 ? 1 : 0;
+
+// The first item of each list, then the second of each, and on until every list is spent.
+function interleave<T>(lists: readonly (readonly T[])[]): T[] {
+	return Array.from({ length: Math.max(0, ...lists.map((list) => list.length)) }, (_, at) => lists.flatMap((list) => list.slice(at, at + 1))).flat();
+}
 
 // The hunks of a `git diff --unified=0`: where each starts in the tip's lines, how many it holds there, and the base's lines.
 function hunks(diff: string): { readonly at: number; readonly size: number; readonly old: readonly string[] }[] {

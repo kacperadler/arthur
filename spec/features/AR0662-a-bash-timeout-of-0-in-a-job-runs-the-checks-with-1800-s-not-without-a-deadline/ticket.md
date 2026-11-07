@@ -39,4 +39,5 @@ Out:
 - The job's own time limit.
 
 ## Decisions
+- 2026-11-07: AR0662 approved: a checks call with bash timeout 0 keeps no deadline; started tomorrow with the other approved tickets; the owner: "AR-D554 - 1" (AR-D554)
 

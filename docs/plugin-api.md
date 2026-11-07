@@ -237,7 +237,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
 | `coordinator.context` | develop, findings, manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
-| `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
+| `coordinator.extension` | session, stats | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `actor` | orchestration | the core, `collect` at each event it logs | Who acts in this process, `{ actor, on? }`, or undefined (above, "Who acted"). |
 | `coordinator.silent` | orchestration | discord, telegram | Whether the silent mode holds a notice. |

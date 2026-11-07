@@ -21,3 +21,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: the line says the core has entries 1-22, 51, 80, 93 and 94 of 1-22, 51, 71, 80, 93 and 94; entry 108 (AR0649, usage in the job record) was merged on 2026-11-06 and is in neither list.
 - Suggestion: add 108 to both lists of the core in that line; nothing else changes.
 - Status: open
+
+## F3. `arthur plugin new` writes a package without the release version
+
+- Kind: fix
+- Found by: 2026-11-06-worker-a83f424b (worker), 2026-11-07
+- Where: `packages/develop/src/plugin-template.ts`, `packages/develop/src/plugin-new.ts:59`
+- What: main's `packages/core/test/plugin-range.test.ts` ("one release") wants every first-party package.json and its lockfile entry to hold the root's version (0.1.0). `arthur plugin new` writes neither `version` in the new `package.json` nor in its `package-lock.json` entry, so a package made by it fails `npm test` until edited by hand, though `docs/commands/plugin.md` says it passes with no hand edit. Seen when main was merged into this branch: stats' package failed that test; this branch added `"version": "0.1.0"` to both by hand.
+- Suggestion: write the root `package.json`'s `version` into the new package.json and its lockfile entry, and test it in `plugin-new.test.ts`.
+- Status: open

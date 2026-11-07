@@ -5239,9 +5239,9 @@
   {
     "id": "AR0650",
     "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
-    "updated": "2026-11-07T13:35:02.029Z",
+    "updated": "2026-11-07T13:42:30.622Z",
     "after": [
       "AR0649"
     ]

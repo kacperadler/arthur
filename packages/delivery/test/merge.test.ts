@@ -221,6 +221,32 @@ test("a key that may name a program, set in the repository's config while the ch
 	assert.deepEqual([git(root, "log", "-1", "--format=%s", head()), existsSync(ran)], ["Merge AC0001: Shop", false]);
 });
 
+test("the commit-msg script main's package.json declares checks the spec: commit, its paths staged, first: a refusal or a path changed while it ran leaves them uncommitted and unpushed, the merge in; a clean outcome is committed and pushed", async (t) => {
+	// The project's own check, as a commit-msg hook: the message in the file it is handed, then each staged file naming web-shop refused.
+	const vet = `const { spawnSync } = require("node:child_process");\nconst fs = require("node:fs");\nif (fs.readFileSync(process.argv[2], "utf8") !== "spec: AC0001 merged\\n") { console.error("not the message"); process.exit(1); }\nif (fs.existsSync("touch")) fs.appendFileSync("CHANGELOG.md", "\\n");\nconst named = spawnSync("git", ["grep", "--cached", "-l", "-F", "-e", ["web", "shop"].join("-")], { encoding: "utf8" }).stdout.trim().split("\\n").filter(Boolean);\nfor (const file of named) console.error(\`commit refused: \${file}: names the project\`);\nprocess.exit(named.length > 0 ? 1 : 0);\n`;
+	const merging = async (line: string, touch = false) => {
+		const { root, fake, git, worker, merge } = await load(t);
+		const pushed: string[] = [];
+		fake.provide("github.push", () => (pushed.push(git(root, "log", "-1", "--format=%s")), Promise.resolve("github: pushed main to origin: a..b")));
+		const scripts = { ...JSON.parse(PACKAGE).scripts, "commit-msg": "node vet.js" };
+		const job = await worker({ "package.json": JSON.stringify({ scripts }), "vet.js": vet, ...(touch && { touch: "" }) }, `Ticket: ${TICKET}`, `Built.\n\n## What went in\n\n- ${line}\n`);
+		const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
+		assert.equal(merged.code, undefined, merged.err);
+		return { ...merged, pushed, staged: git(root, "diff", "--cached", "--name-only"), shown: git(root, "show", "--name-only", "--format=%s", "HEAD") };
+	};
+	const named = await merging("vet.js: sells for web-shop.");
+	const left = `; commit ${FOLDER}, spec/build\\.json, CHANGELOG\\.md\ngithub: pushed main to origin`;
+	assert.match(named.out, new RegExp(`\nspec: AC0001 merged not committed: npm run commit-msg refused: commit refused: ${FOLDER}/outcome\\.md: names the project${left}`));
+	assert.deepEqual([named.pushed, named.shown, named.staged], [["Merge AC0001: Shop"], "Merge AC0001: Shop", `CHANGELOG.md\nspec/build.json\n${FOLDER}/outcome.md`], "the merge pushed, its spec files staged, never committed");
+	const touched = await merging("vet.js: checks the commit.", true);
+	assert.match(touched.out, new RegExp(`\nspec: AC0001 merged not committed: CHANGELOG\\.md changed while npm run commit-msg ran${left}`));
+	assert.deepEqual(touched.pushed, ["Merge AC0001: Shop"]);
+	const clean = await merging("vet.js: checks the commit.");
+	assert.match(clean.out, /\ncommitted spec: AC0001 merged: \w+\ngithub: pushed main to origin/);
+	assert.deepEqual([clean.pushed, clean.staged], [["spec: AC0001 merged"], ""]);
+	assert.equal(clean.shown, `spec: AC0001 merged\n\nCHANGELOG.md\nspec/build.json\n${FOLDER}/outcome.md`);
+});
+
 test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-*, another old folder and an old cache_ one below the top stay", async (t) => {
 	const { fake, worker, merge, caches } = await load(t);
 	const job = await worker({ "bun.lock": '{ "shop": 1 }\n' });

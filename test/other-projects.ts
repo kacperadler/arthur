@@ -4,7 +4,8 @@ import { dirname, join } from "node:path";
 
 // Arthur's repository is public and about Arthur alone (AR0627): no tracked file and no commit message names another project
 // of the owner. Their names are the folders of the main checkout's git-ignored `projects/`, read at each run, so none is
-// written here. `npm test` runs it on the checkout (other-projects.test.ts), so `arthur merge` does on main; `.githooks/commit-msg` at each commit.
+// written here. `npm test` runs it on the checkout (other-projects.test.ts), so `arthur merge` does on main; `.githooks/commit-msg` at each commit,
+// and `npm run commit-msg` at the merge's own `spec:` commit, which it makes with hooks off (AR0635).
 
 // `own`: the commit's author's and committer's addresses, lowercased.
 type Message = { readonly where: string; readonly text: string; readonly own: readonly string[] };

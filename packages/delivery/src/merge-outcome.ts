@@ -19,8 +19,11 @@ export type Merged = {
 	readonly subjects: readonly string[];
 	readonly steps: readonly Step[];
 	readonly gap: string;
-	readonly git: (...words: string[]) => { readonly status: number | null; readonly stdout: string; readonly stderr: string };
+	readonly git: (...words: string[]) => Ran;
+	// Runs a shell command in main's checkout as the checks on main ran, in their sandbox and on their PATH.
+	readonly run: (command: string) => Ran & { readonly error?: Error };
 };
+type Ran = { readonly status: number | null; readonly stdout: string; readonly stderr: string };
 
 const REVIEW = /^review-(\d+)\.md$/;
 const DESCRIBED = /^- `?(.+?)`?: \S/;
@@ -72,14 +75,30 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 	if (unblocked.length > 0) log(`unblocked: ${unblocked.map((each) => each.id).join(", ")}`);
 	log(writeChangelog(host, job.project));
 	// The ticket's side in one commit before the push, the tickets findings.onMerge made and the board's other moves with it; a job may have written the config while the checks ran.
+	// The hooks stay off, so the project's own check of what a commit holds runs first, on the paths staged (AR0635).
 	const made = host.board.list(job.project).flatMap((each) => (had.has(each.id) ? [] : [dirname(each.path)]));
 	const paths = [folder, ...made, "spec/build.json", "CHANGELOG.md"].filter((path) => existsSync(join(root, path)));
 	const subject = `spec: ${ticket.id} merged`;
 	const refusal = checkConfig(root).refusal;
 	const added = refusal === "" ? git("add", "--all", "--", ...paths) : { status: 1, stdout: "", stderr: refusal };
-	const done = added.status === 0 ? git("commit", "--quiet", "-m", subject, "--", ...paths) : added;
+	const checked = added.status === 0 ? vetted(merged, subject, paths) : added;
+	const done = checked.status === 0 ? git("commit", "--quiet", "-m", subject, "--", ...paths) : checked;
 	if (done.status === 0) log(`committed ${subject}: ${git("rev-parse", "--short", "HEAD").stdout.trim()}`);
 	else log(`${subject} not committed: ${(done.stderr.trim() || done.stdout.trim()).split("\n").at(-1)}; commit ${paths.join(", ")}`);
+}
+
+// The `commit-msg` script of main's package.json as HEAD holds it (a step may have changed the file), run on the commit's
+// message in Git's own message file, as the hook of that name is; none declared, nothing run. A refusal, or a path changed while it ran, stops the commit.
+function vetted({ git, run }: Merged, subject: string, paths: readonly string[]): Ran {
+	const declared = git("show", "HEAD:package.json");
+	if (declared.status !== 0 || typeof JSON.parse(declared.stdout)?.scripts?.["commit-msg"] !== "string") return { status: 0, stdout: "", stderr: "" };
+	const file = git("rev-parse", "--path-format=absolute", "--git-path", "COMMIT_EDITMSG").stdout.trim();
+	writeFileSync(file, `${subject}\n`);
+	const ran = run(`npm run --silent commit-msg -- '${file.replaceAll("'", "'\\''")}'`);
+	const said = (ran.stderr.trim() || ran.stdout.trim()).split("\n").at(-1) || ran.error?.message || `exit ${ran.status}`;
+	if (ran.status !== 0) return { status: 1, stdout: "", stderr: `npm run commit-msg refused: ${said}` };
+	const changed = git("diff", "--name-only", "--", ...paths).stdout.trim();
+	return changed === "" ? ran : { status: 1, stdout: "", stderr: `${changed.split("\n").join(", ")} changed while npm run commit-msg ran` };
 }
 
 // The `- <path>: <what it does now>` lines (the path in backticks or not) of the `## What went in` of the worker's final message,

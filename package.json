@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "check": "tsc",
+    "commit-msg": "node test/other-projects.ts",
     "mutate": "node test/mutate.ts",
     "test": "node --import @arthur/core/testing --test \"test/**/*.test.ts\" \"packages/*/test/**/*.test.ts\""
   },

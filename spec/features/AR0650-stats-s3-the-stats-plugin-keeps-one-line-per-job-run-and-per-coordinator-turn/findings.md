@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `README.md:31`, `test/structure.test.ts:147`
 - What: "Features" promises one line per package, but the README already holds 120 lines, the most `test/structure.test.ts` allows, so a `- **stats**, ...` line fails that test. This branch names stats only in the README's diagram (`self[Arthur itself<br/>manage, develop; stats partly built]`).
 - Suggestion: shorten the README elsewhere by one line (for example join two lines of "Read more"), then add `- **stats**, partly built: the tokens, cost and time of every job run and coordinator turn ([stats](packages/stats/docs/stats.md)).`
-- Status: open
+- Status: fixed in 2668c044
 
 ## F2. arthur.mmd's status line does not count core entry 108
 

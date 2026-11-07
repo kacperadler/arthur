@@ -131,6 +131,7 @@ Each decided in the ticket that made it.
 - AR0392 (F1 of AR0380; its Done means: the keys Git reads by a fixed name passed with `-c` as well): `@arthur/core/git-config`'s `configRefusal(root)` becomes `checkConfig(root)`, `{ refusal, pins }`, the check's line and the `-c` arguments of the git call after it, so the check and those values come from one read of the config. No host member changed.
 - AR0528 (roadmap 99, from AR0527's approved plan, AR-D203): every event's `by: { actor, on? }` (below, "Who acted"), `Event.by`; the provided name `actor`; the core's events `command-ran`, `phone-command` and `run-started`, and schedule's `schedule-fired`; `@arthur/core/lock`'s `holds(path)`. No host member changed.
 - AR0649 (AR0480's approved plan, ticket 2, roadmap 108; the owner approved it on 2026-11-06, AR-D523): `JobRecord.usage`, the record's new `usage` file, which the wrapper writes after each message beside `cost`: per `<provider>/<model>`, `{ messages, input, output, cacheRead, cacheWrite, cost }`, summed over every run of the job, `{}` when the file is missing or not a JSON object (`arthur spawn --help`, `arthur jobs --help`). A sweep copies it from another machine with the run's other files. The test kit's fake agent takes `usage` (its tokens) and `model` on a message step. No host member changed.
+- AR0640 (roadmap 104, the owner's approved AR0128 plan, AR-D514): the export `arthurVersion()`, what `arthur version` prints, `<release> <hash>`, beside `coreVersion()`, the hash alone; the machines plugin names both whole lines in a refusal and compares the hash. A plugin's `package.json` may name the core releases it was built for, `peerDependencies["@arthur/core"]`, which the host reads at load from the package folder around its `module`: a core outside it is one `arthur doctor` line, `core plugin <name>`, that does not stop the start (`arthur doctor --help`). No host member changed.
 
 ### Project pieces
 
@@ -271,9 +272,9 @@ An `OptionEntry` is a `ValueOption`, `{ about, default?, check, each?, keys? }`,
 
 ### `@arthur/core`
 
-Exports: `ArthurConfig`, `CoreOptions`, `LoadedConfig`, `QuietHours`, `coreVersion`, `defineConfig`, `describe`, `loadConfig`, `memoryBytes`.
+Exports: `ArthurConfig`, `CoreOptions`, `LoadedConfig`, `QuietHours`, `arthurVersion`, `coreVersion`, `defineConfig`, `describe`, `loadConfig`, `memoryBytes`.
 
-`defineConfig(config)` types `arthur.config.ts` (`ArthurConfig`: `core` as `CoreOptions`, with `QuietHours`, and `plugins`); `loadConfig(path)` loads and checks one, every core option set (`LoadedConfig`). `describe(value)` is a value as an error names it (`"text"`, `a list`, `3`). `coreVersion()` is what `arthur version` prints. `memoryBytes(text, total)` is systemd's `MemoryMax` syntax in bytes, undefined when systemd would refuse it.
+`defineConfig(config)` types `arthur.config.ts` (`ArthurConfig`: `core` as `CoreOptions`, with `QuietHours`, and `plugins`); `loadConfig(path)` loads and checks one, every core option set (`LoadedConfig`). `describe(value)` is a value as an error names it (`"text"`, `a list`, `3`). `arthurVersion()` is what `arthur version` prints, `<release> <hash>`; `coreVersion()` is its hash, which another machine must share. `memoryBytes(text, total)` is systemd's `MemoryMax` syntax in bytes, undefined when systemd would refuse it.
 
 ### `@arthur/core/cli`
 

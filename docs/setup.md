@@ -56,7 +56,7 @@ grep -qs 'arthur/node_modules/.bin' ~/.bashrc || printf 'export PATH="$HOME/arth
 export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 ```
 
-**Check:** `arthur version` prints the version of the core, 12 hex digits such as `c88b660134fb`.
+**Check:** `arthur version` prints the release and the hash of the core, such as `0.1.0 c88b660134fb`.
 
 ## 5. `arthur.config.ts`
 

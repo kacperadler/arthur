@@ -19,5 +19,6 @@
     "./parts": "./src/message-parts.ts",
     "./plugin": "./src/plugin.ts",
     "./testing": "./src/testing.ts"
-  }
+  },
+  "version": "0.1.0"
 }

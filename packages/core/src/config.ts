@@ -125,8 +125,8 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 	};
 }
 
-// What `arthur version` prints; a machine that runs jobs must print the same (job-machine.ts), which the machines plugin checks.
-export { coreVersion } from "./job-machine.ts";
+// What `arthur version` prints, `<release> <hash>`, and the hash alone, which a machine that runs jobs must share (job-machine.ts).
+export { arthurVersion, coreVersion } from "./job-machine.ts";
 
 // systemd's MemoryMax in bytes (job-memory.ts; the check of `jobs.memory`), for the plugins.
 export { memoryBytes } from "./job-memory.ts";

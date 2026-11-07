@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-07
+
+### Added
+
+- AR0607 Runbook: what the coordinator checks and does, in order, when a project site is down (37bc0bbc)
+
 ## 2026-11-06
 
 ### Added

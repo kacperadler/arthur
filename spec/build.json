@@ -4867,9 +4867,9 @@
   {
     "id": "AR0607",
     "title": "Runbook: what the coordinator checks and does, in order, when a project site is down",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0607-runbook-what-the-coordinator-checks-and-does-in-order-when-a-project-site-is/ticket.md",
-    "updated": "2026-11-06T16:05:39.758Z",
+    "updated": "2026-11-07T08:16:43.289Z",
     "after": [
       "AR0603"
     ]

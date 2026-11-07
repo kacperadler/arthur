@@ -4495,9 +4495,9 @@
   {
     "id": "AR0563",
     "title": "arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0563-arthur-pyramid-and-pyramid-a-pyramid-audit-of-any-project-one-planning-ticket/ticket.md",
-    "updated": "2026-11-07T03:59:14.059Z",
+    "updated": "2026-11-07T04:16:54.045Z",
     "after": [
       "AR0562"
     ]

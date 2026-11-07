@@ -574,7 +574,8 @@ test("a merge commit made on main outside arthur merge hides nothing: code befor
 test("arthur take-main records main's HEAD only on the owner's merge decision of no ticket and no job; refused, it writes nothing; then the next merge goes in", async (t) => {
 	const { root, fake, git, commit, take, worker, merge, run, head, owner } = await load(t);
 	const record = join(fake.host.folder, "acme", "last-merge");
-	const hand = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 1;\n" }));
+	// A version changed by hand on main, as only a release ticket's merge may: a package.json counts as code.
+	const hand = git(root, "rev-parse", "--short", commit(root, { "package.json": `${JSON.stringify({ name: "acme", version: "0.2.0" })}\n` }));
 	const job = await worker();
 	const refused = `arthur merge: main has 1 commits since its last merge that change code (${hand}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
 	assert.deepEqual(await merge(job.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused });

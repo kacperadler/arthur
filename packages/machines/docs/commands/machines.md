@@ -5,7 +5,7 @@ Usage: `arthur machines`; on a channel `/machines`. Comes with the `machines` pl
 Every machine jobs may run on, `local` first, then the list in config order, each checked now (below), without the model; the shell and the channel get the same text. Each machine's line says online or why not, and under it its labels, its `maxJobs` and its jobs that have not ended, each with its state:
 
 ```
-local: online (linux x64, arthur 3f9c2a1b7d4e)
+local: online (linux x64, arthur 0.1.0 3f9c2a1b7d4e)
   labels: os linux, arch x64, tools docker; maxJobs: 3; jobs: 2026-10-18-worker-1a2b3c4d (working)
 mac (ssh mac-mini): offline: ssh mac-mini: arthur@mac-mini: Permission denied (publickey).; fix: ssh-copy-id mac-mini
   labels: os macos, arch arm64, tools xcodebuild; maxJobs: 2; no jobs
@@ -41,7 +41,7 @@ Refused at load, each refusal naming the machine and the option's path: a missin
 
 1. The address, as at load: `ssh -G <ssh>` and the name it prints resolved here, each address private.
 2. One command over the core's SSH, `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <ssh> sh -c '<script>' sh <free> <n> <paths> <tools>`: the script runs `uname -sm && arthur version && node -e "$1"`, then `df -Pk` on each of the `<n>` `<paths>` (`missing` for one not there; it stops at df's first failure, whose line it keeps), then `command -v` on each of `<tools>`, then `git var GIT_AUTHOR_IDENT` and `git var GIT_COMMITTER_IDENT`, printing df's exit code and output last, after a line `disk <code>`, only with paths. `<free>` is a Node script that prints one JSON line of the machine's free CPU and memory over one second, `<paths>` the ones the round's answers name (below), both for the `resources` plugin, `<tools>` the machine's `tools` labels: ssh never asks for a password and never accepts a host key on its own.
-3. What the machine says compared with its labels (`os`, `arch`, where given) and with this core's version.
+3. What the machine says compared with its labels (`os`, `arch`, where given) and with this core's version: `arthur version` prints `<release> <hash>` (`arthur version --help`), and only the hash, the last word, must be the same, so two releases of one core agree. An online machine is shown, and told in `machine-online`, with its own line.
 
 The machine is online when all three pass. Otherwise it is offline, the reason one of:
 
@@ -50,7 +50,7 @@ The machine is online when all three pass. Otherwise it is offline, the reason o
 - `arthur is not there (<its line>)`: no `arthur` on the `PATH` of a command over ssh there.
 - `git is not there (<its line>)`: no `git` on the `PATH` of a command over ssh there (its `git var`, below, exits 127).
 - `its labels say os macos; the machine says linux x64`: a label that disagrees with the machine, both named.
-- `it runs arthur <version>, this one is <version>; both need the same version`.
+- `it runs arthur <theirs>, this one is <ours>; both need the same version`, both whole lines of `arthur version`: another hash, or a line of a hash alone, as Arthur printed before its releases.
 - `uname -sm && arthur version && node -e failed there: <its line>`, or `check timed out after 10 s`.
 
 Each offline reason comes with its fix: `ssh-copy-id <ssh>` for a refused key; for a host key, compare `ssh-keyscan <ssh>` with the key the machine itself shows, then add it to `~/.ssh/known_hosts`; Arthur's core at this commit there (`docs/deploy.md`) when `arthur` is missing or of another version; git installed there, on the `PATH` of a command over ssh (`docs/deploy.md`), when `git` is missing; the labels in `arthur.config.ts` set to what the machine is; the machine on the private network (`tailscale up` there) when it does not answer.

@@ -4199,9 +4199,9 @@
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-06T23:00:49.003Z",
+    "updated": "2026-11-07T08:06:11.596Z",
     "after": [
       "AR0528"
     ]
@@ -4495,9 +4495,9 @@
   {
     "id": "AR0563",
     "title": "arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0563-arthur-pyramid-and-pyramid-a-pyramid-audit-of-any-project-one-planning-ticket/ticket.md",
-    "updated": "2026-10-29T19:12:54.686Z",
+    "updated": "2026-11-07T04:16:54.045Z",
     "after": [
       "AR0562"
     ]
@@ -4867,9 +4867,9 @@
   {
     "id": "AR0607",
     "title": "Runbook: what the coordinator checks and does, in order, when a project site is down",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0607-runbook-what-the-coordinator-checks-and-does-in-order-when-a-project-site-is/ticket.md",
-    "updated": "2026-11-06T16:05:39.758Z",
+    "updated": "2026-11-07T08:16:43.289Z",
     "after": [
       "AR0603"
     ]
@@ -5112,30 +5112,30 @@
   {
     "id": "AR0635",
     "title": "The merge commits its spec files with hooks off, so the other-projects check never sees them before the push",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0635-the-merge-commits-its-spec-files-with-hooks-off-so-the-other-projects-check/ticket.md",
-    "updated": "2026-11-06T11:31:25.400Z"
+    "updated": "2026-11-07T02:47:05.267Z"
   },
   {
     "id": "AR0636",
     "title": "A committed plan names the public IP addresses of the owner deploy host and this VPS",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0636-a-committed-plan-names-the-public-ip-addresses-of-the-owner-deploy-host-and-this/ticket.md",
-    "updated": "2026-11-06T11:31:26.383Z"
+    "updated": "2026-11-07T03:03:38.632Z"
   },
   {
     "id": "AR0637",
     "title": "Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0637-mutate-runs-capped-at-4-pass-the-review-gate-and-reviews-then-fail-on-survivors/ticket.md",
-    "updated": "2026-11-06T11:31:27.390Z"
+    "updated": "2026-11-07T01:40:04.131Z"
   },
   {
     "id": "AR0638",
     "title": "host.secrets holds only enabled plugins values, so the public decision log misses other env file values",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
-    "updated": "2026-11-06T11:31:28.311Z"
+    "updated": "2026-11-07T03:07:30.847Z"
   },
   {
     "id": "AR0639",
@@ -5147,9 +5147,9 @@
   {
     "id": "AR0640",
     "title": "Roadmap 104: one release version, arthur version with the hash, and the plugin check",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0640-roadmap-104-one-release-version-arthur-version-with-the-hash-and-the-plugin/ticket.md",
-    "updated": "2026-11-06T23:01:54.428Z"
+    "updated": "2026-11-07T08:32:05.254Z"
   },
   {
     "id": "AR0641",
@@ -5187,7 +5187,7 @@
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
     "status": "done",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T21:00:32.146Z"
+    "updated": "2026-11-06T23:58:03.455Z"
   },
   {
     "id": "AR0645",
@@ -5239,9 +5239,9 @@
   {
     "id": "AR0650",
     "title": "Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109)",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0650-stats-s3-the-stats-plugin-keeps-one-line-per-job-run-and-per-coordinator-turn/ticket.md",
-    "updated": "2026-11-06T19:08:49.566Z",
+    "updated": "2026-11-07T08:06:10.621Z",
     "after": [
       "AR0649"
     ]
@@ -5279,9 +5279,9 @@
   {
     "id": "AR0654",
     "title": "Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0654-dokploy-t3-create-an-app-and-set-its-build-type-domain-volume-and-environment/ticket.md",
-    "updated": "2026-11-06T16:48:03.421Z",
+    "updated": "2026-11-07T08:23:41.722Z",
     "after": [
       "AR0603"
     ]

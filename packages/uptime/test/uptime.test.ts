@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import dns, { type LookupAddress, type LookupOptions } from "node:dns";
 import dnsPromises from "node:dns/promises";
 import { once } from "node:events";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, symlinkSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
 import net, { type AddressInfo, type LookupFunction, type TcpNetConnectOpts } from "node:net";
@@ -13,7 +13,7 @@ import { type FakeHost, fakeHost, until } from "@arthur/core/testing";
 import { checkSite } from "../src/site-check.ts";
 import { readState } from "../src/uptime-state.ts";
 import type { Site, UptimeOptions } from "../src/uptime-options.ts";
-import { uptime } from "../src/uptime.ts";
+import { BOILERPLATE, uptime } from "../src/uptime.ts";
 
 // The uptime plugin against the fake host and a local HTTP server on a port the OS picks, each path answering as the test
 // sets it. Sites are checked every second here, so a check is cut after 1 s.
@@ -96,10 +96,12 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
 // Each project's sites, its piece, by the project's name.
 type Sites = Readonly<Record<string, readonly Site[]>>;
 
-// A fake host now at START unless given, where projects acme and beta are the project list, each with its `sites` as its piece.
-function host(sites: Sites, more: { readonly now?: Date; readonly quietHours?: { from: string; to: string } } = {}): FakeHost {
+// A fake host now at START unless given, where projects acme and beta, and each other one `sites` names, are the project list,
+// each with its `sites` and its `runbooks` entry as its piece, and its folder `<the plugin's folder>/projects/<name>`.
+function host(sites: Sites, more: { readonly now?: Date; readonly quietHours?: { from: string; to: string }; readonly runbooks?: Readonly<Record<string, string>> } = {}): FakeHost {
 	const fake = fakeHost({ name: "uptime", now: START, ...more });
-	fake.provide("projects", () => ["acme", "beta"].map((name) => ({ name, pieces: sites[name] === undefined ? {} : uptime.project(sites[name]) })));
+	const pieces = (name: string) => (sites[name] === undefined ? {} : uptime.project(sites[name], more.runbooks?.[name] === undefined ? {} : { runbook: more.runbooks[name] }));
+	fake.provide("projects", () => [...new Set(["acme", "beta", ...Object.keys(sites)])].map((name) => ({ name, folder: join(fake.host.folder, "projects", name), pieces: pieces(name) })));
 	return fake;
 }
 
@@ -113,28 +115,60 @@ async function started(t: TestContext, sites: Sites, fake: FakeHost = host(sites
 	t.after(() => void Object.assign(network, { up: true, hang: false, asked: [], cuts: [] }));
 	const notices = () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text);
 	const events = (name: string) => fake.emitted.filter((event) => event.name === name).map((event) => event.data);
-	return { fake, plugin, notices, events };
+	const woken = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { text: string }).text);
+	return { fake, plugin, notices, events, woken };
 }
 
-test("a site is down after 2 failed checks: one notice and uptime-down; once it answers, one notice with how long and uptime-up", async (t) => {
+test("a site is down after 2 failed checks: one notice, uptime-down and one coordinator message with the runbook; once it answers, one of each again", async (t) => {
 	const site = await server(t);
 	site.answers["/"] = broken;
 	const url = site.url("/");
-	const { fake, notices, events } = await started(t, { acme: [{ url, everySeconds: 1 }] });
+	const { fake, notices, events, woken } = await started(t, { acme: [{ url, everySeconds: 1 }] });
 	await until("the down notice", () => notices().length === 1);
 	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since ${SINCE}: answered 500, expected a 2xx status`]);
 	assert.deepEqual(events("uptime-down"), [{ project: "acme", url, reason: "answered 500, expected a 2xx status", since: START.toISOString() }]);
+	assert.deepEqual(woken(), [`Site ${url} of project acme is down since ${SINCE}: answered 500, expected a 2xx status. Work through the runbook ${BOILERPLATE}, step by step, and report to the owner.`]);
+	assert.ok(statSync(BOILERPLATE).isFile(), "the boilerplate the message names is a file");
 	const failing = site.seen("/");
 	await until("two more failed checks", () => site.seen("/") >= failing + 2);
-	assert.equal(notices().length, 1, "no notice repeats while the site stays down");
+	assert.deepEqual([notices().length, woken().length], [1, 1], "nothing repeats while the site stays down");
 	fake.setNow(new Date("2026-01-01T00:12:30Z"));
 	site.answers["/"] = ok;
 	await until("the up notice", () => notices().length === 2);
 	assert.equal(notices()[1], `uptime: ${url} (project acme) answers again, after 12 min down since ${SINCE}`);
 	assert.deepEqual(events("uptime-up"), [{ project: "acme", url, since: START.toISOString(), downSeconds: 750 }]);
+	assert.equal(woken()[1], `Site ${url} of project acme answers again, after 12 min down since ${SINCE}. Finish the runbook ${BOILERPLATE} with its last step: tell the owner how it ended.`);
 	const answering = site.seen("/");
 	await until("two more checks", () => site.seen("/") >= answering + 2);
-	assert.deepEqual([notices().length, events("uptime-down").length, events("uptime-up").length], [2, 1, 1], "nothing repeats while it answers");
+	assert.deepEqual([notices().length, events("uptime-down").length, events("uptime-up").length, woken().length], [2, 1, 1, 2], "nothing repeats while it answers");
+});
+
+test("a project's own runbook is named while it is a regular file inside its folder; missing, a folder, a symlink or under a symlinked folder, the boilerplate", async (t) => {
+	const site = await server(t);
+	const names = ["acme", "beta", "gamma", "delta", "zeta", "omega"];
+	for (const name of names) site.answers[`/${name}`] = broken;
+	const sites = Object.fromEntries(names.map((name) => [name, [{ url: site.url(`/${name}`), everySeconds: 1 }]]));
+	const runbooks = { acme: "ops/site-down.md", beta: "site-down.md", gamma: "site-down.md", delta: "linked/site-down.md", zeta: "site-down.md" };
+	const fake = host(sites, { runbooks });
+	const folder = (name: string) => join(fake.host.folder, "projects", name);
+	for (const name of names) mkdirSync(folder(name), { recursive: true });
+	mkdirSync(join(folder("acme"), "ops"));
+	writeFileSync(join(folder("acme"), "ops", "site-down.md"), "# Our steps\n");
+	symlinkSync(join(folder("acme"), "ops", "site-down.md"), join(folder("gamma"), "site-down.md"));
+	symlinkSync(join(folder("acme"), "ops"), join(folder("delta"), "linked"));
+	mkdirSync(join(folder("zeta"), "site-down.md"));
+	const { woken } = await started(t, sites, fake);
+	const fallback = (name: keyof typeof runbooks) => `the runbook ${BOILERPLATE} (the project's own, ${join(folder(name), runbooks[name])}, is missing, not a regular file, or reached through a symlink)`;
+	const named = { acme: `the project's runbook ${join(folder("acme"), "ops", "site-down.md")}`, beta: fallback("beta"), gamma: fallback("gamma"), delta: fallback("delta"), zeta: fallback("zeta"), omega: `the runbook ${BOILERPLATE}` };
+	const said = (name: string) => woken().filter((text) => text.includes(`of project ${name} `));
+	await until("each down message", () => woken().length === names.length);
+	for (const name of names) site.answers[`/${name}`] = ok;
+	await until("each up message", () => woken().length === 2 * names.length);
+	for (const [name, runbook] of Object.entries(named))
+		assert.deepEqual(said(name), [
+			`Site ${site.url(`/${name}`)} of project ${name} is down since ${SINCE}: answered 500, expected a 2xx status. Work through ${runbook}, step by step, and report to the owner.`,
+			`Site ${site.url(`/${name}`)} of project ${name} answers again, after 0 s down since ${SINCE}. Finish ${runbook} with its last step: tell the owner how it ended.`,
+		]);
 });
 
 test("a 500 that answers 200 at the second check is no notice", async (t) => {
@@ -317,7 +351,7 @@ test("this machine offline: no notice and no site down, one log line; no site re
 	const [a, b] = [site.url("/a"), other.url("/b")];
 	const sites = { acme: [{ url: a, everySeconds: 1 }], beta: [{ url: b }] };
 	network.up = false;
-	const { fake, plugin, notices, events } = await started(t, sites);
+	const { fake, plugin, notices, events, woken } = await started(t, sites);
 	await until("the first checks", () => site.seen("/a") === 1 && other.seen("/b") === 1);
 	site.answers["/a"] = hang;
 	other.close();
@@ -333,12 +367,13 @@ test("this machine offline: no notice and no site down, one log line; no site re
 	[checks, asked] = [site.seen("/a"), network.asked.length];
 	await until("the probes asked twice after the restart", () => network.asked.length >= asked + 4);
 	assert.equal(site.seen("/a"), checks, "no site requested after a restart while offline");
-	assert.deepEqual([notices(), events("uptime-down"), said().length], [[], [], 1]);
+	assert.deepEqual([notices(), events("uptime-down"), woken(), said().length], [[], [], [], 1]);
 	// Once a probe answers, the checks run again; a, still failing, is down after 2 more failed checks, the only notice.
 	fake.setNow(new Date("2026-01-01T00:05:00Z"));
 	network.up = true;
 	await until("the down notice", () => restarted.notices().length === 1);
 	assert.deepEqual(notices(), [`uptime: ${a} (project acme) is down since 00:05 on thu 2026-01-01 (UTC): no answer within 1 s`]);
+	assert.equal(woken().length, 1, "one coordinator message, with the only notice");
 	assert.deepEqual(said().slice(1), ["uptime: a probe answers again, so the site checks run again, after 5 min offline"]);
 	assert.equal(readState(fake.host.folder).offline, undefined);
 });
@@ -432,17 +467,18 @@ test("a restart while a site is down sends no second down notice; the up notice 
 	site.answers["/"] = broken;
 	const url = site.url("/");
 	const sites = { acme: [{ url, everySeconds: 1 }] };
-	const { fake, plugin, notices } = await started(t, sites);
+	const { fake, plugin, notices, woken } = await started(t, sites);
 	await until("the down notice", () => notices().length === 1);
 	await plugin.stop?.();
 	await started(t, sites, fake);
 	const checks = site.seen("/");
 	await until("three checks after the restart", () => site.seen("/") >= checks + 3);
-	assert.equal(notices().length, 1);
+	assert.deepEqual([notices().length, woken().length], [1, 1], "no second down notice nor message");
 	fake.setNow(new Date("2026-01-01T01:05:00Z"));
 	site.answers["/"] = ok;
 	await until("the up notice", () => notices().length === 2);
 	assert.equal(notices()[1], `uptime: ${url} (project acme) answers again, after 1 h 5 min down since ${SINCE}`);
+	assert.match(woken()[1] ?? "", /answers again, after 1 h 5 min down since/);
 });
 
 test("a state file broken or edited by hand is taken as no site down; an entry that is not one is dropped", () => {

@@ -19,8 +19,8 @@ export const ID = /^[A-Za-z0-9_-]{1,64}$/;
 export const NOTHING = "nothing was asked of Dokploy";
 
 // The JSON `procedure` (e.g. `application.one`) answers with `query`, or to `send` posted; `what` names what was asked, for a
-// 404 and any other refusal.
-export async function call(instance: Instance, procedure: string, query: Readonly<Record<string, string>>, what: string, send?: FormData | Readonly<Record<string, string>>): Promise<unknown> {
+// 404 and any other refusal; `hide`: values sent that Dokploy's error text must not show (a database error quotes its input).
+export async function call(instance: Instance, procedure: string, query: Readonly<Record<string, string>>, what: string, send?: FormData | Readonly<Record<string, unknown>>, hide: readonly string[] = []): Promise<unknown> {
 	const { label, tokenEnv, token, base, timeoutSeconds } = instance;
 	const url = new URL(`${base}/api/${procedure}`);
 	for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
@@ -50,7 +50,8 @@ export async function call(instance: Instance, procedure: string, query: Readonl
 	}
 	if (response.ok) return answer;
 	// Dokploy's error body: `{ message, code, issues }`, or `{ message }` alone for a key it does not know.
-	const said = [field(answer, "message"), response.statusText].find((each) => typeof each === "string" && each.trim() !== "") ?? "no reason given";
+	const told = [field(answer, "message"), response.statusText].find((each) => typeof each === "string" && each.trim() !== "") ?? "no reason given";
+	const said = hide.reduce((message, value) => message.replaceAll(value, "[hidden]"), String(told));
 	if (response.status === 401) throw fail(`401: the token in ${tokenEnv} was refused: ${said}`);
 	if (response.status === 403) throw fail(`403: the token's user may not ${send === undefined ? "read" : "change"} ${what}: ${said}`);
 	if (response.status === 404) throw fail(`404: ${what} not found`);

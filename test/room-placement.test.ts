@@ -5,7 +5,7 @@ import { syncBuiltinESMExports } from "node:module";
 import os from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { coreVersion } from "@arthur/core";
+import { arthurVersion } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { machines } from "@arthur/machines";
@@ -29,7 +29,7 @@ writeFileSync(
 	`#!/bin/sh
 if [ "$1" = -G ]; then printf 'host %s\\nhostname 127.0.0.1\\n' "$2"; exit 0; fi
 case "$*" in
-  *uname*) printf 'Linux x86_64\\n%s\\n' '${coreVersion()}'; cat '${there}/free.json';;
+  *uname*) printf 'Linux x86_64\\n%s\\n' '${arthurVersion()}'; cat '${there}/free.json';;
   *node*) cat '${there}/free.json';;
   *) echo "unexpected: $*" >&2; exit 1;;
 esac

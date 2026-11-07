@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import { coreVersion, reach, ssh, sshAsync } from "../src/job-machine.ts";
+import { arthurVersion, coreVersion, reach, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { secretNames } from "../src/secret-names.ts";
@@ -402,14 +402,25 @@ test("an unknown machine, a refused key, arthur missing there or of another vers
 
 	const missing = setup({ arthur: "" });
 	await assert.rejects(missing.jobs.spawn({ task: "Go.", machine: "gpu" }), {
-		message: new RegExp(`^machine gpu: arthur is not there \\(.*arthur.*not found\\); install the version here, ${coreVersion()} \\(docs/deploy\\.md\\)$`),
+		message: new RegExp(`^machine gpu: arthur is not there \\(.*arthur.*not found\\); install the version here, ${arthurVersion()} \\(docs/deploy\\.md\\)$`),
 	});
 	assert.deepEqual(nothing(missing.home, missing.there), [false, false, false]);
 
-	const other = setup({ arthur: `#!/bin/sh\necho 0123456789ab\n` });
-	await assert.rejects(other.jobs.spawn({ task: "Go.", machine: "gpu" }), { message: `machine gpu runs arthur 0123456789ab, this one is ${coreVersion()}; both need the same version` });
-	assert.deepEqual(nothing(other.home, other.there), [false, false, false]);
-	assert.equal(calls().length, 1, "nothing after the version");
+	// Only the hash, the last word, is compared: a line of the hash alone, as an Arthur before releases prints, is refused, naming both lines.
+	for (const theirs of ["0123456789ab", coreVersion(), `0.1.0 0123456789ab`, `x 0.1.0 ${coreVersion()}`]) {
+		const other = setup({ arthur: `#!/bin/sh\necho '${theirs}'\n` });
+		await assert.rejects(other.jobs.spawn({ task: "Go.", machine: "gpu" }), { message: `machine gpu runs arthur ${theirs}, this one is ${arthurVersion()}; both need the same version` });
+		assert.deepEqual(nothing(other.home, other.there), [false, false, false]);
+		assert.equal(calls().length, 1, "nothing after the version");
+	}
+});
+
+test("another release of the same hash there passes the version check", async () => {
+	const { there, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$1" = version ] && echo '9.9.9 ${coreVersion()}' && exit 0\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	await endedThere(there, job.id);
 });
 
 test("a job on local takes no SSH step, at its spawn or at a sweep, while another machine is registered", async () => {
@@ -1312,8 +1323,9 @@ test("jobs.run past limitSeconds kills the command and resolves at once, though 
 	await assert.rejects(jobs.run("local", ["true"], 0), { message: "run: limitSeconds must be above 0, got 0" });
 });
 
-test("arthur version prints the core's version, without a config", () => {
+test("arthur version prints the release, the core's package.json version, and the hash of its source, without a config", () => {
 	const run = spawnSync(process.execPath, [CLI, "version"], { cwd: temporaryFolder(), encoding: "utf8" });
-	assert.deepEqual([run.status, run.stdout], [0, `${coreVersion()}\n`]);
-	assert.match(coreVersion(), /^[0-9a-f]{12}$/);
+	const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+	assert.deepEqual([run.status, run.stdout, arthurVersion()], [0, `${version} ${coreVersion()}\n`, `${version} ${coreVersion()}`]);
+	assert.match(run.stdout, /^\d+\.\d+\.\d+ [0-9a-f]{12}\n$/);
 });

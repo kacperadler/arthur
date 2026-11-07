@@ -44,3 +44,4 @@ Out:
 - Arthur's own improvements found by the first audit: AR0561.
 
 ## Decisions
+- 2026-11-07: Manage line budget raised 1355 to 1535 (+180) for AR0563, by approving its PR #15; the owner: "Approve (PR #15)" (AR-D541)

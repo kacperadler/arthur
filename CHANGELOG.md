@@ -10,6 +10,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0640 Roadmap 104: one release version, arthur version with the hash, and the plugin check (b62e8f9f)
 - AR0654 Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word (53dbde54)
 
+### Changed
+
+- AR0637 Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran (b3e6be8f)
+
 ## 2026-11-06
 
 ### Added

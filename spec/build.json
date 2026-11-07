@@ -5126,9 +5126,9 @@
   {
     "id": "AR0637",
     "title": "Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0637-mutate-runs-capped-at-4-pass-the-review-gate-and-reviews-then-fail-on-survivors/ticket.md",
-    "updated": "2026-11-07T01:40:04.131Z"
+    "updated": "2026-11-07T12:13:53.800Z"
   },
   {
     "id": "AR0638",
@@ -5185,9 +5185,9 @@
   {
     "id": "AR0644",
     "title": "Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half)",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0644-docker-w1-host-jobs-cleanup-a-hook-every-worktree-removal-runs-and-prune-awaited/ticket.md",
-    "updated": "2026-11-06T23:58:03.455Z"
+    "updated": "2026-11-07T12:04:11.505Z"
   },
   {
     "id": "AR0645",

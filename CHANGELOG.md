@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0529 The activity plugin: one file per day of who did what, kept 90 days (a9e86bfb)
 - AR0563 arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page (4b1e1cbb)
 - AR0607 Runbook: what the coordinator checks and does, in order, when a project site is down (37bc0bbc)
 - AR0640 Roadmap 104: one release version, arthur version with the hash, and the plugin check (b62e8f9f)

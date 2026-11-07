@@ -1,0 +1,11 @@
+{
+  "name": "@arthur/activity",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/activity.ts",
+    "./options": "./src/activity.ts"
+  },
+  "version": "0.1.0"
+}

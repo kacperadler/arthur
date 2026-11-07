@@ -122,8 +122,8 @@ test("plugins made from the same base go in name order, each pair at different p
 		made[name] = readFileSync(structure, "utf8");
 		writeFileSync(join(folder, name), made[name]);
 	}
-	// Before a quoted budget, first and in the middle; between two plain ones; last when no budget's name sorts after it.
-	assert.match(made.acme, /^const BUDGETS = \{\n\tacme: 40,\n\n\t"commit-rules": /m);
+	// First; before a quoted budget in the middle; between two plain ones; last when no budget's name sorts after it.
+	assert.match(made.acme, /^const BUDGETS = \{\n\tacme: 40,\n\n\tactivity: /m);
 	assert.match(made["core-bot"], /\n\tcore: \d+,\n\n\t"core-bot": 40,\n\n\t"core\/testing": /);
 	assert.match(made.delta, /\n\tdelivery: \d+,\n\n\tdelta: 40,\n\n\tdevelop: /);
 	assert.match(made.nebula, /\n\tmodels: \d+,\n\n\tnebula: 40,\n\n\tnvm: /);
@@ -212,7 +212,7 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 	assert.equal((await plugin(["new", "acme", "--budget", "100", "--root", link])).code, 0, "a link to the worktree is the worktree");
 	assert.equal(changed(checkout), "", "the project's checkout is untouched");
 	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
-	assert.match(budgets(worktree), /^\tacme: 100,\n\n\t"commit-rules": /);
+	assert.match(budgets(worktree), /^\tacme: 100,\n\n\tactivity: /);
 	assert.equal(readlinkSync(join(worktree, "node_modules", "@arthur", "acme")), join("..", "..", "packages", "acme"));
 	assert.ok(!existsSync(join(checkout, "node_modules", "@arthur", "acme")));
 });
@@ -291,7 +291,7 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	const ran = spawnSync("sh", ["-c", line], { cwd: worktree, env, encoding: "utf8" });
 	assert.equal(ran.status, 0, `${line}\n${ran.stdout}${ran.stderr}`);
 	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
-	assert.match(budgets(worktree), /^\tacme: 100,\n\n\t"commit-rules": /);
+	assert.match(budgets(worktree), /^\tacme: 100,\n\n\tactivity: /);
 	assert.equal(changed(checkout), "", "the project's checkout is untouched");
 	// The same line in another folder, with the CLI the checkout links: there it reads no arthur.config.ts.
 	const elsewhere = (folder: string) => line.replace(`cd ${first} && node_modules`, `cd ${folder} && ${first}/node_modules`);

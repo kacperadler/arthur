@@ -4199,9 +4199,9 @@
   {
     "id": "AR0529",
     "title": "The activity plugin: one file per day of who did what, kept 90 days",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
-    "updated": "2026-11-07T08:06:11.596Z",
+    "updated": "2026-11-07T16:01:11.311Z",
     "after": [
       "AR0528"
     ]

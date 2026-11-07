@@ -8,7 +8,7 @@ Starts one pyramid audit of the project, the main one unless `--project` names a
 - When it ends, the coordinator's wake brings the procedure: the report filed as `spec/pyramid/<date>.md` with its before and after page `spec/pyramid/<date>.html`, one `planning` ticket with every proposal, the page sent to the owner. Nothing is pre-approved.
 - Its budget is `pyramid.budgetUsd`, else the core's `jobs.budgetUsd`.
 
-Refused, exit 1, with nothing started:
+Refused, exit 1, with nothing started, printing `arthur pyramid: <reason>`:
 
 - A project without a board: `refused by manage: project <name> has no board, <path>/spec/build.json: arthur init <name> first`.
 - A pyramid audit of that project in a run: `refused by manage: a pyramid audit of <name> runs already: job <id>; wait for its end, or arthur stop <id>`. Both refusals hold `arthur spawn --kind pyramid` too.

@@ -36,4 +36,5 @@ Out:
 
 ## Decisions
 - 2026-11-06: AR0655 approved: a planner writes the plan for a whole Dokploy project from Git with a database; joins the queue; the owner: "AR-D531 - 1" (AR-D531)
+- 2026-11-07: AR0655 plan approved with all recommendations (plan.md at e3069514): T4a app from GitHub repo, T4b Postgres + DATABASE_URL, T4c S3 backups; the owner: "AR-D534 - approve" (AR-D534)
 

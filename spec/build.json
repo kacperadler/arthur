@@ -5133,9 +5133,9 @@
   {
     "id": "AR0638",
     "title": "host.secrets holds only enabled plugins values, so the public decision log misses other env file values",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
-    "updated": "2026-11-07T02:47:30.218Z"
+    "updated": "2026-11-07T03:07:30.847Z"
   },
   {
     "id": "AR0639",

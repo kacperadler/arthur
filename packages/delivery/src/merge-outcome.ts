@@ -87,8 +87,8 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 	else log(`${subject} not committed: ${(done.stderr.trim() || done.stdout.trim()).split("\n").at(-1)}; commit ${paths.join(", ")}`);
 }
 
-// The `commit-msg` script of main's package.json as HEAD holds it (a step may have changed the file), run on the commit's
-// message in Git's own message file, as the hook of that name is; none declared, nothing run. A refusal, or a path changed while it ran, stops the commit.
+// The `commit-msg` script of package.json as HEAD holds it (a step may have changed the file), run as Git runs that hook, on
+// the message in Git's message file; none declared, nothing run. A refusal, or a path changed while it ran, stops the commit.
 function vetted({ git, run }: Merged, subject: string, paths: readonly string[]): Ran {
 	const declared = git("show", "HEAD:package.json");
 	if (declared.status !== 0 || typeof JSON.parse(declared.stdout)?.scripts?.["commit-msg"] !== "string") return { status: 0, stdout: "", stderr: "" };

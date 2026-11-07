@@ -78,7 +78,21 @@ async function load(t: TestContext, options: ManageOptions = {}, run: AgentRun =
 	};
 	const started = (line: string) => /^pyramid: started job (\S+)$/.exec(line)?.[1] ?? assert.fail(line);
 	const ended = (id: string) => until(`${id} to end`, () => read(id, "state") === "ended");
-	return { root, beta, gamma, home, fake, git, commit, read, command, started, ended, jobs: fake.host.jobs };
+	// A pyramid of acme spawned, and its prompt's own section.
+	const section = async () => {
+		const job = await fake.host.jobs.spawn({ task: PYRAMID_TASK, kind: "pyramid" });
+		const prompt = read(job.id, "prompt");
+		return prompt.slice(prompt.indexOf("## This pyramid audit"));
+	};
+	// A retro of `project` in a run, then held: on the owner with `stop`, else on a dependency; its id.
+	const held = async (project: string, reason: string, stop: boolean) => {
+		const job = await fake.host.jobs.spawn({ task: "Look back.", kind: "retro", project });
+		await fake.host.jobs.block(job.id, reason, stop);
+		const want = `${stop ? "user" : "dependency"}: ${reason}`;
+		await until(`${job.id} held`, () => fake.host.jobs.list().some((each) => each.id === job.id && each.state === "blocked" && each.reason === want));
+		return job.id;
+	};
+	return { root, beta, gamma, home, fake, git, commit, read, command, started, ended, section, held, jobs: fake.host.jobs };
 }
 
 test("refused for a project without a board and while one runs for that project; another project, another kind, or after its end is not", async (t) => {
@@ -138,6 +152,7 @@ test("a project with history: its FAIL reviews, open and deferred findings, repe
 	for (const [name, verdict] of [["review-1.md", "FAIL"], ["review-2.md", "PASS"], ["review-10.md", "FAIL"]]) file(`spec/features/AC0001-t/${name}`, `# Review\n\n- Verdict: ${verdict}\n`);
 	file("spec/features/AC0002-t/review-1.md", "# Review\n\n- Verdict: PASS\n");
 	file("spec/features/AC0099-gone/review-1.md", "# Review\n\n- Verdict: FAIL\n");
+	file("spec/features/AC0002-t/plan-review-1.md", "# Plan review\n\n- Verdict: FAIL\n");
 	file("spec/features/AC0001-t/findings.md", "## F1. Open one\n\n- Kind: bug\n- Status: open\n\n## F2. Fixed\n\n- Status: fixed in abc\n\n## F3. Deferred\n\n- Kind: risk\n- Where: `a.ts:1`\n- Status: deferred (client summary)\n");
 	file("AGENTS.md", "one\ntwo\nthree\n");
 	file("packages/x/CLAUDE.md", "one");
@@ -161,7 +176,7 @@ test("a project with history: its FAIL reviews, open and deferred findings, repe
 	const waiting = await plugin.host.jobs.spawn({ task: "Look back.", kind: "retro" });
 	await plugin.host.jobs.block(waiting.id, "Which port do we use?", true);
 	await until("the retro blocked on the owner", () => plugin.host.jobs.list().some((job) => job.id === waiting.id && job.state === "blocked" && job.reason === "user: Which port do we use?"));
-	for (const [id, project] of [["w1", "acme"], ["w2", "acme"], ["b1", "beta"]]) plugin.emit("job-started", { id, kind: "worker", project });
+	for (const [id, project] of [["w1", "acme"], ["w2", "acme"], ["b1", "beta"]]) plugin.emit("job-started", { id, kind: "worker", project, tickets: [] });
 	for (const [id, text] of [["w1", "Never pkill. It stops tests."], ["w2", "Never pkill."], ["b1", "Never pkill."]]) plugin.emit("job-steered", { id, kind: "worker", text, via: "steer" });
 	const job = await plugin.host.jobs.spawn({ task: PYRAMID_TASK, kind: "pyramid" });
 	writeFileSync(gate, "");
@@ -169,7 +184,7 @@ test("a project with history: its FAIL reviews, open and deferred findings, repe
 	const section = prompt.slice(prompt.indexOf("## This pyramid audit"));
 	assert.ok(section.startsWith(`## This pyramid audit\n\nYou audit project acme at ${job.base}; your worktree is a detached checkout of that commit.\n\n### FAIL reviews\n\n`), section);
 	const expected = [
-		"### FAIL reviews\n\n- AC0001 (spec/features/AC0001-t/): review-1.md, review-10.md",
+		"### FAIL reviews\n\n- AC0001 (spec/features/AC0001-t/): review-1.md, review-10.md\n\n### Open",
 		"### Open and deferred findings\n\n- AC0001 F1 (bug): Open one\n- AC0001 F3 (risk): Deferred. Where: `a.ts:1`",
 		"### Repeats of acme",
 		`### Blocked on the owner\n\n- ${waiting.id} (retro): Which port do we use?`,
@@ -180,6 +195,42 @@ test("a project with history: its FAIL reviews, open and deferred findings, repe
 	];
 	for (const part of expected) assert.ok(section.includes(part), `${part}\n---\n${section}`);
 	assert.doesNotMatch(section, /No Arthur history|README|CONTRIBUTING|AC0099|F2/);
+});
+
+test("one input alone is history, the no-history line gone: a FAIL review, a finding, a steer, a question for the owner", async (t) => {
+	const gate = join(temporaryFolder(), "gate");
+	t.after(() => writeFileSync(gate, ""));
+	const fresh = () => load(t, {}, { steps: [{ waitFor: gate }] });
+	// Ticket AC0001 on acme's board, with file `name` in its folder, committed.
+	const ticket = (root: string, commit: (root: string, message: string) => string, name: string, text: string) => {
+		mkdirSync(join(root, "spec/features/AC0001-t"), { recursive: true });
+		writeFileSync(join(root, "spec/features/AC0001-t", name), text);
+		writeFileSync(join(root, "spec/build.json"), JSON.stringify([{ id: "AC0001", title: "T", status: "merged", path: "spec/features/AC0001-t/ticket.md", updated: "2026-10-20T10:00:00Z" }]));
+		commit(root, name);
+	};
+	const NONE = "No Arthur history";
+	const one = await fresh();
+	ticket(one.root, one.commit, "review-1.md", "# Review\n\n- Verdict: FAIL\n");
+	const fail = await one.section();
+	assert.ok(fail.includes("### FAIL reviews\n\n- AC0001 (spec/features/AC0001-t/): review-1.md\n\n") && !fail.includes(NONE), fail);
+	const two = await fresh();
+	ticket(two.root, two.commit, "findings.md", "## F1. Open one\n\n- Status: open\n");
+	const finding = await two.section();
+	assert.ok(finding.includes("### Open and deferred findings\n\n- AC0001 F1: Open one\n\n") && !finding.includes(NONE), finding);
+	const three = await fresh();
+	three.fake.emit("job-started", { id: "w1", kind: "worker", project: "acme", tickets: [] });
+	three.fake.emit("job-steered", { id: "w1", kind: "worker", text: "Never pkill.", via: "steer" });
+	const steer = await three.section();
+	assert.ok(steer.includes("first:\n\n- 1: Never pkill.\n\n") && !steer.includes(NONE), steer);
+	const four = await fresh();
+	const asked = await four.held("acme", "Which port?", true);
+	const question = await four.section();
+	assert.ok(question.includes(`### Blocked on the owner\n\n- ${asked} (retro): Which port?\n\n`) && !question.includes(NONE), question);
+	const five = await fresh();
+	await five.held("gamma", "Which port for gamma?", true);
+	await five.held("acme", "waits on AC0002", false);
+	const others = await five.section();
+	assert.ok(others.includes("### Blocked on the owner\n\nnone\n\n") && others.includes(NONE), `another project's question and a dependency hold are not this project's questions\n${others}`);
 });
 
 test("filed as spec/pyramid/<date>.md with its before and after page; the wake brings the procedure; the next audit's range stays", async (t) => {

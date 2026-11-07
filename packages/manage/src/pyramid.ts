@@ -91,7 +91,7 @@ function context(host: Host, job: Job): string {
 	};
 	const tickets = host.board.list(job.project);
 	const fails = new Map<string, string[]>();
-	for (const path of git(dir, ["grep", "-l", "-E", "^- Verdict: FAIL$", "--", "*review-*.md"]).split("\n").filter(Boolean)) {
+	for (const path of git(dir, ["grep", "-l", "-E", "^- Verdict: FAIL$", "--", "*/review-*.md"]).split("\n").filter(Boolean)) {
 		const ticket = tickets.find((each) => dirname(each.path) === dirname(path));
 		if (ticket !== undefined) fails.set(ticket.id, [...(fails.get(ticket.id) ?? []), path.slice(dirname(path).length + 1)]);
 	}

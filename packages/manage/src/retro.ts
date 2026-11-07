@@ -89,7 +89,7 @@ export async function sendFile(host: Host, from: PhoneFrom, file: string, name: 
 
 // The role files, procedures and criteria the plugins of this load ship (a role file's own folder, `roles/coordinator/`,
 // `criteria/`), from the project's root when inside it.
-function shipped(host: Host, root: string): string[] {
+export function shipped(host: Host, root: string): string[] {
 	return host.code.flatMap((folder) =>
 		["roles", "roles/coordinator", "criteria"].flatMap((sub) => {
 			const path = join(folder, sub);
@@ -127,7 +127,7 @@ function context(host: Host, job: Job): string {
 
 // The repeats digest of the period, from the day of the last retro's commit, its headings two levels down; a log broken by hand
 // or no decision log to read costs this section only.
-function repeatsOf(host: Host, project: string, made: Date | undefined): string {
+export function repeatsOf(host: Host, project: string, made: Date | undefined): string {
 	try {
 		return repeats(host, project, made === undefined ? undefined : host.clock.local(made).date).replace(/^#/gm, "###");
 	} catch (error) {
@@ -136,7 +136,7 @@ function repeatsOf(host: Host, project: string, made: Date | undefined): string 
 }
 
 // The project's jobs' steers and continues since `made` (`job-started` names a job's project), by first sentence, most first.
-function corrections(host: Host, project: string, made: Date | undefined): string {
+export function corrections(host: Host, project: string, made: Date | undefined): string {
 	const [projects, counts] = [new Map<unknown, unknown>(), new Map<string, number>()];
 	for (const { name, time, data } of host.events.read(0)) {
 		const { id, project: of, text } = (data ?? {}) as Readonly<Record<string, unknown>>;

@@ -16,8 +16,9 @@ const KIND = "audit";
 const ROLE = "auditor";
 export const AUDIT_TASK = "Audit the commits since the last audit, then the rest of the repository, as your role and the audit criteria say.";
 export const AUDITS: Reports = { folder: "spec/quality", title: "Audit", commit: "Commit audited" };
-// A commit that changes only the reports and the board, as the procedure's commit of an audit does, is no commit to audit.
-const AUDITED_PATHS = ["--", ".", `:(exclude)${AUDITS.folder}`, ":(exclude)spec/build.json", ":(exclude)spec/features"];
+// A commit that changes only the reports and the board, as the procedure's commit of an audit or a pyramid audit does, is no
+// commit to audit.
+const AUDITED_PATHS = ["--", ".", `:(exclude)${AUDITS.folder}`, ":(exclude)spec/pyramid", ":(exclude)spec/build.json", ":(exclude)spec/features"];
 const FINDING = /^## (F\d+)\.[ \t]*(.*)$/m;
 
 // Git's output, or undefined when it exits with an error; Git missing throws.
@@ -50,7 +51,7 @@ function since(root: string, head: string): { readonly last?: string; readonly h
 }
 
 // Every entry of `status` in the findings.md of each of `tickets`: its ticket, number, title and Where, with `kind` its Kind too.
-function findings(root: string, tickets: readonly Ticket[], status: RegExp, kind: boolean): string[] {
+export function findings(root: string, tickets: readonly Ticket[], status: RegExp, kind: boolean): string[] {
 	return tickets.flatMap((ticket) => {
 		const path = join(root, dirname(ticket.path), "findings.md");
 		if (!existsSync(path)) return [];

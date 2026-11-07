@@ -2,6 +2,7 @@ import { renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import type { Host, PhoneFrom } from "@arthur/core/plugin";
+import { reportPage } from "./report-file.ts";
 import { RED, repeats } from "./repeats.ts";
 import { RETRO_TASK, sendFile } from "./retro.ts";
 
@@ -11,16 +12,6 @@ import { RETRO_TASK, sendFile } from "./retro.ts";
 
 const USAGE = "usage: arthur repeats [--project <name>] [--since <date|decision id>], or arthur repeats [--project <name>] --retro ['<focus>']";
 const SINCE = /^(?:\d{4}-\d{2}-\d{2}|[A-Z]+-D\d+)$/;
-// The rules this page uses of .agents/arthur/criteria/report.md's base style (AR-D298); its header never holds a code span.
-const STYLE = [
-	":root{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000}*{box-sizing:border-box}",
-	'body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif}',
-	"header{background:var(--ink);color:var(--paper);padding:32px 18px 24px;text-align:center;border-bottom:6px solid var(--blue)}",
-	"header h1{margin:0 auto;max-width:860px;font-size:30px;line-height:1.1;font-weight:800}header p{margin:12px auto 0;max-width:720px;color:#cfcfcf}",
-	"main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}.red{color:var(--red)}",
-	"h2{font-size:22px;line-height:1.2;font-weight:800;margin:40px 0 6px;padding-bottom:6px;border-bottom:3px solid var(--ink);text-align:center}",
-	"code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);padding:1px 4px;overflow-wrap:anywhere}",
-].join("");
 
 export function repeatsCommand(host: Host): void {
 	host.commands.register({
@@ -61,32 +52,7 @@ async function startRetro(host: Host, project: string | undefined, focus: string
 function sendDigest(host: Host, from: PhoneFrom): Promise<string> {
 	const name = `repeats-${host.clock.local().date}.html`;
 	const file = join(host.folder, name);
-	writeFileSync(`${file}.tmp`, page(repeats(host, undefined)));
+	writeFileSync(`${file}.tmp`, reportPage(repeats(host, undefined), RED));
 	renameSync(`${file}.tmp`, file);
 	return sendFile(host, from, file, name);
-}
-
-const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-// The digest as one self-contained page for a phone: its title and first line in a header, the rest in `main` from the first
-// section on, a backticked span as code, and each line of a RED section in red.
-function page(markdown: string): string {
-	let section = "";
-	const body = markdown
-		.split("\n")
-		.map((line) => {
-			const text = escape(line.replace(/^(?:#{1,3} |- )/, "")).replace(/`([^`]+)`/g, "<code>$1</code>");
-			const level = /^(#{1,3}) /.exec(line)?.[1]?.length;
-			if (level === 2) section = line.slice(3);
-			if (level !== undefined) return `<h${level}>${text}</h${level}>`;
-			if (line.startsWith("- ")) return `<li${RED.includes(section) ? ' class="red"' : ""}>${text}</li>`;
-			return line.trim() === "" ? "" : `<p>${text}</p>`;
-		})
-		.filter(Boolean)
-		.join("\n")
-		.replace(/(?:^<li.*<\/li>$\n?)+/gm, (items) => `<ul>\n${items.trimEnd()}\n</ul>\n`);
-	const title = escape(/^# (.*)$/m.exec(markdown)?.[1] ?? "Repeats");
-	const at = body.indexOf("<h2>");
-	const head = '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">';
-	return `<!doctype html>\n<html lang="en"><head>${head}<title>${title}</title><style>${STYLE}</style></head>\n<body>\n<header>\n${body.slice(0, at).trimEnd()}\n</header>\n<main>\n${body.slice(at).trimEnd()}\n</main>\n</body></html>\n`;
 }

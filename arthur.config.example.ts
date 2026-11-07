@@ -368,6 +368,7 @@ export default defineConfig({
 		manage({
 			audit: { days: ["tue", "fri"], at: "02:00", budgetUsd: 10, model: "anthropic/claude-opus-5-5" },
 			retro: { day: "fri", at: "22:30", budgetUsd: 5 },
+			pyramid: { budgetUsd: 10 }, // arthur pyramid and /pyramid: a pyramid audit of a project, one planning ticket and a before and after page
 			health: { everyMinutes: 30 }, // entry 60: arthur health and /health; this often under arthur run, new lines as a notice
 			prune: { keepJobsDays: 14 },
 		}),

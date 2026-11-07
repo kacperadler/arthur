@@ -74,12 +74,10 @@ function ran(event: ToolEvent, cwd: string): string[] {
 	const failed = event.isError === true;
 	const count = (word: string) => Array.from(output.matchAll(new RegExp(`^\\S+ ${word} (\\d+)\\s*$`, "gm"))).at(-1)?.[1];
 	const [tests, passed, failures] = [count("tests"), count("pass"), count("fail")];
+	const [, run, survived, unrun = "0"] = Array.from(output.matchAll(/^mutate: (\d+) mutants, \d+ caught, (\d+) survived(?:; (\d+) not run)?/gm)).at(-1) ?? [];
 	return runs.map((name) => {
 		if (name === "check") return `check ${failed || /\berror TS\d+|^error:/m.test(output) ? "fail" : "pass"}`;
-		if (name === "mutate") {
-			const [, run, survived, unrun = "0"] = Array.from(output.matchAll(/^mutate: (\d+) mutants, \d+ caught, (\d+) survived(?:; (\d+) not run)?/gm)).at(-1) ?? [];
-			return `mutate ${!failed && survived === "0" ? "pass" : "fail"}${run === undefined ? "" : ` ${run} run, ${survived} survived, ${unrun} not run`}`;
-		}
+		if (name === "mutate") return `mutate ${!failed && survived === "0" ? "pass" : "fail"}${run ? ` ${run} run, ${survived} survived, ${unrun} not run` : ""}`;
 		if (tests === undefined || passed === undefined || failures === undefined) return `test ${failed ? "fail" : "pass"}`;
 		return `test ${failures === "0" ? "pass" : "fail"} ${passed}/${tests}`;
 	});

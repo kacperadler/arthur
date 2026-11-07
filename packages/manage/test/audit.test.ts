@@ -190,8 +190,8 @@ test("an audit whose task names a ticket is filed only with that ticket named, s
 	assert.throws(() => jobs.file(undefined, job.id), { message: `${job.id}'s task names AC0001; file it in its ticket: arthur ticket file AC0001 ${job.id}` });
 	assert.equal(jobs.file("AC0001", job.id), "spec/quality/2026-10-21.md");
 	assert.deepEqual(readdirSync(join(root, FOUND)).sort(), ["findings.md", "ticket.md"]);
-	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "audit" }), [PROCEDURE, undefined], "the audit's procedure; the retro's provider answers nothing");
-	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined, undefined]);
+	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "audit" }), [PROCEDURE, undefined, undefined], "the audit's procedure; the retro's and the pyramid's providers answer nothing");
+	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined, undefined, undefined]);
 });
 
 test("a replacement under refs/replace does not hide the commits since the last audit (AR0397)", async (t) => {

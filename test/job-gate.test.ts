@@ -99,7 +99,7 @@ test("inside a job the commands a role needs run, each to its own answer; youtra
 		[["help"], 0, /^usage: arthur <command>/],
 		[["help", "merge"], 0, /^# arthur merge\n/],
 		[["merge", "--help"], 0, /^# arthur merge\n/],
-		[["version"], 0, /^[0-9a-f]{12}\n$/],
+		[["version"], 0, /^\d+\.\d+\.\d+ [0-9a-f]{12}\n$/],
 		[["jobs"], 0, /^no jobs\n$/],
 		[["decisions"], 0, /^no decisions yet\n$/],
 		[["board"], 0, /^SH0001 planned +- +Shop\n$/],

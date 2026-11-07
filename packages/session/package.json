@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/session.ts",
     "./options": "./src/session-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

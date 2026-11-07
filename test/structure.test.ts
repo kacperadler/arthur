@@ -11,17 +11,17 @@ import { checkStructure, type Structure } from "./structure.ts";
 const BUDGETS = {
 	"commit-rules": 184,
 
-	core: 7341,
+	core: 7387,
 
 	"core/testing": 405,
 
-	delivery: 2215,
+	delivery: 2219,
 
 	develop: 760,
 
 	discord: 976,
 
-	dokploy: 450,
+	dokploy: 615,
 
 	findings: 276,
 
@@ -31,7 +31,7 @@ const BUDGETS = {
 
 	machines: 535,
 
-	manage: 1355,
+	manage: 1535,
 
 	models: 537,
 
@@ -49,7 +49,7 @@ const BUDGETS = {
 
 	telegram: 680,
 
-	uptime: 344,
+	uptime: 383,
 
 	video: 197,
 

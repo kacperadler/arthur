@@ -1,16 +1,22 @@
+import { realpathSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Plugin } from "@arthur/core/plugin";
 import { type Check, checkSite, probe } from "./site-check.ts";
-import { checkOptions, checkSites, EVERY_SECONDS, PROBES, type Site as UptimeSite, type UptimeOptions } from "./uptime-options.ts";
+import { checkOptions, checkPiece, EVERY_SECONDS, type Piece, PROBES, type Site as UptimeSite, type UptimeOptions } from "./uptime-options.ts";
 import { readState, writeState } from "./uptime-state.ts";
 
 // The uptime plugin (spec/roadmap.md, entry 98): each project's sites checked over plain HTTP while `arthur run` runs, no model
 // called. A site is down after 2 failed checks in a row: one `notice` with its URL, the reason and since when, and the event
 // `uptime-down`; once it answers again, one notice with how long it was down, and `uptime-up`. When no site answers at all,
 // nor any probe outside the projects, this machine is taken as offline (AR0623): no notice, no site checked, only the probes
-// asked until one answers, a log line each way. What is down, and offline, survives a restart (uptime-state.ts). docs/uptime.md.
+// asked until one answers, a log line each way. What is down, and offline, survives a restart (uptime-state.ts). Each down and
+// up also wakes the coordinator with the runbook it works through: the project's own, or the boilerplate (AR0607). docs/uptime.md.
 
 export type { UptimeOptions };
 
+// The runbook shipped with the plugin, for a project without its own.
+export const BOILERPLATE = fileURLToPath(new URL("../roles/coordinator/site-down.md", import.meta.url));
 // A check is cut after this many seconds, or after the site's everySeconds when shorter, so two checks of a site never overlap.
 const LIMIT_SECONDS = 10;
 // How often the sites due for a check are looked for.
@@ -18,9 +24,19 @@ const TICK_MS = 1000;
 // Failed checks in a row that make a site down.
 const FAILS = 2;
 
-type Site = { readonly project: string; readonly url: string; readonly expect?: number | string; readonly every: number; next: number; fails: number; first?: Date; reason: string; down?: Date };
+type Site = { readonly project: string; readonly folder: string; readonly runbook?: string; readonly url: string; readonly expect?: number | string; readonly every: number; next: number; fails: number; first?: Date; reason: string; down?: Date };
 
 const failed = (check: Check) => (check.ok ? undefined : check);
+// The runbook named to the coordinator: the project's own while it is a regular file inside its folder, reached through no
+// symlink, so it is the owner's; else the boilerplate, saying the own one is missing. Looked at when a message is written.
+function runbook(site: Site): string {
+	if (site.runbook === undefined) return `the runbook ${BOILERPLATE}`;
+	const file = join(site.folder, site.runbook);
+	try {
+		if (statSync(file).isFile() && relative(realpathSync(site.folder), realpathSync(file)) === relative(site.folder, file)) return `the project's runbook ${file}`;
+	} catch {}
+	return `the runbook ${BOILERPLATE} (the project's own, ${file}, is missing, not a regular file, or reached through a symlink)`;
+}
 
 export function uptime(options: UptimeOptions = {}): Plugin {
 	let [running, busy] = [false, false];
@@ -32,11 +48,11 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 		options,
 		check: checkOptions,
 		after: ["projects"],
-		piece: checkSites,
+		piece: checkPiece,
 		setup(host) {
-			const listed = host.collect<readonly { readonly name: string; readonly pieces?: { readonly uptime?: readonly UptimeSite[] } }[]>("projects").flat();
-			const sites: Site[] = listed.flatMap(({ name: project, pieces }) =>
-				(pieces?.uptime ?? []).map(({ url, expect, everySeconds = EVERY_SECONDS }) => ({ project, url, expect, every: everySeconds * 1000, next: 0, fails: 0, reason: "" })),
+			const listed = host.collect<readonly { readonly name: string; readonly folder: string; readonly pieces?: { readonly uptime?: Piece } }[]>("projects").flat();
+			const sites: Site[] = listed.flatMap(({ name: project, folder, pieces }) =>
+				(pieces?.uptime?.sites ?? []).map(({ url, expect, everySeconds = EVERY_SECONDS }) => ({ project, folder, runbook: pieces?.uptime?.runbook, url, expect, every: everySeconds * 1000, next: 0, fails: 0, reason: "" })),
 			);
 			const key = (site: Site) => `${site.project} ${site.url}`;
 			const probes = options.probes ?? PROBES;
@@ -74,6 +90,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 						if (site.down !== undefined) {
 							notice(`${site.url} (project ${site.project}) answers again, after ${lasted(site.down, at)} down since ${when(site.down)}`);
 							host.events.emit("uptime-up", { project: site.project, url: site.url, since: site.down.toISOString(), downSeconds: Math.round((at.getTime() - site.down.getTime()) / 1000) });
+							host.events.emit("coordinator-message", { text: `Site ${site.url} of project ${site.project} answers again, after ${lasted(site.down, at)} down since ${when(site.down)}. Finish ${runbook(site)} with its last step: tell the owner how it ended.` });
 						}
 						[site.fails, site.first, site.down] = [0, undefined, undefined];
 						return;
@@ -83,6 +100,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 					[site.down, site.reason] = [site.first, check.reason];
 					notice(`${site.url} (project ${site.project}) is down since ${when(site.down)}: ${check.reason}`);
 					host.events.emit("uptime-down", { project: site.project, url: site.url, reason: check.reason, since: site.down.toISOString() });
+					host.events.emit("coordinator-message", { text: `Site ${site.url} of project ${site.project} is down since ${when(site.down)}: ${check.reason}. Work through ${runbook(site)}, step by step, and report to the owner.` });
 				});
 				save();
 			};
@@ -134,5 +152,6 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 	};
 }
 
-// A project file's piece: `uptime.project([{ url: "https://shop.example/" }])`, its sites.
-uptime.project = (sites: readonly UptimeSite[]) => ({ uptime: sites });
+// A project file's piece: `uptime.project([{ url: "https://shop.example/" }], { runbook: "site-down.md" })`, its sites and,
+// when it has one, its own runbook, a path from its project folder.
+uptime.project = (sites: readonly UptimeSite[], more: { readonly runbook?: string } = {}) => ({ uptime: { sites, ...more } });

@@ -27,12 +27,17 @@ const quote = (word: string) => `'${word.replaceAll("'", `'\\''`)}'`;
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export const LOCAL = "local";
 
-// The version both ends must share: a hash of the core's source files, so two checkouts of one commit agree.
+// The hash both ends must share: of the core's source files, so two checkouts of one commit agree.
 export function coreVersion(): string {
 	const hash = createHash("sha256");
 	for (const name of readdirSync(import.meta.dirname).sort()) hash.update(name).update(readFileSync(join(import.meta.dirname, name)));
 	return hash.digest("hex").slice(0, 12);
 }
+
+// The release, the core's package.json `version`, one for the core and every first-party plugin.
+export const release = (): string => JSON.parse(readFileSync(join(import.meta.dirname, "../package.json"), "utf8")).version;
+// What `arthur version` prints, `<release> <hash>`; another machine's line passes the spawn when it is two words, the last this hash.
+export const arthurVersion = (): string => `${release()} ${coreVersion()}`;
 
 // The machines of one load, `local` always among them; `owner` is the plugin that registers, named in refusals.
 export function machineRegistry(home: string) {
@@ -131,7 +136,7 @@ function answer(machine: Machine, argv: readonly string[], code: number | string
 	if (code === 0) return run.stdout;
 	const said = cut ? `${argv.slice(0, 3).join(" ")}: ${cut}` : run.stderr.trim().split("\n").at(-1)?.replace(/^arthur remote-job: /, "") || `exit code ${code}`;
 	if (code === 255 || cut) throw new Error(`machine ${machine.name}: ssh ${machine.ssh}: ${said}`, { cause: 255 });
-	if (code === 127 && argv[0] === "arthur") throw new Error(`machine ${machine.name}: arthur is not there (${said}); install the version here, ${coreVersion()} (docs/deploy.md)`);
+	if (code === 127 && argv[0] === "arthur") throw new Error(`machine ${machine.name}: arthur is not there (${said}); install the version here, ${arthurVersion()} (docs/deploy.md)`);
 	throw new Error(`machine ${machine.name}: ${argv.slice(0, 3).join(" ")}: ${said}`);
 }
 
@@ -155,8 +160,8 @@ export async function gitOver(root: string, verb: string, args: readonly string[
 export async function reach(machine: Machine, project: string, root: string, base: string, fetch?: string): Promise<string> {
 	const lfs = [base, fetch].find((commit) => commit !== undefined && namesLfs(root, commit));
 	if (lfs !== undefined) throw new Error(`machine ${machine.name}: a .gitattributes of ${lfs.slice(0, 7)} names filter=lfs: ${project} is a Git LFS project, whose jobs run on local only, as its LFS objects do not go to another machine and back (docs/deploy.md)`);
-	const [theirs, ours] = [(await sshAsync(machine, ["arthur", "version"])).trim(), coreVersion()];
-	if (theirs !== ours) throw new Error(`machine ${machine.name} runs arthur ${theirs}, this one is ${ours}; both need the same version`);
+	const theirs = (await sshAsync(machine, ["arthur", "version"])).trim();
+	if (/^\S+ (\S+)$/.exec(theirs)?.[1] !== coreVersion()) throw new Error(`machine ${machine.name} runs arthur ${theirs}, this one is ${arthurVersion()}; both need the same version`);
 	for (const [commit, ref] of fetch === undefined ? [[base, "base"]] : [[base, "base"], [fetch, "fetch"]]) {
 		const there = (await sshAsync(machine, ["arthur", "remote-job", "repo", machine.home, project, commit ?? ""])).trim();
 		if (there === "missing") await gitOver(root, "push", ["send-pack", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", url(machine, project), `+${commit}:refs/arthur/${ref}`], PUSH_SECONDS).catch((error: Error) => Promise.reject(new Error(`machine ${machine.name}: ${error.message}`)));

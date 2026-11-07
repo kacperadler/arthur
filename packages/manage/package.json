@@ -6,5 +6,6 @@
   "exports": {
     ".": "./src/manage.ts",
     "./options": "./src/manage-options.ts"
-  }
+  },
+  "version": "0.1.0"
 }

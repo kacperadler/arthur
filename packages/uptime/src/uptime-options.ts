@@ -1,4 +1,5 @@
 import { BlockList, isIP } from "node:net";
+import { isAbsolute, normalize, sep } from "node:path";
 import { describe } from "@arthur/core";
 import type { Check, OptionTable, Tool, ValueOption } from "@arthur/core/option-table";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
@@ -7,9 +8,11 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 // docs/uptime.md; and the check of a project's piece, its sites.
 
 export type Site = { readonly url: string; readonly expect?: number | string; readonly everySeconds?: number };
+// A project's piece as `uptime.project(sites, { runbook })` builds it; `runbook` counts from the project's folder.
+export type Piece = { readonly sites: readonly Site[]; readonly runbook?: string };
 export type UptimeOptions = { readonly enabled?: boolean; readonly probes?: readonly string[] };
 
-export const summary = "each project's sites checked over HTTP on a schedule, a notice when one is down and when it is back";
+export const summary = "each project's sites checked over HTTP on a schedule, a notice when one is down and when it is back, and the coordinator woken with a runbook";
 
 export const tools: readonly Tool[] = [];
 
@@ -85,4 +88,16 @@ export function checkSites(list: unknown): string | undefined {
 		else first.set(site.url, index);
 	});
 	return problems.length === 0 ? undefined : problems.join("; ");
+}
+
+// A project's piece, `{ sites, runbook? }`: the problems of its sites as checkSites words them, and of its runbook, a path that
+// stays inside the project's folder, as commit-rules' `file`.
+export function checkPiece(piece: unknown): string | undefined {
+	if (typeof piece !== "object" || piece === null || Array.isArray(piece)) return `expected { sites, runbook? }, as uptime.project([...sites], { runbook? }) builds it, got ${describe(piece)}`;
+	const { sites, runbook, ...rest } = piece as Readonly<Record<string, unknown>>;
+	const problems = [...Object.keys(rest).map((key) => `${key}: unknown key; keys: sites, runbook`), checkSites(sites)];
+	if (runbook !== undefined && (typeof runbook !== "string" || runbook === "" || isAbsolute(runbook) || normalize(runbook).split(sep)[0] === ".."))
+		problems.push(`runbook: expected a path inside the project's folder, such as "site-down.md", got ${describe(runbook)}`);
+	const found = problems.filter((problem) => problem !== undefined);
+	return found.length === 0 ? undefined : found.join("; ");
 }

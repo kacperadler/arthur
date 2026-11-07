@@ -85,14 +85,14 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 		const labels = [wantOs && `os ${wantOs}`, wantArch && `arch ${wantArch}`].filter(Boolean).join(", ");
 		return offline(`its labels say ${labels}; the machine says ${os} ${arch}`, `set the labels of ${machine.name} in arthur.config.ts to what ssh ${machine.ssh} reaches`);
 	}
-	if (theirs !== ours) return offline(`it runs arthur ${theirs || "(no version)"}, this one is ${ours}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)");
+	if (/^\S+ (\S+)$/.exec(theirs)?.[1] !== ours.split(" ").at(-1)) return offline(`it runs arthur ${theirs || "(no version)"}, this one is ${ours}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)");
 	const at = rest.findIndex((line) => /^disk \d+$/.test(line));
 	const disk = at === -1 ? {} : { disk: { code: Number(rest[at]?.slice("disk ".length)), output: rest.slice(at + 1).join("\n") } };
 	const lines = at === -1 ? rest : rest.slice(0, at);
 	const none = /^identity git ?(.*)$/m.exec(lines.join("\n"));
 	if (none !== null) return offline(`git is not there (${none[1] || "exit code 127"})`, "install git there, on the PATH of a command over ssh (docs/deploy.md)");
 	const identity = lines.find((line) => line.startsWith("identity "))?.replace(/^identity (\S+) ?/, "git var $1 there: ") ?? "";
-	return { online: true, os, arch, version: ours, free, ...disk, missing: missing(lines), identity };
+	return { online: true, os, arch, version: theirs, free, ...disk, missing: missing(lines), identity };
 }
 
 // The `tools` that `command -v` does not find on the PATH of `arthur run`, by the loop of a listed machine's check; the

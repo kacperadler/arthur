@@ -60,7 +60,7 @@ export type Plugin = {
 export type Host = {
 	readonly name: string;
 	readonly options: Options;
-	// The plugin's own `...Env` variables that are set, by variable name; `secrets`, every enabled plugin's set values, for redaction.
+	// The plugin's own `...Env` variables that are set, by variable name; `secrets`, every env file value and enabled plugin's shell value.
 	readonly env: Readonly<Record<string, string>>;
 	readonly secrets: readonly string[];
 	// `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it. Inside a job's sandbox it cannot be read (job-sandbox.ts).

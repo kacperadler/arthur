@@ -2,13 +2,13 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host, Project, Ticket } from "@arthur/core/plugin";
-import { lastReport, type Reports } from "./report-file.ts";
+import { lastReport, page, type Reports } from "./report-file.ts";
 
 // What a retro looks back on (spec/roadmap.md, entry 63): the merges into the project's main line since the last retro's commit,
 // each merged ticket's FAIL reviews, findings and outcome; and `arthur retro-due`, whether there is enough of it for a retro:
 // 10 merges, and in them 2 FAIL reviews or 5 findings. docs/commands/retro-due.md.
 
-export const RETROS: Reports = { folder: "spec/retro", title: "Retro", commit: "Merges up to", page: true };
+export const RETROS: Reports = { folder: "spec/retro", title: "Retro", commit: "Merges up to", page };
 const MERGES = 10;
 const FAILS = 2;
 const FINDINGS = 5;

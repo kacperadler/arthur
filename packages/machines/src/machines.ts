@@ -1,5 +1,5 @@
 import { arch, platform } from "node:process";
-import { coreVersion } from "@arthur/core";
+import { arthurVersion } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
 import { checkMachine, type Disk, missingHere, publicAddress, type Report } from "./machine-check.ts";
 import { checkOptions, type Labels, type MachineEntry, type MachinesOptions } from "./machine-options.ts";
@@ -57,7 +57,7 @@ export function machines(options: MachinesOptions = {}): Plugin {
 				// An answer that rejects or is no Map names no path, so the round still runs.
 				const asked = Promise.all(answers.map((answer) => Promise.resolve(answer).then((map) => (map instanceof Map ? map : undefined), () => undefined)));
 				const paths = async (name: string) => (await asked).flatMap((map) => [map?.get(name) ?? []].flat().filter((path): path is string => typeof path === "string"));
-				const checks = list.map((machine) => [machine.name, within(paths(machine.name).then((named) => checkMachine(host, machine, coreVersion(), LIMIT_SECONDS, named)), timedOut(machine))] as const);
+				const checks = list.map((machine) => [machine.name, within(paths(machine.name).then((named) => checkMachine(host, machine, arthurVersion(), LIMIT_SECONDS, named)), timedOut(machine))] as const);
 				for (const [name, check] of checks) void check.then((report) => said.get(name)?.resolve(report.online ? { free: report.free, disk: report.disk } : { error: report.reason }));
 				return Promise.all(checks.map(async ([name, check]) => [name, await check] as const)).then((reports) => {
 					running = undefined;
@@ -76,7 +76,7 @@ export function machines(options: MachinesOptions = {}): Plugin {
 			// `local`'s line, only with tools labels, in the shape of a listed machine's; `local` itself is always there.
 			const here = (tools: readonly string[]) => {
 				let lacking: readonly string[] | string = [];
-				const found = `${localLabels.os} ${localLabels.arch}, arthur ${coreVersion()}`;
+				const found = `${localLabels.os} ${localLabels.arch}, arthur ${arthurVersion()}`;
 				const named = () => (typeof lacking === "string" ? tools : lacking).join(", ");
 				return {
 					name: "local",
@@ -138,7 +138,7 @@ export function machines(options: MachinesOptions = {}): Plugin {
 				};
 				const state = (report: Report | undefined) => (report?.online === true ? `online (${report.os} ${report.arch}, arthur ${report.version})` : `offline: ${report?.reason}; fix: ${report?.fix}`);
 				return [
-					block("local", `: online (${localLabels.os} ${localLabels.arch}, arthur ${coreVersion()})`, localLabels, local.maxJobs),
+					block("local", `: online (${localLabels.os} ${localLabels.arch}, arthur ${arthurVersion()})`, localLabels, local.maxJobs),
 					...list.map((machine) => block(machine.name, ` (ssh ${machine.ssh}): ${state(reports.get(machine.name))}`, machine.labels ?? {}, machine.maxJobs)),
 				].join("\n");
 			};

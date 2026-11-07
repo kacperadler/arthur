@@ -6,6 +6,7 @@ import { audit } from "./audit.ts";
 import { cleanup } from "./cleanup.ts";
 import { ownHealth } from "./health-checks.ts";
 import { checkOptions, type ManageOptions } from "./manage-options.ts";
+import { pyramid } from "./pyramid.ts";
 import { repeatsCommand } from "./repeats-command.ts";
 import { retro } from "./retro.ts";
 import { stats } from "./stats.ts";
@@ -15,8 +16,9 @@ import { stats } from "./stats.ts";
 // only. With `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a
 // problem the round before saw too is not sent again, across a restart too. `arthur stats`: the merged tickets' reviews, costs
 // and days (stats.ts). The kind `audit`, and with `audit.at` its schedule entry (audit.ts); the kind `retro`, `arthur
-// retro-due`, `/retro`, and with `retro.at` its schedule entry (retro.ts); `arthur repeats` and `/repeats` (repeats-command.ts).
-// With `prune.keepJobsDays`, the schedule plugin runs the daily cleanup (cleanup.ts). docs/manage.md.
+// retro-due`, `/retro`, and with `retro.at` its schedule entry (retro.ts); `arthur repeats` and `/repeats` (repeats-command.ts);
+// the kind `pyramid`, `arthur pyramid` and `/pyramid` (pyramid.ts). With `prune.keepJobsDays`, the schedule plugin runs the
+// daily cleanup (cleanup.ts). docs/manage.md.
 
 export type { ManageOptions };
 
@@ -73,6 +75,7 @@ export function manage(options: ManageOptions = {}): Plugin {
 			audit(host, (host.options as ManageOptions).audit);
 			retro(host, (host.options as ManageOptions).retro);
 			repeatsCommand(host);
+			pyramid(host, (host.options as ManageOptions).pyramid);
 			const report = () => {
 				const lines = healthLines(host);
 				return lines.length === 0 ? ALL_WELL : lines.join("\n");

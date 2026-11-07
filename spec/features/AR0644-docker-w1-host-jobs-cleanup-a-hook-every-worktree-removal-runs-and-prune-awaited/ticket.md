@@ -37,4 +37,5 @@ Out:
 ## Decisions
 - 2026-11-07: AR0644 worker budget $8 -> $12 to resolve its merge conflicts, under the owner order to fix what cannot merge; the owner: "if you cant merge something check why and fix that on github" (AR-D543)
 - 2026-11-07: AR0644 worker budget $12 -> $15 to merge main again (arthur.mmd conflict) and rerun its checks, under the owner order to fix what cannot merge; the owner: "if you cant merge something check why and fix that on github" (AR-D547)
+- 2026-11-07: AR0644: core line budget 7387 -> 7438 and delivery main + 1 (2220), under the owner approval of PR #10 and the order to fix what cannot merge; the owner: "Approve (PR #10); if you cant merge something check why and fix that on github" (AR-D550)
 

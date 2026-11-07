@@ -80,7 +80,7 @@ test("a run behind NAME=value assignments, or through bun run, counts; bun test 
 	assert.equal(load(t).run(bash("TMPDIR=$PWD/node_modules/.tmp npm run check 2>&1; echo check=$?", "check=0\n")), "check pass <commit> clean\n");
 	assert.equal(load(t).run(bash(`A=1 B='x y' C="z; w" npm test`, SUMMARY(3, 0))), "test pass 3/3 <commit> clean\n");
 	const all = bash("bun run check && CI=1 bun run test && bun run mutate", `${SUMMARY(2, 0)}${MUTATED(0)}`);
-	assert.equal(load(t, ALL).run(all), "check pass <commit> clean\ntest pass 2/2 <commit> clean\nmutate pass <commit> clean\n");
+	assert.equal(load(t, ALL).run(all), "check pass <commit> clean\ntest pass 2/2 <commit> clean\nmutate pass 4 run, 0 survived, 0 not run <commit> clean\n");
 	assert.deepEqual(load(t).begin("toolu_1", bash("CI=1 bun run check")), [{ input: { command: "CI=1 bun run check", timeout: 1800 } }]);
 	const texts = ["bun test", "bun run checkout", "echo bun run check", "echo TMPDIR=x npm run check", "git commit -m 'CI=1 npm test'", `A="x; npm run check"`, "A=1 echo npm test", "A=1"];
 	for (const command of texts) assert.equal(load(t).run(bash(command, SUMMARY(3, 0))), "", command);
@@ -213,14 +213,18 @@ test("a check call runs with a timeout of at least 1800 seconds; any other comma
 	assert.deepEqual(call({ command: "npm test" }, "read"), [undefined], "another tool");
 });
 
-test("a mutate run passes only on a 0 exit status and a last summary with 0 survived, gets the 1800 s too, and needs the script", (t) => {
-	assert.equal(load(t, ALL).run(bash("npm run mutate", MUTATED(0))), "mutate pass <commit> clean\n");
-	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 5", MUTATED(1), true)), "mutate fail <commit> clean\n");
-	assert.equal(load(t, ALL).run(bash("npm run mutate 2>&1 | tail -3", MUTATED(2))), "mutate fail <commit> clean\n", "the pipe's status says 0; the summary says survivors");
-	assert.equal(load(t, ALL).run(bash("npm run mutate | tail -1", "mutate: refused: the tree has uncommitted changes to tracked files; commit them first\n")), "mutate fail <commit> clean\n", "no summary");
-	assert.equal(load(t, ALL).run(bash("npm run mutate", `${MUTATED(0)}npm error code 1\n`, true)), "mutate fail <commit> clean\n", "0 survived, but its exit status failed");
-	assert.equal(load(t, ALL).run(bash("npm run mutate; npm run mutate", `${MUTATED(3)}${MUTATED(0)}`)), "mutate pass <commit> clean\nmutate pass <commit> clean\n", "the last summary");
-	assert.equal(load(t, ALL).run(bash("npm run check && npm test && npm run mutate", `${SUMMARY(3, 0)}${MUTATED(0)}`)), "check pass <commit> clean\ntest pass 3/3 <commit> clean\nmutate pass <commit> clean\n");
+test("a mutate run passes only on a 0 exit status and a last summary with 0 survived, its counts from that summary, gets the 1800 s too, and needs the script", (t) => {
+	assert.equal(load(t, ALL).run(bash("npm run mutate", MUTATED(0))), "mutate pass 4 run, 0 survived, 0 not run <commit> clean\n");
+	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 5", MUTATED(1), true)), "mutate fail 4 run, 1 survived, 0 not run <commit> clean\n");
+	assert.equal(load(t, ALL).run(bash("npm run mutate 2>&1 | tail -3", MUTATED(2))), "mutate fail 4 run, 2 survived, 0 not run <commit> clean\n", "the pipe's status says 0; the summary says survivors");
+	assert.equal(load(t, ALL).run(bash("npm run mutate | tail -1", "mutate: refused: the tree has uncommitted changes to tracked files; commit them first\n")), "mutate fail <commit> clean\n", "no summary, no counts");
+	assert.equal(load(t, ALL).run(bash("npm run mutate", `${MUTATED(0)}npm error code 1\n`, true)), "mutate fail 4 run, 0 survived, 0 not run <commit> clean\n", "0 survived, but its exit status failed");
+	assert.equal(load(t, ALL).run(bash("npm run mutate; npm run mutate", `${MUTATED(3)}${MUTATED(0)}`)), "mutate pass 4 run, 0 survived, 0 not run <commit> clean\nmutate pass 4 run, 0 survived, 0 not run <commit> clean\n", "the last summary");
+	assert.equal(load(t, ALL).run(bash("npm run check && npm test && npm run mutate", `${SUMMARY(3, 0)}${MUTATED(0)}`)), "check pass <commit> clean\ntest pass 3/3 <commit> clean\nmutate pass 4 run, 0 survived, 0 not run <commit> clean\n");
+	// AR0637: a capped run's summary says how many it left; the review gate reads them.
+	const capped = "survived: src/a.ts:1: a > 1 => a >= 1\nmutate: 4 mutants, 3 caught, 1 survived; 12 not run (--max 4)\n";
+	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 4", capped, true)), "mutate fail 4 run, 1 survived, 12 not run <commit> clean\n");
+	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 2", `${MUTATED(0)}mutate: 2 mutants, 2 caught, 0 survived; 10 not run (--max 2)\n`)), "mutate pass 2 run, 0 survived, 10 not run <commit> clean\n", "the last summary's counts");
 	assert.deepEqual(load(t, ALL).begin("toolu_1", bash("npm run mutate")), [{ input: { command: "npm run mutate", timeout: 1800 } }]);
 	const without = load(t);
 	assert.deepEqual(without.begin("toolu_1", bash("npm run mutate")), [undefined], "a package.json without the script: run as given");
@@ -232,14 +236,14 @@ test("a mutate line is clean when the call began and ended on the same clean com
 	const last = (text: string) => text.trimEnd().split("\n").at(-1);
 	const file = join(worktree, "package.json");
 	const putBack = () => writeFileSync(file, readFileSync(file));
-	assert.equal(run({ ...bash("npm run mutate && npm test", `${MUTATED(0)}${SUMMARY(3, 0)}`), during: putBack }), "mutate pass <commit> clean\ntest pass 3/3 <commit> dirty\n");
+	assert.equal(run({ ...bash("npm run mutate && npm test", `${MUTATED(0)}${SUMMARY(3, 0)}`), during: putBack }), "mutate pass 4 run, 0 survived, 0 not run <commit> clean\ntest pass 3/3 <commit> dirty\n");
 	appendFileSync(file, "\n");
-	assert.equal(last(run({ ...bash("npm run mutate; git checkout -- .", MUTATED(0)), during: () => git("checkout", "--", ".") })), "mutate pass <commit> dirty", "began beside a change");
-	assert.equal(last(run({ ...bash("npm run mutate; echo >> package.json", MUTATED(0)), during: () => appendFileSync(file, "\n") })), "mutate pass <commit> dirty", "ended beside a change");
+	assert.equal(last(run({ ...bash("npm run mutate; git checkout -- .", MUTATED(0)), during: () => git("checkout", "--", ".") })), "mutate pass 4 run, 0 survived, 0 not run <commit> dirty", "began beside a change");
+	assert.equal(last(run({ ...bash("npm run mutate; echo >> package.json", MUTATED(0)), during: () => appendFileSync(file, "\n") })), "mutate pass 4 run, 0 survived, 0 not run <commit> dirty", "ended beside a change");
 	git("checkout", "--", ".");
 	const first = git("rev-parse", "HEAD");
-	assert.equal(last(run({ ...bash("npm run mutate; git commit -q --allow-empty -m e", MUTATED(0)), during: () => git("commit", "--quiet", "--allow-empty", "-m", "e") })), `mutate pass ${first} dirty`, "another commit");
-	assert.equal(last(run({ ...bash("npm run mutate", MUTATED(0)), during: putBack })), "mutate pass <commit> clean", "the same clean commit again");
+	assert.equal(last(run({ ...bash("npm run mutate; git commit -q --allow-empty -m e", MUTATED(0)), during: () => git("commit", "--quiet", "--allow-empty", "-m", "e") })), `mutate pass 4 run, 0 survived, 0 not run ${first} dirty`, "another commit");
+	assert.equal(last(run({ ...bash("npm run mutate", MUTATED(0)), during: putBack })), "mutate pass 4 run, 0 survived, 0 not run <commit> clean", "the same clean commit again");
 });
 
 test("a call the bash tool moved to the background, and a job without a record, give no line", (t) => {

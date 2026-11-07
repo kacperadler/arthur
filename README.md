@@ -52,6 +52,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
+- **activity**, built: one file per day of who did what, each logged event with its actor and the messages it acted on, kept 90 days ([activity](packages/activity/docs/activity.md)).
 - Planned: project agents, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
@@ -110,8 +111,7 @@ Then `arthur config check`, `arthur projects` and `arthur board` answer at once.
 - What Arthur is and is not, in full: [`spec/vision.md`](spec/vision.md).
 - The order of the work: [`spec/roadmap.md`](spec/roadmap.md); the board: [`spec/build.json`](spec/build.json).
 - Setting it up on a VPS, each step with its check: [`docs/setup.md`](docs/setup.md); other machines for jobs, the threat model, daily use and updating: [`docs/deploy.md`](docs/deploy.md).
-- Writing a plugin, and what it may use of the core: [`docs/plugin-api.md`](docs/plugin-api.md).
-- An example config with every plugin, planned ones included: [`arthur.config.example.ts`](arthur.config.example.ts).
+- Writing a plugin, and what it may use of the core: [`docs/plugin-api.md`](docs/plugin-api.md); an example config with every plugin, planned ones included: [`arthur.config.example.ts`](arthur.config.example.ts).
 - Diagrams (Mermaid): [what Arthur is built from](arthur.mmd), [core and plugins](docs/architecture/core-and-plugins.mmd), [from config to a running plugin](docs/architecture/config-flow.mmd), [versions](docs/architecture/versions.mmd).
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

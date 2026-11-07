@@ -10,6 +10,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0563 arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page (4b1e1cbb)
 - AR0607 Runbook: what the coordinator checks and does, in order, when a project site is down (37bc0bbc)
 - AR0640 Roadmap 104: one release version, arthur version with the hash, and the plugin check (b62e8f9f)
+- AR0644 Docker W1: host.jobs.cleanup, a hook every worktree removal runs, and prune awaited (roadmap 71, core half) (bd1a5bac)
 - AR0650 Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109) (51b51061)
 - AR0654 Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word (53dbde54)
 

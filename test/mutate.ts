@@ -71,9 +71,9 @@ for (const mutant of run) {
 console.log(`mutate: ${run.length} mutants, ${run.length - survived} caught, ${survived} survived${mutants.length > max ? `; ${mutants.length - max} not run (--max ${max})` : ""}`);
 process.exitCode = survived > 0 ? 1 : 0;
 
-// The first item of each list, then the second of each, and on until every list is spent.
+// The first item of each list, then the second of each, and on until every list is spent; no list is a length of -Infinity, 0.
 function interleave<T>(lists: readonly (readonly T[])[]): T[] {
-	return Array.from({ length: Math.max(0, ...lists.map((list) => list.length)) }, (_, at) => lists.flatMap((list) => list.slice(at, at + 1))).flat();
+	return Array.from({ length: Math.max(...lists.map((list) => list.length)) }, (_, at) => lists.flatMap((list) => list.slice(at, at + 1))).flat();
 }
 
 // The hunks of a `git diff --unified=0`: where each starts in the tip's lines, how many it holds there, and the base's lines.

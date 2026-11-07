@@ -222,12 +222,14 @@ test("a key that may name a program, set in the repository's config while the ch
 });
 
 test("the commit-msg script main's package.json declares checks the spec: commit, its paths staged, first: a refusal or a path changed while it ran leaves them uncommitted and unpushed, the merge in; a clean outcome is committed and pushed", async (t) => {
-	// The project's own check, as a commit-msg hook: the message in the file it is handed, then each staged file naming web-shop refused.
-	const vet = `const { spawnSync } = require("node:child_process");\nconst fs = require("node:fs");\nif (fs.readFileSync(process.argv[2], "utf8") !== "spec: AC0001 merged\\n") { console.error("not the message"); process.exit(1); }\nif (fs.existsSync("touch")) fs.appendFileSync("CHANGELOG.md", "\\n");\nconst named = spawnSync("git", ["grep", "--cached", "-l", "-F", "-e", ["web", "shop"].join("-")], { encoding: "utf8" }).stdout.trim().split("\\n").filter(Boolean);\nfor (const file of named) console.error(\`commit refused: \${file}: names the project\`);\nprocess.exit(named.length > 0 ? 1 : 0);\n`;
+	// The project's own check, as a commit-msg hook: on nvm's PATH, the message in the file it is handed, then each staged file naming web-shop refused.
+	const nvm = temporaryFolder();
+	const vet = `const { spawnSync } = require("node:child_process");\nconst fs = require("node:fs");\nif (!process.env.PATH.split(${JSON.stringify(delimiter)}).includes(${JSON.stringify(nvm)})) { console.error("not nvm's PATH"); process.exit(1); }\nif (fs.readFileSync(process.argv[2], "utf8") !== "spec: AC0001 merged\\n") { console.error("not the message"); process.exit(1); }\nif (fs.existsSync("touch")) fs.appendFileSync("CHANGELOG.md", "\\n");\nconst named = spawnSync("git", ["grep", "--cached", "-l", "-F", "-e", ["web", "shop"].join("-")], { encoding: "utf8" }).stdout.trim().split("\\n").filter(Boolean);\nfor (const file of named) console.error(\`commit refused: \${file}: names the project\`);\nprocess.exit(named.length > 0 ? 1 : 0);\n`;
 	const merging = async (line: string, touch = false) => {
 		const { root, fake, git, worker, merge } = await load(t);
 		const pushed: string[] = [];
 		fake.provide("github.push", () => (pushed.push(git(root, "log", "-1", "--format=%s")), Promise.resolve("github: pushed main to origin: a..b")));
+		fake.provide("nvm.path", () => [nvm, process.env.PATH].join(delimiter));
 		const scripts = { ...JSON.parse(PACKAGE).scripts, "commit-msg": "node vet.js" };
 		const job = await worker({ "package.json": JSON.stringify({ scripts }), "vet.js": vet, ...(touch && { touch: "" }) }, `Ticket: ${TICKET}`, `Built.\n\n## What went in\n\n- ${line}\n`);
 		const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
@@ -245,6 +247,13 @@ test("the commit-msg script main's package.json declares checks the spec: commit
 	assert.match(clean.out, /\ncommitted spec: AC0001 merged: \w+\ngithub: pushed main to origin/);
 	assert.deepEqual([clean.pushed, clean.staged], [["spec: AC0001 merged"], ""]);
 	assert.equal(clean.shown, `spec: AC0001 merged\n\nCHANGELOG.md\nspec/build.json\n${FOLDER}/outcome.md`);
+	// A project with no package.json names no check: its spec: commit is made as before.
+	const { git, worker, merge } = await load(t);
+	const bare = await worker();
+	git(bare.worktree, "rm", "--quiet", "package.json");
+	git(bare.worktree, "commit", "--quiet", "-m", "no package.json");
+	const plain = await merge(bare.id, "--unreviewed", "--decision", OWNER);
+	assert.match(plain.out, /\nwrote CHANGELOG\.md: 1 merged ticket\ncommitted spec: AC0001 merged: \w+\n/, plain.err);
 });
 
 test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-*, another old folder and an old cache_ one below the top stay", async (t) => {

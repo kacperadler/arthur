@@ -52,7 +52,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
-- Planned: project agents, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- Planned: project agents and docker; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 
@@ -60,7 +60,7 @@ What Arthur is built from: green is built, light green partly built, grey planne
 flowchart TD
   owner([Owner]) -->|channel, terminal| core
   subgraph CORE[Arthur core]
-    core[config, plugin host, events, ticket board<br/>jobs, guards and sandbox; cleanup hooks planned]
+    core[config, plugin host, events, ticket board<br/>jobs, guards and sandbox, cleanup hooks]
   end
   subgraph FIRST[First-version plugins: each talks only to the core]
     chan[channels<br/>telegram, discord]

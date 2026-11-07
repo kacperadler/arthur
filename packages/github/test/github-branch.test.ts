@@ -121,11 +121,11 @@ test("a pruned job's branch is deleted on origin once when github pushed it or m
 	assert.deepEqual(w.keep(one).concat(w.keep({ id: one.id, branch: "" })), [undefined, undefined], "github never keeps a record");
 	// A test plugin keeps the record of `one`, so it can be pruned again.
 	w.fake.provide("jobs.keep", ({ id }: { readonly id: string }) => (id === one.id ? "the test keeps it" : undefined));
-	assert.deepEqual(w.fake.host.jobs.prune([one.id]), [`${one.id}: worktree ${one.worktree} removed; branch ${one.branch} deleted; kept the record: the test keeps it`]);
+	assert.deepEqual(await w.fake.host.jobs.prune([one.id]), [`${one.id}: worktree ${one.worktree} removed; branch ${one.branch} deleted; kept the record: the test keeps it`]);
 	await until("its branch gone from origin", () => w.tip(one.branch) === "");
 	await until("its push record gone with it", () => !existsSync(join(w.fake.host.folder, "pushed", one.id)));
 	// The prune again, then another job's: one after the other, so once `two` is gone the second look at `one` is over.
-	assert.deepEqual(w.fake.host.jobs.prune([one.id, two.id]), [`${one.id}: kept the record: the test keeps it`, `${two.id}: worktree ${two.worktree} removed; branch ${two.branch} deleted; record deleted`]);
+	assert.deepEqual(await w.fake.host.jobs.prune([one.id, two.id]), [`${one.id}: kept the record: the test keeps it`, `${two.id}: worktree ${two.worktree} removed; branch ${two.branch} deleted; record deleted`]);
 	await until("two's branch gone from origin", () => w.tip(two.branch) === "");
 	await until("two's line", () => w.out.includes(`github: deleted ${two.branch} on origin (${two.tip.slice(0, 7)})`));
 	assert.deepEqual(w.deletes(), [`refs/heads/${one.branch}`, `refs/heads/${two.branch}`]);
@@ -144,7 +144,7 @@ test("refused, each a notice, origin's branch kept: a tip moved since github's p
 	git(other, "commit", "--quiet", "--allow-empty", "-m", "elsewhere");
 	git(other, "push", "--quiet", "origin", moved.branch);
 	const later = git(other, "rev-parse", "HEAD");
-	assert.deepEqual(w.fake.host.jobs.prune([moved.id]), [`${moved.id}: worktree ${moved.worktree} removed; branch ${moved.branch} deleted; record deleted`]);
+	assert.deepEqual(await w.fake.host.jobs.prune([moved.id]), [`${moved.id}: worktree ${moved.worktree} removed; branch ${moved.branch} deleted; record deleted`]);
 	const said = `github: ${moved.branch} not deleted on origin: origin's tip ${later.slice(0, 7)} is not the commit Arthur pushed (${moved.tip.slice(0, 7)}), nor in main`;
 	await until("the moved tip's notice", () => w.notices().includes(said));
 	// Pushed by plain git, so no record, and not in main; its local branch gone by hand.
@@ -187,12 +187,12 @@ test("a branch not in main whose origin tip is the one github pushed is deleted 
 	assert.equal(await w.push(dropped.branch), `github: pushed ${dropped.branch} to origin: [new branch]`);
 	git(w.path, "worktree", "remove", dropped.worktree);
 	git(w.path, "branch", "--quiet", "-D", dropped.branch);
-	assert.deepEqual(w.fake.host.jobs.prune([dropped.id]), [`${dropped.id}: record deleted`]);
+	assert.deepEqual(await w.fake.host.jobs.prune([dropped.id]), [`${dropped.id}: record deleted`]);
 	await until("the dropped branch gone from origin", () => w.tip(dropped.branch) === "");
 	assert.equal(await w.push(failing.branch), `github: pushed ${failing.branch} to origin: [new branch]`);
 	w.merge(failing.branch);
 	writeFileSync(join(w.origin, "hooks", "pre-receive"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
-	assert.deepEqual(w.fake.host.jobs.prune([failing.id]), [`${failing.id}: worktree ${failing.worktree} removed; branch ${failing.branch} deleted; record deleted`]);
+	assert.deepEqual(await w.fake.host.jobs.prune([failing.id]), [`${failing.id}: worktree ${failing.worktree} removed; branch ${failing.branch} deleted; record deleted`]);
 	assert.equal(existsSync(failing.worktree), false);
 	await until("the failure's notice", () => w.notices().includes(`github: ${failing.branch} not deleted on origin: [remote rejected] (pre-receive hook declined)`));
 	assert.equal(w.tip(failing.branch), failing.tip);
@@ -211,7 +211,7 @@ test("a delete git failed (origin out of reach) is recorded and told once, retri
 		w.merge(each.branch);
 	}
 	writeFileSync(join(w.gate, "down"), "");
-	w.fake.host.jobs.prune([one.id, two.id]);
+	await w.fake.host.jobs.prune([one.id, two.id]);
 	const left = (job: { readonly branch: string }) => `github: ${job.branch} not deleted on origin, retrying: fatal: Could not read from remote repository.`;
 	await until("both told", () => w.notices().length === 2);
 	assert.deepEqual(w.notices(), [left(one), left(two)]);
@@ -257,7 +257,7 @@ test("a lease refused (origin's tip moved between the look and the delete) is to
 	w.merge(one.branch);
 	const main = w.tip("main");
 	writeFileSync(join(w.gate, "move"), `refs/heads/${one.branch} ${main}`);
-	w.fake.host.jobs.prune([one.id]);
+	await w.fake.host.jobs.prune([one.id]);
 	await until("the notice", () => w.notices().length === 1);
 	assert.deepEqual(w.notices(), [`github: ${one.branch} not deleted on origin: [rejected] (stale info)`]);
 	assert.equal(existsSync(join(w.fake.host.folder, "pending", one.id)), false);
@@ -272,11 +272,11 @@ test("a delete push git failed once origin was listed is retried: the connection
 		w.merge(each.branch);
 	}
 	writeFileSync(join(w.gate, "dropped"), "");
-	w.fake.host.jobs.prune([one.id]);
+	await w.fake.host.jobs.prune([one.id]);
 	await until("one told", () => w.notices().length === 1);
 	rmSync(join(w.gate, "dropped"));
 	w.reject("503 Service Unavailable");
-	w.fake.host.jobs.prune([two.id]);
+	await w.fake.host.jobs.prune([two.id]);
 	await until("two told", () => w.notices().length === 2);
 	assert.deepEqual(w.notices(), [
 		`github: ${one.branch} not deleted on origin, retrying: fatal: Could not read from remote repository.`,

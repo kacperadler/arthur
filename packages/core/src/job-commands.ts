@@ -43,10 +43,10 @@ export function jobCommands(home: () => string, jobs: () => JobRunner, emit: () 
 			return 1;
 		}),
 		{ ...command("jobs", 0, (_, { state }) => console.log(jobs().list(state)), { about: "every project's jobs by state, one line each, with the short id", reply: () => jobs().list() }), inJob: true },
-		command("prune", -1, (ids, { all }) => {
+		command("prune", -1, async (ids, { all }) => {
 			if (all === undefined && ids.length === 0) return usage("prune", "needs one or more ids, or --all for every finished job");
 			if (all !== undefined && ids.length > 0) return usage("prune", "--all takes no ids");
-			console.log(jobs().prune(all === undefined ? ids : "all").join("\n"));
+			console.log((await jobs().prune(all === undefined ? ids : "all")).join("\n"));
 		}),
 		command("stopall", 0, async () => console.log(await jobs().stopAll()), { about: "stop every running job of every project", reply: () => jobs().stopAll() }),
 	];

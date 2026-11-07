@@ -46,7 +46,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 			}
 			const { job, ticket, ...branch } = await locked(host, name, { unreviewed, decision, auto, ci: !noCi, held, stepSeconds });
 			const pushed = await Promise.all(host.collect<Promise<string>>("github.push", branch));
-			for (const line of [...(pushed.length > 0 ? pushed : ["nothing pushed: no plugin provides github.push"]), ...pruneTicket(host, branch.project, ticket, [job], false)]) console.log(line);
+			for (const line of [...(pushed.length > 0 ? pushed : ["nothing pushed: no plugin provides github.push"]), ...(await pruneTicket(host, branch.project, ticket, [job], false))]) console.log(line);
 			console.log(`\n${readFileSync(procedure, "utf8").trim()}`);
 		},
 	};

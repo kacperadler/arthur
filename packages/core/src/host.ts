@@ -53,7 +53,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const checked = await checkPlugins(config);
 	const record = join(config.core.home, "jobs", job ?? "", "project");
 	const own = job === undefined ? undefined : { id: job, project: existsSync(record) ? readFileSync(record, "utf8").trim() : "" };
-	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = envFileNames(job === undefined ? [config.core.envFile] : [], Object.assign({}, ...Object.values(values)));
+	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), hide = envFileNames(job === undefined ? [config.core.envFile] : [], Object.assign({}, ...Object.values(values))), secrets = [...new Set(hide.values)];
 	const skipped = new Set<string>();
 	for (const plugin of checked) if (unset.has(plugin.name) || plugin.requires?.some((name) => skipped.has(name))) skipped.add(plugin.name);
 	const sorted = checked.filter((plugin) => !skipped.has(plugin.name));

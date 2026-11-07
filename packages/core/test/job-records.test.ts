@@ -166,7 +166,7 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 	const dirty = await worker(jobs, home);
 	git(unmerged.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "work");
 	writeFileSync(join(dirty.worktree, "notes.txt"), "not committed\n");
-	const lines = jobs.prune("all");
+	const lines = await jobs.prune("all");
 	assert.equal(lines.length, 3);
 	assert.ok(lines.includes(`${dirty.id}: kept its worktree, branch and record: git worktree: fatal: '${dirty.worktree}' contains modified or untracked files, use --force to delete it`), lines.join("\n"));
 	assert.ok(lines.includes(`${merged.id}: worktree ${merged.worktree} removed; branch arthur/${merged.id} deleted; record deleted`), lines.join("\n"));
@@ -178,7 +178,50 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 	assert.deepEqual([existsSync(join(home, "jobs", dirty.id)), existsSync(join(dirty.worktree, "notes.txt"))], [true, true]);
 	// Once merged, a second prune finds the worktree gone and deletes the branch and the record.
 	git(root, "merge", "--quiet", "--ff-only", `arthur/${unmerged.id}`);
-	assert.deepEqual(jobs.prune([unmerged.id.slice(-8)]), [`${unmerged.id}: branch arthur/${unmerged.id} deleted; record deleted`]);
+	assert.deepEqual(await jobs.prune([unmerged.id.slice(-8)]), [`${unmerged.id}: branch arthur/${unmerged.id} deleted; record deleted`]);
+});
+
+test("jobs.cleanup: the hooks in setup order right before the worktree goes, their texts first in the line; a throw or the time limit is a notice and the worktree goes; a kept job calls none; a later prune calls them again", async () => {
+	const { root, home, jobs } = setup();
+	const [job, busy, dirty] = [await worker(jobs, home), await worker(jobs, home), await worker(jobs, home)];
+	const seen: string[] = [];
+	jobs.cleanup("docker", (each) => (seen.push(`docker ${each.id} ${each.machine} ${existsSync(each.worktree)}`), " 2 containers removed "));
+	jobs.cleanup("broken", () => {
+		seen.push("broken");
+		throw new Error("the daemon is down");
+	});
+	jobs.cleanup("slow", () => (seen.push("slow"), new Promise<string>(() => {})), 50);
+	// Nothing to say, or only blanks: no part in the line.
+	jobs.cleanup("quiet", () => void seen.push("quiet"));
+	jobs.cleanup("blank", async () => (seen.push("blank"), " \n"));
+	jobs.cleanup("last", async (each) => (seen.push("last"), `${each.kind} ${each.state} ${each.branch}`));
+	const calls = (id: string, there: boolean) => [`docker ${id} local ${there}`, "broken", "slow", "quiet", "blank", "last"];
+	// Kept before anything is removed: a job not ended, and a worktree whose config may name a program.
+	writeFileSync(join(home, "jobs", busy.id, "state"), "working");
+	git(root, "config", "filter.x.clean", "cat");
+	const planted = await jobs.prune([job.id, busy.id]);
+	assert.match(planted[0] ?? "", new RegExp(`^${job.id}: kept its worktree, branch and record: git worktree: `));
+	assert.deepEqual([planted[1], seen], [`${busy.id}: kept: it is working (finished), not ended`, []]);
+	git(root, "config", "--unset", "filter.x.clean");
+	git(job.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "work");
+	writeFileSync(join(dirty.worktree, "notes.txt"), "not committed\n");
+	const hooks = (id: string) => `docker: 2 containers removed; last: worker ended arthur/${id}`;
+	const [line = "", kept = ""] = await jobs.prune([job.id, dirty.id]);
+	assert.match(line, new RegExp(`^${job.id}: ${hooks(job.id)}; worktree ${job.worktree} removed; kept branch arthur/${job.id} and the record: git branch: `));
+	// Git keeps a worktree with changes after the hooks ran; their texts stay in the line.
+	assert.equal(kept, `${dirty.id}: ${hooks(dirty.id)}; kept its worktree, branch and record: git worktree: fatal: '${dirty.worktree}' contains modified or untracked files, use --force to delete it`);
+	assert.deepEqual(seen, [...calls(job.id, true), ...calls(dirty.id, true)]);
+	const notices = (id: string) => [
+		{ text: `prune of job ${id} on machine local: broken's cleanup gave up: the daemon is down; the prune went on without it` },
+		{ text: `prune of job ${id} on machine local: slow's cleanup gave up: no answer within 0.05 s; the prune went on without it` },
+	];
+	await until("four notices", () => events(home, "notice").length === 4);
+	assert.deepEqual(events(home, "notice"), [...notices(job.id), ...notices(dirty.id)]);
+	// Once merged, the next prune runs every hook again, the worktree already gone.
+	git(root, "merge", "--quiet", "--ff-only", `arthur/${job.id}`);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: ${hooks(job.id)}; branch arthur/${job.id} deleted; record deleted`]);
+	assert.deepEqual(seen.slice(12), calls(job.id, false));
+	assert.equal(events(home, "notice").length, 6);
 });
 
 test("arthur prune keeps a job's worktree, branch and record while the worktree reads a key that may name a program, from the shared config or its own", async () => {
@@ -196,20 +239,20 @@ test("arthur prune keeps a job's worktree, branch and record while the worktree 
 	const all = () => [existsSync(job.worktree), git(root, "branch", "--list", "--format=%(refname:short)", `arthur/${job.id}`), existsSync(join(home, "jobs", job.id)), existsSync(ran)];
 	git(root, "config", "filter.x.clean", filter);
 	utimesSync(join(job.worktree, "a"), old, old);
-	assert.deepEqual(jobs.prune([job.id]), kept(join(root, ".git", "config")));
+	assert.deepEqual(await jobs.prune([job.id]), kept(join(root, ".git", "config")));
 	assert.deepEqual(all(), [true, `arthur/${job.id}`, true, false], "the shared config's: everything kept, nothing run");
 	// The worktree's own config.worktree, which Git reads once `extensions.worktreeConfig` is on.
 	git(root, "config", "--unset", "filter.x.clean");
 	git(root, "config", "extensions.worktreeConfig", "true");
 	git(job.worktree, "config", "--worktree", "filter.x.clean", filter);
-	assert.deepEqual(jobs.prune([job.id]), kept(join(root, ".git", "worktrees", job.id, "config.worktree")));
+	assert.deepEqual(await jobs.prune([job.id]), kept(join(root, ".git", "worktrees", job.id, "config.worktree")));
 	assert.deepEqual(all(), [true, `arthur/${job.id}`, true, false], "the worktree's own: everything kept, nothing run");
 	git(job.worktree, "status", "--porcelain");
 	assert.match(readFileSync(ran, "utf8"), /^clean$/m, "git status in the worktree, which git worktree remove runs, runs it");
 	// A worktree gone leaves no `git status` to run: `git worktree prune` takes its place, the key still set.
 	rmSync(ran);
 	rmSync(job.worktree, { recursive: true, force: true });
-	assert.match(jobs.prune([job.id])[0] ?? "", new RegExp(`^${job.id}: kept branch arthur/${job.id} and the record: git branch: `));
+	assert.match((await jobs.prune([job.id]))[0] ?? "", new RegExp(`^${job.id}: kept branch arthur/${job.id} and the record: git branch: `));
 	assert.deepEqual(all(), [false, `arthur/${job.id}`, true, false], "the unmerged branch kept, nothing run");
 });
 
@@ -223,26 +266,26 @@ test("arthur prune keeps the worktree, branch and record of a job whose record n
 	const all = () => [existsSync(job.worktree), existsSync(other.worktree), git(root, "branch", "--list", "--format=%(refname:short)", "owner", `arthur/${job.id}`), existsSync(join(home, "jobs", job.id))];
 	// The owner's merged branch, which `git branch -d` would delete.
 	write("branch", "owner");
-	assert.deepEqual(jobs.prune([job.id]), kept(`its record names the branch owner, where the spawn made arthur/${job.id} or none`));
+	assert.deepEqual(await jobs.prune([job.id]), kept(`its record names the branch owner, where the spawn made arthur/${job.id} or none`));
 	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true]);
 	write("branch", `arthur/${job.id}`);
 	// Another job's clean worktree, which `git worktree remove` would remove, and a path Git never added, not there.
 	for (const worktree of [other.worktree, join(root, "..", "gone")]) {
 		write("worktree", worktree);
-		assert.deepEqual(jobs.prune([job.id]), kept(`its record names the checkout ${root} and the worktree ${worktree}, where a job of acme has ${root} and ${job.worktree}`));
+		assert.deepEqual(await jobs.prune([job.id]), kept(`its record names the checkout ${root} and the worktree ${worktree}, where a job of acme has ${root} and ${job.worktree}`));
 		assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true], worktree);
 	}
 	write("worktree", job.worktree);
 	// Another repository, the job's worktree there, then gone, which `git worktree prune` would follow there.
 	write("root", repository);
 	const moved = kept(`its record names the checkout ${repository}, where a job of acme has ${root}`);
-	assert.deepEqual(jobs.prune([job.id]), moved);
+	assert.deepEqual(await jobs.prune([job.id]), moved);
 	git(root, "worktree", "remove", job.worktree);
-	assert.deepEqual(jobs.prune([job.id]), moved);
+	assert.deepEqual(await jobs.prune([job.id]), moved);
 	assert.deepEqual(all(), [false, true, `arthur/${job.id}\nowner`, true]);
 	// Its spawn's own place again, the worktree gone: the prune Git decides, as before.
 	write("root", root);
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: branch arthur/${job.id} deleted; record deleted`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: branch arthur/${job.id} deleted; record deleted`]);
 	assert.deepEqual(all(), [false, true, "owner", false]);
 });
 
@@ -253,7 +296,7 @@ test("arthur prune keeps a branch that a replacement of main's tip under refs/re
 	// Main's tip read as a child of the branch's tip, as a job's git replace would write: `git branch -d` would take it as merged.
 	const fake = git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit-tree", "-p", git(job.worktree, "rev-parse", "HEAD"), "-m", "fake", "main^{tree}");
 	git(root, "replace", git(root, "rev-parse", "main"), fake);
-	assert.match(jobs.prune([job.id]).join("\n"), new RegExp(`kept branch arthur/${job.id} and the record: git branch: error: the branch 'arthur/${job.id}' is not fully merged`));
+	assert.match((await jobs.prune([job.id])).join("\n"), new RegExp(`kept branch arthur/${job.id} and the record: git branch: error: the branch 'arthur/${job.id}' is not fully merged`));
 	assert.equal(git(root, "branch", "--list", `arthur/${job.id}`), `arthur/${job.id}`);
 });
 
@@ -265,7 +308,7 @@ test("a spawn and a prune run no hook and no fsmonitor that the repository's sha
 	git(root, "config", "core.hooksPath", hooks);
 	git(root, "config", "core.fsmonitor", join(hooks, "fsmonitor"));
 	const job = await worker(jobs, home);
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${job.worktree} removed; branch arthur/${job.id} deleted; record deleted`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: worktree ${job.worktree} removed; branch arthur/${job.id} deleted; record deleted`]);
 	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
 	git(root, "worktree", "add", "--quiet", "-b", "control", join(temporaryFolder(), "control"));
 	assert.match(readFileSync(ran, "utf8"), /^reference-transaction$[^]*^post-checkout$/m, "a plain git call runs them");
@@ -298,7 +341,7 @@ test("arthur prune keeps a job that has not ended and a record a plugin's jobs.k
 	record(home, "2026-10-16-worker-0000000a", { state: "working", root: "/nowhere" }, NOW);
 	record(home, "2026-10-16-worker-0000000b", { state: "blocked", reason: "user: may I?" }, NOW);
 	record(home, "2026-10-16-worker-0000000c", { state: "ended", reason: "finished" }, NOW);
-	assert.deepEqual(jobs.prune(["0000000a", "0000000b", "0000000c", review.id]), [
+	assert.deepEqual(await jobs.prune(["0000000a", "0000000b", "0000000c", review.id]), [
 		"2026-10-16-worker-0000000a: kept: it is working, not ended",
 		"2026-10-16-worker-0000000b: kept: it is blocked (user: may I?), not ended",
 		"2026-10-16-worker-0000000c: kept: its record names no repository (root)",
@@ -308,16 +351,16 @@ test("arthur prune keeps a job that has not ended and a record a plugin's jobs.k
 	assert.equal(existsSync(review.worktree), false);
 	// A typo refuses the whole prune before anything is removed: a job named before it that a prune would free stays whole.
 	const free = await worker(jobs, home);
-	assert.throws(() => jobs.prune([free.id, "deadbeef"]), { message: `deadbeef: no such job in ${join(home, "jobs")}` });
+	await assert.rejects(jobs.prune([free.id, "deadbeef"]), { message: `deadbeef: no such job in ${join(home, "jobs")}` });
 	assert.deepEqual([existsSync(join(home, "jobs", free.id)), existsSync(free.worktree)], [true, true]);
-	assert.deepEqual(jobs.prune([free.id]), [`${free.id}: worktree ${free.worktree} removed; branch arthur/${free.id} deleted; record deleted`]);
+	assert.deepEqual(await jobs.prune([free.id]), [`${free.id}: worktree ${free.worktree} removed; branch arthur/${free.id} deleted; record deleted`]);
 });
 
 test("the runner's prune refuses an empty list and an empty id, and frees nothing: only \"all\" frees every finished job", async () => {
 	const { home, jobs } = setup();
 	const job = await worker(jobs, home);
-	assert.throws(() => jobs.prune([]), { message: 'prune needs one or more ids, or "all" for every finished job' });
-	assert.throws(() => jobs.prune([""]), { message: `: no such job in ${join(home, "jobs")}` });
+	await assert.rejects(jobs.prune([]), { message: 'prune needs one or more ids, or "all" for every finished job' });
+	await assert.rejects(jobs.prune([""]), { message: `: no such job in ${join(home, "jobs")}` });
 	assert.deepEqual([existsSync(join(home, "jobs", job.id)), existsSync(job.worktree)], [true, true]);
 });
 
@@ -326,7 +369,7 @@ test("a plugin's jobs.keep that throws ends the prune with its error, and the jo
 		throw new Error("delivery: the review limit is unreadable");
 	});
 	const job = await worker(jobs, home);
-	assert.throws(() => jobs.prune("all"), { message: "delivery: the review limit is unreadable" });
+	await assert.rejects(jobs.prune("all"), { message: "delivery: the review limit is unreadable" });
 	assert.deepEqual([existsSync(join(home, "jobs", job.id)), existsSync(job.worktree)], [true, false]);
 });
 

@@ -38,19 +38,19 @@ function removeTemporary(temp: string, before: number, uid: number): string[] {
 export async function cleanup(host: Pick<Host, "jobs" | "clock">, keepDays: number, temp: string, uid: number): Promise<void> {
 	const now = host.clock.now().getTime();
 	const failed: string[] = [];
-	const part = (what: string, run: () => readonly string[]) => {
+	const part = async (what: string, run: () => readonly string[] | Promise<readonly string[]>) => {
 		try {
-			for (const line of run()) console.log(`manage: ${line}`);
+			for (const line of await run()) console.log(`manage: ${line}`);
 		} catch (error) {
 			failed.push(`${what}: ${(error as Error).message}`);
 		}
 	};
-	part("the prune of old jobs", () => {
+	await part("the prune of old jobs", async () => {
 		// Ended `keepDays` days ago or longer, by when they took their state; a time that does not parse keeps the job.
 		const ids = host.jobs.list().flatMap((job) => (job.state === "ended" && Date.parse(job.since) <= now - keepDays * DAY_MS ? [job.id] : []));
-		return ids.length === 0 ? [] : host.jobs.prune(ids).map((line) => `prune: ${line}`);
+		return ids.length === 0 ? [] : (await host.jobs.prune(ids)).map((line) => `prune: ${line}`);
 	});
-	part("the temporary folders", () => {
+	await part("the temporary folders", () => {
 		// A day ago, or earlier when a job in a run began its current run before that, so nothing a running job made is touched:
 		// `seconds` holds its runs so far, the current one up to now, so `now - seconds` is never after the current run began.
 		const running = new Set(host.jobs.running());

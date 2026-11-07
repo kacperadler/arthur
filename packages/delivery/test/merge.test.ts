@@ -867,6 +867,7 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	// A key a job can write in the repository's config: no git call runs, every branch stays.
 	git(root, "config", "core.sshCommand", "/bin/false");
 	drop();
+	await until("the drop's lines", () => said.length > 0);
 	const planted = `${join(root, ".git", "config")} sets core.sshcommand, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
 	assert.equal(said.at(-1), `delivery: AC0001 dropped: kept every unmerged branch: ${planted}`);
 	assert.match(said.find((line) => line.includes(`${gone.id}:`)) ?? "", new RegExp(`^delivery: AC0001 dropped: ${gone.id}: kept branch ${gone.branch} and the record: git branch: error: `));
@@ -874,6 +875,7 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	git(root, "config", "--unset", "core.sshCommand");
 	said.length = 0;
 	drop();
+	await until("the drop's lines", () => said.length > 0);
 	// The jobs come in the order `arthur jobs` lists them, newest first; spawned in the same millisecond, either.
 	assert.deepEqual(said.slice(-4).sort(), [
 		`delivery: AC0001 dropped: ${gone.branch} deleted, not merged: AC0001 is dropped`,
@@ -891,6 +893,7 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	// The project's drop finds its job; with the project gone from the list, no checkout now to check its record against: everything kept, no branch forced.
 	said.length = 0;
 	drop("gone");
+	await until("the drop's line", () => said.length > 0);
 	assert.equal(said.join("\n"), `delivery: AC0001 dropped: ${orphan.id}: kept its worktree, branch and record: unknown project gone; projects: acme`);
 	assert.deepEqual(exists()[4], [true, true]);
 	said.length = 0;
@@ -905,6 +908,29 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	assert.deepEqual(exists()[7], [false, false]);
 });
 
+test("a dropped ticket's prune that rejects is logged, from the drop and from the end of a job it kept in a run, and arthur run goes on", async (t) => {
+	const { fake, worker, ended } = await load(t);
+	const job = await worker();
+	const gate = join(temporaryFolder(), "gate");
+	process.env.PATH = `${dirname(fakeAgent({ steps: [{ waitFor: gate }, { message: "done" }] }))}${delimiter}${process.env.PATH}`;
+	const running = await fake.host.jobs.spawn({ task: `Ticket: ${TICKET}` });
+	t.after(() => writeFileSync(gate, ""));
+	fake.provide("jobs.keep", () => {
+		throw new Error("the keep is unreadable");
+	});
+	const failed: string[] = [];
+	t.mock.method(console, "error", (text: string) => void failed.push(text));
+	t.mock.method(console, "log", () => undefined);
+	const moved = fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "dropped" });
+	await until("the drop's failure", () => failed.length > 0);
+	assert.deepEqual(failed, [`plugin delivery: handler of ticket-moved (event ${moved.seq}) failed: the keep is unreadable`]);
+	assert.equal(existsSync(job.worktree), false);
+	fake.host.board.move("AC0001", "dropped");
+	writeFileSync(gate, "");
+	await ended(running.id);
+	await until("the failure at its end", () => failed.includes("delivery: AC0001 dropped: the keep is unreadable"));
+});
+
 test("a dropped ticket's ended job whose record names another job's branch deletes no branch and says why", async (t) => {
 	const { root, fake, home, git, worker, aside } = await load(t);
 	const [liar, victim] = [await worker(), await aside("spec/features/AC0002-cart/ticket.md")];
@@ -914,6 +940,7 @@ test("a dropped ticket's ended job whose record names another job's branch delet
 	const said: string[] = [];
 	t.mock.method(console, "log", (text: string) => void said.push(text));
 	fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "dropped" });
+	await until("the drop's line", () => said.length > 0);
 	t.mock.restoreAll();
 	assert.deepEqual(said, [`delivery: AC0001 dropped: ${liar.id}: kept its worktree, branch and record: its record names the branch ${victim.branch}, where the spawn made ${liar.branch} or none`]);
 	assert.deepEqual([git(root, "branch", "--list", victim.branch), git(root, "branch", "--list", liar.branch), existsSync(join(home, "jobs", liar.id))], [victim.branch, liar.branch, true]);

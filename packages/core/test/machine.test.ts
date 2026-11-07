@@ -534,7 +534,7 @@ test("arthur steer, stop, continue and prune of a job on another machine run the
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", `failed: ${failed}`]);
 	assert.deepEqual(events(home, "job-ended").map((data) => data.reason), ["stopped", "finished", `failed: ${failed}`]);
 
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
 	assert.deepEqual([existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [false, false, false]);
 	assert.deepEqual([git(join(there, "repos/acme.git"), "branch", "--list"), git(root, "branch", "--list", "arthur/*")], ["", ""]);
 	for (const step of ["steer", "stop", "continue", "prune"]) assert.ok(calls().some((call) => call.includes(`'remote-job' '${step}'`)), step);
@@ -557,7 +557,7 @@ test("a spawn's push to another machine and a prune there run no hook and no fsm
 	await endedThere(there, second.id);
 	await jobs.sweep();
 	const removed = (id: string, branch = "") => `${id}: worktree ${join(there, "repos/.arthur-worktrees", id)} removed there; branch ${branch} deleted there; branch ${branch} deleted; record deleted`;
-	assert.deepEqual(jobs.prune([first.id, second.id]), [removed(first.id, first.branch), removed(second.id, second.branch)]);
+	assert.deepEqual(await jobs.prune([first.id, second.id]), [removed(first.id, first.branch), removed(second.id, second.branch)]);
 	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
 	git(repository, "worktree", "add", "--quiet", "-b", "control", join(temporaryFolder(), "control"), "refs/arthur/base");
 	assert.match(readFileSync(ran, "utf8"), /^reference-transaction$[^]*^post-checkout$/m, "a plain git call there runs them");
@@ -610,7 +610,7 @@ test("a prune there is refused, removing nothing, while the job's worktree there
 	const all = () => [existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id)), existsSync(ran)];
 	git(repository, "config", "filter.x.clean", filter);
 	utimesSync(join(worktree, "a"), old, old);
-	assert.deepEqual(jobs.prune([job.id]), [`${kept} ${join(repository, "config")} sets filter.x.clean, ${MAY_RUN}`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${kept} ${join(repository, "config")} sets filter.x.clean, ${MAY_RUN}`]);
 	assert.deepEqual(all(), [true, true, true, false], "the shared config's: everything kept, nothing run");
 	// The worktree's own config.worktree, which Git reads once `extensions.worktreeConfig` is on (core.bare moved, as commit-rules does).
 	git(repository, "config", "--unset", "filter.x.clean");
@@ -618,14 +618,14 @@ test("a prune there is refused, removing nothing, while the job's worktree there
 	git(repository, "config", "extensions.worktreeConfig", "true");
 	git(repository, "config", "--worktree", "core.bare", "true");
 	git(worktree, "config", "--worktree", "filter.x.clean", filter);
-	assert.deepEqual(jobs.prune([job.id]), [`${kept} ${join(repository, "worktrees", job.id, "config.worktree")} sets filter.x.clean, ${MAY_RUN}`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${kept} ${join(repository, "worktrees", job.id, "config.worktree")} sets filter.x.clean, ${MAY_RUN}`]);
 	assert.deepEqual(all(), [true, true, true, false], "the worktree's own: everything kept, nothing run");
 	git(worktree, "status", "--porcelain");
 	assert.match(readFileSync(ran, "utf8"), /^clean$/m, "git status in the worktree, which git worktree remove runs, runs it");
 	// A worktree gone there leaves no `git status` to run: `git worktree prune` takes its place, the key still set.
 	rmSync(ran);
 	rmSync(worktree, { recursive: true, force: true });
-	assert.match(jobs.prune([job.id])[0] ?? "", new RegExp(`^${job.id}: branch ${job.branch} deleted there; `));
+	assert.match((await jobs.prune([job.id]))[0] ?? "", new RegExp(`^${job.id}: branch ${job.branch} deleted there; `));
 	assert.deepEqual(all(), [false, false, true, false], "pruned there, nothing run");
 });
 
@@ -641,7 +641,7 @@ test("a prune there reads past a replacement under refs/replace in the repositor
 	const tree = execFileSync("git", ["-C", repository, "mktree"], { input: `100644 blob ${blob}\tx\n`, encoding: "utf8" }).trim();
 	git(repository, "replace", git(repository, "rev-parse", "refs/arthur/base"), git(repository, "-c", "user.name=t", "-c", "user.email=t@example.com", "commit-tree", "-m", "fake", tree));
 	const removed = `${job.id}: worktree ${join(there, "repos/.arthur-worktrees", job.id)} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`;
-	assert.deepEqual(jobs.prune([job.id]), [removed]);
+	assert.deepEqual(await jobs.prune([job.id]), [removed]);
 });
 
 test("a prune there keeps everything of a job whose record there names a branch or worktree its spawn did not make, and one here whose record names another checkout, saying why", async () => {
@@ -656,20 +656,20 @@ test("a prune there keeps everything of a job whose record there names a branch 
 	const all = () => [existsSync(worktree), existsSync(victim), git(repository, "branch", "--list", "--format=%(refname:short)", "owner", `arthur/${job.id}`), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))];
 	const kept = `${job.id}: kept its worktree, branch and record: `;
 	write(there, "branch", "owner");
-	assert.deepEqual(jobs.prune([job.id]), [`${kept}machine gpu: arthur remote-job prune: its record names the branch owner, where the spawn made arthur/${job.id} or none`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${kept}machine gpu: arthur remote-job prune: its record names the branch owner, where the spawn made arthur/${job.id} or none`]);
 	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true, true]);
 	write(there, "branch", `arthur/${job.id}`);
 	write(there, "worktree", victim);
-	assert.deepEqual(jobs.prune([job.id]), [`${kept}machine gpu: arthur remote-job prune: its record names the checkout ${repository} and the worktree ${victim}, where a job of acme has ${repository} and ${worktree}`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${kept}machine gpu: arthur remote-job prune: its record names the checkout ${repository} and the worktree ${victim}, where a job of acme has ${repository} and ${worktree}`]);
 	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true, true]);
 	write(there, "worktree", worktree);
 	// Here, the record's checkout is checked; its worktree is the one there.
 	const elsewhere = temporaryFolder();
 	write(home, "root", elsewhere);
-	assert.deepEqual(jobs.prune([job.id]), [`${kept}its record names the checkout ${elsewhere}, where a job of acme has ${root}`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${kept}its record names the checkout ${elsewhere}, where a job of acme has ${root}`]);
 	assert.deepEqual(all(), [true, true, `arthur/${job.id}\nowner`, true, true]);
 	write(home, "root", root);
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
 	assert.deepEqual(all(), [false, true, "owner", false, false]);
 });
 
@@ -744,7 +744,7 @@ test("offline past the grace: failed once, the worktree there kept; its end and 
 	assert.ok(read(home, job.id, "log").includes(`[arthur 2026-10-16T12:30:00.000Z] ${line}\n`));
 	assert.equal(read(there, job.id, "state"), "working", "the run there goes on");
 	assert.equal(git(worktree, "branch", "--show-current"), job.branch);
-	assert.match(jobs.prune([job.id])[0] ?? "", /: kept: it ended here while machine gpu did not answer; /);
+	assert.match((await jobs.prune([job.id]))[0] ?? "", /: kept: it ended here while machine gpu did not answer; /);
 
 	rmSync(join(machine, "refuse"));
 	await jobs.sweep();
@@ -774,11 +774,13 @@ test("prune never deletes a worktree on a machine it cannot reach, nor one Git r
 	assert.equal(await jobs.stopAll(), `${job.id}: stopped`);
 	assert.equal(read(home, job.id, "state"), "ended");
 	writeFileSync(join(machine, "refuse"), "");
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: kept its worktree, branch and record: ${UNREACHABLE}`]);
+	// The hooks run before the SSH that does not answer; their text stays in the line of what was kept.
+	jobs.cleanup("docker", () => "nothing to clean");
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: docker: nothing to clean; kept its worktree, branch and record: ${UNREACHABLE}`]);
 	rmSync(join(machine, "refuse"));
 	writeFileSync(join(worktree, "notes.txt"), "not committed\n");
-	assert.deepEqual(jobs.prune([job.id]), [
-		`${job.id}: kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree: fatal: '${worktree}' contains modified or untracked files, use --force to delete it`,
+	assert.deepEqual(await jobs.prune([job.id]), [
+		`${job.id}: docker: nothing to clean; kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree: fatal: '${worktree}' contains modified or untracked files, use --force to delete it`,
 	]);
 	assert.deepEqual([existsSync(join(worktree, "notes.txt")), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [true, true, true]);
 	const other = jobRunner(home, there, join(there, "env"), { timeoutMinutes: 1, budgetUsd: 1, idleMinutes: 1, offlineGraceMinutes: 1, unsandboxed: true, ...jobSlice }, "omp", clock("UTC", undefined), eventBus(home), () => []);
@@ -1226,7 +1228,7 @@ test("a block with stop on a job there stops its run there and holds it blocked 
 	await endedThere(there, job.id);
 });
 
-test("arthur stop ends a job there blocked on the user here, without SSH; arthur prune then frees it there and here", async () => {
+test("arthur stop ends a job there blocked on the user here, without SSH; arthur prune then frees it there and here, after jobs.cleanup saw it on its machine", async () => {
 	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Blocked: user is AR0455 met by AR0454?" }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "blocked");
@@ -1237,8 +1239,11 @@ test("arthur stop ends a job there blocked on the user here, without SSH; arthur
 	assert.deepEqual(events(home, "job-ended").map((data) => data.reason), ["user: is AR0455 met by AR0454?", "stopped"]);
 	assert.equal(calls().some((call) => call.includes("'remote-job' 'stop'")), false, "its state here is the one that counts");
 	const worktree = join(there, "repos/.arthur-worktrees", job.id);
-	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
+	const seen: string[] = [];
+	jobs.cleanup("docker", (each) => (seen.push(`${each.id} on ${each.machine}, its worktree there ${existsSync(worktree)}`), "1 network removed"));
+	assert.deepEqual(await jobs.prune([job.id]), [`${job.id}: docker: 1 network removed; worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
 	assert.deepEqual([existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [false, false, false]);
+	assert.deepEqual(seen, [`${job.id} on gpu, its worktree there true`]);
 });
 
 test("jobs.limits' feature must name its slice in letters and digits, or the spawn is refused before anything exists", async () => {

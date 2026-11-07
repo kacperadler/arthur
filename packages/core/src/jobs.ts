@@ -9,6 +9,7 @@ import { type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { addThere, LOCAL, type Machine, machineRegistry, reach, removeThere, type Requires } from "./job-machine.ts";
 import { type Kind, kindRegistry } from "./job-kinds.ts";
+import { type Cleanup, jobCleanup } from "./job-cleanup.ts";
 import { extensionPath, newJob, writeRecord } from "./job-record.ts";
 import { jobUpkeep } from "./job-records.ts";
 import type { Jobs } from "./host-jobs.ts";
@@ -68,8 +69,10 @@ export type Started = Job & { readonly warnings: readonly string[]; readonly fai
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
 export type Prepare = (job: Job, env: Readonly<Record<string, string>>, continued: boolean) => void | Readonly<Record<string, string>> | Promise<void | Readonly<Record<string, string>>>;
 
-// The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for; `sweep`: dead jobs here, then the copy from every other machine.
+// The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for,
+// after its `jobs.cleanup` hooks ran, each within `limitMs` (job-cleanup.ts); `sweep`: dead jobs here, then the copy from every other machine.
 export type JobRunner = Omit<ReturnType<typeof jobUpkeep>, "sweep"> & { sweep(): Promise<void> } & Pick<Jobs, "spawn" | "run" | "machines" | "home" | "slice" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
+	cleanup(owner: string, fn: Cleanup, limitMs?: number): void;
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -85,8 +88,8 @@ export type JobRunner = Omit<ReturnType<typeof jobUpkeep>, "sweep"> & { sweep():
 export function jobRunner(home: string, folder: string, envFile: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number; readonly unsandboxed: boolean }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const [kinds, roles, machines] = [kindRegistry(), roleRegistry(), machineRegistry(home)];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
-	const [checks, prepares, extensions] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[]];
-	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of, (project) => where(project).root);
+	const [checks, prepares, extensions, hooks] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[], jobCleanup(bus)];
+	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of, (project) => where(project).root, hooks.run);
 	const prepared = async (job: Job, continued: boolean) => {
 		const env: Record<string, string> = {};
 		for (const { owner, fn } of prepares) Object.assign(env, jobEnv(owner, await pluginStep(owner, "prepare", () => fn(job, { ...env }, continued))));
@@ -101,6 +104,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		registerExtension: (url) => void extensions.push(extensionPath(url)),
 		beforeSpawn: (owner, check) => checks.add(owner, check),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
+		cleanup: hooks.add,
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv, limitSeconds, input) => machines.run(machine, argv, limitSeconds, input),
 		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],

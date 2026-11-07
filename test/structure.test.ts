@@ -13,11 +13,11 @@ const BUDGETS = {
 
 	"commit-rules": 184,
 
-	core: 7387,
+	core: 7438,
 
 	"core/testing": 405,
 
-	delivery: 2219,
+	delivery: 2220,
 
 	develop: 760,
 

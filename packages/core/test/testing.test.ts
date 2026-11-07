@@ -122,6 +122,11 @@ test("the fake host records the kinds and roles a plugin registers and spawns on
 	const prompt = readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "prompt"), "utf8");
 	assert.match(prompt, /^# Reviewer\n\nJudge the branch.\n\n## Every job\n\n[^]*\n\nCommit rules for the reviewer.\n$/);
 	assert.equal(readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "task"), "utf8"), "Review.");
+	// A plugin's cleanup hook runs as that plugin, named in the prune's line, once the job ended.
+	fake.host.jobs.cleanup((each) => `${each.id} cleaned on ${each.machine}`);
+	await until("the review's end", () => fake.host.jobs.list().find((each) => each.id === job.id)?.state === "ended");
+	const [line = ""] = await fake.host.jobs.prune([job.id]);
+	assert.ok(line.startsWith(`${job.id}: delivery: ${job.id} cleaned on local; kept its worktree, branch and record: git worktree: `), line);
 	const alone = fakeHost({ name: "delivery" });
 	await assert.rejects(alone.host.jobs.spawn({ task: "Review." }), { message: /is not in a Git repository/ });
 });

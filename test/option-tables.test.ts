@@ -3,6 +3,8 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { activity } from "@arthur/activity";
+import * as activityFile from "@arthur/activity/options";
 import { commitRules } from "@arthur/commit-rules";
 import * as commitRulesFile from "@arthur/commit-rules/options";
 import { loadConfig } from "@arthur/core";
@@ -81,6 +83,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	listen: [listenFile, listen()],
 	video: [videoFile, video()],
 	stats: [statsFile, stats()],
+	activity: [activityFile, activity()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one

@@ -222,14 +222,14 @@ test("a key that may name a program, set in the repository's config while the ch
 });
 
 test("the commit-msg script main's package.json declares checks the spec: commit, its paths staged, first: a refusal or a path changed while it ran leaves them uncommitted and unpushed, the merge in; a clean outcome is committed and pushed", async (t) => {
-	// The project's own check, as a commit-msg hook: on nvm's PATH, the message in the file it is handed, then each staged file naming web-shop refused.
+	// The project's own check, as a commit-msg hook: on nvm's PATH (the PATH as it is when nvm answers none, the `touch` case), the message in the file it is handed, then each staged file naming web-shop refused.
 	const nvm = temporaryFolder();
-	const vet = `const { spawnSync } = require("node:child_process");\nconst fs = require("node:fs");\nif (!process.env.PATH.split(${JSON.stringify(delimiter)}).includes(${JSON.stringify(nvm)})) { console.error("not nvm's PATH"); process.exit(1); }\nif (fs.readFileSync(process.argv[2], "utf8") !== "spec: AC0001 merged\\n") { console.error("not the message"); process.exit(1); }\nif (fs.existsSync("touch")) fs.appendFileSync("CHANGELOG.md", "\\n");\nconst named = spawnSync("git", ["grep", "--cached", "-l", "-F", "-e", ["web", "shop"].join("-")], { encoding: "utf8" }).stdout.trim().split("\\n").filter(Boolean);\nfor (const file of named) console.error(\`commit refused: \${file}: names the project\`);\nprocess.exit(named.length > 0 ? 1 : 0);\n`;
+	const vet = `const { spawnSync } = require("node:child_process");\nconst fs = require("node:fs");\nif (!fs.existsSync("touch") && !process.env.PATH.split(${JSON.stringify(delimiter)}).includes(${JSON.stringify(nvm)})) { console.error("not nvm's PATH"); process.exit(1); }\nif (fs.readFileSync(process.argv[2], "utf8") !== "spec: AC0001 merged\\n") { console.error("not the message"); process.exit(1); }\nif (fs.existsSync("touch")) fs.appendFileSync("CHANGELOG.md", "\\n");\nconst named = spawnSync("git", ["grep", "--cached", "-l", "-F", "-e", ["web", "shop"].join("-")], { encoding: "utf8" }).stdout.trim().split("\\n").filter(Boolean);\nfor (const file of named) console.error(\`commit refused: \${file}: names the project\`);\nprocess.exit(named.length > 0 ? 1 : 0);\n`;
 	const merging = async (line: string, touch = false) => {
 		const { root, fake, git, worker, merge } = await load(t);
 		const pushed: string[] = [];
 		fake.provide("github.push", () => (pushed.push(git(root, "log", "-1", "--format=%s")), Promise.resolve("github: pushed main to origin: a..b")));
-		fake.provide("nvm.path", () => [nvm, process.env.PATH].join(delimiter));
+		fake.provide("nvm.path", () => (touch ? "" : [nvm, process.env.PATH].join(delimiter)));
 		const scripts = { ...JSON.parse(PACKAGE).scripts, "commit-msg": "node vet.js" };
 		const job = await worker({ "package.json": JSON.stringify({ scripts }), "vet.js": vet, ...(touch && { touch: "" }) }, `Ticket: ${TICKET}`, `Built.\n\n## What went in\n\n- ${line}\n`);
 		const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);

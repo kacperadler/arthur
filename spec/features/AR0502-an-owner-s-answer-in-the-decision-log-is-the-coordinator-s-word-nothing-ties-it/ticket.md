@@ -23,21 +23,31 @@ F4 of AR0404 (spec/features/AR0404-security-review-of-our-own-code-part-3-channe
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+An owner's answer that unlocks an unreviewed merge or a job with no cost limit is tied to a message he sent, so a steered or mistaken coordinator turn cannot record it.
+
+Evidence: `packages/orchestration/src/decision-log.ts:180-191`, `answer` takes `--decided` and the owner's words as free text; `packages/orchestration/src/decision-use.ts:38-46`, `--unreviewed` and `--budget 0` accept any answer that is not a policy's. `arthur decision` is refused only inside a job; the coordinator is outside every job. The `message-received` event (its `seq` in the event log) is never named by the answer.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `arthur decision answer` takes `--message <seq>` and records it. It is refused, with a message that says why, unless the event log holds a `message-received` of that `seq` from a channel, after the ask, whose text names the decision id.
+- `decision.owner` (`decision-use.ts`) accepts for `--unreviewed` and `--budget 0` only an answer recorded with such a `--message`.
+- A test of each refusal: no `--message`, an unknown `seq`, a message from before the ask, a message that does not name the id, and the accepted case; each fails when its check is removed.
+- `packages/orchestration/docs/commands/decision.md` and the coordinator's procedure say to pass `--message <seq>` when the owner's answer comes from a channel.
+- `npm run check`, `npm test` and `npm run mutate -- --max 25` pass on the clean tip.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/orchestration/src/decision-log.ts`, `decision-commands.ts`, `decision-use.ts`.
+- Their tests in `packages/orchestration/test/`.
+- `packages/orchestration/docs/commands/decision.md` and the coordinator role's line on recording answers.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Answers to other kinds of question, which keep working without `--message`.
+- The terminal, where the owner types `arthur decision answer` himself: it needs its own mark, to decide with the owner in a later ticket.
+- AR0482, the plan for the coordinator's own word on every decision-gated step.
 
 ## Decisions
 

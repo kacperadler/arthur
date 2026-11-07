@@ -3812,16 +3812,19 @@
   {
     "id": "AR0482",
     "title": "The coordinator writes the owner's answer itself, so every decision-gated step is its own word",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0482-the-coordinator-writes-the-owner-s-answer-itself-so-every-decision-gated-step-is/ticket.md",
-    "updated": "2026-10-27T08:05:34.424Z"
+    "updated": "2026-11-07T18:04:36.181Z",
+    "after": [
+      "AR0661"
+    ]
   },
   {
     "id": "AR0483",
     "title": "The coordinator, the agent that reads the most outside text, runs with no sandbox and no worktree guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0483-the-coordinator-the-agent-that-reads-the-most-outside-text-runs-with-no-sandbox/ticket.md",
-    "updated": "2026-10-27T08:05:34.429Z"
+    "updated": "2026-11-07T18:04:36.871Z"
   },
   {
     "id": "AR0484",
@@ -3833,16 +3836,16 @@
   {
     "id": "AR0485",
     "title": "A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0485-a-project-s-vision-ticket-titles-and-a-blocked-job-s-question-enter-the/ticket.md",
-    "updated": "2026-10-27T08:05:34.438Z"
+    "updated": "2026-11-07T18:04:37.537Z"
   },
   {
     "id": "AR0486",
     "title": "A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0486-a-finding-s-body-becomes-its-ticket-s-description-verbatim-which-the-worker/ticket.md",
-    "updated": "2026-10-27T08:05:34.443Z"
+    "updated": "2026-11-07T18:04:38.199Z"
   },
   {
     "id": "AR0487",
@@ -3950,9 +3953,9 @@
   {
     "id": "AR0499",
     "title": "A job writes the `review-needed` answer that `arthur merge` takes as a PASS",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0499-a-job-writes-the-review-needed-answer-that-arthur-merge-takes-as-a-pass/ticket.md",
-    "updated": "2026-10-27T12:19:47.659Z"
+    "updated": "2026-11-07T18:05:08.500Z"
   },
   {
     "id": "AR0500",
@@ -3974,9 +3977,9 @@
   {
     "id": "AR0502",
     "title": "An owner's answer in the decision log is the coordinator's word: nothing ties it to a message the owner sent",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0502-an-owner-s-answer-in-the-decision-log-is-the-coordinator-s-word-nothing-ties-it/ticket.md",
-    "updated": "2026-10-27T12:19:47.672Z"
+    "updated": "2026-11-07T18:05:09.302Z"
   },
   {
     "id": "AR0503",
@@ -4061,9 +4064,9 @@
   {
     "id": "AR0513",
     "title": "Credentials outside `~/.ssh` and the env file still reach origin from a job",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0513-credentials-outside-ssh-and-the-env-file-still-reach-origin-from-a-job/ticket.md",
-    "updated": "2026-10-27T13:31:11.653Z"
+    "updated": "2026-11-07T18:05:10.064Z"
   },
   {
     "id": "AR0514",
@@ -5091,16 +5094,16 @@
   {
     "id": "AR0632",
     "title": "arthur merge points XDG_CACHE_HOME at a fresh folder, so a project whose tests run Playwright finds no browser and every browser test fails",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0632-arthur-merge-points-xdg-cache-home-at-a-fresh-folder-so-a-project-whose-tests/ticket.md",
-    "updated": "2026-11-05T13:29:53.567Z"
+    "updated": "2026-11-07T18:04:41.066Z"
   },
   {
     "id": "AR0633",
     "title": "The umask test walks .arthur while the job still writes, and fails on a lock file that vanished",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0633-the-umask-test-walks-arthur-while-the-job-still-writes-and-fails-on-a-lock-file/ticket.md",
-    "updated": "2026-11-05T15:27:44.679Z"
+    "updated": "2026-11-07T18:04:41.851Z"
   },
   {
     "id": "AR0634",
@@ -5296,23 +5299,26 @@
   {
     "id": "AR0656",
     "title": "A worker is told before its run ends that its checks did not pass on its clean committed tip",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0656-a-worker-is-told-before-its-run-ends-that-its-checks-did-not-pass-on-its-clean/ticket.md",
-    "updated": "2026-11-06T21:40:20.085Z"
+    "updated": "2026-11-07T18:04:33.015Z",
+    "after": [
+      "AR0661"
+    ]
   },
   {
     "id": "AR0657",
     "title": "A reviewer does not file again what the ticket's findings.md already holds",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0657-a-reviewer-does-not-file-again-what-the-ticket-s-findings-md-already-holds/ticket.md",
-    "updated": "2026-11-06T21:40:21.112Z"
+    "updated": "2026-11-07T18:04:33.847Z"
   },
   {
     "id": "AR0658",
     "title": "`npm run mutate` ends by itself before the call's 1800 s, with its summary",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0658-npm-run-mutate-ends-by-itself-before-the-call-s-1800-s-with-its-summary/ticket.md",
-    "updated": "2026-11-06T21:40:22.174Z",
+    "updated": "2026-11-07T18:04:34.708Z",
     "after": [
       "AR0637"
     ]
@@ -5320,22 +5326,22 @@
   {
     "id": "AR0659",
     "title": "The README's Status paragraph stops copying the roadmap's state",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0659-the-readme-s-status-paragraph-stops-copying-the-roadmap-s-state/ticket.md",
-    "updated": "2026-11-06T21:40:24.101Z"
+    "updated": "2026-11-07T18:04:35.464Z"
   },
   {
     "id": "AR0660",
     "title": "The model test reads every file of a job folder while the job still writes, and fails on a lock file that vanished",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0660-the-model-test-reads-every-file-of-a-job-folder-while-the-job-still-writes-and/ticket.md",
-    "updated": "2026-11-07T12:37:31.220Z"
+    "updated": "2026-11-07T18:04:42.654Z"
   },
   {
     "id": "AR0661",
     "title": "The retro page uses the report style, like the pyramid and repeats pages",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0661-the-retro-page-uses-the-report-style-like-the-pyramid-and-repeats-pages/ticket.md",
-    "updated": "2026-11-07T17:52:58.090Z"
+    "updated": "2026-11-07T18:04:32.210Z"
   }
 ]

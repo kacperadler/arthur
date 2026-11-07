@@ -23,21 +23,31 @@ F1 of AR0404 (spec/features/AR0404-security-review-of-our-own-code-part-3-channe
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A worker's unreviewed branch cannot reach main by writing the `review-needed` answer itself: `arthur merge` reads that answer only from a folder no job may write.
+
+Evidence: `packages/delivery/src/merge-command.ts:170-176` reads `<home>/delivery/<job>/review-needed` and takes `no review…` for the tip as a PASS; `packages/core/src/job-sandbox.ts:72` grants each job `<home>/<plugin>/<job>`. Probe P1 of AR0404: after one write of `{"answer":"no review: …","commit":"<tip>"}` there, a plain `arthur merge <job>` merged the branch.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `arthur review-needed` writes its answer to `<home>/delivery/review-needed/<job>.json`, a folder the sandbox does not grant; `arthur merge` reads it only from there.
+- A test in `packages/delivery/test/merge.test.ts`: an answer written in the job's own folder `<home>/delivery/<job>/review-needed` is no PASS, and `arthur merge` refuses `no PASS on …'s tip`; it fails on today's code.
+- The `checks` file stays where it is, documented as the job's own word.
+- `packages/delivery/docs/commands/review-needed.md` names the new place.
+- `npm run check`, `npm test` and `npm run mutate -- --max 25` pass on the clean tip.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/review-needed.ts`: where the answer is written.
+- `packages/delivery/src/merge-command.ts`: where it is read.
+- `packages/delivery/test/merge.test.ts`, `packages/delivery/test/review-needed.test.ts`.
+- `packages/delivery/docs/commands/review-needed.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The `checks` file and the sandbox's grants for other plugins.
+- AR0502 (an owner's answer tied to his message).
 
 ## Decisions
 

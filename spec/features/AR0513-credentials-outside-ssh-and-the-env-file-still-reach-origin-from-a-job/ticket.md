@@ -20,21 +20,29 @@ F2 of AR0508 (spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-ke
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A job cannot read a Git or GitHub credential kept outside `~/.ssh` and the env file, so it cannot push to origin past `arthur merge`.
+
+Evidence: `packages/core/src/job-sandbox.ts:79-82` (`hidden`) hides only the env file and `~/.ssh`; `docs/deploy.md:44` names other stores as still readable: `~/.git-credentials` (Git's `store` helper), `$XDG_CONFIG_HOME/git/credentials` (default `~/.config/git/credentials`) and `gh`'s token in `~/.config/gh/hosts.yml`. AR0508 showed a readable credential lets a job push over the network.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The job sandbox also hides `~/.git-credentials`, `$XDG_CONFIG_HOME/git/credentials` (or `~/.config/git/credentials`) and `~/.config/gh`, each whether it exists or not.
+- A test per store, as the AR0508 one: a job cannot read it; each fails when its entry is removed.
+- `docs/deploy.md:44` says these are hidden, and names what stays readable (a key an `IdentityFile` names outside `~/.ssh`) with the advice to keep none for Arthur's user.
+- `npm run check`, `npm test` and `npm run mutate -- --max 25` pass on the clean tip.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts`: the `hidden` list.
+- Its test in `packages/core/test/`.
+- `docs/deploy.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The network: a job's outgoing connections stay as they are.
+- The coordinator's own access (AR0483).
 
 ## Decisions
 

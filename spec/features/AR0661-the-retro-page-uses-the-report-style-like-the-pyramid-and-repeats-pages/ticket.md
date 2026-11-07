@@ -46,4 +46,5 @@ Out:
 - The retro's report text and its role; the pyramid and repeats pages beyond what sharing the renderer needs; a new style.
 
 ## Decisions
+- 2026-11-07: AR0661 approved: retro page in the report style, started tomorrow, first in the queue; the owner: "AR-D553 - 1" (AR-D553)
 

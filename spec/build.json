@@ -5119,9 +5119,9 @@
   {
     "id": "AR0636",
     "title": "A committed plan names the public IP addresses of the owner deploy host and this VPS",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0636-a-committed-plan-names-the-public-ip-addresses-of-the-owner-deploy-host-and-this/ticket.md",
-    "updated": "2026-11-06T11:31:26.383Z"
+    "updated": "2026-11-07T03:03:38.632Z"
   },
   {
     "id": "AR0637",
@@ -5133,9 +5133,9 @@
   {
     "id": "AR0638",
     "title": "host.secrets holds only enabled plugins values, so the public decision log misses other env file values",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0638-host-secrets-holds-only-enabled-plugins-values-so-the-public-decision-log-misses/ticket.md",
-    "updated": "2026-11-06T11:31:28.311Z"
+    "updated": "2026-11-07T02:47:30.218Z"
   },
   {
     "id": "AR0639",

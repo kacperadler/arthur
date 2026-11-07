@@ -35,4 +35,5 @@ Out:
 - A change to the job sandbox; `docker.project({ service })`.
 
 ## Decisions
+- 2026-11-07: AR0644 worker budget $8 -> $12 to resolve its merge conflicts, under the owner order to fix what cannot merge; the owner: "if you cant merge something check why and fix that on github" (AR-D543)
 

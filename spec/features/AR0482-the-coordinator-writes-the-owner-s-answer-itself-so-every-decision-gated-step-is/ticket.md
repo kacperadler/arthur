@@ -45,3 +45,5 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0403
+- 2026-11-08: No decisions from terminal sessions; only channel messages count; the owner: "No decisions in terminal sessions" (AR-D560)
+- 2026-11-08: Plan approved by the owner: plan.md at 2f6f3959 (A then E; no terminal decisions; sandbox not now); the owner: "by recommendation: G10205" (AR-D561)

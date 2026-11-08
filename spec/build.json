@@ -3812,9 +3812,9 @@
   {
     "id": "AR0482",
     "title": "The coordinator writes the owner's answer itself, so every decision-gated step is its own word",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0482-the-coordinator-writes-the-owner-s-answer-itself-so-every-decision-gated-step-is/ticket.md",
-    "updated": "2026-11-07T18:04:36.181Z",
+    "updated": "2026-11-08T21:14:49.133Z",
     "after": [
       "AR0661"
     ]
@@ -5357,5 +5357,22 @@
     "status": "planning",
     "path": "spec/features/AR0663-a-bare-in-report-page-text-becomes-bold-so-globs-and-code-lose-it/ticket.md",
     "updated": "2026-11-08T20:42:18.664Z"
+  },
+  {
+    "id": "AR0664",
+    "title": "arthur decision answer needs the owner own channel message, and high-impact answers name the decision id",
+    "status": "planning",
+    "path": "spec/features/AR0664-arthur-decision-answer-needs-the-owner-own-channel-message-and-high-impact/ticket.md",
+    "updated": "2026-11-08T21:14:49.913Z"
+  },
+  {
+    "id": "AR0665",
+    "title": "Ticket approval and a plain merge need a recorded owner decision",
+    "status": "planning",
+    "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
+    "updated": "2026-11-08T21:14:50.693Z",
+    "after": [
+      "AR0664"
+    ]
   }
 ]

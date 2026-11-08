@@ -25,6 +25,13 @@ const TESTS = {
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const mutate = (root: string, ...args: string[]) => spawnSync(process.execPath, [MUTATE, ...args], { cwd: root, encoding: "utf8" });
 
+// mutate with Date.now, as mutate.ts reads it, `skip` ms later than the clock after its first read, the one that sets the deadline.
+function late(root: string, skip: number, ...args: string[]) {
+	const clock = join(temporaryFolder(), "clock.mjs");
+	writeFileSync(clock, `const real = Date.now;\nlet reads = 0;\nDate.now = () => real() + (new Error().stack.includes("/mutate.ts:") && reads++ > 0 ? ${skip} : 0);\n`);
+	return spawnSync(process.execPath, ["--import", clock, MUTATE, ...args], { cwd: root, encoding: "utf8" });
+}
+
 // A repository whose main holds the tests, a first limit.ts and notes.ts, and whose branch `work`, checked out, changes
 // limit.ts to LIMIT, adds only a comment and a type to notes.ts, and adds a line to a test file: no mutant of either.
 function repo(tests: Readonly<Record<string, string>> = TESTS): string {
@@ -76,6 +83,34 @@ test("--max caps the mutants run and says how many were not; a wrong argument is
 		assert.deepEqual([wrong.stdout, wrong.stderr, wrong.status], ["", "mutate: usage: npm run mutate [-- --max <n>]\n", 2], args.join(" "));
 	}
 	assert.equal(existsSync(join(root, "far.ran")), false);
+});
+
+test("past the deadline no mutant starts, and the summary counts those left as not run (time), before --max's", () => {
+	const root = repo();
+	const all = late(root, 1_500_000);
+	assert.deepEqual([all.stdout, all.stderr, all.status], ["mutate: 0 mutants, 0 caught, 0 survived; 12 not run (time)\n", "", 0]);
+	const capped = late(root, 1_500_000, "--max", "2");
+	assert.deepEqual([capped.stdout, capped.status], ["mutate: 0 mutants, 0 caught, 0 survived; 2 not run (time); 10 not run (--max 2)\n", 0]);
+	assert.equal(existsSync(join(root, "far.ran")), false);
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
+});
+
+test("a mutant whose tests the deadline cuts is not run, not caught; its file is back and its tests stopped", async () => {
+	const blocks = `${HEAD}test("blocks", async () => {\n\twriteFileSync(new URL("../../../blocked.pid", import.meta.url), String(process.pid));\n\tawait new Promise(() => setInterval(() => {}, 1000));\n});\n`;
+	const root = repo({ ...TESTS, "packages/a/test/limit.test.ts": blocks });
+	// The deadline 2 s away once the run starts: the first mutant's same-name test blocks until it.
+	const run = late(root, 1_498_000);
+	assert.deepEqual([run.stdout, run.stderr, run.status], ["mutate: 0 mutants, 0 caught, 0 survived; 12 not run (time)\n", "", 0]);
+	assert.equal(readFileSync(join(root, "packages/a/src/limit.ts"), "utf8"), LIMIT);
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
+	await until("the blocked test process gone", () => {
+		try {
+			process.kill(Number(readFileSync(join(root, "blocked.pid"), "utf8")), 0);
+			return false;
+		} catch {
+			return true;
+		}
+	});
 });
 
 test("a capped run takes its mutants round-robin, the files' first, then each file's hunks' in turn, so it reaches every changed file", () => {

@@ -131,9 +131,9 @@ test("filed as spec/retro/<date>.md with its phone page; the next period starts 
 	const report = `# Retro 2026-10-21\n\n- Job: ${first.id}\n- Merges up to: ${first.base}\n\n## Final message\n\n${MESSAGE}`;
 	assert.equal(readFileSync(join(env.root, "spec/retro/2026-10-21.md"), "utf8"), report);
 	const page = readFileSync(join(env.root, "spec/retro/2026-10-21.html"), "utf8");
-	assert.match(page, /^<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Retro 2026-10-21<\/title><style>/);
-	assert.ok(page.includes("<body><h1>Retro 2026-10-21</h1><p>- Job: "), page);
-	assert.ok(page.includes("<h2>Period</h2><p>AC0001 &lt;merged&gt; &amp; went well.</p><h2>1. Say it twice</h2><p>Kind: cleanup</p><h2>Dead sentences</h2><p>none</p></body></html>\n"), page);
+	assert.match(page, /^<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Retro 2026-10-21<\/title><style>:root\{--ink:#0a0a0a;/);
+	assert.ok(page.includes(`<header>\n<h1>Retro 2026-10-21</h1>\n<ul>\n<li>Job: ${first.id}</li>\n<li>Merges up to: ${first.base}</li>\n</ul>\n</header>\n<main>\n`), page);
+	assert.ok(page.includes("<main>\n<h2>Period</h2>\n<p>AC0001 &lt;merged&gt; &amp; went well.</p>\n<h2>1. Say it twice</h2>\n<p>Kind: cleanup</p>\n<h2>Dead sentences</h2>\n<p>none</p>\n</main>\n</body></html>\n"), page);
 	assert.throws(() => env.jobs.file(undefined, first.id), { message: `${first.id} is already filed as spec/retro/2026-10-21.md` });
 	env.commit("the retro");
 	assert.equal((await env.command("retro-due")).out, `no retro due: 0 merges, 0 FAIL reviews and 0 findings since the last retro, ${first.base.slice(0, 12)} (spec/retro/2026-10-21.md); 10 merges needed`);
@@ -145,6 +145,36 @@ test("filed as spec/retro/<date>.md with its phone page; the next period starts 
 	assert.deepEqual(readdirSync(join(env.root, "spec/retro")).sort(), ["2026-10-21-2.html", "2026-10-21-2.md", "2026-10-21.html", "2026-10-21.md"]);
 	writeFileSync(join(env.root, "spec/retro/2026-10-21-2.md"), "# Retro\n\n- Merges up to: 0123456789abcdef0123456789abcdef01234567\n");
 	assert.match((await env.command("retro-due")).out, /^retro due: 20 merges, 2 FAIL reviews and 5 findings since the start \(0123456789ab of spec\/retro\/2026-10-21-2\.md is no commit of this repository\)$/);
+});
+
+// AR0661: the page of a retro is in the report style of .agents/arthur/criteria/report.md, its Markdown shown as formatting.
+test("a retro's page is in the report style: bullets as a list, one level in too, bold as strong, backticked spans as code", async (t) => {
+	const message = [
+		"## Period",
+		"- **What merged:** 2 tickets, `arthur retro-due` says so.",
+		"  - **AC0001 `src/a.ts`** went in",
+		"### Why",
+		"A `a ** b ** c` chip, and **a <b> & `c`** bold.",
+	].join("\n");
+	const env = await load(t, {}, { steps: [{ message }] });
+	const job = await env.jobs.spawn({ task: RETRO_TASK, kind: "retro" });
+	await env.ended(job.id);
+	env.jobs.file(undefined, job.id);
+	const page = readFileSync(join(env.root, "spec/retro/2026-10-21.html"), "utf8");
+	assert.ok(page.includes("<header>\n<h1>Retro 2026-10-21</h1>\n<ul>\n<li>Job: "), page);
+	assert.ok(
+		page.includes(
+			[
+				"<main>\n<h2>Period</h2>\n<ul>",
+				"<li><strong>What merged:</strong> 2 tickets, <code>arthur retro-due</code> says so.</li>",
+				'<li class="sub"><strong>AC0001 <code>src/a.ts</code></strong> went in</li>',
+				"</ul>\n<h3>Why</h3>",
+				"<p>A <code>a ** b ** c</code> chip, and <strong>a &lt;b&gt; &amp; <code>c</code></strong> bold.</p>\n</main>",
+			].join("\n"),
+		),
+		page,
+	);
+	assert.doesNotMatch(page.replaceAll("<code>a ** b ** c</code>", ""), /\*\*|<p>\s*-/, "no raw bold or bullet outside a code span");
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

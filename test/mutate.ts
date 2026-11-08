@@ -173,14 +173,14 @@ function members(body: string, klass: RegExpExecArray): string[] {
 }
 
 // Caught: a test run the mutant written over its file fails, tier by tier; the file's own bytes are back after it. Undefined
-// when `deadline` cut its tests first.
-async function killed(mutant: Mutant, deadline: number): Promise<boolean | undefined> {
+// when the run's `end` cut its tests first.
+async function killed(mutant: Mutant, end: number): Promise<boolean | undefined> {
 	const [path, bytes] = [join(root, mutant.file), readFileSync(join(root, mutant.file))];
 	kept = { path, bytes };
 	writeFileSync(path, mutant.text);
 	try {
 		for (const tier of tiers(mutant.file)) {
-			const passed = await passes(tier, deadline);
+			const passed = await passes(tier, end);
 			if (passed !== true) return passed === undefined ? undefined : true;
 		}
 		return false;
@@ -203,9 +203,9 @@ function tiers(file: string): string[][] {
 
 // Whether node --test passes on `tests` with the core's test kit, in a process group of its own, killed as the run ends; never
 // as the child of a node --test that runs this (NODE_TEST_CONTEXT), which would report to it and exit 0. Undefined when it
-// does not finish before `deadline` (spawn's timeout 0 would be none, so a passed one starts nothing).
-function passes(tests: readonly string[], deadline: number): Promise<boolean | undefined> {
-	const left = deadline - Date.now();
+// does not finish before `end` (spawn's timeout 0 would be none, so an `end` passed starts nothing).
+function passes(tests: readonly string[], end: number): Promise<boolean | undefined> {
+	const left = end - Date.now();
 	if (left <= 0) return Promise.resolve(undefined);
 	const child = spawn(process.execPath, ["--import", KIT, "--test", ...tests], { cwd: root, env: { ...process.env, NODE_TEST_CONTEXT: undefined }, detached: true, stdio: "ignore", timeout: Math.min(RUN_MS, left), killSignal: "SIGKILL" });
 	const { promise, resolve: done, reject } = Promise.withResolvers<boolean | undefined>();

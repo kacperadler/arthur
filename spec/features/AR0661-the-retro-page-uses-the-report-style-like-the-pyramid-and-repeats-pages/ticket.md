@@ -47,4 +47,5 @@ Out:
 
 ## Decisions
 - 2026-11-07: AR0661 approved: retro page in the report style, started tomorrow, first in the queue; the owner: "AR-D553 - 1" (AR-D553)
+- 2026-11-08: Start the AR0661 worker now; the other approved tickets follow one at a time; the owner: "AR-D555 yes" (AR-D555)
 

@@ -5340,9 +5340,9 @@
   {
     "id": "AR0661",
     "title": "The retro page uses the report style, like the pyramid and repeats pages",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0661-the-retro-page-uses-the-report-style-like-the-pyramid-and-repeats-pages/ticket.md",
-    "updated": "2026-11-07T18:04:32.210Z"
+    "updated": "2026-11-08T20:41:54.063Z"
   },
   {
     "id": "AR0662",

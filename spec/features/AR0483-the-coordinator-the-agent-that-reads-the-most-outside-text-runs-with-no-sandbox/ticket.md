@@ -45,3 +45,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F2 of AR0403
+- 2026-11-08: Plan approved by the owner: plan.md at 380bf9ad (Option 1 docs now, then Option 3 sandbox in steps after AR0664; Option 2 not built); the owner: "by recommendation: G10205" (AR-D562)

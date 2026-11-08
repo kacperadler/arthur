@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { temporaryFolder } from "@arthur/core/testing";
@@ -172,6 +172,16 @@ test("the reads run no fsmonitor the worktree's config names, nor read a replace
 	git("replace", git("rev-parse", "HEAD"), git("commit-tree", git("write-tree"), "-m", "replacement"));
 	assert.equal(git("status", "--porcelain", "--untracked-files=no"), "", "hidden by the replacement");
 	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\ntest pass 3/3 <commit> dirty\n");
+});
+
+test("the reads take no optional lock: an index whose stat data went stale is not rewritten", (t) => {
+	const { run, worktree } = load(t);
+	const index = join(worktree, ".git", "index");
+	utimesSync(join(worktree, "package.json"), new Date(1_000_000), new Date(1_000_000));
+	const before = statSync(index, { bigint: true });
+	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\n");
+	const after = statSync(index, { bigint: true });
+	assert.deepEqual([after.ino, after.mtimeNs], [before.ino, before.mtimeNs], "git status refreshes the index only when it may lock it");
 });
 
 test("calls that overlap are each recorded on the tree they began on, in either order of their ends; a result whose call was not seen is dirty", (t) => {

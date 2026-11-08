@@ -175,6 +175,7 @@ test("a retro's page is in the report style: bullets as a list, one level in too
 		page,
 	);
 	assert.doesNotMatch(page.replaceAll("<code>a ** b ** c</code>", ""), /\*\*|<p>\s*-/, "no raw bold or bullet outside a code span");
+	assert.match(page, /<style>[^<]*li\.sub\{margin-left:1\.5em;list-style:circle\}/, "an indented item is shown a level in");
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

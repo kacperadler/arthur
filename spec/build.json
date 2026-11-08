@@ -5350,5 +5350,12 @@
     "status": "planned",
     "path": "spec/features/AR0662-a-bash-timeout-of-0-in-a-job-runs-the-checks-with-1800-s-not-without-a-deadline/ticket.md",
     "updated": "2026-11-07T18:48:53.191Z"
+  },
+  {
+    "id": "AR0663",
+    "title": "A bare ** in report page text becomes bold, so globs and code lose it",
+    "status": "planning",
+    "path": "spec/features/AR0663-a-bare-in-report-page-text-becomes-bold-so-globs-and-code-lose-it/ticket.md",
+    "updated": "2026-11-08T20:42:18.664Z"
   }
 ]

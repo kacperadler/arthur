@@ -1121,3 +1121,4 @@
 {"record":"answer","id":"AR-D556","time":"2026-11-08T20:49:46+01:00","decided":"The newly approved tickets join yesterday counter of 16/32, no fresh counter","picked":2,"words":"D556 add"}
 {"record":"ask","id":"AR-D557","time":"2026-11-08T20:53:23+01:00","project":"arthur","kind":"budget","question":"How far may the approved queue run on its own, by weekly Claude usage?","options":["Until 85% of the 7-day Claude usage"],"recommend":1}
 {"record":"answer","id":"AR-D557","time":"2026-11-08T20:53:23+01:00","decided":"Work the approved queue, one at a time, until the 7-day Claude usage reaches 85%","picked":1,"words":"You have permission to go till 85% of weekly usage"}
+{"record":"ask","id":"AR-D558","time":"2026-11-08T21:42:17+01:00","project":"arthur","kind":"merge","question":"Merge AR0661 (retro page in the report style, review PASS at 85ed8ca) into main?","options":["Merge now (once CI passes)","Not yet"],"recommend":1,"ticket":"AR0661"}

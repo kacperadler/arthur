@@ -12,3 +12,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: mutate's summary now has two `not run` parts, `; <n> not run (time)` before `; <m> not run (--max <max>)`. The extension's regex `survived(?:; (\d+) not run)?` takes the first one only: `node -e` on `mutate: 10 mutants, 10 caught, 0 survived; 15 not run (time); 100 not run (--max 25)` gives run 10, survived 0, not run 15, the --max part dropped. The gate then needs min(25, 10 + 15) = 25 and refuses with `mutate capped at --max 10 (...)`, which names a cap nobody set [INFERENCE from review-command.ts:133-136, not run]. Whether a run the deadline cut opens the gate is the owner's call; today it does not, under a misleading reason.
 - Suggestion: read both parts in the extension (`<run> run, <survived> survived, <not run> not run` with the time count apart, or summed), and have the gate name a run cut by time as such, opening or refusing it as the owner decides. Out: mutate.ts itself.
 - Status: open
+
+## F2. A mutate run over test/mutate.ts still leaves a blocked fixture test running
+
+- Kind: test
+- Found by: 2026-11-08-worker-54bdf673 (worker), 2026-11-08
+- Where: `test/mutate.test.ts` (the signal test and the new deadline-cut test both block `packages/a/test/limit.test.ts`), `test/mutate.ts` (`passes` spawns it `detached`)
+- What: after each of this branch's two `npm run mutate` runs, one `node --test packages/a/test/limit.test.ts` group (two processes, parent pid 817) was still running in a `/tmp/arthur-test-*/tmp/folder-*` fixture, 2658 s and 958 s old when Arthur listed them; I killed both groups by hand. This is AR0637 F1 again: a mutant of `test/mutate.ts` that breaks its own group kill leaves the fixture's blocking test in a process group the outer run's kill does not reach. Which of the two blocking tests leaked each one was not determined; the deadline-cut test is a second test of that shape, so it may add a path [INFERENCE].
+- Suggestion: have the blocking fixture test end itself once its own parent test file is gone (for example, exit when `process.ppid` changes), so no mutant can leave it behind. Out: mutate.ts's logic.
+- Status: open

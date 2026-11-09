@@ -1,12 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { Command, Host } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
 import { branchOf, tipChecks, worker } from "./review-command.ts";
 
-// `arthur review-needed <worker job>` (spec/roadmap.md, entry 53): whether an ended worker's branch needs a review, by the
-// first rule that holds, its answer kept in `<folder>/<job>/review-needed`; on `no review` its ticket moved to done, its branch
+// `arthur review-needed <worker job>` (spec/roadmap.md, entry 53): whether an ended worker's branch needs a review, by the first rule that holds, its
+// answer kept in `<folder>/review-needed/<job>.json`, a folder no job's sandbox grants (AR0499); on `no review` its ticket moved to done, its branch
 // pushed (`github.push`, entry 58, when a plugin provides it) as after a PASS, and `no-review` emitted (pass-forward.ts). docs/commands/review-needed.md.
 
 const USAGE = "usage: arthur review-needed <worker job>";
@@ -38,13 +38,12 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 				if (ran.status !== 0) throw new Error(`git ${words.join(" ")} in ${root}: ${ran.stderr.trim().split("\n").at(-1) ?? `exit ${ran.status}`}`);
 				return ran.stdout.trim();
 			};
-			const folder = join(host.folder, job.id);
-			const checks = existsSync(join(folder, "checks")) ? readFileSync(join(folder, "checks"), "utf8") : "";
-			const answer = decide(git, base, tip, held, checks);
+			const [checks, kept] = [join(host.folder, job.id, "checks"), join(host.folder, "review-needed", `${job.id}.json`)];
+			const answer = decide(git, base, tip, held, existsSync(checks) ? readFileSync(checks, "utf8") : "");
 			if (answer.startsWith("no review")) host.board.move(ticket, "done");
-			mkdirSync(folder, { recursive: true });
-			writeFileSync(join(folder, ".review-needed"), `${JSON.stringify({ answer, ticket, branch: job.branch, commit: tip, at: Date.now() })}\n`);
-			renameSync(join(folder, ".review-needed"), join(folder, "review-needed"));
+			mkdirSync(dirname(kept), { recursive: true });
+			writeFileSync(`${kept}.${process.pid}`, `${JSON.stringify({ answer, ticket, branch: job.branch, commit: tip, at: Date.now() })}\n`);
+			renameSync(`${kept}.${process.pid}`, kept);
 			console.log(answer);
 			if (!answer.startsWith("no review")) return;
 			for (const line of [`${ticket} moves to done.`, ...(await Promise.all(host.collect<Promise<string>>("github.push", { project: job.project, branch: job.branch })))]) console.log(line);

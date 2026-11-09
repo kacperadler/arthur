@@ -61,7 +61,7 @@ async function locked(host: Host, name: string, mode: Mode) {
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	const [own, merging] = [join(host.folder, job.project), join(host.folder, job.project, "merging")];
 	mkdirSync(own, { recursive: true });
-	// A cache folder (the steps', below) that a merge killed before its `finally` left goes at a later merge's start once a day old; a younger one may be a running merge's (AR0470). Its `_` keeps every other folder here out: no project's name, job's id, `hand-backs`, `merge-runs` or `reviews` has one.
+	// A cache folder (the steps', below) that a merge killed before its `finally` left goes at a later merge's start once a day old; a younger one may be a running merge's (AR0470). Its `_` keeps every other folder here out: no project's name, job's id, `hand-backs`, `merge-runs`, `review-needed` or `reviews` has one.
 	spawnSync("find", [host.folder, "-mindepth", "1", "-maxdepth", "1", "-name", "cache_*", "-mmin", "+1440", "-exec", "rm", "-rf", "{}", "+"]);
 	const lock = takeLock(join(own, "merge.lock"));
 	if ("heldBy" in lock) throw new Error(`a merge of ${(existsSync(merging) && readFileSync(merging, "utf8").trim()) || `pid ${lock.heldBy}`} is in progress on ${job.project}`);

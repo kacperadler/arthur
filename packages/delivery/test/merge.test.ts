@@ -457,19 +457,25 @@ test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an ol
 	assert.deepEqual(owner, [{ ...asked, id: "" }, { ...asked, id: "AC-D9" }, { ...asked, id: OWNER }], "asked only with --unreviewed, of the job's ticket, for this merge");
 });
 
-test("arthur review-needed's no review for the tip is a PASS; for an older tip it is none", async (t) => {
+test("arthur review-needed's no review for the tip is a PASS; for an older tip, or written in the job's own folder, it is none; the merge's prune removes it", async (t) => {
 	const { fake, commit, worker, run, merge } = await load(t);
 	const job = await worker({ "docs.md": "# Docs\n" });
 	assert.equal((await run("review-needed", [job.id])).out, "no review: 1 file, all docs (*.md)\nAC0001 moves to done.");
+	const kept = join(fake.host.folder, "review-needed", `${job.id}.json`);
 	const tip = commit(job.worktree, { "more.md": "# More\n" });
 	const refused = new RegExp(`no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: no review of it has a verdict`);
 	assert.match((await merge(job.id)).err, refused);
+	// The job's own folder is its sandbox's to write (AR0499): the answer any program of the job could write there, for its very tip, is no PASS.
+	mkdirSync(join(fake.host.folder, job.id), { recursive: true });
+	writeFileSync(join(fake.host.folder, job.id, "review-needed"), `${JSON.stringify({ answer: "no review: 1 file, all docs (*.md)", ticket: "AC0001", branch: job.branch, commit: tip, at: 1 })}\n`);
+	assert.match((await merge(job.id)).err, refused, "an answer in the job's own folder is no `no review`");
 	await run("review-needed", [job.id]);
-	writeFileSync(join(fake.host.folder, job.id, "review-needed"), "{ broken");
+	writeFileSync(kept, "{ broken");
 	assert.match((await merge(job.id)).err, refused, "a broken answer is no `no review`");
 	await run("review-needed", [job.id]);
 	const merged = await merge(job.id);
 	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(existsSync(kept), false, "the merge's prune removes the job's answer");
 });
 
 test("a merge conflict leaves main as it was: no merge in progress, the ticket where it was", async (t) => {

@@ -5347,9 +5347,9 @@
   {
     "id": "AR0662",
     "title": "A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0662-a-bash-timeout-of-0-in-a-job-runs-the-checks-with-1800-s-not-without-a-deadline/ticket.md",
-    "updated": "2026-11-09T09:56:59.995Z"
+    "updated": "2026-11-09T10:40:57.584Z"
   },
   {
     "id": "AR0663",

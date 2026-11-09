@@ -79,8 +79,10 @@ export function reportPage(text: string, red: readonly string[] = []): string {
 	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too. An opening mark follows the
 	// line's start, a space, `(`, `[` or a quote, a closing one is followed by its end, a space, a closing bracket, a quote or a
 	// stop, and neither touches a space, `/` or `*` inside: `2 ** 3`, `**/*.ts`, `src/**/*.ts` and `a**b` stay as typed. A bold
-	// span holds no `**` outside its code spans, so a mark that cannot close ends it (`f(**kw) and **b**` bolds only `b`).
-	const spans = /`([^`]+)`|(?<![^\s([\x22\x27])\*\*(?=[^\s/*])((?:\x60[^\x60]+\x60|(?!\*\*).)+?)(?<=[^\s/*])\*\*(?![^\s)\]\x22\x27.,;:!?])/g;
+	// span holds no `**` outside its code spans, so a mark that cannot close ends it (`f(**kw) and **b**` bolds only `b`), and no
+	// `*` before its closing mark either; in it a backtick with another after it on the line opens a code span, a lone one is text.
+	const spans =
+		/`([^`]+)`|(?<![^\s([\x22\x27])\*\*(?=[^\s/*])((?:\x60[^\x60]+\x60|\x60(?![^\x60]*\x60)|(?!\*\*)[^\x60])+?)(?<=[^\s/])\*\*(?![^\s)\]\x22\x27.,;:!?])/g;
 	const inline = (line: string) =>
 		escape(line).replace(spans, (_, chip, bold) =>
 			chip !== undefined ? `<code>${chip}</code>` : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,

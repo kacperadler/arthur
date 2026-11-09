@@ -184,6 +184,7 @@ test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as
 	const lines = [
 		...["src/**/*.ts and test/**/*.ts", "**/*.ts and src/**/*.ts", "globs **/roles/** and .agents/**", "use **/*.ts or packages/**"],
 		...["const n = 2 ** 3 ** 2;", "** x** stays", "**x ** stays", "**x**y stays", "**x**/y stays", "**src/** stays", "**x*** stays", "a**b**c stays"],
+		...["see **/tmp** now", "***x** now"],
 	];
 	// Each line with the bold it gets: at each opening and closing neighbour, and only from the nearest mark that can open.
 	const bold = [
@@ -193,7 +194,10 @@ test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as
 		["f(**kw) and **bold**", "f(**kw) and <strong>bold</strong>"],
 		["pass **kwargs and **opts**", "pass **kwargs and <strong>opts</strong>"],
 		["**x**y and **z**", "**x**y and <strong>z</strong>"],
-		["**see `2 ** 3`** now", "<strong>see <code>2 ** 3</code></strong> now"],
+		["**see `6 ** 0`** now", "<strong>see <code>6 ** 0</code></strong> now"],
+		["**it's 6` 0 off** now", "<strong>it's 6` 0 off</strong> now"],
+		["**a `6` b ** c `0`** d", "**a <code>6</code> b ** c <code>0</code>** d"],
+		["**a `x** b`", "**a <code>x** b</code>"],
 	];
 	const page = reportPage([...lines, ...bold.map(([line]) => line), "## 1. P", "Before:", "> ```ts", "> const s = `${a} ** b` < c;", ">", "> ```", "> Then `x` and **y**."].join("\n"));
 	assert.ok(page.includes(`${[...lines, ...bold.map(([, html]) => html)].map((line) => `<p>${line}</p>`).join("\n")}\n`), page);
@@ -202,8 +206,8 @@ test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as
 	// only as many or more of its own marks with nothing after them close it.
 	const open = reportPage(["## 1. P", "Before:", ">    ```", "> `a` **b**", ">     ```", "> ```ts", "> ~~~", "After:", "> `a` **b**"].join("\n"));
 	assert.ok(open.includes('<p>`a` **b**\n    ```\n```ts\n~~~</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
-	const tildes = reportPage(["## 1. P", "Before:", "> ~~~~", "> **x**", "> ~~~", "> ~~~~~ ", "> `` **y**", "> ~~ **z**"].join("\n"));
-	assert.ok(tildes.includes("<p>**x**\n~~~\n`` <strong>y</strong>\n~~ <strong>z</strong></p></div>"), tildes);
+	const tildes = reportPage(["## 1. P", "Before:", "> ~~~~", "> **x**", "> ~~~", "> ~~~~~ ", "> ~~~", "> **v**", "> ~~~", "> `` **y**", "> ~~ **z**"].join("\n"));
+	assert.ok(tildes.includes("<p>**x**\n~~~\n**v**\n`` <strong>y</strong>\n~~ <strong>z</strong></p></div>"), tildes);
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

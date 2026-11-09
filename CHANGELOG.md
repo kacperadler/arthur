@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0485 A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked (4fa79860)
 - AR0486 A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth (14214a3f)
+- AR0499 A job writes the `review-needed` answer that `arthur merge` takes as a PASS (47fba13e)
 - AR0661 The retro page uses the report style, like the pyramid and repeats pages (7c4ba50c)
 
 ### Changed

@@ -54,8 +54,11 @@ async function preApprove(host: Host, id: string, asked: number | undefined, fal
 	if (source.length === 0) problems.push('it is not from a finding or an audit: no "- YYYY-MM-DD: Source: F<n> of <id>" or "Source: audit spec/quality/<file>.md" under its Decisions names one that exists');
 	const kind = section(text, "Goal").flatMap((line) => /^- Kind:(.*)$/.exec(line)?.[1]?.trim() || [])[0];
 	if (!KINDS.includes(kind ?? "")) problems.push(`its kind is ${kind ?? "missing (- Kind: under its Goal)"}; autopilot pre-approves only ${KINDS.join(" or ")}`);
-	// A guidance comment of the template names no file the ticket changes.
-	const scope = section(text.replace(/<!--[\s\S]*?-->/g, ""), "Scope");
+	// A guidance comment of the template states no Done means and names no file; a quoted line is a finding's (findings.onMerge), not the coordinator's own.
+	const plain = text.replace(/<!--[\s\S]*?-->/g, "");
+	if (section(plain, "Done means").every((line) => /^\s*(>|$)/.test(line)))
+		problems.push("its Done means is missing, the template's guidance or only a quote; state what the fix must do in your own words first");
+	const scope = section(plain, "Scope");
 	const out = scope.findIndex((line) => line.trim() === "Out:");
 	const spans = scope.slice(0, out < 0 ? undefined : out).flatMap((line) => Array.from(line.matchAll(/`([^`]+)`/g), (match) => (match[1] ?? "").replace(LINE, "")));
 	// A file is a backticked path without spaces that has a `/` or ends in `.<ext>`, each once.

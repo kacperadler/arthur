@@ -39,6 +39,19 @@ function runner(home: string, root: string, agent: string, provided: Readonly<Re
 
 const read = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
 const records = (home: string) => (existsSync(join(home, "jobs")) ? readdirSync(join(home, "jobs")) : []);
+// The files of a job's record that hold `text`. A file gone between the list and its read, as `state.lock` that each change of
+// the record holds a moment, held nothing (AR0660).
+function holding(home: string, id: string, text: string): string[] {
+	return readdirSync(join(home, "jobs", id), { withFileTypes: true }).flatMap((entry) => {
+		if (!entry.isFile()) return [];
+		try {
+			return read(home, id, entry.name).includes(text) ? [entry.name] : [];
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+			throw error;
+		}
+	});
+}
 async function ended(home: string, id: string): Promise<string> {
 	await until(`${id} to end`, () => existsSync(join(home, "jobs", id, "state")) && read(home, id, "state") === "ended");
 	return read(home, id, "reason");
@@ -104,8 +117,7 @@ test("a prepare's variables reach the agent's environment and each later prepare
 	assert.match(env(), /^OLLAMA_API_KEY=s3cr3t-key$/m);
 	assert.match(env(), /^OLLAMA_BASE_URL=http:\/\/10\.0\.0\.7:11434$/m, "a later prepare's variable wins");
 	assert.equal(read(home, job.id, "model"), "mac/qwen3");
-	const files = readdirSync(join(home, "jobs", job.id), { withFileTypes: true }).filter((entry) => entry.isFile());
-	assert.deepEqual(files.filter((entry) => read(home, job.id, entry.name).includes("s3cr3t-key")).map((entry) => entry.name), []);
+	assert.deepEqual(holding(home, job.id, "s3cr3t-key"), []);
 	assert.deepEqual(seen, [
 		{},
 		{ OLLAMA_BASE_URL: "http://127.0.0.1:11434", OLLAMA_API_KEY: "s3cr3t-key", ARTHUR_AGENT_MODEL: "ollama/qwen3" },
@@ -142,8 +154,7 @@ test("arthur continue runs the prepares again, told it is a continue: a provider
 	assert.match(env(), /^OLLAMA_BASE_URL=http:\/\/127\.0\.0\.1:11434$/m);
 	const at = { model: "mac/qwen3", worktree: job.worktree, tickets: [] };
 	assert.deepEqual(seen, [{ continued: false, ...at, budgetUsd: 2 }, { continued: true, ...at, budgetUsd: 3 }], "the job its record holds, with the continue's budget");
-	const files = readdirSync(join(home, "jobs", job.id), { withFileTypes: true }).filter((entry) => entry.isFile());
-	assert.deepEqual(files.filter((entry) => read(home, job.id, entry.name).includes("s3cr3t-key")).map((entry) => entry.name), []);
+	assert.deepEqual(holding(home, job.id, "s3cr3t-key"), []);
 	broken = true;
 	await assert.rejects(jobs.continue(job.id, "Once more."), { message: "plugin nvm: prepare failed: nvm is missing" });
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "continue"), args().length], ["ended", "Go on.", 2], "a refused continue starts nothing and leaves the record");

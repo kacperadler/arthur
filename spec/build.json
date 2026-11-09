@@ -4064,9 +4064,9 @@
   {
     "id": "AR0513",
     "title": "Credentials outside `~/.ssh` and the env file still reach origin from a job",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0513-credentials-outside-ssh-and-the-env-file-still-reach-origin-from-a-job/ticket.md",
-    "updated": "2026-11-07T18:05:10.064Z"
+    "updated": "2026-11-09T08:07:55.928Z"
   },
   {
     "id": "AR0514",

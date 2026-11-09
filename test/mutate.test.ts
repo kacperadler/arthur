@@ -26,12 +26,13 @@ const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd,
 const mutate = (root: string, ...args: string[]) => spawnSync(process.execPath, [MUTATE, ...args], { cwd: root, encoding: "utf8" });
 
 // mutate with a clock that, as mutate.ts reads it, stands still: its nth read is `offsets`' nth ms past the start, the last one
-// for each read after. The first read sets the deadline, each later one checks it: before a mutant, then before each tier.
+// for each read after. The first read sets the deadline, each later one checks it: before a mutant, then before each tier. A
+// run past 60 s is stopped (SIGTERM, no summary): a test run the deadline must cut in 2 s would else end at RUN_MS's 600 s.
 function late(root: string, offsets: readonly number[], ...args: string[]) {
 	const clock = join(temporaryFolder(), "clock.mjs");
 	const code = `const [real, start, at] = [Date.now, Date.now(), ${JSON.stringify(offsets)}];\nlet reads = 0;\n`;
 	writeFileSync(clock, `${code}Date.now = () => (new Error().stack.includes("/mutate.ts:") ? start + at[Math.min(reads++, at.length - 1)] : real());\n`);
-	return spawnSync(process.execPath, ["--import", clock, MUTATE, ...args], { cwd: root, encoding: "utf8" });
+	return spawnSync(process.execPath, ["--import", clock, MUTATE, ...args], { cwd: root, encoding: "utf8", timeout: 60_000 });
 }
 
 // A repository whose main holds the tests, a first limit.ts and notes.ts, and whose branch `work`, checked out, changes

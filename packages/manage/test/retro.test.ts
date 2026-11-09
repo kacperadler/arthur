@@ -185,14 +185,25 @@ test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as
 		...["src/**/*.ts and test/**/*.ts", "**/*.ts and src/**/*.ts", "globs **/roles/** and .agents/**", "use **/*.ts or packages/**"],
 		...["const n = 2 ** 3 ** 2;", "** x** stays", "**x ** stays", "**x**y stays", "**x**/y stays", "**src/** stays", "**x*** stays", "a**b**c stays"],
 	];
-	const bold = ["**x** is bold", '(**x**), "**y**", [**z**] and \'**v**\'; **w**.'];
-	const page = reportPage([...lines, ...bold, "## 1. P", "Before:", "> ```ts", "> const s = `${a} ** b` < c;", ">", "> ```", "> Then `x` and **y**."].join("\n"));
-	const strong = ["<p><strong>x</strong> is bold</p>", '<p>(<strong>x</strong>), "<strong>y</strong>", [<strong>z</strong>] and \'<strong>v</strong>\'; <strong>w</strong>.</p>'];
-	assert.ok(page.includes(`${[...lines.map((line) => `<p>${line}</p>`), ...strong].join("\n")}\n`), page);
+	// Each line with the bold it gets: at each opening and closing neighbour, and only from the nearest mark that can open.
+	const bold = [
+		["**x** is bold", "<strong>x</strong> is bold"],
+		['(**x**), "**y**", [**z**] and \'**v**\'; **w**.', '(<strong>x</strong>), "<strong>y</strong>", [<strong>z</strong>] and \'<strong>v</strong>\'; <strong>w</strong>.'],
+		["**a**, **b**; **c**: **d**! **e**? **f**", "<strong>a</strong>, <strong>b</strong>; <strong>c</strong>: <strong>d</strong>! <strong>e</strong>? <strong>f</strong>"],
+		["f(**kw) and **bold**", "f(**kw) and <strong>bold</strong>"],
+		["pass **kwargs and **opts**", "pass **kwargs and <strong>opts</strong>"],
+		["**x**y and **z**", "**x**y and <strong>z</strong>"],
+		["**see `2 ** 3`** now", "<strong>see <code>2 ** 3</code></strong> now"],
+	];
+	const page = reportPage([...lines, ...bold.map(([line]) => line), "## 1. P", "Before:", "> ```ts", "> const s = `${a} ** b` < c;", ">", "> ```", "> Then `x` and **y**."].join("\n"));
+	assert.ok(page.includes(`${[...lines, ...bold.map(([, html]) => html)].map((line) => `<p>${line}</p>`).join("\n")}\n`), page);
 	assert.ok(page.includes("<p>const s = `${a} ** b` &lt; c;\n\nThen <code>x</code> and <strong>y</strong>.</p>"), page);
-	// A fence left open ends with its column: the After's quote is formatted again. A fence indented up to 3 spaces is one too.
-	const open = reportPage(["## 1. P", "Before:", ">    ```", "> `a` **b**", ">     ```", "After:", "> `a` **b**"].join("\n"));
-	assert.ok(open.includes('<p>`a` **b**\n    ```</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
+	// A fence left open ends with its column: the After's quote is formatted again. A fence indented up to 3 spaces is one too;
+	// only as many or more of its own marks with nothing after them close it.
+	const open = reportPage(["## 1. P", "Before:", ">    ```", "> `a` **b**", ">     ```", "> ```ts", "> ~~~", "After:", "> `a` **b**"].join("\n"));
+	assert.ok(open.includes('<p>`a` **b**\n    ```\n```ts\n~~~</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
+	const tildes = reportPage(["## 1. P", "Before:", "> ~~~~", "> **x**", "> ~~~", "> ~~~~~ ", "> **y**"].join("\n"));
+	assert.ok(tildes.includes("<p>**x**\n~~~\n<strong>y</strong></p></div>"), tildes);
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

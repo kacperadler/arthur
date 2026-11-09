@@ -78,16 +78,19 @@ const TAGS: Readonly<Record<string, string>> = { codebase: "code", "static analy
 export function reportPage(text: string, red: readonly string[] = []): string {
 	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too. An opening mark follows the
 	// line's start, a space, `(`, `[` or a quote, a closing one is followed by its end, a space, a closing bracket, a quote or a
-	// stop, and neither touches a space, `/` or `*` inside: `2 ** 3`, `**/*.ts`, `src/**/*.ts` and `a**b` stay as typed.
+	// stop, and neither touches a space, `/` or `*` inside: `2 ** 3`, `**/*.ts`, `src/**/*.ts` and `a**b` stay as typed. A bold
+	// span holds no `**` outside its code spans, so a mark that cannot close ends it (`f(**kw) and **b**` bolds only `b`).
+	const spans = /`([^`]+)`|(?<![^\s([\x22\x27])\*\*(?=[^\s/*])((?:\x60[^\x60]+\x60|(?!\*\*).)+?)(?<=[^\s/*])\*\*(?![^\s)\]\x22\x27.,;:!?])/g;
 	const inline = (line: string) =>
-		escape(line).replace(/`([^`]+)`|(?<![^\s([\x22\x27])\*\*(?=[^\s/*])(.+?)(?<=[^\s/*])\*\*(?![^\s)\]\x22\x27.,;:!?])/g, (_, chip, bold) =>
+		escape(line).replace(spans, (_, chip, bold) =>
 			chip !== undefined ? `<code>${chip}</code>` : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,
 		);
 	const out: string[] = [];
 	let [side, section, quote] = ["", "", [] as string[]];
-	let fenced = false;
+	// The open fence of the side's quote, `""` for none.
+	let fence = "";
 	// The open side's quote and its end; `close` ends the pair too.
-	const column = () => void (out.push(`<p>${quote.splice(0).join("\n")}</p></div>`), (fenced = false));
+	const column = () => void (out.push(`<p>${quote.splice(0).join("\n")}</p></div>`), (fence = ""));
 	const close = () => {
 		if (side !== "") (column(), out.push("</div>"));
 		side = "";
@@ -100,8 +103,10 @@ export function reportPage(text: string, red: readonly string[] = []): string {
 			side = line.slice(0, -1);
 		} else if (side !== "" && (line.startsWith(">") || line.trim() === "")) {
 			const quoted = line.replace(/^> ?/, "");
-			if (/^ {0,3}\x60{3}/.test(quoted)) fenced = !fenced;
-			else if (line.startsWith(">")) quote.push(fenced ? escape(quoted) : inline(quoted));
+			// A fence opens with 3 or more backticks or tildes, and only as many or more of the same with nothing after close it.
+			const [, run = "", rest = ""] = /^ {0,3}(\x60{3,}|~{3,})(.*)$/.exec(quoted) ?? [];
+			if (run !== "" && (fence === "" || (run.startsWith(fence) && rest.trim() === ""))) fence = fence === "" ? run : "";
+			else if (line.startsWith(">")) quote.push(fence !== "" ? escape(quoted) : inline(quoted));
 		} else {
 			close();
 			const level = /^(#{1,3}) /.exec(line)?.[1]?.length;

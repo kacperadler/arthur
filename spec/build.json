@@ -4216,7 +4216,7 @@
     "path": "spec/features/AR0530-arthur-log-and-log-read-the-activity-log-by-day-user-actor-ticket-or-job/ticket.md",
     "updated": "2026-11-06T08:17:08.705Z",
     "after": [
-      "AR0529"
+      "AR0653"
     ]
   },
   {
@@ -5161,7 +5161,7 @@
     "path": "spec/features/AR0641-roadmap-105-the-release-workflow-and-the-changelog-per-release/ticket.md",
     "updated": "2026-11-06T08:18:04.993Z",
     "after": [
-      "AR0640"
+      "AR0647"
     ]
   },
   {
@@ -5256,7 +5256,7 @@
     "path": "spec/features/AR0651-stats-s4-the-merged-ticket-report-moves-from-manage-to-stats-roadmap-110/ticket.md",
     "updated": "2026-11-06T08:46:55.115Z",
     "after": [
-      "AR0650"
+      "AR0643"
     ]
   },
   {

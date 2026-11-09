@@ -1191,3 +1191,4 @@
 {"record":"answer","id":"AR-D591","time":"2026-11-09T21:28:18+01:00","decided":"maxAgents 5 and each job capped at 2 cores (perJob cpu 2, was 3)","picked":1,"words":"AR-D591 - 1","message":11138}
 {"record":"answer","id":"AR-D591","time":"2026-11-09T21:28:42+01:00","decided":"Keep 3 jobs at once with 3 cores each; the change to 5 is undone (it must not be slower)","picked":2,"words":"AR-D591 - 2","message":11144}
 {"record":"ask","id":"AR-D592","time":"2026-11-09T21:32:58+01:00","project":"arthur","kind":"merge","question":"Merge AR0666 (threat model in docs/deploy.md says the coordinator runs with no sandbox and no worktree guard; docs only, no review needed)","options":["Merge once CI is green","Not yet"],"recommend":1,"ticket":"AR0666"}
+{"record":"answer","id":"AR-D592","time":"2026-11-09T21:34:46+01:00","decided":"Merge AR0666 once CI is green","picked":1,"words":"AR-D592 - 1","message":11166}

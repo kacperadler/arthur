@@ -150,6 +150,23 @@ test("a job on another machine gets its script in Arthur's home there, written o
 	await assert.rejects(prepare("gpu"), { message: /^writing the docker script of 2026-11-09-worker-0a1b2c3d on machine gpu exited 255: ssh: connect to host gpu port 22: Connection refused$/ });
 });
 
+test("refused, naming why: no node on the machine to run the script, and a path holding a ' the script could not quote", async () => {
+	const { host, prepare } = await load({ local: { tools: ["docker"] }, quoted: { tools: ["docker"] } });
+	const tools = temporaryFolder();
+	symlinkSync("/bin/sh", join(tools, "sh"));
+	symlinkSync(join(bin, "docker"), join(tools, "docker"));
+	const saved = process.env.PATH;
+	process.env.PATH = tools;
+	const nodeless = await prepare().then(() => "prepared", (error: Error) => error.message).finally(() => (process.env.PATH = saved));
+	assert.equal(nodeless, `writing the docker script of ${ID} on machine local exited 4: command -v finds no node, which runs the script`);
+	const there = join(temporaryFolder(), "it's home");
+	host.host.jobs.registerMachine({ name: "quoted", ssh: "quoted", home: there, labels: {} });
+	const quoted = await prepare("quoted").then(() => "prepared", (error: Error) => error.message);
+	assert.ok(quoted.startsWith(`writing the docker script of ${ID} on machine quoted exited 4: a path with a ' in it: ${there}/docker/jobs/${ID}, /`), quoted);
+	assert.ok(quoted.endsWith(` or ${bin}/docker`), quoted);
+	assert.equal(existsSync(there), false, "nothing written there");
+});
+
 test("a spawned job's agent gets the variables the prepare returned", async () => {
 	const root = repository();
 	const host = fakeHost({ name: "docker", root });

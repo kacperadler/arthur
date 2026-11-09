@@ -1,9 +1,24 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
-import { fakeHost } from "@arthur/core/testing";
+import { fileURLToPath } from "node:url";
+import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { docker } from "../src/docker.ts";
 import { checkOptions, checkPiece, table } from "../src/docker-options.ts";
+
+test("arthur config check refuses the options as written in arthur.config.ts, each named under docker", () => {
+	const folder = temporaryFolder();
+	execFileSync("git", ["init", "--quiet", folder]);
+	const plugin = JSON.stringify(fileURLToPath(new URL("../src/docker.ts", import.meta.url)));
+	writeFileSync(join(folder, "arthur.config.ts"), `import { docker } from ${plugin};\nexport default { plugins: [{ name: "orchestration", setup() {} }, docker({ leftoverHours: 0, buildCache: "10%", sweep: { at: "24:00" } })] };\n`);
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_JOB: "" };
+	const run = spawnSync(process.execPath, [fileURLToPath(import.meta.resolve("@arthur/core/cli")), "config", "check"], { cwd: folder, encoding: "utf8", env });
+	assert.notEqual(run.status, 0);
+	for (const line of ["docker.buildCache: expected bytes with K", "docker.leftoverHours: expected a number of hours, 1 or more, got 0", 'docker.sweep.at: expected "HH:MM", 00:00 to 23:59, got "24:00"'])
+		assert.ok(`${run.stdout}${run.stderr}`.includes(line), `${line}\n${run.stdout}${run.stderr}`);
+});
 
 test("the options at their limits pass: leftoverHours 1, buildCache 0 or bytes with K, M, G or T, sweep.at 00:00 and 23:59", () => {
 	assert.deepEqual(checkOptions({}), []);

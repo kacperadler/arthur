@@ -1154,3 +1154,16 @@
 {"record":"answer","id":"AR-D572","time":"2026-11-09T10:29:26+01:00","decided":"Merge it, in the order of the night summary (AR0659 before AR0499)","picked":1,"words":"Merge all 11 in order above."}
 {"record":"answer","id":"AR-D573","time":"2026-11-09T10:29:27+01:00","decided":"Merge it, in the order of the night summary (AR0659 before AR0499)","picked":1,"words":"Merge all 11 in order above."}
 {"record":"ask","id":"AR-D574","time":"2026-11-09T10:33:18+01:00","project":"arthur","kind":"merge","question":"Merge AR0633 (the umask test waits for the job's process to end before it checks files, so it stops failing at random; test file only, no review needed) into main?","options":["Merge now (once CI passes)","Not yet"],"recommend":1,"ticket":"AR0633"}
+{"record":"answer","id":"AR-D574","time":"2026-11-09T10:56:31+01:00","decided":"Merge AR0633 after the 11 in the queue","picked":1,"words":"AR-D574 - with recommendation"}
+{"record":"ask","id":"AR-D575","time":"2026-11-09T10:56:31+01:00","project":"arthur","kind":"question","question":"Drop AR0502 (owner answer tied to his message by --message seq), since AR0664 covers it?","options":["Drop AR0502","Keep it"],"recommend":1,"ticket":"AR0502"}
+{"record":"answer","id":"AR-D575","time":"2026-11-09T10:56:32+01:00","decided":"Drop AR0502; AR0664 covers it","picked":1,"words":"AR-D571 - drop"}
+{"record":"ask","id":"AR-D576","time":"2026-11-09T10:56:33+01:00","project":"arthur","kind":"question","question":"Approve AR0663?","options":["Approve","Not yet"],"recommend":1,"ticket":"AR0663"}
+{"record":"answer","id":"AR-D576","time":"2026-11-09T10:56:33+01:00","decided":"Approve AR0663","picked":1,"words":"Approve AR0663 to AR0667"}
+{"record":"ask","id":"AR-D577","time":"2026-11-09T10:56:34+01:00","project":"arthur","kind":"question","question":"Approve AR0664?","options":["Approve","Not yet"],"recommend":1,"ticket":"AR0664"}
+{"record":"answer","id":"AR-D577","time":"2026-11-09T10:56:35+01:00","decided":"Approve AR0664","picked":1,"words":"Approve AR0663 to AR0667"}
+{"record":"ask","id":"AR-D578","time":"2026-11-09T10:56:36+01:00","project":"arthur","kind":"question","question":"Approve AR0665?","options":["Approve","Not yet"],"recommend":1,"ticket":"AR0665"}
+{"record":"answer","id":"AR-D578","time":"2026-11-09T10:56:36+01:00","decided":"Approve AR0665","picked":1,"words":"Approve AR0663 to AR0667"}
+{"record":"ask","id":"AR-D579","time":"2026-11-09T10:56:37+01:00","project":"arthur","kind":"question","question":"Approve AR0666?","options":["Approve","Not yet"],"recommend":1,"ticket":"AR0666"}
+{"record":"answer","id":"AR-D579","time":"2026-11-09T10:56:38+01:00","decided":"Approve AR0666","picked":1,"words":"Approve AR0663 to AR0667"}
+{"record":"ask","id":"AR-D580","time":"2026-11-09T10:56:38+01:00","project":"arthur","kind":"question","question":"Approve AR0667?","options":["Approve","Not yet"],"recommend":1,"ticket":"AR0667"}
+{"record":"answer","id":"AR-D580","time":"2026-11-09T10:56:39+01:00","decided":"Approve AR0667","picked":1,"words":"Approve AR0663 to AR0667"}

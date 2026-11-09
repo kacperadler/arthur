@@ -3977,9 +3977,9 @@
   {
     "id": "AR0502",
     "title": "An owner's answer in the decision log is the coordinator's word: nothing ties it to a message the owner sent",
-    "status": "planned",
+    "status": "dropped",
     "path": "spec/features/AR0502-an-owner-s-answer-in-the-decision-log-is-the-coordinator-s-word-nothing-ties-it/ticket.md",
-    "updated": "2026-11-07T18:05:09.302Z"
+    "updated": "2026-11-09T09:56:44.261Z"
   },
   {
     "id": "AR0503",
@@ -5347,30 +5347,30 @@
   {
     "id": "AR0662",
     "title": "A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0662-a-bash-timeout-of-0-in-a-job-runs-the-checks-with-1800-s-not-without-a-deadline/ticket.md",
-    "updated": "2026-11-09T03:32:30.861Z"
+    "updated": "2026-11-09T09:56:59.995Z"
   },
   {
     "id": "AR0663",
     "title": "A bare ** in report page text becomes bold, so globs and code lose it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0663-a-bare-in-report-page-text-becomes-bold-so-globs-and-code-lose-it/ticket.md",
-    "updated": "2026-11-08T20:42:18.664Z"
+    "updated": "2026-11-09T09:56:56.859Z"
   },
   {
     "id": "AR0664",
     "title": "arthur decision answer needs the owner own channel message, and high-impact answers name the decision id",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0664-arthur-decision-answer-needs-the-owner-own-channel-message-and-high-impact/ticket.md",
-    "updated": "2026-11-08T21:14:49.913Z"
+    "updated": "2026-11-09T09:56:57.465Z"
   },
   {
     "id": "AR0665",
     "title": "Ticket approval and a plain merge need a recorded owner decision",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
-    "updated": "2026-11-08T21:14:50.693Z",
+    "updated": "2026-11-09T09:56:58.072Z",
     "after": [
       "AR0664"
     ]
@@ -5378,16 +5378,16 @@
   {
     "id": "AR0666",
     "title": "The threat model says the coordinator runs with no sandbox and no worktree guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0666-the-threat-model-says-the-coordinator-runs-with-no-sandbox-and-no-worktree-guard/ticket.md",
-    "updated": "2026-11-08T21:21:30.118Z"
+    "updated": "2026-11-09T09:56:58.685Z"
   },
   {
     "id": "AR0667",
     "title": "Plan: the coordinator in a sandbox, with arthur run as a broker for its writing commands",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0667-plan-the-coordinator-in-a-sandbox-with-arthur-run-as-a-broker-for-its-writing/ticket.md",
-    "updated": "2026-11-08T21:21:30.723Z",
+    "updated": "2026-11-09T09:56:59.291Z",
     "after": [
       "AR0664"
     ]

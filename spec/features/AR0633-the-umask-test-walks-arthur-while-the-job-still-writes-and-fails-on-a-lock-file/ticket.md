@@ -34,3 +34,4 @@ Out:
 - The lock code itself, unless the reproduction shows a lock file left with a wider mode.
 
 ## Decisions
+- 2026-11-09: Merge AR0633 after the 11 in the queue; the owner: "AR-D574 - with recommendation" (AR-D574)

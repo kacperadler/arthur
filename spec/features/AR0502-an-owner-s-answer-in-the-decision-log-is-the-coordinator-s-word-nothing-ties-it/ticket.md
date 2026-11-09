@@ -53,3 +53,4 @@ Out:
 
 - 2026-10-27: Source: F4 of AR0404
 - 2026-11-09: Hold AR0502, skip it in the queue; ask the owner whether to drop it in favour of AR0664; the owner: "by recommendation: G10205" (AR-D571)
+- 2026-11-09: Drop AR0502; AR0664 covers it; the owner: "AR-D571 - drop" (AR-D575)

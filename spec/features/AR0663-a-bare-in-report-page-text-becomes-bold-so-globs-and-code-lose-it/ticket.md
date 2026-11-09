@@ -37,4 +37,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-11-09: Approve AR0663; the owner: "Approve AR0663 to AR0667" (AR-D576)

@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/fake-agent.ts`, started with `-e packages/session/src/handoff-extension.ts`; the test that starts it is not identified
 - What: after `npm test` and `npm run mutate` on this branch (neither touches the session plugin), `ps` showed `node packages/core/src/fake-agent.ts /tmp/arthur-test-PMSf11/tmp/folder-DOqNV0/run.json --continue -e packages/session/src/handoff-extension.ts` still running 15 minutes later, reparented to pid 817; it was killed by hand. A test that leaves a process behind breaks the styleguide's rule that a test removes what it starts.
 - Suggestion: find the test that continues a job with the handoff extension (`grep -rn "handoff" packages/*/test`), and stop the agent it starts in its `t.after`, waiting until the process is gone.
-- Status: open
+- Status: deferred (client summary)

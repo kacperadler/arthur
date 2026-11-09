@@ -3953,9 +3953,9 @@
   {
     "id": "AR0499",
     "title": "A job writes the `review-needed` answer that `arthur merge` takes as a PASS",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0499-a-job-writes-the-review-needed-answer-that-arthur-merge-takes-as-a-pass/ticket.md",
-    "updated": "2026-11-07T18:05:08.500Z"
+    "updated": "2026-11-09T06:49:58.997Z"
   },
   {
     "id": "AR0500",

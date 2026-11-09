@@ -5333,9 +5333,9 @@
   {
     "id": "AR0660",
     "title": "The model test reads every file of a job folder while the job still writes, and fails on a lock file that vanished",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0660-the-model-test-reads-every-file-of-a-job-folder-while-the-job-still-writes-and/ticket.md",
-    "updated": "2026-11-09T11:35:18.633Z"
+    "updated": "2026-11-09T12:06:18.020Z"
   },
   {
     "id": "AR0661",

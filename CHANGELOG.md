@@ -21,6 +21,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0657 A reviewer does not file again what the ticket's findings.md already holds (611cd6ab)
 - AR0658 `npm run mutate` ends by itself before the call's 1800 s, with its summary (61027593)
 - AR0659 The README's Status paragraph stops copying the roadmap's state (c7f65e2d)
+- AR0660 The model test reads every file of a job folder while the job still writes, and fails on a lock file that vanished (cc9e82ee)
 
 ## 2026-11-07
 

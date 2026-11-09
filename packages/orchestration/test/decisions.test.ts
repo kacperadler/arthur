@@ -310,6 +310,11 @@ test("a file's line of a message never proves his words or the id; a voice note'
 	ownerSaid(folder, 3, `${id} hi\n[audio 180 s] la la la (/srv/media/CQAD-${id} yes go on.mp3)`);
 	ownerSaid(folder, 4, `${id} hi\n[photo ${id} yes, go now.png not saved: Discord gave no url]`);
 	for (const words of [`${id} yes, go ahead`, `${id} yes go`, "go on.mp3", `${id} yes go on`, `${id} yes, go now`, "application/pdf"]) await unproved(words);
+	// Each kind a channel saves, as the core's saved line and as a channel's not-saved line, both naming the sender's file.
+	for (const [at, kind] of ["photo", "video", "voice", "audio", "file"].entries()) {
+		ownerSaid(folder, 20 + at, `${id} hi\n[${kind}, ${kind}/x] (/srv/media/BAAD-${id} ${kind} saved, merge it.bin)\n[${kind} ${id} ${kind} lost, merge it.bin not saved: Discord gave no url]`);
+		for (const words of [`${id} ${kind} saved, merge it`, `${id} ${kind} lost, merge it`]) await unproved(words);
+	}
 	ownerSaid(folder, 5, `yes, go\n[file, text/plain] (/srv/media/BQAD-${id}.txt)`);
 	assert.match((await answer("yes, go"))[1], new RegExp(`the owner's message must name ${id} too`), "an id only in a file's name");
 	ownerSaid(folder, 6, `[voice 4 s] ${id} yes, go ahead now (/srv/media/AwAD-${id} no.ogg)`);

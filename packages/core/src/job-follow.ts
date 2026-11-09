@@ -41,7 +41,6 @@ export async function followJob(home: string, query: string, write: (line: strin
 		seen = `${moved?.ino} ${moved?.mtimeMs}`;
 		return now.state !== "" && !inRun(now);
 	};
-	const watcher = watch(folder);
 	const wake = () => {
 		try {
 			if (step()) (watcher.close(), resolve());
@@ -50,8 +49,7 @@ export async function followJob(home: string, query: string, write: (line: strin
 			reject(error);
 		}
 	};
-	// A watcher that fails ends the follow, after one last read.
-	watcher.on("change", wake).on("error", (error) => (wake(), watcher.close(), reject(error)));
+	const watcher = watch(folder, wake);
 	wake();
 	return promise;
 }

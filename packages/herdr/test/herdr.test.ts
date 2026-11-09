@@ -149,6 +149,7 @@ test("before start nothing reaches herdr; start opens a tab for each job in a ru
 	await box.plugin.start?.();
 	await until("the start-up pass", () => box.pane(A)?.agent_status === "working" && box.pane(B)?.agent_status === "blocked" && box.pane(C)?.agent_status === "idle" && box.pane(D)?.agent_status === "blocked");
 	assert.deepEqual([box.pane(C)?.agent_status, box.pane(C)?.message, box.pane(D)?.message, box.pane(B)?.message], ["idle", "ended: finished", "user: may I?", "dependency: the deploy"]);
+	assert.equal(box.server.calls().filter((args) => args[1] === "report-agent" && args[2] === box.pane(C)?.pane_id).length, 1, "C's job-state before start reported nothing");
 	assert.deepEqual([box.creates(`worker ${A.slice(-8)}`), box.creates(`worker ${B.slice(-8)}`), box.tab(E)], [1, 1, undefined], "one tab each; an ended job without a tab gets none");
 	// A job-started for a job not in a run opens nothing.
 	box.fake.emit("job-started", { id: E, kind: "worker" });

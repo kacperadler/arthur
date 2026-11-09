@@ -37,7 +37,7 @@ export async function call(args: readonly string[]): Promise<Result> {
 		if (failed.code === "ENOENT") throw new Error("herdr not found on PATH");
 		const named = `herdr ${args.slice(0, 2).join(" ")}`;
 		if (failed.killed === true) throw new Error(`${named} did not answer in ${LIMIT_SECONDS} s`);
-		throw new Error(`${named}: ${failed.stderr?.split("\n").find((line) => line.trim() !== "") ?? failed.message}`);
+		throw new Error(`${named}: ${failed.stderr?.trim().split("\n")[0] || failed.message}`);
 	}
 }
 

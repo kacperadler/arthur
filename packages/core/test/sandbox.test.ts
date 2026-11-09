@@ -205,6 +205,63 @@ test("without python3, the install opted in and each step of a plugin's sandbox,
 	assert.deepEqual(lines, [`no sandbox: ${why}; the install writes wherever Arthur's user can`, `no sandbox: ${why}; each step writes wherever Arthur's user can`]);
 });
 
+// A `playwright` that launches its browser as Playwright's does on Linux: from PLAYWRIGHT_BROWSERS_PATH, else `ms-playwright` in
+// $XDG_CACHE_HOME or ~/.cache; and `browsers`, a folder holding that browser.
+const playwright = join(temporaryFolder(), "playwright");
+writeFileSync(playwright, `#!/bin/sh\nat="\${PLAYWRIGHT_BROWSERS_PATH:-\${XDG_CACHE_HOME:-$HOME/.cache}/ms-playwright}"\nif [ -x "$at/chromium-1/chrome" ]; then echo "launched $at"; else echo "Executable doesn't exist at $at"; fi\n`, { mode: 0o755 });
+const browsers = (folder: string): string => {
+	mkdirSync(join(folder, "chromium-1"), { recursive: true });
+	writeFileSync(join(folder, "chromium-1", "chrome"), "#!/bin/sh\n", { mode: 0o755 });
+	return folder;
+};
+
+test("each step of a plugin's sandbox on Linux finds the browsers Playwright installed at its default in Arthur's environment, not in the step's own cache, unless that environment names them itself (AR0632)", (t) => {
+	const names = ["PATH", "HOME", "XDG_CACHE_HOME", "PLAYWRIGHT_BROWSERS_PATH"] as const;
+	const saved = names.map((name) => process.env[name]);
+	const platform = process.platform;
+	t.after(() => {
+		for (const [at, name] of names.entries()) saved[at] === undefined ? delete process.env[name] : (process.env[name] = saved[at]);
+		Object.defineProperty(process, "platform", { value: platform });
+	});
+	const folder = temporaryFolder();
+	const [xdg, user, own] = [browsers(join(folder, "xdg", "ms-playwright")), browsers(join(folder, "user", ".cache", "ms-playwright")), browsers(join(folder, "own"))];
+	const cache = join(folder, "merge", "cache");
+	const cases = [
+		["linux", { XDG_CACHE_HOME: join(folder, "xdg") }, `launched ${xdg}`],
+		["linux", {}, `launched ${user}`],
+		["linux", { XDG_CACHE_HOME: "" }, `launched ${user}`],
+		["linux", { XDG_CACHE_HOME: join(folder, "xdg"), PLAYWRIGHT_BROWSERS_PATH: own }, `launched ${own}`],
+		["linux", { XDG_CACHE_HOME: join(folder, "xdg"), PLAYWRIGHT_BROWSERS_PATH: "" }, `launched ${xdg}`],
+		// Playwright looks in ~/Library/Caches there, which the step's XDG_CACHE_HOME does not move.
+		["darwin", { XDG_CACHE_HOME: join(folder, "xdg") }, `Executable doesn't exist at ${join(cache, "ms-playwright")}`],
+	] as const;
+	for (const [system, env, launched] of cases) {
+		Object.defineProperty(process, "platform", { value: system });
+		for (const name of names.slice(2)) delete process.env[name];
+		Object.assign(process.env, { HOME: join(folder, "user"), PATH: temporaryFolder() }, env);
+		const step = stepSandbox("/tmp", cache, { envFile: "/nowhere/env", home: "/nowhere/home", config: "/nowhere/arthur.config.ts" }, () => {});
+		process.env.PATH = saved[0];
+		assert.equal(spawnSync(...step(`'${playwright}'`), { encoding: "utf8" }).stdout, `${launched}\n`, `${system} ${JSON.stringify(env)}`);
+	}
+});
+
+test("a merge step launches the browser Playwright installed for Arthur's user, and writes nothing in that folder (AR0632)", { skip: bare }, (t) => {
+	const { folder, root } = repository();
+	const names = ["TMPDIR", "XDG_CACHE_HOME", "PLAYWRIGHT_BROWSERS_PATH"] as const;
+	const saved = names.map((name) => process.env[name]);
+	t.after(() => names.forEach((name, at) => (saved[at] === undefined ? delete process.env[name] : (process.env[name] = saved[at]))));
+	// The temporary folder, which a step writes, moved beside the checkout, so the user's cache there is outside every writable path.
+	Object.assign(process.env, { TMPDIR: join(folder, "tmp"), XDG_CACHE_HOME: join(folder, "cache") });
+	delete process.env.PLAYWRIGHT_BROWSERS_PATH;
+	mkdirSync(join(folder, "tmp"));
+	const shared = browsers(join(folder, "cache", "ms-playwright"));
+	const step = stepSandbox(root, join(folder, "merge-cache"), { envFile: join(root, "env"), home: join(folder, "home"), config: join(root, "arthur.config.ts") }, () => {});
+	const writes = { "the browser": `echo x > "$PLAYWRIGHT_BROWSERS_PATH/chromium-1/chrome"`, "a new browser": `mkdir "$PLAYWRIGHT_BROWSERS_PATH/chromium-2"`, "its own cache": `echo x > "$XDG_CACHE_HOME/made"` };
+	const ran = spawnSync(...step(`'${playwright}'\n${tries(writes)}`), { cwd: root, encoding: "utf8" });
+	assert.equal(ran.stdout, `launched ${shared}\nthe browser refused\na new browser refused\nits own cache written\n`, ran.stderr);
+	assert.deepEqual([readFileSync(join(shared, "chromium-1", "chrome"), "utf8"), existsSync(join(shared, "chromium-2"))], ["#!/bin/sh\n", false]);
+});
+
 test("a job on a host without the sandbox fails before its install or agent starts, naming core.jobs.unsandboxed; with the option on both run bare and the log says why", async () => {
 	const why = process.platform === "linux" ? "Landlock: Operation not supported" : `${process.platform} has no Landlock`;
 	const bin = temporaryFolder();

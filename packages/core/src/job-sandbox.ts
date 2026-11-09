@@ -159,15 +159,16 @@ export const cached = (folder: string, command: string): string[] => [`npm_confi
 // Git's commit and tag signing off (AR0516), after the config entries `env` gives Git, which stay: a job's agent, its install and a merge step read no key in `~/.ssh` (AR0508), so they commit unsigned; Arthur's merge commit, made outside, stays signed.
 export const unsigned = (env: NodeJS.ProcessEnv, given = Number.parseInt(env.GIT_CONFIG_COUNT ?? "", 10) || 0): Record<string, string> => ({ GIT_CONFIG_COUNT: `${given + 2}`, [`GIT_CONFIG_KEY_${given}`]: "commit.gpgSign", [`GIT_CONFIG_VALUE_${given}`]: "false", [`GIT_CONFIG_KEY_${given + 1}`]: "tag.gpgSign", [`GIT_CONFIG_VALUE_${given + 1}`]: "false" });
 
-// The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing
-// only in the checkout `folder` as `checkout` says, the cache folder `cache` (made here), which its caches use, the temporary
-// folder and `/dev`, reading every file but the env file `arthur.envFile` and `unread`; `note` is told only where it
-// cannot be set up, once, and each command then runs bare, its caches in `cache` all the same.
+// The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing only in the checkout `folder`
+// as `checkout` says, the cache folder `cache` (made here), which its caches use, the temporary folder and `/dev`, reading every file but the env file
+// `arthur.envFile` and `unread`; `note` is told only where it cannot be set up, once, and each command then runs bare, its caches in `cache` all the same.
+// On Linux, Playwright's browsers are read where its default in Arthur's environment puts them, unless that names its own (AR0632).
 export function stepSandbox(folder: string, cache: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
 	mkdirSync(cache, { recursive: true });
 	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), cache, tmpdir(), "/dev"];
 	const start = sandboxed(paths, [arthur.envFile, ...unread()], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step", true);
-	return (command) => start(cached(cache, command));
+	const browsers = `PLAYWRIGHT_BROWSERS_PATH=${resolve(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "ms-playwright")}`;
+	return (command) => start([...(process.platform === "linux" && !process.env.PLAYWRIGHT_BROWSERS_PATH ? [browsers] : []), ...cached(cache, command)]);
 }
 
 // What a step may write of the checkout `folder` (AR0457): of its Git folder only the objects, refs, logs and index, never its

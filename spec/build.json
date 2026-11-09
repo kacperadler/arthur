@@ -3836,9 +3836,9 @@
   {
     "id": "AR0485",
     "title": "A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0485-a-project-s-vision-ticket-titles-and-a-blocked-job-s-question-enter-the/ticket.md",
-    "updated": "2026-11-07T18:04:37.537Z"
+    "updated": "2026-11-09T04:30:37.310Z"
   },
   {
     "id": "AR0486",

@@ -157,17 +157,19 @@ test("before start nothing reaches herdr; start opens a tab for each job in a ru
 	assert.equal(box.tab(E), undefined);
 });
 
-test("a prune in a process that never started closes the job's tab and never makes the workspace", async (t) => {
+test("a prune in a process that never started closes the job's tab and never makes the workspace or its coordinator tab", async (t) => {
 	const box = await load(t);
 	const job = await box.fake.host.jobs.spawn({ task: "Go." });
 	await until("its end", () => box.fake.host.jobs.list().find((each) => each.id === job.id)?.state === "ended");
 	assert.ok((await box.fake.host.jobs.prune([job.id]))[0]?.endsWith("record deleted"));
 	assert.deepEqual(box.server.calls(), [["workspace", "list"]], "no workspace, nothing made");
 	const other = await box.fake.host.jobs.spawn({ task: "Go." });
-	box.server.seed([`worker ${other.id.slice(-8)}`]);
+	box.server.seed([`worker ${other.id.slice(-8)}`, "notes"]);
+	// The owner closed the coordinator's tab: a prune does not open it again.
+	execFileSync(join(box.server.folder, "herdr"), ["tab", "close", "t2"]);
 	await until("its end", () => box.fake.host.jobs.list().find((each) => each.id === other.id)?.state === "ended");
 	await box.fake.host.jobs.prune([other.id]);
-	assert.deepEqual(box.server.state().tabs.map((each) => each.label), ["coordinator"]);
+	assert.deepEqual(box.server.state().tabs.map((each) => each.label), ["notes"]);
 });
 
 for (const mode of ["absent", "down", "hang", "error"] as const) {

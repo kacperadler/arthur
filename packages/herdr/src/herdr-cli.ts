@@ -21,7 +21,7 @@ type Result = {
 	readonly panes?: readonly Pane[];
 	readonly root_pane?: Pane;
 };
-// The `arthur` workspace's id, and each job tab by the short id that ends its label.
+// The `arthur` workspace's id, and its tabs by the last word of their label, a job tab's short id, each with its first pane.
 export type Space = { readonly id: string; readonly tabs: ReadonlyMap<string, { readonly tab: string; readonly pane: string }> };
 
 const run = promisify(execFile);
@@ -65,12 +65,7 @@ export async function space(create: boolean): Promise<Space | undefined> {
 		if (made !== undefined) await call(["tab", "rename", made.tab?.tab_id ?? "", "coordinator"]);
 		await call(["pane", "run", at.root_pane?.pane_id ?? "", ATTACH]);
 	}
-	const jobs = tabs.flatMap((tab) => {
-		const pane = panes.find((each) => each.tab_id === tab.tab_id)?.pane_id;
-		const last = tab.label.split(" ").at(-1) ?? "";
-		return pane !== undefined && /^[0-9a-f]{8}$/.test(last) ? [[last, { tab: tab.tab_id, pane }] as const] : [];
-	});
-	return { id, tabs: new Map(jobs) };
+	return { id, tabs: new Map(tabs.map((tab) => [tab.label.split(" ").at(-1) ?? "", { tab: tab.tab_id, pane: panes.find((each) => each.tab_id === tab.tab_id)?.pane_id ?? "" }])) };
 }
 
 // Each job state as herdr's sidebar shows it: herdr 0.9.3 takes idle, working, blocked or unknown; an ended job is `idle`.

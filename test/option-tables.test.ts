@@ -44,6 +44,8 @@ import { schedule } from "@arthur/schedule";
 import * as scheduleFile from "@arthur/schedule/options";
 import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
+import { speak } from "@arthur/speak";
+import * as speakFile from "@arthur/speak/options";
 import { stats } from "@arthur/stats";
 import * as statsFile from "@arthur/stats/options";
 import { telegram } from "@arthur/telegram";
@@ -81,6 +83,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	dokploy: [dokployFile, dokploy({ instances: [] })],
 	findings: [findingsFile, findings()],
 	listen: [listenFile, listen()],
+	speak: [speakFile, speak()],
 	video: [videoFile, video()],
 	stats: [statsFile, stats()],
 	activity: [activityFile, activity()],
@@ -115,7 +118,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	);
 	assert.deepEqual(
 		Object.values(PLUGINS).flatMap(([file]) => file.tools.map((tool) => tool.name)),
-		["tmux", "curl", "ffmpeg", "ffmpeg"],
+		["tmux", "curl", "ffmpeg", "ffmpeg", "ffmpeg"],
 	);
 });
 

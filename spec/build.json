@@ -5094,9 +5094,9 @@
   {
     "id": "AR0632",
     "title": "arthur merge points XDG_CACHE_HOME at a fresh folder, so a project whose tests run Playwright finds no browser and every browser test fails",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0632-arthur-merge-points-xdg-cache-home-at-a-fresh-folder-so-a-project-whose-tests/ticket.md",
-    "updated": "2026-11-07T18:04:41.066Z"
+    "updated": "2026-11-09T09:04:55.680Z"
   },
   {
     "id": "AR0633",

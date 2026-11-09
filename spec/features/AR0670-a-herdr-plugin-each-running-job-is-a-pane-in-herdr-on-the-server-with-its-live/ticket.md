@@ -25,6 +25,7 @@ Asked by the owner on 2026-11-09 ("when i ssh to the serwer and open the herdr i
 - `arthur jobs --follow <id>` (name final in the plan) prints a job's run as readable lines as it happens: each tool call with its main argument, the agent's text, the state changes, and ends when the job ends; read-only, from the job's own files, no model.
 - With the `herdr` plugin on and herdr's server running on the machine: each job that starts gets a pane in an `arthur` workspace (one tab per project or per job, as the plan decides), titled with its ticket, kind and short id, running the follow view; its state is reported to herdr (`working`, `blocked` with its reason, done) so the sidebar shows which job needs the owner; the pane closes or is marked done when the job is pruned. herdr not installed or not running: the plugin does nothing and says so once in `arthur doctor`, never failing a spawn.
 - A pane with `arthur attach` for the coordinator is part of the workspace.
+- Docs and roadmap (the owner asked for both): `packages/herdr/docs/herdr.md` says how to set herdr up on the server and what each pane and state means; the follow view has its `--help` page; `spec/roadmap.md` has a numbered entry for the plugin, marked done when it merges; the vision's plugin table lists `herdr`; the README's plugin list names it.
 - Tests against the fake host and a fake `herdr` on `PATH` that answers as herdr 0.9.3's documentation shows; `npm run check`, `npm test` and `npm run mutate -- --max 25` pass on the clean tip.
 
 ## Scope
@@ -39,4 +40,5 @@ Out:
 - Jobs on other machines: local first; the plan says if herdr's `--machine` covers them later.
 
 ## Decisions
+- 2026-11-09: AR0670 approved, its plan runs right after AR0663; docs and roadmap updated with it; the owner: "AR-D587 - 1 - remembert to add this to docs and roadmap" (AR-D587)
 

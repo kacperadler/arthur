@@ -5415,8 +5415,8 @@
   {
     "id": "AR0670",
     "title": "A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0670-a-herdr-plugin-each-running-job-is-a-pane-in-herdr-on-the-server-with-its-live/ticket.md",
-    "updated": "2026-11-09T17:19:41.798Z"
+    "updated": "2026-11-09T17:24:33.162Z"
   }
 ]

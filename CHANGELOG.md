@@ -13,6 +13,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0632 arthur merge points XDG_CACHE_HOME at a fresh folder, so a project whose tests run Playwright finds no browser and every browser test fails (5c1c8212)
 - AR0661 The retro page uses the report style, like the pyramid and repeats pages (7c4ba50c)
 - AR0662 A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline (dba4513e)
+- AR0663 A bare ** in report page text becomes bold, so globs and code lose it (3beb621f)
 - AR0664 arthur decision answer needs the owner own channel message, and high-impact answers name the decision id (46ed9425)
 
 ### Changed

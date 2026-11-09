@@ -130,6 +130,14 @@ test("a deadline reached after a mutant's first tier passed starts none of its o
 	assert.equal(readFileSync(join(root, "packages/a/src/limit.ts"), "utf8"), LIMIT);
 });
 
+test("a test run SIGKILLed with RUN_MS or more left, as a hang at RUN_MS is, counts as caught, not cut by the deadline", () => {
+	// The same-name test kills its runner, as spawn's RUN_MS timeout does: 25 minutes before the deadline, then exactly RUN_MS.
+	const root = repo({ ...TESTS, "packages/a/test/limit.test.ts": `${HEAD}test("killed", () => process.kill(process.ppid, "SIGKILL"));\n` });
+	for (const run of [mutate(root, "--max", "2"), late(root, [0, 900_000], "--max", "2")])
+		assert.deepEqual([run.stdout, run.stderr, run.status], ["mutate: 2 mutants, 2 caught, 0 survived; 10 not run (--max 2)\n", "", 0]);
+	assert.equal(readFileSync(join(root, "packages/a/src/limit.ts"), "utf8"), LIMIT);
+});
+
 test("a capped run takes its mutants round-robin, the files' first, then each file's hunks' in turn, so it reaches every changed file", () => {
 	// Package c has no tests, so each of its mutants survives and is named, in the order the run takes them.
 	const root = repo({ ...TESTS, "packages/c/package.json": "{}\n", "packages/c/src/one.ts": "export const a = 1;\nexport const b = 2;\nexport const c = 3;\nexport const d = 4;\n" });

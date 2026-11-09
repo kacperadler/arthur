@@ -5361,9 +5361,9 @@
   {
     "id": "AR0664",
     "title": "arthur decision answer needs the owner own channel message, and high-impact answers name the decision id",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0664-arthur-decision-answer-needs-the-owner-own-channel-message-and-high-impact/ticket.md",
-    "updated": "2026-11-09T14:28:57.611Z"
+    "updated": "2026-11-09T14:46:01.876Z"
   },
   {
     "id": "AR0665",

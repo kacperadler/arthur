@@ -18,6 +18,8 @@ import { develop } from "@arthur/develop";
 import * as developFile from "@arthur/develop/options";
 import { discord } from "@arthur/discord";
 import * as discordFile from "@arthur/discord/options";
+import { docker } from "@arthur/docker";
+import * as dockerFile from "@arthur/docker/options";
 import { dokploy } from "@arthur/dokploy";
 import * as dokployFile from "@arthur/dokploy/options";
 import { findings } from "@arthur/findings";
@@ -84,6 +86,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	video: [videoFile, video()],
 	stats: [statsFile, stats()],
 	activity: [activityFile, activity()],
+	docker: [dockerFile, docker()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one
@@ -115,7 +118,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	);
 	assert.deepEqual(
 		Object.values(PLUGINS).flatMap(([file]) => file.tools.map((tool) => tool.name)),
-		["tmux", "curl", "ffmpeg", "ffmpeg"],
+		["tmux", "curl", "ffmpeg", "ffmpeg", "docker"],
 	);
 });
 

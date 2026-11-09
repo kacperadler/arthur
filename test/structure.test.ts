@@ -23,6 +23,8 @@ const BUDGETS = {
 
 	discord: 976,
 
+	docker: 296,
+
 	dokploy: 615,
 
 	findings: 276,
@@ -31,7 +33,7 @@ const BUDGETS = {
 
 	listen: 262,
 
-	machines: 535,
+	machines: 538,
 
 	manage: 1535,
 

@@ -68,7 +68,7 @@ flowchart TD
         machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
         resources[resources<br/>caps per job and feature<br/>free CPU, memory, disk]
         models[models<br/>providers, fallback chain<br/>arthur usage]
-        docker[docker<br/>labels, cleanup, sweep]
+        docker[docker<br/>labels, the disk floor's data root<br/>cleanup and sweep planned]
         uptime[uptime<br/>client sites over HTTP<br/>down and up notices<br/>the coordinator's site-down runbook]
         machines ~~~ resources ~~~ models ~~~ docker ~~~ uptime
       end
@@ -151,8 +151,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings,resources,manage,orchestration,develop,listen,video,discord,dokploy built;
-  class lpartial,stats partial;
-  class lplanned,agents,docker,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lpartial,stats,docker partial;
+  class lplanned,agents,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites,dk outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

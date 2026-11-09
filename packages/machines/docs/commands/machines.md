@@ -59,6 +59,8 @@ As each round begins, in `arthur run`, `arthur machines`, `/machines` and `arthu
 
 In `arthur run`, each change is an event, once: `machine-online` with `machine`, `os`, `arch` and `version`, or `machine-offline` with `machine` and `reason`. The first check after the start tells each machine's state; after that only a change does, so a machine that stays offline is told once, and one that goes offline and comes back is told twice. A reason that changes while the machine stays offline is no event. `arthur machines` from a shell checks, but emits nothing: the events are `arthur run`'s.
 
+Other plugins read a machine's labels through `collect("machines.labels", machine)`: `local`'s with its detected `os` and `arch` and its `tools` from `local.labels`, a listed machine's as `arthur.config.ts` writes them (`{}` without `labels`), undefined for a name the plugin does not know. The `docker` plugin acts on the machines whose `tools` hold `docker`.
+
 ## Placing a job
 
 The plugin answers the core's `jobs.place` for every spawn, `arthur spawn` and a plugin's `host.jobs.spawn` alike, so each job runs on a machine that has what it needs. The labels a job needs come from the first of these that is there:

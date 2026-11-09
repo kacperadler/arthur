@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 // Whether `text` holds `words`, case and spacing ignored, neither starting nor ending inside a word.
 function holds(text: string, words: string): boolean {
-	const chars = [...words.replace(/\s+/g, "")].map((char) => char.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&"));
+	const chars = [...words.replace(/\s+/g, "")].map((char) => char.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&"));
 	return new RegExp(`(?<![\\p{L}\\p{N}])${chars.join("\\s*")}(?![\\p{L}\\p{N}])`, "iu").test(text);
 }
 

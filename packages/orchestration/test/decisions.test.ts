@@ -229,6 +229,12 @@ test("an answer is recorded only when an owner's channel message holds its words
 	assert.equal((await answer("ok, go"))[0], 0, "of this turn, whenever sent; the spacing aside");
 	assert.deepEqual(log()?.filter((each) => each.record === "answer").map((each) => [each.words, each.message]), [["OK, go", 12], ["ok, go", 13]], "the latest message that holds them");
 	assert.match((await run("decisions", ["AC-D1"]))[1], /\nAnswered [^\n]+; the owner: "ok, go" \(message 13\)\n/);
+	// His words are text, never a pattern: each character a regular expression reads matches only itself.
+	const odd = "a.b c*d e+f g?h (i) [j] {k} l|m n^o p$q r\\";
+	ownerSaid(folder, 14, `So: ${odd}!`);
+	assert.equal((await answer(odd))[0], 0, odd);
+	assert.equal(log()?.at(-1)?.message, 14);
+	for (const words of ["c.d", "zz|go"]) assert.deepEqual(await answer(words), UNPROVED, words);
 });
 
 test("a merge flag, --budget 0 and take-main need the owner's message naming the id, and send him a notice of what was recorded", async (t) => {
@@ -378,6 +384,7 @@ test("a log line that is not a record refuses every write, naming the line and l
 		['{"record":"answer","id":"AC-D4","time":"2026-03-04T06:00:00+01:00","decided":"Go","words":"go"}', "no ask of AC-D4 above it"],
 		['{"record":"ask","id":"AC-D2","time":"2026-03-04T06:00:00+01:00","project":"acme","kind":"vote","question":"Go?","options":[]}', 'kind "vote"'],
 		['{"record":"ask","id":"SH-D2","time":"2026-03-04T06:00:00+01:00","project":"acme","kind":"plan","question":"Go?","options":[]}', 'id "SH-D2", not AC-D<number>'],
+		...[{ decided: "" }, { words: undefined }, { picked: "1" }, { message: "7" }, { message: 1.5 }].map((edit) => [JSON.stringify({ record: "answer", id: "AC-D1", time: "2026-03-04T06:00:00+01:00", decided: "Go", words: "go", ...edit }), "no decided or words, or picked or message not a number"]),
 		["", "not a JSON object"],
 	]) {
 		const text = `${readFileSync(file(), "utf8").split("\n")[0]}\n${line}\n{"record":"close","id":"AC-D1","time":"2026-03-04T06:00:00+01:00","reason":"x"}\n`;

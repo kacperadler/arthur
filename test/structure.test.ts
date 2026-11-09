@@ -13,7 +13,7 @@ const BUDGETS = {
 
 	"commit-rules": 184,
 
-	core: 7445,
+	core: 7510,
 
 	"core/testing": 405,
 
@@ -28,6 +28,8 @@ const BUDGETS = {
 	findings: 276,
 
 	github: 1288,
+
+	herdr: 250,
 
 	listen: 262,
 

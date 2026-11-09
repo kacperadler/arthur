@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0485 A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked (4fa79860)
 - AR0661 The retro page uses the report style, like the pyramid and repeats pages (7c4ba50c)
 
 ### Changed

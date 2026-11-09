@@ -12,3 +12,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: listen writes a transcribed part as `[<kind> <seconds> s] <transcript> (<path>)` (docs/listen.md), and the proof keeps the transcript and drops the trailing ` (<path>)` only when the path starts with `/`. Telegram and Discord save under the plugin's folder, an absolute path today [INFERENCE: from `join(folder, "media", ...)` in their media-in.ts, not from a run with a relative home]; a channel that handed a relative path would leave an audio file's name, which the sender chose, in the text his words are matched in.
 - Suggestion: have the core's `message.part` contract say a part's `path` is absolute (and `received` refuse one that is not), so the proof's rule holds for every channel; or have listen mark the transcript itself, so the proof needs no path rule.
 - Status: open
+
+## F2. A test run leaves a fake agent of a continued job running
+
+- Kind: test
+- Found by: 2026-11-09-worker-bb08f8e6 (worker), 2026-11-09
+- Where: `packages/core/src/fake-agent.ts`, started with `--continue -e packages/session/src/handoff-extension.ts`
+- What: after `npm test` in this worktree, a process `node packages/core/src/fake-agent.ts <tmp>/run.json --continue -e .../session/src/handoff-extension.ts` was still running 54 minutes later, reparented to the user's init (ps: ppid 817), its temporary folder under `/tmp/arthur-test-*`. Which test started it was not traced [INFERENCE: one that continues a job with the session plugin's handoff extension loaded].
+- Suggestion: find the test that continues a job with the handoff extension, and make it wait until the fake agent's process is gone (or kill it in `t.after`) before it ends.
+- Status: open

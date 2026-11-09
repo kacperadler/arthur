@@ -280,11 +280,22 @@ test("misplaced: a continue's record whose root or worktree is not the spawn's, 
 	assert.equal(misplaced(id, { project: "gone", root: join(folder, "gone"), worktree }, join(folder, "gone")), `Git added no worktree ${id} to the repository of ${join(folder, "gone")}`);
 });
 
-test("the hidden ~/.ssh and the guarded list's ssh lines are the user account's, where OpenSSH looks, and $HOME's too only when it is another absolute folder (AR0515)", (t) => {
+// Each of `values` set in process.env (undefined: unset) until the test `t` ends.
+function environment(t: { after: (fn: () => void) => void }, values: Readonly<Record<string, string | undefined>>): void {
+	for (const [name, value] of Object.entries(values)) {
+		const was = process.env[name];
+		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
+		value === undefined ? delete process.env[name] : (process.env[name] = value);
+	}
+}
+
+// The Git and gh credential stores in the home folder `home` (AR0513).
+const stores = (home: string) => [join(home, ".git-credentials"), join(home, ".config", "git", "credentials"), join(home, ".config", "gh")];
+
+test("the hidden ~/.ssh, Git's and gh's credentials and the guarded list's ssh lines are the user account's, where OpenSSH looks, and $HOME's too only when it is another absolute folder (AR0515, AR0513)", (t) => {
 	const folder = temporaryFolder();
 	const [user, account] = [userInfo().homedir, join(userInfo().homedir, ".ssh")];
-	const saved = process.env.HOME;
-	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
+	environment(t, { HOME: process.env.HOME, XDG_CONFIG_HOME: undefined, GH_CONFIG_DIR: undefined });
 	const record = join(folder, "jobs", "2026-10-24-worker-0a1b2c3d");
 	mkdirSync(record, { recursive: true });
 	// The env file is the launch's list's, never one a `guarded` file the job wrote in its record names (AR0512).
@@ -294,9 +305,33 @@ test("the hidden ~/.ssh and the guarded list's ssh lines are the user account's,
 	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
 	for (const [where, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
 		where === undefined ? delete process.env.HOME : (process.env.HOME = where);
-		assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }, guarded), [join(folder, "env"), ...expected, ...home], `HOME=${where}`);
+		assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }, guarded), [join(folder, "env"), ...expected, ...expected.flatMap((ssh) => stores(dirname(ssh))), ...home], `HOME=${where}`);
 		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${where}`);
 	}
+});
+
+test("the hidden credentials take $XDG_CONFIG_HOME's git/credentials and gh and $GH_CONFIG_DIR, whether they exist or not, each once and only when absolute (AR0513)", async (t) => {
+	const folder = temporaryFolder();
+	const user = userInfo().homedir;
+	const record = join(folder, "jobs", "2026-11-09-worker-0a1b2c3d");
+	mkdirSync(record, { recursive: true });
+	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
+	const [xdg, gh] = [join(folder, "xdg"), join(folder, "gh-config")];
+	const rows: ReadonlyArray<readonly [string | undefined, string | undefined, readonly string[]]> = [
+		[xdg, gh, [join(xdg, "git", "credentials"), join(xdg, "gh"), gh]],
+		[xdg, undefined, [join(xdg, "git", "credentials"), join(xdg, "gh")]],
+		[undefined, gh, [gh]],
+		["", "", []],
+		["config", "config/gh", []],
+		[join(user, ".config"), join(user, ".config", "gh"), []],
+	];
+	for (const [config, ghConfig, expected] of rows) {
+		await t.test(`XDG_CONFIG_HOME=${config} GH_CONFIG_DIR=${ghConfig}`, (row) => {
+			environment(row, { HOME: user, XDG_CONFIG_HOME: config, GH_CONFIG_DIR: ghConfig });
+			assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }, ""), [join(user, ".ssh"), ...stores(user), ...expected, ...home]);
+		});
+	}
+	assert.equal(existsSync(xdg) || existsSync(gh), false, "none of them exists");
 });
 
 test("hidden: the home whole, but shown the job's own record, its project's other records and the projects plugin's lists; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590)", () => {
@@ -313,6 +348,18 @@ test("hidden: the home whole, but shown the job's own record, its project's othe
 	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
 	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
 	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
+});
+
+test("hidden: each project's .arthur-worktrees whole, but not one that holds the job's main checkout or its record (AR0593)", () => {
+	const folder = realpathSync(temporaryFolder());
+	// shop's worktrees folder holds neither; held's holds the job's checkout, logs's the home and so the job's record.
+	const [shop, held, logs] = ["a", "b", "c"].map((name) => join(folder, name, ".arthur-worktrees")) as [string, string, string];
+	const [root, home] = [join(held, "root"), join(logs, "home")];
+	const record = join(home, "jobs", "2026-11-09-worker-0a0a0001");
+	for (const made of [shop, root, record]) mkdirSync(made, { recursive: true });
+	mkdirSync(join(home, "projects"));
+	writeFileSync(join(home, "projects", "checkouts"), `shop ${join(folder, "a", "shop")}\nheld ${join(folder, "b", "held")}\nlogs ${join(folder, "c", "logs")}\n`);
+	assert.deepEqual(hidden(record, { project: "job", root, worktree: "" }, "").filter((path) => path.endsWith(".arthur-worktrees")), [shop]);
 });
 
 test("a merge step writes main's checkout but not its Git config, hooks or info, Arthur's home, config or env file, a new top-level entry, nor through a link", { skip: bare }, (t) => {
@@ -563,10 +610,52 @@ test("a job's install, its agent across a continue after it emptied its record's
 	for (const who of ["the install", "the agent"]) assert.match(log, new RegExp(`\\] sandbox: ${who} writes only in .*, reads every file but ${join(root, "env")}, ${account}, ${join(user, ".ssh")}, `), who);
 	const step = stepSandbox(root, join(folder, "merge-cache"), { envFile: join(root, "env"), home, config: join(root, "arthur.config.ts") }, () => {});
 	const [, args] = step(`cat '${key}'`);
-	assert.deepEqual(args.slice(args.indexOf("--") + 1, args.indexOf("--", args.indexOf("--") + 1)), [join(root, "env"), account, join(user, ".ssh")], "the merge step hides both");
+	assert.deepEqual(args.slice(args.indexOf("--") + 1, args.indexOf("--") + 4), [join(root, "env"), account, join(user, ".ssh")], "the merge step hides both, first");
 	const checked = spawnSync(...step(`cat '${key}'`), { cwd: root, encoding: "utf8" });
 	assert.deepEqual([checked.stdout, /Permission denied/.test(checked.stderr)], ["", true], checked.stderr);
 	assert.equal(readFileSync(key, "utf8"), "FAKE-PRIVATE-KEY\n", "outside the sandbox the key reads");
+});
+
+test("a job's install, its agent and a merge step read no Git or gh credential: Git's stores, gh's folder, $XDG_CONFIG_HOME's and $GH_CONFIG_DIR's, nor the user account's; Git's config beside them reads (AR0513)", { skip: bare }, async (t) => {
+	const { folder, root, home } = repository();
+	const [user, xdg, gh] = [join(folder, "user"), join(folder, "xdg"), join(folder, "gh-config")];
+	environment(t, { HOME: user, XDG_CONFIG_HOME: xdg, GH_CONFIG_DIR: gh });
+	const files = {
+		"~/.git-credentials": join(user, ".git-credentials"),
+		"~/.config/git/credentials": join(user, ".config", "git", "credentials"),
+		"~/.config/gh/hosts.yml": join(user, ".config", "gh", "hosts.yml"),
+		"$XDG_CONFIG_HOME/git/credentials": join(xdg, "git", "credentials"),
+		"$XDG_CONFIG_HOME/gh/hosts.yml": join(xdg, "gh", "hosts.yml"),
+		"$GH_CONFIG_DIR/hosts.yml": join(gh, "hosts.yml"),
+		"~/.config/git/config": join(user, ".config", "git", "config"),
+	};
+	for (const path of Object.values(files)) {
+		mkdirSync(dirname(path), { recursive: true });
+		writeFileSync(path, "# https://acme:FAKE-TOKEN@example.com\n");
+	}
+	// The account's own stores are the user's real ones: the job only counts the bytes it reads of them, never copies them.
+	const [credentials, config, ghFolder] = stores(userInfo().homedir);
+	const reads = [...Object.entries(files).map(([name, path]) => `if cat '${path}' >/dev/null 2>&1; then echo '${name} read'; else echo '${name} refused'; fi`), `cat '${credentials}' '${config}' '${ghFolder}'/* 2>/dev/null | wc -c`].join("\n");
+	const read = `{\n${reads}\n} >> credentials-read 2>&1`;
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n${read}\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-11-09T08:00:00Z"));
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: read }));
+	const job = await jobs.spawn({ task: "Read." });
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const record = join(home, "jobs", job.id);
+	const worktree = readFileSync(join(record, "worktree"), "utf8");
+	const lines = (text: string) => text.split("\n").map((line) => line.trim()).filter(Boolean);
+	const expected = [...Object.keys(files).map((name) => `${name} ${name.endsWith("config") ? "read" : "refused"}`), "0"];
+	assert.deepEqual(lines(readFileSync(join(worktree, "credentials-read"), "utf8")), [...expected, ...expected], "the install, then the agent");
+	const but = `, reads every file but ${[join(root, "env"), join(userInfo().homedir, ".ssh"), join(user, ".ssh"), ...stores(userInfo().homedir), ...stores(user), join(xdg, "git", "credentials"), join(xdg, "gh"), gh].join(", ")}, `;
+	const log = readFileSync(join(record, "log"), "utf8").split("\n");
+	for (const who of ["the install", "the agent"]) assert.ok(log.some((line) => line.includes(`] sandbox: ${who} writes only in `) && line.includes(but)), `${who}: ${but}`);
+	const step = stepSandbox(root, join(folder, "merge-cache"), { envFile: join(root, "env"), home, config: join(root, "arthur.config.ts") }, () => {});
+	const checked = spawnSync(...step(reads), { cwd: root, encoding: "utf8" });
+	assert.deepEqual([checked.status, lines(checked.stdout)], [0, expected], `the merge step: ${checked.stderr}`);
+	for (const path of Object.values(files)) assert.equal(readFileSync(path, "utf8"), "# https://acme:FAKE-TOKEN@example.com\n", `outside the sandbox ${path} reads`);
 });
 
 test("where the user's Git config signs with a key in ~/.ssh, a job's install and agent and a merge step commit and tag unsigned with no flag, the config Git was given kept; outside, Git still signs (AR0516)", async (t) => {

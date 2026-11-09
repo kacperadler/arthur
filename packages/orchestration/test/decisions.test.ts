@@ -219,7 +219,9 @@ test("an answer is recorded only when an owner's channel message holds its words
 	writeFileSync(join(folder, "inbox/turn/8-1"), "{ not json");
 	writeFileSync(join(folder, "inbox/turn/9-1"), "null");
 	writeFileSync(join(folder, "inbox/turn/10"), JSON.stringify({ channel: "telegram", text: "ok, go" }));
-	ownerSaid(folder, 11, "Looking good, gopher");
+	// "ok" and "go" inside a word: past its start only (took, ago), then past its end only (okra, gopher).
+	ownerSaid(folder, 11, "We took it long ago");
+	ownerSaid(folder, 15, "Okra, gopher");
 	for (const words of [["ok, go"], ["ok"], ["go"], ["okay,", "go"]]) assert.deepEqual(await answer(...words), UNPROVED, words.join(" "));
 	assert.equal(readFileSync(file(), "utf8"), before, "nothing written");
 	ownerSaid(folder, 12, "ok, go", { box: "answered", ms: NOW.getTime() + 1000 });

@@ -56,6 +56,7 @@ One line per machine labelled `tools: docker`, never critical, from one `sh -c` 
 - `docker <machine>: ok (Docker <version>)`, `ok (Docker <version>, rootless)` for rootless Docker (`name=rootless` in `docker info`'s `SecurityOptions`): Docker answers as the user Arthur runs as, without `sudo`.
 - `missing: command -v finds no docker on <machine>`.
 - `missing: docker info failed on <machine>: <its last line>`: Docker not running there, or ssh failing.
+- `missing: docker info on <machine> answered "...", not its JSON`: security options or warnings that are no list; a line that is no JSON at all fails the check, `missing: check failed: <error>` (`arthur doctor --help`).
 - Refused as unsafe: `missing: unsafe: Arthur runs as root on <machine>, so each job's docker would be root's`; `missing: unsafe: the Docker socket <path> on <machine> is reachable only through sudo` (`docker info` fails and the Unix socket of the context is there but not writable); `missing: unsafe: the Docker daemon on <machine> listens on TCP without TLS (<Docker's warning>)` (the daemon's own warning in `docker info`'s `Warnings`, `API is accessible on http://...`).
 
 Each line's fix names the step for its reason: install Docker or drop the label, start Docker (`sudo systemctl start docker`), `sudo usermod -aG docker "$USER"` or rootless Docker, or the daemon's TCP host removed or given TLS.

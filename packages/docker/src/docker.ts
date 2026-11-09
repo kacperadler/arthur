@@ -50,7 +50,7 @@ export function docker(options: DockerOptions = {}): Plugin {
 				if (known !== undefined) return [known];
 				const ran = await host.jobs.run(machine, ["sh", "-c", ROOT], LIMIT_SECONDS);
 				const root = ran.stdout.trim();
-				if (ran.code !== 0 || !root.startsWith("/")) return [];
+				if (!root.startsWith("/")) return [];
 				roots.set(machine, root);
 				return [root];
 			});

@@ -25,6 +25,8 @@ test("each command that creates something gets the job's label right after its w
 test("global options before the command keep their values, and the label still goes after the command", () => {
 	for (const globals of [["--log-level", "debug"], ["-l", "debug"], ["--log-level=debug"], ["-H", "unix:///run/docker.sock"], ["-Hunix:///run/docker.sock"], ["--context", "run"], ["-c", "run"], ["-D"], ["--tls", "--tlscert", "run"], ["--config", "/c", "--debug"]])
 		assert.deepEqual(labelled([...globals, "run", "img"], ID), [...globals, "run", ...LABEL, "img"], globals.join(" "));
+	for (const valued of ["--config", "--context", "--host", "--log-level", "--tlscacert", "--tlscert", "--tlskey", "-c", "-H", "-l"])
+		assert.deepEqual(labelled([valued, "run", "run", "img"], ID), [valued, "run", "run", ...LABEL, "img"], `${valued} takes the next word as its value`);
 });
 
 test("an arthur.job label the job gives is taken out, in each spelling; a label with another key is kept", () => {
@@ -43,6 +45,10 @@ test("what follows the image belongs to the container: run's and create's option
 	const after = ["--label", "arthur.job=x", "-l", "arthur.job=y"];
 	assert.deepEqual(labelled(["run", "img", ...after], ID), ["run", ...LABEL, "img", ...after]);
 	assert.deepEqual(labelled(["run", "--rm", "-it", "img", ...after], ID), ["run", ...LABEL, "--rm", "-it", "img", ...after], "bare options");
+	// docker/cli v29's run and create options that take no value: what follows each is the image.
+	const bare = ["--detach", "--disable-content-trust", "--help", "--init", "--interactive", "--no-healthcheck", "--oom-kill-disable", "--privileged", "--publish-all", "--quiet", "--read-only", "--rm", "--sig-proxy", "--tty", "--use-api-socket", "-d", "-i", "-t", "-P", "-q"];
+	for (const option of bare) assert.deepEqual(labelled(["create", option, "img", ...after], ID), ["create", ...LABEL, option, "img", ...after], option);
+	for (const option of ["-a", "-c", "-e", "-h", "-l", "-m", "-p", "-u", "-v", "-w"]) assert.deepEqual(labelled(["run", option, "x", "img", ...after], ID), ["run", ...LABEL, option, "x", "img", ...after], `${option} takes a value`);
 	assert.deepEqual(labelled(["run", "-e", "A=1", "-p", "80:80", "--name", "web", "-v", "/a:/b", "img", ...after], ID), ["run", ...LABEL, "-e", "A=1", "-p", "80:80", "--name", "web", "-v", "/a:/b", "img", ...after], "options with values");
 	assert.deepEqual(labelled(["run", "-dp", "80:80", "--sig-proxy=false", "-wC:/", "img", ...after], ID), ["run", ...LABEL, "-dp", "80:80", "--sig-proxy=false", "-wC:/", "img", ...after]);
 	assert.deepEqual(labelled(["create", "--label", "arthur.job=z", "--", "img", ...after], ID), ["create", ...LABEL, "--", "img", ...after], "after --, nothing is an option");
@@ -56,6 +62,8 @@ const fake = fakeDocker(bin);
 const agent = fakeAgent({ steps: [{ message: "Done." }] });
 writeFileSync(join(bin, "omp"), `#!/bin/sh\nenv > "$PWD/.agent-env"\nexec '${agent}' "$@"\n`, { mode: 0o755 });
 process.env.PATH = [bin, process.env.PATH].join(delimiter);
+// Commands here run in a folder of the test's own, so a mutant that writes a relative path (npm run mutate) leaves nothing in the checkout.
+process.chdir(temporaryFolder());
 // A PATH with `sh` alone: a machine without docker.
 const bare = temporaryFolder();
 symlinkSync("/bin/sh", join(bare, "sh"));
@@ -92,9 +100,9 @@ test("a job on a machine labelled tools: docker gets its script first on PATH an
 	assert.equal(statSync(join(folder, "docker")).mode & 0o777, 0o755);
 	assert.equal(readFileSync(join(folder, "docker-label.ts"), "utf8"), readFileSync(new URL("../src/docker-label.ts", import.meta.url), "utf8"));
 	const run = (...args: string[]) => spawnSync(join(folder, "docker"), args, { encoding: "utf8" });
-	const ran = run("--log-level", "debug", "run", "-l", "arthur.job=other", "--rm", "img", "--label", "arthur.job=x");
+	const ran = run("-D", "--log-level", "debug", "run", "-l", "arthur.job=other", "--rm", "img", "--label", "arthur.job=x");
 	assert.deepEqual([ran.status, ran.stdout], [0, `${"0123456789abcdef".repeat(4)}\n`], "docker's output and exit code pass through");
-	assert.deepEqual(fake.calls().at(-1), ["--log-level", "debug", "run", ...LABEL, "--rm", "img", "--label", "arthur.job=x"]);
+	assert.deepEqual(fake.calls().at(-1), ["-D", "--log-level", "debug", "run", ...LABEL, "--rm", "img", "--label", "arthur.job=x"]);
 	assert.deepEqual([run("nope").status, run("nope").stderr], [1, "docker: 'nope' is not a docker command.\nSee 'docker --help'\n"]);
 	assert.deepEqual(host.emitted.filter((event) => event.name === "notice"), []);
 });

@@ -15,15 +15,6 @@ socket=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/nul
 case $socket in unix://*) socket=\${socket#unix://}; if [ -e "$socket" ] && [ ! -w "$socket" ]; then echo "$socket"; exit 5; fi;; esac
 exit 6`;
 
-// A JSON line, `false` when it is none; Docker prints `null` for an empty list.
-const parsed = (text: string | undefined): unknown => {
-	try {
-		return JSON.parse(text ?? "");
-	} catch {
-		return false;
-	}
-};
-
 // The line of `machine` from what PROBE answered there, and its fix.
 function verdict(ran: Ran, machine: string): readonly [line: string, fix: string] {
 	const said = ran.stderr.trim().split("\n").at(-1) || `exit code ${ran.code}`;
@@ -32,8 +23,9 @@ function verdict(ran: Ran, machine: string): readonly [line: string, fix: string
 	if (ran.code === 5) return [`missing: unsafe: the Docker socket ${ran.stdout.trim()} on ${machine} is reachable only through sudo`, `on ${machine}: sudo usermod -aG docker "$USER", then log in again; or rootless Docker (dockerd-rootless-setuptool.sh install)`];
 	if (ran.code === null) return [`missing: docker info on ${machine} timed out after ${LIMIT_SECONDS} s`, `start Docker on ${machine}: sudo systemctl start docker`];
 	if (ran.code !== 0) return [`missing: docker info failed on ${machine}: ${said}`, `start Docker on ${machine} (sudo systemctl start docker), or reach ${machine} over ssh by hand`];
-	const [version = "", options, warnings] = ran.stdout.trim().split("\n");
-	const [security, warned] = [parsed(options) ?? [], parsed(warnings) ?? []];
+	// A JSON line each, Docker's `null` an empty list; what is no JSON throws, which the doctor names as this line's failure.
+	const [version = "", options = "", warnings = ""] = ran.stdout.trim().split("\n");
+	const [security, warned]: unknown[] = [JSON.parse(options) ?? [], JSON.parse(warnings) ?? []];
 	if (!Array.isArray(security) || !Array.isArray(warned)) return [`missing: docker info on ${machine} answered ${JSON.stringify(ran.stdout.trim().slice(0, 80))}, not its JSON`, INSTALL];
 	const open = warned.find((warning) => /API is accessible on http:\/\//.test(String(warning)));
 	if (open !== undefined) return [`missing: unsafe: the Docker daemon on ${machine} listens on TCP without TLS (${String(open).split("\n")[0]})`, `on ${machine}: remove the tcp:// host from dockerd's -H or daemon.json "hosts", or give it TLS (--tlsverify)`];

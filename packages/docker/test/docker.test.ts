@@ -13,6 +13,8 @@ import { fakeDocker, VERSION } from "./fake-docker.ts";
 const bin = temporaryFolder();
 const fake = fakeDocker(bin);
 process.env.PATH = [bin, process.env.PATH].join(delimiter);
+// Commands here run in a folder of the test's own, so a mutant that writes a relative path (npm run mutate) leaves nothing in the checkout.
+process.chdir(temporaryFolder());
 
 // The plugin with the test as the machines plugin: `labels` by machine, `gpu` registered, reached through the fake ssh.
 async function load(labels: Readonly<Record<string, unknown>>) {
@@ -129,6 +131,14 @@ test("doctor: no docker on the machine, Docker down there, ssh failing, an answe
 	assert.deepEqual(down, ["gpu: missing: docker info failed on gpu: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?; fix: start Docker on gpu (sudo systemctl start docker), or reach gpu over ssh by hand"]);
 	fake.state({ info: { ServerVersion: VERSION, SecurityOptions: "name=rootless", Warnings: null } });
 	assert.deepEqual(await doctor({ local: { tools: ["docker"] } }), [`local: missing: docker info on local answered "${VERSION}\\n\\"name=rootless\\"\\nnull", not its JSON; fix: install Docker Engine there (https://docs.docker.com/engine/install/), or drop docker from its tools label`]);
+	fake.state({});
+	const loud = temporaryFolder();
+	writeFileSync(join(loud, "docker"), "#!/bin/sh\necho first >&2\necho 'the last line' >&2\nexit 1\n", { mode: 0o755 });
+	assert.deepEqual(await withPath([loud, process.env.PATH].join(delimiter), () => doctor({ local: { tools: ["docker"] } })), ["local: missing: docker info failed on local: the last line; fix: start Docker on local (sudo systemctl start docker), or reach local over ssh by hand"]);
+	writeFileSync(join(loud, "docker"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+	assert.deepEqual(await withPath([loud, process.env.PATH].join(delimiter), () => doctor({ local: { tools: ["docker"] } })), ["local: missing: docker info failed on local: exit code 6; fix: start Docker on local (sudo systemctl start docker), or reach local over ssh by hand"], "nothing said: the exit code");
+	fake.state({ info: { ServerVersion: `${VERSION}\nnot json`, SecurityOptions: [], Warnings: null } });
+	await assert.rejects(doctor({ local: { tools: ["docker"] } }), SyntaxError, "an answer that is no JSON fails the line's check, which the doctor names");
 	fake.state({});
 	fake.offline("gpu");
 	assert.deepEqual(await doctor({ gpu: { tools: ["docker"] } }), ["gpu: missing: docker info failed on gpu: ssh: connect to host gpu port 22: Connection refused; fix: start Docker on gpu (sudo systemctl start docker), or reach gpu over ssh by hand"]);

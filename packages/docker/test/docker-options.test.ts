@@ -25,7 +25,7 @@ test("the options at their limits pass: leftoverHours 1, buildCache 0 or bytes w
 	assert.deepEqual(checkOptions({ buildCache: "10G", leftoverHours: 48, sweep: { at: "04:00" } }), []);
 	for (const buildCache of [0, "1", "512K", "1.5T", "100M"]) assert.deepEqual(checkOptions({ buildCache }), [], String(buildCache));
 	for (const leftoverHours of [1, 1.5, 720]) assert.deepEqual(checkOptions({ leftoverHours }), [], String(leftoverHours));
-	for (const at of ["00:00", "23:59"]) assert.deepEqual(checkOptions({ sweep: { at } }), [], at);
+	for (const at of ["00:00", "10:00", "19:59", "20:00", "23:59"]) assert.deepEqual(checkOptions({ sweep: { at } }), [], at);
 });
 
 test("refused at load, naming the option: leftoverHours below 1, a buildCache or sweep.at that does not parse, an unknown option or key", () => {

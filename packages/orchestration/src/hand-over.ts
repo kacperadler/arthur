@@ -8,11 +8,12 @@ import type { Message } from "./inbox.ts";
 // stop it, gets a word joiner first: `@<path>` reads a file (utils/file-mentions.ts), `^<model>` adds a model agent (expandMentions).
 
 const ARTHUR = "The messages marked [Arthur] or [Arthur: <plugin>] come from Arthur (a job's end, a plugin), not from the owner.";
+export const quote = (text: string): string => text.split(/\r\n|[\n\r\v\f\u0085\u2028\u2029]/)
+	.map((line) => (line === "" ? ">" : `> ${line.replace(/(?<=^|[\s([{<"'`])@|(?<=^|\s)\^/g, "\u2060$&")}`)).join("\n");
 export function handOver(messages: readonly (Message & { readonly when?: string })[]): string {
 	const paragraphs = messages.map(({ channel, plugin, text, when = "" }) => {
 		const from = channel !== undefined ? `via ${channel}` : plugin !== undefined ? `Arthur: ${plugin}` : "Arthur";
-		const quoted = text.split(/\r\n|[\n\r\v\f\u0085\u2028\u2029]/).map((line) => (line === "" ? ">" : `> ${line.replace(/(?<=^|[\s([{<"'`])@|(?<=^|\s)\^/g, "\u2060$&")}`));
-		return [`[${from}${when === "" ? "" : `, ${when}`}]`, ...quoted].join("\n");
+		return `[${from}${when === "" ? "" : `, ${when}`}]\n${quote(text)}`;
 	});
 	return [...paragraphs, ...(messages.every((message) => message.channel !== undefined) ? [] : [ARTHUR])].join("\n\n");
 }

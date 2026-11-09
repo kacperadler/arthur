@@ -33,3 +33,4 @@ Out:
 - The umask test: AR0633.
 
 ## Decisions
+- 2026-11-09: Merge AR0660 now; the owner: "Merge now" (AR-D581)

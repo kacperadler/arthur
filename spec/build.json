@@ -5391,5 +5391,15 @@
     "after": [
       "AR0664"
     ]
+  },
+  {
+    "id": "AR0668",
+    "title": "A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes",
+    "status": "planning",
+    "path": "spec/features/AR0668-a-decision-answer-can-quote-only-the-id-and-a-dash-from-the-owner-message-so-a/ticket.md",
+    "updated": "2026-11-09T13:53:29.242Z",
+    "after": [
+      "AR0664"
+    ]
   }
 ]

@@ -6,8 +6,8 @@ import { basename, dirname, join } from "node:path";
 // (`host.jobs.registerExtension`): after each bash call it adds to the job's `checks`, `<home>/delivery/<job>/checks`, what a run
 // of the project's own checks said, each line ending with the commit the call began on and `clean` only when the tree was the
 // same clean one as the call began and as it ended, else `dirty` (AR0436). `arthur review-needed` reads it:
-// docs/commands/review-needed.md, "The job's checks". A bash call that runs them gets a timeout of at least 1800 seconds (AR0569):
-// omp kills a call at its timeout, 300 seconds when it names none, and a killed check gives no result.
+// docs/commands/review-needed.md, "The job's checks". A bash call that runs them gets a timeout of at least 1800 seconds (AR0569),
+// or keeps 0, no deadline (AR0662): omp kills a call at its timeout, 300 seconds when it names none, and a killed check gives no result.
 
 type Script = "check" | "test" | "mutate";
 type ToolEvent = { readonly toolCallId?: unknown; readonly toolName?: unknown; readonly input?: { readonly command?: unknown; readonly timeout?: unknown }; readonly content?: unknown; readonly details?: { readonly async?: unknown }; readonly isError?: unknown };
@@ -22,10 +22,10 @@ export default function checks(pi: ExtensionApi): void {
 	// The tree each bash call that runs the checks began on, by its call's id, until its result. A handler that throws blocks
 	// the call; none of these does. The input a `tool_call` handler returns is the one omp runs the call with.
 	const began = new Map<unknown, Tree | undefined>();
-	pi.on("tool_call", (event, ctx) => {
-		if (event.toolName !== "bash" || scripts(event.input?.command, ctx.cwd).length === 0) return;
-		began.set(event.toolCallId, tree(ctx.cwd));
-		return { input: { ...event.input, timeout: Math.max(typeof event.input?.timeout === "number" ? event.input.timeout : 0, 1800) } };
+	pi.on("tool_call", ({ toolName, toolCallId, input }, ctx) => {
+		if (toolName !== "bash" || scripts(input?.command, ctx.cwd).length === 0) return;
+		began.set(toolCallId, tree(ctx.cwd));
+		return { input: { ...input, timeout: input?.timeout === 0 ? 0 : Math.max(typeof input?.timeout === "number" ? input.timeout : 0, 1800) } };
 	});
 	pi.on("tool_result", (event, ctx) => {
 		const before = began.get(event.toolCallId);

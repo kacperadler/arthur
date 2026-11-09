@@ -200,7 +200,7 @@ test("a tracked file whose folder is now a file neither blocks the call nor thro
 	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> dirty\ntest pass 3/3 <commit> dirty\n", "ENOTDIR as the call begins");
 });
 
-test("a check call runs with a timeout of at least 1800 seconds; any other command, and a script the package.json lacks, run as given", (t) => {
+test("a check call runs with a timeout of at least 1800 seconds or none; any other command, and a script the package.json lacks, run as given", (t) => {
 	const { begin } = load(t, JSON.stringify({ scripts: { test: "node --test" } }));
 	const call = (input: object, toolName = "bash") => begin("toolu_1", { toolName, input });
 	assert.deepEqual(call({ command: "npm test" }), [{ input: { command: "npm test", timeout: 1800 } }], "no timeout: 300 s in omp");
@@ -208,6 +208,9 @@ test("a check call runs with a timeout of at least 1800 seconds; any other comma
 	assert.deepEqual(call({ command: "npm ci && npm t", timeout: 1799 }), [{ input: { command: "npm ci && npm t", timeout: 1800 } }]);
 	assert.deepEqual(call({ command: "npm test", timeout: 1800 }), [{ input: { command: "npm test", timeout: 1800 } }]);
 	assert.deepEqual(call({ command: "npm test", timeout: 2400, cwd: "sub" }), [{ input: { command: "npm test", timeout: 2400, cwd: "sub" } }], "a longer one kept, the rest of the input too");
+	assert.deepEqual(call({ command: "npm test", timeout: 0 }), [{ input: { command: "npm test", timeout: 0 } }], "0 is no deadline in omp, kept");
+	assert.deepEqual(call({ command: "npm test", timeout: -1 }), [{ input: { command: "npm test", timeout: 1800 } }], "only 0 is no deadline");
+	assert.deepEqual(call({ command: "npm test", timeout: "0" }), [{ input: { command: "npm test", timeout: 1800 } }], "a 0 that is no number is none");
 	assert.deepEqual(call({ command: "npm test", timeout: "2400" }), [{ input: { command: "npm test", timeout: 1800 } }], "a timeout that is no number is none");
 	for (const input of [{ command: "ls", timeout: 10 }, { command: "echo npm test" }, { command: "npm run check" }, {}]) assert.deepEqual(call(input), [undefined], JSON.stringify(input));
 	assert.deepEqual(call({ command: "npm test" }, "read"), [undefined], "another tool");
@@ -226,6 +229,8 @@ test("a mutate run passes only on a 0 exit status and a last summary with 0 surv
 	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 4", capped, true)), "mutate fail 4 run, 1 survived, 12 not run <commit> clean\n");
 	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 2", `${MUTATED(0)}mutate: 2 mutants, 2 caught, 0 survived; 10 not run (--max 2)\n`)), "mutate pass 2 run, 0 survived, 10 not run <commit> clean\n", "the last summary's counts");
 	assert.deepEqual(load(t, ALL).begin("toolu_1", bash("npm run mutate")), [{ input: { command: "npm run mutate", timeout: 1800 } }]);
+	const unbounded = { toolName: "bash", input: { command: "npm run mutate -- --max 25", timeout: 0 } };
+	assert.deepEqual(load(t, ALL).begin("toolu_1", unbounded), [{ input: unbounded.input }], "no deadline stays none (AR0662)");
 	const without = load(t);
 	assert.deepEqual(without.begin("toolu_1", bash("npm run mutate")), [undefined], "a package.json without the script: run as given");
 	assert.equal(without.run(bash("npm run mutate", MUTATED(0))), "", "and no line");

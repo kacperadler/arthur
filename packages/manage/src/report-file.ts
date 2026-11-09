@@ -76,10 +76,11 @@ const TAGS: Readonly<Record<string, string>> = { codebase: "code", "static analy
 // after a `Before:` and an `After:` line side by side, a fenced block in them as typed without its fences, and the layer of a
 // `Now at:` or `Move to:` line as its tag.
 export function reportPage(text: string, red: readonly string[] = []): string {
-	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too. A mark with a space just
-	// inside, or glued to a word or path outside (`2 ** 3`, `src/**/*.ts`), stays as typed.
+	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too. An opening mark follows the
+	// line's start, a space, `(`, `[` or a quote, a closing one is followed by its end, a space, a closing bracket, a quote or a
+	// stop, and neither touches a space, `/` or `*` inside: `2 ** 3`, `**/*.ts`, `src/**/*.ts` and `a**b` stay as typed.
 	const inline = (line: string) =>
-		escape(line).replace(/`([^`]+)`|(?<!\S)\*\*(?=\S)(.+?)(?<=\S)\*\*(?!\w)/g, (_, chip, bold) =>
+		escape(line).replace(/`([^`]+)`|(?<![^\s([\x22\x27])\*\*(?=[^\s/*])(.+?)(?<=[^\s/*])\*\*(?![^\s)\]\x22\x27.,;:!?])/g, (_, chip, bold) =>
 			chip !== undefined ? `<code>${chip}</code>` : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,
 		);
 	const out: string[] = [];
@@ -99,7 +100,7 @@ export function reportPage(text: string, red: readonly string[] = []): string {
 			side = line.slice(0, -1);
 		} else if (side !== "" && (line.startsWith(">") || line.trim() === "")) {
 			const quoted = line.replace(/^> ?/, "");
-			if (quoted.startsWith("```")) fenced = !fenced;
+			if (/^ {0,3}\x60{3}/.test(quoted)) fenced = !fenced;
 			else if (line.startsWith(">")) quote.push(fenced ? escape(quoted) : inline(quoted));
 		} else {
 			close();

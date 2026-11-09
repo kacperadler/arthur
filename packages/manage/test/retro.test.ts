@@ -181,13 +181,18 @@ test("a retro's page is in the report style: bullets as a list, one level in too
 
 // AR0663: a `**` is bold only around a word run, and code fenced in a Before or After quote shows as typed.
 test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as code without its fences", () => {
-	const lines = ["src/**/*.ts and test/**/*.ts", "const n = 2 ** 3 ** 2;", "** x** stays", "**x ** stays", "**x**y stays"];
-	const page = reportPage([...lines, "**x** is bold", "## 1. P", "Before:", "> ```ts", "> const s = `${a} ** b` < c;", ">", "> ```", "> Then `x` and **y**."].join("\n"));
-	assert.ok(page.includes(`${lines.map((line) => `<p>${line}</p>`).join("\n")}\n<p><strong>x</strong> is bold</p>\n`), page);
+	const lines = [
+		...["src/**/*.ts and test/**/*.ts", "**/*.ts and src/**/*.ts", "globs **/roles/** and .agents/**", "use **/*.ts or packages/**"],
+		...["const n = 2 ** 3 ** 2;", "** x** stays", "**x ** stays", "**x**y stays", "**x**/y stays", "**src/** stays", "**x*** stays", "a**b**c stays"],
+	];
+	const bold = ["**x** is bold", '(**x**), "**y**", [**z**] and \'**v**\'; **w**.'];
+	const page = reportPage([...lines, ...bold, "## 1. P", "Before:", "> ```ts", "> const s = `${a} ** b` < c;", ">", "> ```", "> Then `x` and **y**."].join("\n"));
+	const strong = ["<p><strong>x</strong> is bold</p>", '<p>(<strong>x</strong>), "<strong>y</strong>", [<strong>z</strong>] and \'<strong>v</strong>\'; <strong>w</strong>.</p>'];
+	assert.ok(page.includes(`${[...lines.map((line) => `<p>${line}</p>`), ...strong].join("\n")}\n`), page);
 	assert.ok(page.includes("<p>const s = `${a} ** b` &lt; c;\n\nThen <code>x</code> and <strong>y</strong>.</p>"), page);
-	// A fence left open ends with its column: the After's quote is formatted again.
-	const open = reportPage(["## 1. P", "Before:", "> ```", "> `a` **b**", "After:", "> `a` **b**"].join("\n"));
-	assert.ok(open.includes('<p>`a` **b**</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
+	// A fence left open ends with its column: the After's quote is formatted again. A fence indented up to 3 spaces is one too.
+	const open = reportPage(["## 1. P", "Before:", ">    ```", "> `a` **b**", ">     ```", "After:", "> `a` **b**"].join("\n"));
+	assert.ok(open.includes('<p>`a` **b**\n    ```</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

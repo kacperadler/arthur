@@ -5326,9 +5326,9 @@
   {
     "id": "AR0659",
     "title": "The README's Status paragraph stops copying the roadmap's state",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0659-the-readme-s-status-paragraph-stops-copying-the-roadmap-s-state/ticket.md",
-    "updated": "2026-11-07T18:04:35.464Z"
+    "updated": "2026-11-09T02:49:13.126Z"
   },
   {
     "id": "AR0660",

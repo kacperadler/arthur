@@ -1153,3 +1153,4 @@
 {"record":"answer","id":"AR-D570","time":"2026-11-09T10:29:25+01:00","decided":"Merge it, in the order of the night summary (AR0659 before AR0499)","picked":1,"words":"Merge all 11 in order above."}
 {"record":"answer","id":"AR-D572","time":"2026-11-09T10:29:26+01:00","decided":"Merge it, in the order of the night summary (AR0659 before AR0499)","picked":1,"words":"Merge all 11 in order above."}
 {"record":"answer","id":"AR-D573","time":"2026-11-09T10:29:27+01:00","decided":"Merge it, in the order of the night summary (AR0659 before AR0499)","picked":1,"words":"Merge all 11 in order above."}
+{"record":"ask","id":"AR-D574","time":"2026-11-09T10:33:18+01:00","project":"arthur","kind":"merge","question":"Merge AR0633 (the umask test waits for the job's process to end before it checks files, so it stops failing at random; test file only, no review needed) into main?","options":["Merge now (once CI passes)","Not yet"],"recommend":1,"ticket":"AR0633"}

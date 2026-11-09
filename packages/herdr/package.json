@@ -1,0 +1,11 @@
+{
+  "name": "@arthur/herdr",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/herdr.ts",
+    "./options": "./src/herdr.ts"
+  },
+  "version": "0.1.0"
+}

@@ -5378,9 +5378,9 @@
   {
     "id": "AR0666",
     "title": "The threat model says the coordinator runs with no sandbox and no worktree guard",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0666-the-threat-model-says-the-coordinator-runs-with-no-sandbox-and-no-worktree-guard/ticket.md",
-    "updated": "2026-11-09T20:32:52.298Z"
+    "updated": "2026-11-09T20:54:23.299Z"
   },
   {
     "id": "AR0667",

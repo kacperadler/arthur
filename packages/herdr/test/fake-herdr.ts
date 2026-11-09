@@ -1,4 +1,4 @@
-import { accessSync, appendFileSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { accessSync, appendFileSync, constants, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { temporaryFolder } from "@arthur/core/testing";
 
@@ -28,7 +28,7 @@ export function pathWithoutHerdr(path = process.env.PATH ?? ""): string {
 export function fakeHerdr(mode: Mode = "up") {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "herdr"), `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(import.meta.filename)} ${JSON.stringify(folder)} "$@"\n`, { mode: 0o755 });
-	writeFileSync(join(folder, "state.json"), JSON.stringify({ next: 1, workspaces: [], tabs: [], panes: [] }));
+	save(folder, { next: 1, workspaces: [], tabs: [], panes: [] });
 	writeFileSync(join(folder, "mode"), mode);
 	const lines = (file: string) => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1) : []);
 	return {
@@ -40,7 +40,7 @@ export function fakeHerdr(mode: Mode = "up") {
 		seed(labels: readonly string[]) {
 			const tabs = ["coordinator", ...labels].map((label, index) => ({ tab_id: `t${index + 2}`, workspace_id: "w1", label, cwd: "/srv" }));
 			const panes = tabs.map((tab, index) => ({ pane_id: `p${index + 2}`, tab_id: tab.tab_id, workspace_id: "w1", cwd: "/srv", ran: [], agent: null, agent_status: "unknown", message: null }));
-			writeFileSync(join(folder, "state.json"), JSON.stringify({ next: 100, workspaces: [{ workspace_id: "w1", label: "arthur" }], tabs, panes }));
+			save(folder, { next: 100, workspaces: [{ workspace_id: "w1", label: "arthur" }], tabs, panes });
 		},
 		state: (): State => JSON.parse(readFileSync(join(folder, "state.json"), "utf8")),
 	};
@@ -77,7 +77,7 @@ function play(folder: string, args: readonly string[]): void {
 		return { tab: made, root };
 	};
 	const answer = (result: object) => {
-		writeFileSync(join(folder, "state.json"), JSON.stringify(state));
+		save(folder, state);
 		process.stdout.write(`${JSON.stringify({ id, result })}\n`);
 	};
 	const [group, verb, target = ""] = args;
@@ -127,4 +127,10 @@ function play(folder: string, args: readonly string[]): void {
 function fail(line: string, code: number): void {
 	process.stderr.write(`${line}\n`);
 	process.exitCode = code;
+}
+
+// Whole or not at all, so a test reading it while a call writes never sees half of it.
+function save(folder: string, state: State): void {
+	writeFileSync(join(folder, ".state.json"), JSON.stringify(state));
+	renameSync(join(folder, ".state.json"), join(folder, "state.json"));
 }

@@ -817,6 +817,25 @@
 				"optional": true
 			}
 		},
+		"Voice": {
+			"file_id": {
+				"type": "String"
+			},
+			"file_unique_id": {
+				"type": "String"
+			},
+			"duration": {
+				"type": "Integer"
+			},
+			"mime_type": {
+				"type": "String",
+				"optional": true
+			},
+			"file_size": {
+				"type": "Integer",
+				"optional": true
+			}
+		},
 		"File": {
 			"file_id": {
 				"type": "String"

@@ -56,7 +56,7 @@ const ME = (token: string) => ({
 	can_manage_bots: false,
 	supports_join_request_queries: false,
 });
-const SENDS = ["sendMessage", "sendPhoto", "sendVideo", "sendDocument", "sendMediaGroup"];
+const SENDS = ["sendMessage", "sendPhoto", "sendVideo", "sendDocument", "sendVoice", "sendMediaGroup"];
 
 // A fake Bot API on a loopback port the OS picks. `getUpdates` answers the updates from `offset` on, or waits, as long polling
 // does, until one is pushed or its `timeout` passes; a send answers the sent Message (`sendMediaGroup`, one per item), a
@@ -104,7 +104,8 @@ export async function botApi(t: TestContext) {
 			const sent = (fields: Readonly<Record<string, unknown>>) => ({ message_id: next++, from: BOT, chat: { id: Number(chat_id), first_name: "Kacper", type: "private" }, date: 1, ...(message_thread_id === undefined ? {} : { message_thread_id: Number(message_thread_id), is_topic_message: true }), ...fields });
 			const photo = [{ file_id: "AgAC-small", file_unique_id: "AQAD-small", file_size: 1000, width: 90, height: 60 }];
 			const file = (type: string) => ({ file_id: `${type}-id`, file_unique_id: `${type}-unique`, file_name: "upload", mime_type: "application/octet-stream", file_size: 10, ...(type === "video" ? { width: 640, height: 360, duration: 5 } : {}) });
-			const media = (type: string) => (type === "photo" ? { photo } : { [type]: file(type) });
+			const voice = { file_id: "voice-id", file_unique_id: "voice-unique", duration: 3, mime_type: "audio/ogg", file_size: 10 };
+			const media = (type: string) => (type === "photo" ? { photo } : type === "voice" ? { voice } : { [type]: file(type) });
 			if (method === "sendMessage") return send(response, 200, { ok: true, result: sent({ text }) });
 			if (method !== "sendMediaGroup") return send(response, 200, { ok: true, result: sent({ ...media(method.slice(4).toLowerCase()), ...(caption === undefined ? {} : { caption }) }) });
 			const items = JSON.parse(String(params.media)) as { type: string; caption?: string }[];

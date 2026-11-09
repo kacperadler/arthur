@@ -8,6 +8,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0661 The retro page uses the report style, like the pyramid and repeats pages (7c4ba50c)
 
+### Changed
+
+- AR0656 A worker is told before its run ends that its checks did not pass on its clean committed tip (2f2ef424)
+
 ## 2026-11-07
 
 ### Added

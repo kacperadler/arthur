@@ -5299,9 +5299,9 @@
   {
     "id": "AR0656",
     "title": "A worker is told before its run ends that its checks did not pass on its clean committed tip",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0656-a-worker-is-told-before-its-run-ends-that-its-checks-did-not-pass-on-its-clean/ticket.md",
-    "updated": "2026-11-08T22:17:16.804Z",
+    "updated": "2026-11-09T09:40:36.657Z",
     "after": [
       "AR0661"
     ]

@@ -3843,9 +3843,9 @@
   {
     "id": "AR0486",
     "title": "A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0486-a-finding-s-body-becomes-its-ticket-s-description-verbatim-which-the-worker/ticket.md",
-    "updated": "2026-11-07T18:04:38.199Z"
+    "updated": "2026-11-09T05:09:39.832Z"
   },
   {
     "id": "AR0487",

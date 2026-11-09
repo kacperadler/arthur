@@ -52,3 +52,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0404
+- 2026-11-09: Merge it, in the order of the night summary (AR0659 before AR0499); the owner: "Merge all 11 in order above." (AR-D570)

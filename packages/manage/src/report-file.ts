@@ -53,22 +53,6 @@ export function fileReport(reports: Reports, { root, job }: Filing): string {
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// A report as one self-contained page for a phone, its plain page: each `#` heading line a heading, the lines between as they
-// are, wrapped.
-export function page(text: string): string {
-	const body = text
-		.split(/^(#{1,3} .*)$/m)
-		.map((part, index) => {
-			if (index % 2 === 0) return part.trim() === "" ? "" : `<p>${escape(part.trim())}</p>`;
-			const level = part.indexOf(" ");
-			return `<h${level}>${escape(part.slice(level + 1))}</h${level}>`;
-		})
-		.join("");
-	const title = escape(/^# (.*)$/m.exec(text)?.[1] ?? "");
-	const style = "body{margin:1em;font:16px/1.5 system-ui,sans-serif}p{white-space:pre-wrap;overflow-wrap:anywhere}";
-	return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${style}</style></head>\n<body>${body}</body></html>\n`;
-}
-
 // The rules a page in the report style uses of .agents/arthur/criteria/report.md's base style (AR-D298), with `.cols` and
 // `.tag`; its header never holds a code span.
 const STYLE = [
@@ -76,7 +60,7 @@ const STYLE = [
 	'body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif}',
 	"header{background:var(--ink);color:var(--paper);padding:32px 18px 24px;text-align:center;border-bottom:6px solid var(--blue)}header ul{list-style:none;padding:0}",
 	"header h1{margin:0 auto;max-width:860px;font-size:30px;line-height:1.1;font-weight:800}header p{margin:12px auto 0;max-width:720px;color:#cfcfcf}",
-	"main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}.red{color:var(--red)}",
+	"main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}li.sub{margin-left:1.5em;list-style:circle}.red{color:var(--red)}",
 	"h2{font-size:22px;line-height:1.2;font-weight:800;margin:40px 0 6px;padding-bottom:6px;border-bottom:3px solid var(--ink);text-align:center}",
 	"code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);padding:1px 4px;overflow-wrap:anywhere}",
 	".cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}.cols>div{border:2px solid var(--ink);padding:0 14px}.cols>div.after{border-color:var(--blue)}",
@@ -86,11 +70,16 @@ const STYLE = [
 ].join("");
 const TAGS: Readonly<Record<string, string>> = { codebase: "code", "static analysis": "static", prose: "prose", "human review": "you" };
 
-// Markdown as one self-contained page in the report style (`/repeats`, a pyramid's before and after page): its title and the
-// lines before its first `## ` in the header, the rest in `main`, a backticked span as code, each line of a `red` section in
-// red, the `> ` lines after a `Before:` and an `After:` line side by side, and the layer of a `Now at:` or `Move to:` line as its tag.
+// Markdown as one self-contained page in the report style (`/repeats`, a retro's page, a pyramid's before and after page): its
+// title and the lines before its first `## ` in the header, the rest in `main`, a `- ` line as a list item (indented, one level
+// in), a backticked span as code, a `**` span as bold, each line of a `red` section in red, the `> ` lines after a `Before:` and
+// an `After:` line side by side, and the layer of a `Now at:` or `Move to:` line as its tag.
 export function reportPage(text: string, red: readonly string[] = []): string {
-	const inline = (line: string) => escape(line).replace(/`([^`]+)`/g, "<code>$1</code>");
+	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too.
+	const inline = (line: string) =>
+		escape(line).replace(/`([^`]+)`|\*\*(.+?)\*\*/g, (_, chip, bold) =>
+			chip !== undefined ? `<code>${chip}</code>` : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,
+		);
 	const out: string[] = [];
 	let [side, section, quote] = ["", "", [] as string[]];
 	// The open side's quote and its end; `close` ends the pair too.
@@ -111,11 +100,14 @@ export function reportPage(text: string, red: readonly string[] = []): string {
 			close();
 			const level = /^(#{1,3}) /.exec(line)?.[1]?.length;
 			const layer = /^(Now at|Move to): (.+)$/.exec(line);
+			const item = /^(\s*)- /.exec(line);
 			if (level === 2) section = line.slice(3);
 			if (level !== undefined && line !== "## Final message") out.push(`<h${level}>${inline(line.slice(level + 1))}</h${level}>`);
 			else if (layer !== null) out.push(`<p>${layer[1]}: <span class="tag ${TAGS[layer[2]?.trim().toLowerCase() ?? ""] ?? ""}">${inline(layer[2] ?? "")}</span></p>`);
-			else if (line.startsWith("- ")) out.push(`<li${red.includes(section) ? ' class="red"' : ""}>${inline(line.slice(2))}</li>`);
-			else if (line.trim() !== "" && level === undefined) out.push(`<p>${inline(line)}</p>`);
+			else if (item !== null) {
+				const classes = [item[1] === "" ? "" : "sub", red.includes(section) ? "red" : ""].filter(Boolean).join(" ");
+				out.push(`<li${classes === "" ? "" : ` class="${classes}"`}>${inline(line.slice(item[0].length))}</li>`);
+			} else if (line.trim() !== "" && level === undefined) out.push(`<p>${inline(line)}</p>`);
 		}
 	}
 	close();

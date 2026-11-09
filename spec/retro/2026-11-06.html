@@ -1,179 +1,206 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Retro 2026-11-06</title><style>body{margin:1em;font:16px/1.5 system-ui,sans-serif}p{white-space:pre-wrap;overflow-wrap:anywhere}</style></head>
-<body><h1>Retro 2026-11-06</h1><p>- Job: 2026-11-06-retro-54605bdd
-- Merges up to: 31e3949d0002d97373ff743d397f8f4bdd8ba749</p><h2>Final message</h2><h2>Period</h2><p>- **What merged:** 73 tickets between 2026-10-30 and 11-06. The retro counter says 442 merges because the last retro's commit `3346f62e` is not an ancestor of main; I used the 73 in the stats.
-- **The work:** guard and git hardening (refs/replace, fast-import, brace lists), GitHub T2–T4, Discord T2–T3, Dokploy T2, uptime telling this machine offline from a site down, Defaults T11–T16, last retro's three proposals (AR0594–AR0596), stats S1–S2 and the actor stamp.
-- **Reviews:** 67 tickets reviewed, 1.4 rounds on average (1.7 last time). 48 of 67 (72%) passed the first review. 20 FAIL reviews across 19 tickets; AR0629 failed twice.
-- **Cost:** $354.35 over 71 tickets, 2 unknown. Most expensive: AR0562 $20.55, AR0603 $19.83, AR0528 $15.09.
-- **Why branches failed:**
-  - 14 of the 20 FAILs were a code change the tests did not catch. AR0637 on the board covers mutate runs that stop too early, so I don't propose it again.
-  - 5 FAILs were docs that still said the old thing or claimed too much: AR0504, AR0584, AR0599, AR0603, AR0605. Three of them came after AR0595 added the worker rule against this.
-- **Corrections to jobs:**
-  - About 22 continues sent a worker back to rerun its checks on a clean, committed tip.
-  - The most frequent steer (78 times) repeats the 1800 s timeout that the checks extension has set by itself since AR0569. `[INFERENCE]`: I could not read `events.jsonl` (permission denied), so I don't know which jobs got it.
-- **Owner's decisions:** 188 asks, 121 answered by the owner himself; 17 were line-budget raises, all accepted. The "approve this ticket" asks (21) came in 4 batches with one message each, so they are not proposed as a class. The outside-work questions split their picks (overrides AR-D446, AR-D479), so no class there either.</p><h2>1. A worker is told before its run ends that its checks did not pass on its clean committed tip</h2><p>Kind: chore
-Evidence:
-- Corrections, each a hand-written continue after `arthur review` refused the tip:
-  - "check and test ran on ef9c19a", not the tip 6960ba5
-  - "dirty tree (mutate had files changed while they ran)"
-  - "dirty tree at e43db3f (… a measuring script)"
-  - "latest test record on the tip 36a4dce is a fail"
-  - "dirty tree at 3cf3d73"
-  - "mutate is recorded on 3cf3d73, not the tip 0535553c"
-  - "dirty tree at 6447f00"
-  - "again … dirty tree at 71d2bb9"
-  - "refused your tip f8a47c0: check ran on a dirty tree"
-  - "still refuses f8a47c0"
-  - "needs a mutate line on the clean tip fac1ae5f"
-  - "needs a mutate line on the clean tip 9974806"
-  - "refuses the tip 9f48817a until mutate runs there"
-  - "Your last commit 4104779 (docs) came after check and test ran"
-  - "checks record on your tip 21d730a1 says test fail … and mutate fail"
-  - "Delivery needs npm run mutate on the clean tip"
-  - "recorded your last checks on c8c132b (dirty), not on the merge commit"
-  - "On the clean tip b5476e1e / 987b4a45 / fafa3715 run npm run check and npm test" (3 continues)
-  - "On the clean tip d4d367f3 run npm run mutate once"
-  - "Correction to your checks at the end"
-- The rule exists only in code. `review-command.ts:126` (`untested`) refuses such a tip. `hand-back.ts:82` sends the fix text only after a FAIL. Neither `worker.md` nor `verify.md` says that the checks must run on the committed tip and that nothing may change after them.
-
-Why it matters: each miss costs a coordinator turn, a second worker run and often a third: about 22 times in a week. Telling the worker before it ends works the same way the processes reminder AR0585 does, so the miss is caught while the worker is still running.
-
-Scope: `packages/delivery/src/checks-extension.ts`, function `checks`, which gains a `session_stop` handler (its `ExtensionApi` type gains `session_stop`, as in `processes-extension.ts`). The worker reads the reminder as its run ends.
-
-Before:
-&gt; ```ts
-&gt; 	pi.on("tool_result", (event, ctx) =&gt; {
-&gt; 		const before = began.get(event.toolCallId);
-&gt; 		began.delete(event.toolCallId);
-&gt; 		const lines = event.toolName === "bash" ? ran(event, ctx.cwd) : [];
-&gt; 		const after = lines.length === 0 ? undefined : tree(ctx.cwd);
-&gt; 		if (after === undefined) return;
-&gt; 		// The same commit and the same untouched files: …
-&gt; 		const clean = (line: string) =&gt; before !== undefined &amp;&amp; before.head === after.head &amp;&amp; after.clean &amp;&amp; (line.startsWith("mutate") ? before.clean : before.files === after.files);
-&gt; 		mkdirSync(dirname(file), { recursive: true });
-&gt; 		appendFileSync(file, lines.map((line) =&gt; `${line} ${(before ?? after).head} ${clean(line) ? "clean" : "dirty"}\n`).join(""));
-&gt; 	});
-&gt; }
-&gt; ```
-
-After:
-&gt; ```ts
-&gt; 	pi.on("tool_result", (event, ctx) =&gt; { /* unchanged */ });
-&gt; 	// A worker whose run ends before its checks passed on its clean committed tip is told once, as processes-extension.ts tells
-&gt; 	// leftovers (AR0585): `arthur review` refuses that tip (AR0580), and the coordinator continued the worker by hand.
-&gt; 	let reminded = false;
-&gt; 	pi.on("session_stop", () =&gt; {
-&gt; 		if (reminded || readFileSync(join(record, "kind"), "utf8").trim() !== "worker") return undefined;
-&gt; 		// The tip read with tree()'s git flags and judged by tipChecks (review-command.ts), as `untested` does.
-&gt; 		const missing = gap(file, process.cwd());
-&gt; 		if (missing === undefined) return undefined;
-&gt; 		reminded = true;
-&gt; 		return { continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${missing}. Commit your work, then run npm run check &amp;&amp; npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.` };
-&gt; 	});
-&gt; }
-&gt; ```</p><h2>2. Line-budget raises of any package are decided by policy, as the core's already are</h2><p>Kind: class
-Evidence:
-- 17 line-budget asks in the period, all accepted.
-- Answered by a standing grant ("go with recomendations", AR-D500): AR-D364, AR-D378, AR-D381, AR-D387, AR-D504, AR-D509, AR-D510, AR-D511, AR-D513.
-- Answered by the owner himself: AR-D355 ("AR-D345 - approve"), AR-D414 ("go with recomendations"), AR-D444 ("AR-D444 1").
-- Answered by class AR-D63, which matches only "core line budget": AR-D452, AR-D453, AR-D461, AR-D463. AR-D455 was closed when its ticket merged.
-- AR-D63's own words: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS". The other packages (github, delivery, orchestration, manage, models) are still asked.
-- No logged answer can back this class as it stands: each decided text names its ticket, and AR-D504 and AR-D509–AR-D513 were answered by recommendation. As the digest says for shape 9, one fresh owner answer backs it. The coordinator first asks him once: `arthur decision ask --kind budget --question 'Raise any package line budget by what its ticket needs, without asking you?'`. It records his answer with the decided text below and passes that id to `--backed-by`.
-
-Command: `arthur decision class propose --project arthur --kind budget --match 'line budget' --decided 'Raise a package line budget by what its ticket needs, without asking the owner; the merge outcome shows the raise' --backed-by &lt;the id of his answer to that ask&gt;`
-
-Agreement: 12 of 12</p><h2>3. A reviewer does not file again what the ticket's findings.md already holds</h2><p>Kind: chore
-Evidence:
-- AR0390 F3, F4: restate F1 and F2 ("The worker filed this as F1").
-- AR0395 F4: "confirms the worker's F1".
-- AR0396 F4, F5: restate F1 and F2 ("Filed as F2").
-- AR0520 F3, F4: "recorded as F1 … recorded as F2".
-- AR0579 F3: "The worker already filed this as F1".
-- AR0590 F3: the worker's F2, restated.
-- AR0593 F2: "This is the worker's F1".
-- AR0616 F2: "F1 is still open".
-- AR0620 F2: "The worker filed this as F1".
-- AR0621 F2: "F1 … is still Status: open".
-- AR0624 F3: "F1 is a real remaining hole … filed as open".
-- AR0626 F2: "already filed in findings.md".
-- AR0627 F7, F8: "The worker filed this as F1", "This is F6".
-- AR0628 F3: "already filed as F1".
-
-Why it matters: since AR0574, every `risk`, `bug` or `security` note of a passed review becomes a finding. 18 entries in 14 tickets are copies, which the owner, the audit and the retro then read twice. A check cannot hold this: whether a note adds something an entry lacks is a judgment of its words. Matching `F&lt;n&gt;` or `file:line` in the findings plugin would also drop a new risk at the same line, and AR0616 F2 and AR0626 F2 name no line of their F1.
-
-Scope: `packages/delivery/roles/reviewer.md`, the first paragraph under "Final message". The reviewer reads it before its verdict.
-
-Before:
-&gt; Findings first, most important first, each `file:line`, what is wrong and why it matters; a FAIL names at least one finding the review criteria count as a reason to fail. Then the notes that do not block the merge, under `## Notes`, one line each: `- (&lt;kind&gt;) &lt;file:line&gt;: &lt;title&gt;. &lt;what&gt;`, the kind `security`, `bug` or `risk` for a note the merge of a PASS files as a finding of the ticket, `minor` for one it leaves in the review. Then the checks you ran, each with its real result.
-
-After:
-&gt; Findings first, most important first, each `file:line`, what is wrong and why it matters; a FAIL names at least one finding the review criteria count as a reason to fail. Then the notes that do not block the merge, under `## Notes`, one line each: `- (&lt;kind&gt;) &lt;file:line&gt;: &lt;title&gt;. &lt;what&gt;`, the kind `security`, `bug` or `risk` for a note the merge of a PASS files as a finding of the ticket, `minor` for one it leaves in the review. Read the ticket's `findings.md` on the branch first: what one of its entries already says (the worker's `F&lt;n&gt;`, or an earlier review's) is no note; a note that adds to an entry names its `F&lt;n&gt;` and says only what is new. Then the checks you ran, each with its real result.</p><h2>4. `npm run mutate` ends by itself before the call's 1800 s, with its summary</h2><p>Kind: chore
-Evidence:
-- AR0599 F1: inside a job, mutate "printed four `survived:` lines and then `mutate exit=143` after 1895 s".
-- AR0602 review-1.md Checks: "the 1800 s timeout cut the run off before it finished, so it gave no complete result".
-- AR0629 review-1.md Checks: "`npm run mutate`: no result. The 1800 s bash timeout killed it".
-- AR0629 review-2.md Checks: the same again.
-- Correction: "You ran past the 120-minute limit while mutate ran; your two commits (df5e860f, 8479abd7) are kept".
-- Correction: "You ran past the 120-minute limit; your commits ff6983fb and 36a4dce9 are kept" (AR0599).
-- Correction: "its run then hit the time limit while running npm run mutate" (AR0649, 5c12398a).
-
-Why it matters: a killed run leaves no summary. The worker or reviewer either loses the job's time or skips mutate and mutates by hand: AR0369, AR0584, AR0606, AR0622 and AR0649 skipped it, and their hand mutations then found survivors anyway. AR0637 puts speed out of its scope; a deadline is not speed: it guarantees a result.
-
-Scope: `test/mutate.ts`, the main loop (lines 58–66) and `killed`'s signature. After AR0637, which rewrites the same lines.
-
-Before:
-&gt; ```ts
-&gt; const run = mutants.slice(0, max);
-&gt; let survived = 0;
-&gt; for (const mutant of run) {
-&gt; 	if (await killed(mutant)) continue;
-&gt; 	survived++;
-&gt; 	console.log(`survived: ${mutant.file}:${mutant.line}: ${mutant.what}`);
-&gt; }
-&gt; console.log(`mutate: ${run.length} mutants, ${run.length - survived} caught, ${survived} survived${mutants.length &gt; max ? `; ${mutants.length - max} not run (--max ${max})` : ""}`);
-&gt; process.exitCode = survived &gt; 0 ? 1 : 0;
-&gt; ```
-
-After:
-&gt; ```ts
-&gt; const run = mutants.slice(0, max);
-&gt; // The checks extension gives the call 1800 s (AR0569) and omp kills it there, summary and all (AR0599 F1): no mutant starts
-&gt; // past 1500 s, and one whose tests the deadline cuts (killed answers undefined) is not run, not caught.
-&gt; const deadline = Date.now() + 1_500_000;
-&gt; let [survived, tried] = [0, 0];
-&gt; for (const mutant of run) {
-&gt; 	const caught = Date.now() &lt; deadline ? await killed(mutant, deadline) : undefined;
-&gt; 	if (caught === undefined) break;
-&gt; 	tried++;
-&gt; 	if (caught) continue;
-&gt; 	survived++;
-&gt; 	console.log(`survived: ${mutant.file}:${mutant.line}: ${mutant.what}`);
-&gt; }
-&gt; const late = run.length - tried;
-&gt; console.log(`mutate: ${tried} mutants, ${tried - survived} caught, ${survived} survived${late &gt; 0 ? `; ${late} not run (time)` : ""}${mutants.length &gt; max ? `; ${mutants.length - max} not run (--max ${max})` : ""}`);
-&gt; process.exitCode = survived &gt; 0 ? 1 : 0;
-&gt; ```</p><h2>5. The README's Status paragraph stops copying the roadmap's state</h2><p>Kind: chore
-Evidence:
-- AR0603 review-1.md F1: `README.md:27` "Next … and dokploy's upload and deploy" was still there after the branch built them.
-- AR0634: the README Status said "main on 2026-10-25", "with Telegram as its channel" and a stale "Next".
-- Earlier tickets for this same paragraph: AR0117, AR0119, AR0133.
-- Today it says "main on 2026-11-05", already a day behind main.
-- AR0634 made the roadmap page compute what is built from the board, so the paragraph is now a second, hand-kept copy.
-
-Why it matters: the doc rule exists (AR0595 in the worker role, AR0596 in the review criteria) and this line still drifted. Removing the copy makes the drift impossible. `test/readme.test.ts` keeps holding: the paragraph still names `arthur config check` and links `docs/setup.md`.
-
-Scope: `README.md`, the Status paragraph (line 27).
-
-Before:
-&gt; **Status: in use on its own repository** (main on 2026-11-05). Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, with Discord as its channel (Telegram still available), and each ticket goes from its worker through a review and CI to its merge. [`docs/setup.md`](docs/setup.md) sets one up, each step with the command that checks it, such as `arthur config check`. Other projects follow; the order of the rest is [`spec/roadmap.md`](spec/roadmap.md), and the state of each entry is the board, [`spec/build.json`](spec/build.json), shown on [the roadmap page](https://kacperadler.github.io/arthur/roadmap/). Next, to close the first version: Docker's job labels, cleanup and leftover sweep (roadmap entries 70 to 72); then an agent per project, with its own chat (85 to 88), then the other plugins in the roadmap's order.
-
-After:
-&gt; **Status: in use on its own repository.** Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, talks to him through a chat channel plugin, and each ticket goes from its worker through a review and CI to its merge. [`docs/setup.md`](docs/setup.md) sets one up, each step with the command that checks it, such as `arthur config check`. Other projects follow. What is built and what comes next is [the roadmap page](https://kacperadler.github.io/arthur/roadmap/), drawn from the order of [`spec/roadmap.md`](spec/roadmap.md) and the board, [`spec/build.json`](spec/build.json).</p><h2>Dead sentences</h2><p>These are `[INFERENCE]`: I searched the period's `review-N.md`, `findings.md` and `outcome.md` files for each sentence's subject and found nothing that depended on it.
-- `packages/orchestration/roles/plan-reviewer.md`: the whole role. No `plan-review` file exists under `spec/features/`.
-- `packages/orchestration/roles/coordinator/plan-ended.md:15`: "A plan review (kind `plan-review`), spawned only when the owner asks for one, …"
-- `packages/projects/roles/onboarding.md` and `packages/projects/roles/coordinator/onboarding-ended.md`: no onboarding ran in the period.
-- `packages/orchestration/criteria/autopilot.md:25` and its project copy: "A refusal is not a reason to rewrite the ticket until it passes: it waits for the owner." One autopilot merge (AR0613) and no refusal on record.
-- `packages/core/roles/worker.md`: "Never commit with `--no-verify`." and "…and never symlink another checkout into it." (0 mentions).
-- `packages/delivery/roles/reviewer.md:9`: "Compare against the base and commit the task names, never `origin/*`, which can lag." (0 mentions).
-- `packages/orchestration/roles/coordinator.md:73`: "`arthur coordinator stop` … Run it only when the owner asks." (0 mentions).
-- `.agents/arthur/criteria/review.md`: "…or a text that is not English reaches code, docs or the user." (0 mentions).</p></body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Retro 2026-11-06</title><style>:root{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif}header{background:var(--ink);color:var(--paper);padding:32px 18px 24px;text-align:center;border-bottom:6px solid var(--blue)}header ul{list-style:none;padding:0}header h1{margin:0 auto;max-width:860px;font-size:30px;line-height:1.1;font-weight:800}header p{margin:12px auto 0;max-width:720px;color:#cfcfcf}main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}li.sub{margin-left:1.5em;list-style:circle}.red{color:var(--red)}h2{font-size:22px;line-height:1.2;font-weight:800;margin:40px 0 6px;padding-bottom:6px;border-bottom:3px solid var(--ink);text-align:center}code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);padding:1px 4px;overflow-wrap:anywhere}.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}.cols>div{border:2px solid var(--ink);padding:0 14px}.cols>div.after{border-color:var(--blue)}.cols p{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 ui-monospace,Menlo,monospace}@media (max-width:640px){.cols{grid-template-columns:1fr}}.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 6px;border:1.5px solid var(--ink);border-radius:3px;background:var(--paper);color:var(--ink)}.tag.code{background:var(--ink);color:var(--paper)}.tag.static{border-color:var(--blue);color:var(--blue)}.tag.prose{border-color:#555555;color:#555555}.tag.you{border-color:var(--red);color:var(--red)}</style></head>
+<body>
+<header>
+<h1>Retro 2026-11-06</h1>
+<ul>
+<li>Job: 2026-11-06-retro-54605bdd</li>
+<li>Merges up to: 31e3949d0002d97373ff743d397f8f4bdd8ba749</li>
+</ul>
+</header>
+<main>
+<h2>Period</h2>
+<ul>
+<li><strong>What merged:</strong> 73 tickets between 2026-10-30 and 11-06. The retro counter says 442 merges because the last retro's commit <code>3346f62e</code> is not an ancestor of main; I used the 73 in the stats.</li>
+<li><strong>The work:</strong> guard and git hardening (refs/replace, fast-import, brace lists), GitHub T2–T4, Discord T2–T3, Dokploy T2, uptime telling this machine offline from a site down, Defaults T11–T16, last retro's three proposals (AR0594–AR0596), stats S1–S2 and the actor stamp.</li>
+<li><strong>Reviews:</strong> 67 tickets reviewed, 1.4 rounds on average (1.7 last time). 48 of 67 (72%) passed the first review. 20 FAIL reviews across 19 tickets; AR0629 failed twice.</li>
+<li><strong>Cost:</strong> $354.35 over 71 tickets, 2 unknown. Most expensive: AR0562 $20.55, AR0603 $19.83, AR0528 $15.09.</li>
+<li><strong>Why branches failed:</strong></li>
+<li class="sub">14 of the 20 FAILs were a code change the tests did not catch. AR0637 on the board covers mutate runs that stop too early, so I don't propose it again.</li>
+<li class="sub">5 FAILs were docs that still said the old thing or claimed too much: AR0504, AR0584, AR0599, AR0603, AR0605. Three of them came after AR0595 added the worker rule against this.</li>
+<li><strong>Corrections to jobs:</strong></li>
+<li class="sub">About 22 continues sent a worker back to rerun its checks on a clean, committed tip.</li>
+<li class="sub">The most frequent steer (78 times) repeats the 1800 s timeout that the checks extension has set by itself since AR0569. <code>[INFERENCE]</code>: I could not read <code>events.jsonl</code> (permission denied), so I don't know which jobs got it.</li>
+<li><strong>Owner's decisions:</strong> 188 asks, 121 answered by the owner himself; 17 were line-budget raises, all accepted. The "approve this ticket" asks (21) came in 4 batches with one message each, so they are not proposed as a class. The outside-work questions split their picks (overrides AR-D446, AR-D479), so no class there either.</li>
+</ul>
+<h2>1. A worker is told before its run ends that its checks did not pass on its clean committed tip</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>Corrections, each a hand-written continue after <code>arthur review</code> refused the tip:</li>
+<li class="sub">"check and test ran on ef9c19a", not the tip 6960ba5</li>
+<li class="sub">"dirty tree (mutate had files changed while they ran)"</li>
+<li class="sub">"dirty tree at e43db3f (… a measuring script)"</li>
+<li class="sub">"latest test record on the tip 36a4dce is a fail"</li>
+<li class="sub">"dirty tree at 3cf3d73"</li>
+<li class="sub">"mutate is recorded on 3cf3d73, not the tip 0535553c"</li>
+<li class="sub">"dirty tree at 6447f00"</li>
+<li class="sub">"again … dirty tree at 71d2bb9"</li>
+<li class="sub">"refused your tip f8a47c0: check ran on a dirty tree"</li>
+<li class="sub">"still refuses f8a47c0"</li>
+<li class="sub">"needs a mutate line on the clean tip fac1ae5f"</li>
+<li class="sub">"needs a mutate line on the clean tip 9974806"</li>
+<li class="sub">"refuses the tip 9f48817a until mutate runs there"</li>
+<li class="sub">"Your last commit 4104779 (docs) came after check and test ran"</li>
+<li class="sub">"checks record on your tip 21d730a1 says test fail … and mutate fail"</li>
+<li class="sub">"Delivery needs npm run mutate on the clean tip"</li>
+<li class="sub">"recorded your last checks on c8c132b (dirty), not on the merge commit"</li>
+<li class="sub">"On the clean tip b5476e1e / 987b4a45 / fafa3715 run npm run check and npm test" (3 continues)</li>
+<li class="sub">"On the clean tip d4d367f3 run npm run mutate once"</li>
+<li class="sub">"Correction to your checks at the end"</li>
+<li>The rule exists only in code. <code>review-command.ts:126</code> (<code>untested</code>) refuses such a tip. <code>hand-back.ts:82</code> sends the fix text only after a FAIL. Neither <code>worker.md</code> nor <code>verify.md</code> says that the checks must run on the committed tip and that nothing may change after them.</li>
+</ul>
+<p>Why it matters: each miss costs a coordinator turn, a second worker run and often a third: about 22 times in a week. Telling the worker before it ends works the same way the processes reminder AR0585 does, so the miss is caught while the worker is still running.</p>
+<p>Scope: <code>packages/delivery/src/checks-extension.ts</code>, function <code>checks</code>, which gains a <code>session_stop</code> handler (its <code>ExtensionApi</code> type gains <code>session_stop</code>, as in <code>processes-extension.ts</code>). The worker reads the reminder as its run ends.</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>```ts
+	pi.on("tool_result", (event, ctx) =&gt; {
+		const before = began.get(event.toolCallId);
+		began.delete(event.toolCallId);
+		const lines = event.toolName === "bash" ? ran(event, ctx.cwd) : [];
+		const after = lines.length === 0 ? undefined : tree(ctx.cwd);
+		if (after === undefined) return;
+		// The same commit and the same untouched files: …
+		const clean = (line: string) =&gt; before !== undefined &amp;&amp; before.head === after.head &amp;&amp; after.clean &amp;&amp; (line.startsWith("mutate") ? before.clean : before.files === after.files);
+		mkdirSync(dirname(file), { recursive: true });
+		appendFileSync(file, lines.map((line) =&gt; <code>${line} ${(before ?? after).head} ${clean(line) ? "clean" : "dirty"}\n</code>).join(""));
+	});
+}
+```</p></div>
+<div class="after"><h3>After</h3>
+<p>```ts
+	pi.on("tool_result", (event, ctx) =&gt; { /* unchanged */ });
+	// A worker whose run ends before its checks passed on its clean committed tip is told once, as processes-extension.ts tells
+	// leftovers (AR0585): <code>arthur review</code> refuses that tip (AR0580), and the coordinator continued the worker by hand.
+	let reminded = false;
+	pi.on("session_stop", () =&gt; {
+		if (reminded || readFileSync(join(record, "kind"), "utf8").trim() !== "worker") return undefined;
+		// The tip read with tree()'s git flags and judged by tipChecks (review-command.ts), as <code>untested</code> does.
+		const missing = gap(file, process.cwd());
+		if (missing === undefined) return undefined;
+		reminded = true;
+		return { continue: true, additionalContext: <code>[Arthur] Before your run ends: Arthur starts no review yet: ${missing}. Commit your work, then run npm run check &amp;&amp; npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.</code> };
+	});
+}
+```</p></div>
+</div>
+<h2>2. Line-budget raises of any package are decided by policy, as the core's already are</h2>
+<p>Kind: class</p>
+<p>Evidence:</p>
+<ul>
+<li>17 line-budget asks in the period, all accepted.</li>
+<li>Answered by a standing grant ("go with recomendations", AR-D500): AR-D364, AR-D378, AR-D381, AR-D387, AR-D504, AR-D509, AR-D510, AR-D511, AR-D513.</li>
+<li>Answered by the owner himself: AR-D355 ("AR-D345 - approve"), AR-D414 ("go with recomendations"), AR-D444 ("AR-D444 1").</li>
+<li>Answered by class AR-D63, which matches only "core line budget": AR-D452, AR-D453, AR-D461, AR-D463. AR-D455 was closed when its ticket merged.</li>
+<li>AR-D63's own words: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS". The other packages (github, delivery, orchestration, manage, models) are still asked.</li>
+<li>No logged answer can back this class as it stands: each decided text names its ticket, and AR-D504 and AR-D509–AR-D513 were answered by recommendation. As the digest says for shape 9, one fresh owner answer backs it. The coordinator first asks him once: <code>arthur decision ask --kind budget --question 'Raise any package line budget by what its ticket needs, without asking you?'</code>. It records his answer with the decided text below and passes that id to <code>--backed-by</code>.</li>
+</ul>
+<p>Command: <code>arthur decision class propose --project arthur --kind budget --match 'line budget' --decided 'Raise a package line budget by what its ticket needs, without asking the owner; the merge outcome shows the raise' --backed-by &lt;the id of his answer to that ask&gt;</code></p>
+<p>Agreement: 12 of 12</p>
+<h2>3. A reviewer does not file again what the ticket's findings.md already holds</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0390 F3, F4: restate F1 and F2 ("The worker filed this as F1").</li>
+<li>AR0395 F4: "confirms the worker's F1".</li>
+<li>AR0396 F4, F5: restate F1 and F2 ("Filed as F2").</li>
+<li>AR0520 F3, F4: "recorded as F1 … recorded as F2".</li>
+<li>AR0579 F3: "The worker already filed this as F1".</li>
+<li>AR0590 F3: the worker's F2, restated.</li>
+<li>AR0593 F2: "This is the worker's F1".</li>
+<li>AR0616 F2: "F1 is still open".</li>
+<li>AR0620 F2: "The worker filed this as F1".</li>
+<li>AR0621 F2: "F1 … is still Status: open".</li>
+<li>AR0624 F3: "F1 is a real remaining hole … filed as open".</li>
+<li>AR0626 F2: "already filed in findings.md".</li>
+<li>AR0627 F7, F8: "The worker filed this as F1", "This is F6".</li>
+<li>AR0628 F3: "already filed as F1".</li>
+</ul>
+<p>Why it matters: since AR0574, every <code>risk</code>, <code>bug</code> or <code>security</code> note of a passed review becomes a finding. 18 entries in 14 tickets are copies, which the owner, the audit and the retro then read twice. A check cannot hold this: whether a note adds something an entry lacks is a judgment of its words. Matching <code>F&lt;n&gt;</code> or <code>file:line</code> in the findings plugin would also drop a new risk at the same line, and AR0616 F2 and AR0626 F2 name no line of their F1.</p>
+<p>Scope: <code>packages/delivery/roles/reviewer.md</code>, the first paragraph under "Final message". The reviewer reads it before its verdict.</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>Findings first, most important first, each <code>file:line</code>, what is wrong and why it matters; a FAIL names at least one finding the review criteria count as a reason to fail. Then the notes that do not block the merge, under <code>## Notes</code>, one line each: <code>- (&lt;kind&gt;) &lt;file:line&gt;: &lt;title&gt;. &lt;what&gt;</code>, the kind <code>security</code>, <code>bug</code> or <code>risk</code> for a note the merge of a PASS files as a finding of the ticket, <code>minor</code> for one it leaves in the review. Then the checks you ran, each with its real result.</p></div>
+<div class="after"><h3>After</h3>
+<p>Findings first, most important first, each <code>file:line</code>, what is wrong and why it matters; a FAIL names at least one finding the review criteria count as a reason to fail. Then the notes that do not block the merge, under <code>## Notes</code>, one line each: <code>- (&lt;kind&gt;) &lt;file:line&gt;: &lt;title&gt;. &lt;what&gt;</code>, the kind <code>security</code>, <code>bug</code> or <code>risk</code> for a note the merge of a PASS files as a finding of the ticket, <code>minor</code> for one it leaves in the review. Read the ticket's <code>findings.md</code> on the branch first: what one of its entries already says (the worker's <code>F&lt;n&gt;</code>, or an earlier review's) is no note; a note that adds to an entry names its <code>F&lt;n&gt;</code> and says only what is new. Then the checks you ran, each with its real result.</p></div>
+</div>
+<h2>4. <code>npm run mutate</code> ends by itself before the call's 1800 s, with its summary</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0599 F1: inside a job, mutate "printed four <code>survived:</code> lines and then <code>mutate exit=143</code> after 1895 s".</li>
+<li>AR0602 review-1.md Checks: "the 1800 s timeout cut the run off before it finished, so it gave no complete result".</li>
+<li>AR0629 review-1.md Checks: "<code>npm run mutate</code>: no result. The 1800 s bash timeout killed it".</li>
+<li>AR0629 review-2.md Checks: the same again.</li>
+<li>Correction: "You ran past the 120-minute limit while mutate ran; your two commits (df5e860f, 8479abd7) are kept".</li>
+<li>Correction: "You ran past the 120-minute limit; your commits ff6983fb and 36a4dce9 are kept" (AR0599).</li>
+<li>Correction: "its run then hit the time limit while running npm run mutate" (AR0649, 5c12398a).</li>
+</ul>
+<p>Why it matters: a killed run leaves no summary. The worker or reviewer either loses the job's time or skips mutate and mutates by hand: AR0369, AR0584, AR0606, AR0622 and AR0649 skipped it, and their hand mutations then found survivors anyway. AR0637 puts speed out of its scope; a deadline is not speed: it guarantees a result.</p>
+<p>Scope: <code>test/mutate.ts</code>, the main loop (lines 58–66) and <code>killed</code>'s signature. After AR0637, which rewrites the same lines.</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>```ts
+const run = mutants.slice(0, max);
+let survived = 0;
+for (const mutant of run) {
+	if (await killed(mutant)) continue;
+	survived++;
+	console.log(<code>survived: ${mutant.file}:${mutant.line}: ${mutant.what}</code>);
+}
+console.log(<code>mutate: ${run.length} mutants, ${run.length - survived} caught, ${survived} survived${mutants.length &gt; max ? </code>; ${mutants.length - max} not run (--max ${max})<code> : ""}</code>);
+process.exitCode = survived &gt; 0 ? 1 : 0;
+```</p></div>
+<div class="after"><h3>After</h3>
+<p>```ts
+const run = mutants.slice(0, max);
+// The checks extension gives the call 1800 s (AR0569) and omp kills it there, summary and all (AR0599 F1): no mutant starts
+// past 1500 s, and one whose tests the deadline cuts (killed answers undefined) is not run, not caught.
+const deadline = Date.now() + 1_500_000;
+let [survived, tried] = [0, 0];
+for (const mutant of run) {
+	const caught = Date.now() &lt; deadline ? await killed(mutant, deadline) : undefined;
+	if (caught === undefined) break;
+	tried++;
+	if (caught) continue;
+	survived++;
+	console.log(<code>survived: ${mutant.file}:${mutant.line}: ${mutant.what}</code>);
+}
+const late = run.length - tried;
+console.log(<code>mutate: ${tried} mutants, ${tried - survived} caught, ${survived} survived${late &gt; 0 ? </code>; ${late} not run (time)<code> : ""}${mutants.length &gt; max ? </code>; ${mutants.length - max} not run (--max ${max})<code> : ""}</code>);
+process.exitCode = survived &gt; 0 ? 1 : 0;
+```</p></div>
+</div>
+<h2>5. The README's Status paragraph stops copying the roadmap's state</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0603 review-1.md F1: <code>README.md:27</code> "Next … and dokploy's upload and deploy" was still there after the branch built them.</li>
+<li>AR0634: the README Status said "main on 2026-10-25", "with Telegram as its channel" and a stale "Next".</li>
+<li>Earlier tickets for this same paragraph: AR0117, AR0119, AR0133.</li>
+<li>Today it says "main on 2026-11-05", already a day behind main.</li>
+<li>AR0634 made the roadmap page compute what is built from the board, so the paragraph is now a second, hand-kept copy.</li>
+</ul>
+<p>Why it matters: the doc rule exists (AR0595 in the worker role, AR0596 in the review criteria) and this line still drifted. Removing the copy makes the drift impossible. <code>test/readme.test.ts</code> keeps holding: the paragraph still names <code>arthur config check</code> and links <code>docs/setup.md</code>.</p>
+<p>Scope: <code>README.md</code>, the Status paragraph (line 27).</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p><strong>Status: in use on its own repository</strong> (main on 2026-11-05). Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, with Discord as its channel (Telegram still available), and each ticket goes from its worker through a review and CI to its merge. [<code>docs/setup.md</code>](docs/setup.md) sets one up, each step with the command that checks it, such as <code>arthur config check</code>. Other projects follow; the order of the rest is [<code>spec/roadmap.md</code>](spec/roadmap.md), and the state of each entry is the board, [<code>spec/build.json</code>](spec/build.json), shown on [the roadmap page](https://kacperadler.github.io/arthur/roadmap/). Next, to close the first version: Docker's job labels, cleanup and leftover sweep (roadmap entries 70 to 72); then an agent per project, with its own chat (85 to 88), then the other plugins in the roadmap's order.</p></div>
+<div class="after"><h3>After</h3>
+<p><strong>Status: in use on its own repository.</strong> Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, talks to him through a chat channel plugin, and each ticket goes from its worker through a review and CI to its merge. [<code>docs/setup.md</code>](docs/setup.md) sets one up, each step with the command that checks it, such as <code>arthur config check</code>. Other projects follow. What is built and what comes next is [the roadmap page](https://kacperadler.github.io/arthur/roadmap/), drawn from the order of [<code>spec/roadmap.md</code>](spec/roadmap.md) and the board, [<code>spec/build.json</code>](spec/build.json).</p></div>
+</div>
+<h2>Dead sentences</h2>
+<p>These are <code>[INFERENCE]</code>: I searched the period's <code>review-N.md</code>, <code>findings.md</code> and <code>outcome.md</code> files for each sentence's subject and found nothing that depended on it.</p>
+<ul>
+<li><code>packages/orchestration/roles/plan-reviewer.md</code>: the whole role. No <code>plan-review</code> file exists under <code>spec/features/</code>.</li>
+<li><code>packages/orchestration/roles/coordinator/plan-ended.md:15</code>: "A plan review (kind <code>plan-review</code>), spawned only when the owner asks for one, …"</li>
+<li><code>packages/projects/roles/onboarding.md</code> and <code>packages/projects/roles/coordinator/onboarding-ended.md</code>: no onboarding ran in the period.</li>
+<li><code>packages/orchestration/criteria/autopilot.md:25</code> and its project copy: "A refusal is not a reason to rewrite the ticket until it passes: it waits for the owner." One autopilot merge (AR0613) and no refusal on record.</li>
+<li><code>packages/core/roles/worker.md</code>: "Never commit with <code>--no-verify</code>." and "…and never symlink another checkout into it." (0 mentions).</li>
+<li><code>packages/delivery/roles/reviewer.md:9</code>: "Compare against the base and commit the task names, never <code>origin/*</code>, which can lag." (0 mentions).</li>
+<li><code>packages/orchestration/roles/coordinator.md:73</code>: "<code>arthur coordinator stop</code> … Run it only when the owner asks." (0 mentions).</li>
+<li><code>.agents/arthur/criteria/review.md</code>: "…or a text that is not English reaches code, docs or the user." (0 mentions).</li>
+</ul>
+</main>
+</body></html>

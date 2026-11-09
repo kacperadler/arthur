@@ -3836,16 +3836,16 @@
   {
     "id": "AR0485",
     "title": "A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0485-a-project-s-vision-ticket-titles-and-a-blocked-job-s-question-enter-the/ticket.md",
-    "updated": "2026-11-07T18:04:37.537Z"
+    "updated": "2026-11-09T04:30:37.310Z"
   },
   {
     "id": "AR0486",
     "title": "A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0486-a-finding-s-body-becomes-its-ticket-s-description-verbatim-which-the-worker/ticket.md",
-    "updated": "2026-11-07T18:04:38.199Z"
+    "updated": "2026-11-09T05:28:35.313Z"
   },
   {
     "id": "AR0487",
@@ -3953,9 +3953,9 @@
   {
     "id": "AR0499",
     "title": "A job writes the `review-needed` answer that `arthur merge` takes as a PASS",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0499-a-job-writes-the-review-needed-answer-that-arthur-merge-takes-as-a-pass/ticket.md",
-    "updated": "2026-11-07T18:05:08.500Z"
+    "updated": "2026-11-09T06:49:58.997Z"
   },
   {
     "id": "AR0500",
@@ -4064,9 +4064,9 @@
   {
     "id": "AR0513",
     "title": "Credentials outside `~/.ssh` and the env file still reach origin from a job",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0513-credentials-outside-ssh-and-the-env-file-still-reach-origin-from-a-job/ticket.md",
-    "updated": "2026-11-07T18:05:10.064Z"
+    "updated": "2026-11-09T08:07:55.928Z"
   },
   {
     "id": "AR0514",
@@ -5094,16 +5094,16 @@
   {
     "id": "AR0632",
     "title": "arthur merge points XDG_CACHE_HOME at a fresh folder, so a project whose tests run Playwright finds no browser and every browser test fails",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0632-arthur-merge-points-xdg-cache-home-at-a-fresh-folder-so-a-project-whose-tests/ticket.md",
-    "updated": "2026-11-07T18:04:41.066Z"
+    "updated": "2026-11-09T09:04:55.680Z"
   },
   {
     "id": "AR0633",
     "title": "The umask test walks .arthur while the job still writes, and fails on a lock file that vanished",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0633-the-umask-test-walks-arthur-while-the-job-still-writes-and-fails-on-a-lock-file/ticket.md",
-    "updated": "2026-11-07T18:04:41.851Z"
+    "updated": "2026-11-09T09:33:10.657Z"
   },
   {
     "id": "AR0634",
@@ -5299,9 +5299,9 @@
   {
     "id": "AR0656",
     "title": "A worker is told before its run ends that its checks did not pass on its clean committed tip",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0656-a-worker-is-told-before-its-run-ends-that-its-checks-did-not-pass-on-its-clean/ticket.md",
-    "updated": "2026-11-08T22:17:16.804Z",
+    "updated": "2026-11-09T09:40:36.657Z",
     "after": [
       "AR0661"
     ]
@@ -5309,16 +5309,16 @@
   {
     "id": "AR0657",
     "title": "A reviewer does not file again what the ticket's findings.md already holds",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0657-a-reviewer-does-not-file-again-what-the-ticket-s-findings-md-already-holds/ticket.md",
-    "updated": "2026-11-08T22:49:45.837Z"
+    "updated": "2026-11-09T09:45:38.201Z"
   },
   {
     "id": "AR0658",
     "title": "`npm run mutate` ends by itself before the call's 1800 s, with its summary",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0658-npm-run-mutate-ends-by-itself-before-the-call-s-1800-s-with-its-summary/ticket.md",
-    "updated": "2026-11-09T02:33:00.036Z",
+    "updated": "2026-11-09T09:50:39.279Z",
     "after": [
       "AR0637"
     ]
@@ -5326,9 +5326,9 @@
   {
     "id": "AR0659",
     "title": "The README's Status paragraph stops copying the roadmap's state",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0659-the-readme-s-status-paragraph-stops-copying-the-roadmap-s-state/ticket.md",
-    "updated": "2026-11-09T02:49:13.126Z"
+    "updated": "2026-11-09T09:55:40.616Z"
   },
   {
     "id": "AR0660",
@@ -5340,16 +5340,16 @@
   {
     "id": "AR0661",
     "title": "The retro page uses the report style, like the pyramid and repeats pages",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0661-the-retro-page-uses-the-report-style-like-the-pyramid-and-repeats-pages/ticket.md",
-    "updated": "2026-11-08T20:41:54.063Z"
+    "updated": "2026-11-09T09:35:32.230Z"
   },
   {
     "id": "AR0662",
     "title": "A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0662-a-bash-timeout-of-0-in-a-job-runs-the-checks-with-1800-s-not-without-a-deadline/ticket.md",
-    "updated": "2026-11-07T18:48:53.191Z"
+    "updated": "2026-11-09T03:32:30.861Z"
   },
   {
     "id": "AR0663",

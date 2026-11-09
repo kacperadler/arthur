@@ -35,3 +35,4 @@ Out:
 - Installing browsers: the user's own `npx playwright install`.
 
 ## Decisions
+- 2026-11-09: Merge it, in the order of the night summary (AR0659 before AR0499); the owner: "Merge all 11 in order above." (AR-D573)

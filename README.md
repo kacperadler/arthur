@@ -24,7 +24,7 @@ In short; the whole of it is [`spec/vision.md`](spec/vision.md).
 
 ## Status
 
-**Status: in use on its own repository** (main on 2026-11-05). Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, with Discord as its channel (Telegram still available), and each ticket goes from its worker through a review and CI to its merge. [`docs/setup.md`](docs/setup.md) sets one up, each step with the command that checks it, such as `arthur config check`. Other projects follow; the order of the rest is [`spec/roadmap.md`](spec/roadmap.md), and the state of each entry is the board, [`spec/build.json`](spec/build.json), shown on [the roadmap page](https://kacperadler.github.io/arthur/roadmap/). Next, to close the first version: Docker's job labels, cleanup and leftover sweep (roadmap entries 70 to 72); then an agent per project, with its own chat (85 to 88), then the other plugins in the roadmap's order.
+**Status: in use on its own repository.** Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, talks to him through a chat channel plugin, and each ticket goes from its worker through a review and CI to its merge. [`docs/setup.md`](docs/setup.md) sets one up, each step with the command that checks it, such as `arthur config check`. Other projects follow. What is built and what comes next is [the roadmap page](https://kacperadler.github.io/arthur/roadmap/), drawn from the order of [`spec/roadmap.md`](spec/roadmap.md) and the board, [`spec/build.json`](spec/build.json).
 
 ## Features
 

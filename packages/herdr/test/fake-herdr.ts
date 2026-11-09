@@ -1,4 +1,4 @@
-import { accessSync, appendFileSync, constants, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { temporaryFolder } from "@arthur/core/testing";
 
@@ -15,14 +15,7 @@ export type Mode = "up" | "down" | "hang" | "error";
 
 // PATH without any folder that holds a `herdr`, so a test never reaches the herdr installed on this machine.
 export function pathWithoutHerdr(path = process.env.PATH ?? ""): string {
-	return path.split(delimiter).filter((dir) => {
-		try {
-			accessSync(join(dir, "herdr"), constants.X_OK);
-			return false;
-		} catch {
-			return true;
-		}
-	}).join(delimiter);
+	return path.split(delimiter).filter((dir) => !existsSync(join(dir, "herdr"))).join(delimiter);
 }
 
 export function fakeHerdr(mode: Mode = "up") {

@@ -5,7 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { ATTACH } from "../src/herdr-cli.ts";
-import { checkOptions, herdr } from "../src/herdr.ts";
+import { checkOptions, herdr, summary, table, tools } from "../src/herdr.ts";
 import { fakeHerdr, type Mode, pathWithoutHerdr } from "./fake-herdr.ts";
 
 // The herdr plugin against the fake host and a fake `herdr` on PATH (AR0670): docs/herdr.md.
@@ -205,7 +205,9 @@ test("arthur doctor: herdr ok, not on PATH, its server down or refusing, or no a
 	assert.ok(Date.now() - asked < 9000, `before the doctor's own 10 s: ${Date.now() - asked} ms`);
 });
 
-test("herdr has no options but enabled: any key is refused, naming it", () => {
+test("herdr's options file, which arthur setup reads: one summary line, the herdr tool and its version command, no options but enabled; any key is refused, naming it", () => {
+	assert.match(summary, /^herdr: [^\n]+$/);
+	assert.deepEqual([tools, table], [[{ name: "herdr", version: ["herdr", "--version"] }], {}]);
 	assert.deepEqual(checkOptions({}), []);
 	assert.deepEqual(checkOptions({ workspace: "jobs" }), [{ path: "workspace", problem: "unknown option; herdr has no options but enabled" }]);
 });

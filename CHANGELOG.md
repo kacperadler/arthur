@@ -15,6 +15,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0633 The umask test walks .arthur while the job still writes, and fails on a lock file that vanished (98e56bc7)
 - AR0656 A worker is told before its run ends that its checks did not pass on its clean committed tip (2f2ef424)
 - AR0657 A reviewer does not file again what the ticket's findings.md already holds (611cd6ab)
 - AR0658 `npm run mutate` ends by itself before the call's 1800 s, with its summary (61027593)

@@ -11,6 +11,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0499 A job writes the `review-needed` answer that `arthur merge` takes as a PASS (47fba13e)
 - AR0513 Credentials outside `~/.ssh` and the env file still reach origin from a job (a98cd706)
 - AR0661 The retro page uses the report style, like the pyramid and repeats pages (7c4ba50c)
+- AR0662 A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline (dba4513e)
 
 ### Changed
 

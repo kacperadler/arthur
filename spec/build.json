@@ -5094,9 +5094,9 @@
   {
     "id": "AR0632",
     "title": "arthur merge points XDG_CACHE_HOME at a fresh folder, so a project whose tests run Playwright finds no browser and every browser test fails",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0632-arthur-merge-points-xdg-cache-home-at-a-fresh-folder-so-a-project-whose-tests/ticket.md",
-    "updated": "2026-11-09T09:04:55.680Z"
+    "updated": "2026-11-09T10:41:12.920Z"
   },
   {
     "id": "AR0633",
@@ -5347,9 +5347,9 @@
   {
     "id": "AR0662",
     "title": "A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0662-a-bash-timeout-of-0-in-a-job-runs-the-checks-with-1800-s-not-without-a-deadline/ticket.md",
-    "updated": "2026-11-09T10:40:57.584Z"
+    "updated": "2026-11-09T10:47:19.030Z"
   },
   {
     "id": "AR0663",

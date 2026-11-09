@@ -52,3 +52,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F4 of AR0404
+- 2026-11-09: Hold AR0502, skip it in the queue; ask the owner whether to drop it in favour of AR0664; the owner: "by recommendation: G10205" (AR-D571)

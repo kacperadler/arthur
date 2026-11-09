@@ -350,6 +350,18 @@ test("hidden: the home whole, but shown the job's own record, its project's othe
 	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
 });
 
+test("hidden: each project's .arthur-worktrees whole, but not one that holds the job's main checkout or its record (AR0593)", () => {
+	const folder = realpathSync(temporaryFolder());
+	// shop's worktrees folder holds neither; held's holds the job's checkout, logs's the home and so the job's record.
+	const [shop, held, logs] = ["a", "b", "c"].map((name) => join(folder, name, ".arthur-worktrees")) as [string, string, string];
+	const [root, home] = [join(held, "root"), join(logs, "home")];
+	const record = join(home, "jobs", "2026-11-09-worker-0a0a0001");
+	for (const made of [shop, root, record]) mkdirSync(made, { recursive: true });
+	mkdirSync(join(home, "projects"));
+	writeFileSync(join(home, "projects", "checkouts"), `shop ${join(folder, "a", "shop")}\nheld ${join(folder, "b", "held")}\nlogs ${join(folder, "c", "logs")}\n`);
+	assert.deepEqual(hidden(record, { project: "job", root, worktree: "" }, "").filter((path) => path.endsWith(".arthur-worktrees")), [shop]);
+});
+
 test("a merge step writes main's checkout but not its Git config, hooks or info, Arthur's home, config or env file, a new top-level entry, nor through a link", { skip: bare }, (t) => {
 	const { folder, root } = repository();
 	const [home, config, envFile, gitConfig] = [join(root, "ops", ".arthur"), join(root, "arthur.config.ts"), join(root, "env"), join(root, ".git", "config")];

@@ -23,8 +23,9 @@ export function decisionUse(host: Host): void {
 }
 
 // Why `asked` may not go on, "" when it may: its id names a question of its kind, of its ticket (else its job, else neither),
-// that the owner answered himself, the later answer counting, for a merge with `what` among its `--what` (AR0533), and no other use
-// took it. A pass marks the id used in `<folder>/used/<id>`, created whole or not at all; only the same merge again passes it then.
+// that the owner answered himself, the later answer counting and naming his message (AR0664), for a merge with `what` among its
+// `--what` (AR0533), and no other use took it. A pass marks the id used in `<folder>/used/<id>`, created whole or not at all;
+// only the same merge again passes it then.
 function refusal(host: Host, { id, what, kind, ticket, job, use }: Use): string {
 	if (id === "") return `${what} needs the owner's decision: arthur decision ask --kind ${kind}${use.startsWith("merge ") ? ` --what ${what}` : ""} --question '<what he decides>'${ticket !== undefined ? ` --ticket ${ticket}` : job !== undefined ? ` --job ${job}` : ""}, his answer recorded with arthur decision answer, then ${what} --decision <its id>`;
 	const upper = id.toUpperCase();
@@ -42,6 +43,7 @@ function refusal(host: Host, { id, what, kind, ticket, job, use }: Use): string 
 	const policy = policyOf(answers.at(-1));
 	if (policy !== undefined) return `${upper} was answered by policy (${policy}), not by the owner`;
 	if (recommendedBy(answers.at(-1)) !== undefined) return `${upper} was answered by recommendation (${recommendedBy(answers.at(-1))}), the owner's grant, not by the owner`;
+	if (answers.at(-1)?.message === undefined) return `${upper} was answered without the owner's message behind it (recorded before AR0664): ask him again`;
 	if (ask.ticket !== ticket || (ticket === undefined && ask.job !== job)) {
 		const theirs = ask.ticket !== undefined ? `ticket ${ask.ticket}` : ask.job !== undefined ? `job ${ask.job}` : "no ticket and no job";
 		return `${upper} is of ${theirs}, not of ${ticket !== undefined ? `ticket ${ticket}` : job !== undefined ? `job ${job}` : "a spawn of no ticket"}`;

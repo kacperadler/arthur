@@ -8,6 +8,7 @@ import { type TestContext, test } from "node:test";
 import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { blockedNotice } from "../src/blocked-notice.ts";
 import { orchestration } from "../src/orchestration.ts";
+import { ownerSaid } from "./owner-said.ts";
 
 // Job state in the coordinator and the channels (spec/roadmap.md, entry 27): the jobs section of the context, the wake of a
 // run that ended blocked, the notice of a job blocked on the owner, and the footer's counts.
@@ -238,6 +239,7 @@ test("a crash before the notice, its question waiting for the log's lock: the ne
 	await decision("ask", "--kind", "question", "--question", "May I drop it?", "--job", a);
 	await decision("ask", "--kind", "job", "--question", "May I drop the rest?", "--job", a);
 	await decision("ask", "--kind", "job", "--question", "May I drop it?", "--job", a);
+	ownerSaid(fake.host.folder, 1, "yes");
 	await decision("answer", "DM-D3", "--decided", "Drop it", "yes");
 	// b asked before its crash; the log holds its question trimmed and redacted, a value of the env file too.
 	const rename = "May I rename it to sk-live-4f9a8b7c with correct-horse-battery? ";

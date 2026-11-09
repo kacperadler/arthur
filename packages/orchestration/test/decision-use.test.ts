@@ -5,6 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
+import { ownerSaid } from "./owner-said.ts";
 
 // AR0355: `arthur merge --unreviewed` (delivery's `decision.owner` call) and `--budget 0` of a spawn on a paid model (the
 // spawn's `decision`) go on only with the owner's own decision of their kind, for the job's ticket, used once; a merge flag
@@ -42,9 +43,12 @@ async function setup(t: TestContext) {
 	const printed: string[] = [];
 	t.mock.method(console, "log", (text: string) => void printed.push(text));
 	t.mock.method(console, "error", (text: string) => void printed.push(text));
-	// `arthur decision <args>`; its first line, the id an `ask` printed.
+	// `arthur decision <args>`; its first line, the id an `ask` printed. An answer comes with the owner's own message holding its
+	// words and id (AR0664).
+	let said = 0;
 	const decision = async (...args: string[]) => {
 		printed.length = 0;
+		if (args[0] === "answer") ownerSaid(fake.host.folder, ++said, args.join(" "));
 		const code = await fake.commands.find((command) => command.name === "decision")?.run({ args, project: undefined });
 		assert.equal(code ?? 0, 0, printed.join("\n"));
 		return printed.join("\n").split("\n")[0] ?? "";
@@ -113,6 +117,29 @@ test("take-main, --unreviewed and --budget 0 refuse a decision answered by recom
 	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), `${unreviewed} was answered by recommendation (G7), the owner's grant, not by the owner`);
 	const budget = await granted("--kind", "budget", "--ticket", "AC0001");
 	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${ONE}`, budgetUsd: 0, decision: budget }), { message: `refused by orchestration: ${budget} was answered by recommendation (G7), the owner's grant, not by the owner` });
+});
+
+// AR0664: an answer recorded before the proof, or by hand, names no owner's message: it lets nothing through, whatever its use.
+test("take-main, --unreviewed and --budget 0 refuse an answer that names no owner's message; a later answer with one counts", async (t) => {
+	const { decision, call, fake, root, owners } = await setup(t);
+	const log = join(root, "spec/decisions.jsonl");
+	const bare = async (...ask: string[]) => {
+		const id = await decision("ask", "--question", "Go?", ...ask);
+		writeFileSync(log, `${readFileSync(log, "utf8")}${JSON.stringify({ record: "answer", id, time: "2026-03-04T08:00:00+00:00", decided: "Go", words: "yes" })}\n`);
+		return id;
+	};
+	const why = (id: string) => `${id} was answered without the owner's message behind it (recorded before AR0664): ask him again`;
+	const take = await bare("--kind", "merge");
+	assert.equal(fake.host.call<string>("decision.owner", { id: take, what: "arthur take-main", kind: "merge", use: "take-main acme 0000abcd" }), why(take));
+	const unreviewed = await bare("--kind", "merge", "--ticket", "AC0001", "--what", "--unreviewed");
+	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), why(unreviewed));
+	const budget = await bare("--kind", "budget", "--ticket", "AC0001");
+	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${ONE}`, budgetUsd: 0, decision: budget }), { message: `refused by orchestration: ${why(budget)}` });
+	await decision("answer", unreviewed, "--decided", "Go", "tak");
+	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), "", "the owner's later answer, with his message");
+	const proved = await owners("merge", "--ticket", "AC0002", "--what", "--no-ci");
+	writeFileSync(log, readFileSync(log, "utf8").replace(/"message":\d+/, '"message":"1"'));
+	assert.match(call({ id: proved, ticket: "AC0002", job: JOB, what: "--no-ci" }), /decisions\.jsonl line \d+ is not a decision record \(no decided or words, or picked or message not a number\)/, "a hand-edited message is no number");
 });
 
 test("a merge decision lets through only the flags its --what names: one for --unreviewed refuses --no-ci, one for both allows both", async (t) => {

@@ -1,6 +1,6 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and activity,
 // commit-rules, delivery, develop, discord, dokploy, findings, github, listen, machines, manage, models, nvm, orchestration, projects,
-// resources, schedule, session, stats, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
+// resources, schedule, session, speak, stats, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
 // docker (first); server, signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first
 // planned import (`Cannot find package '@arthur/docker'`). Take a plugin from it once its package exists. Illustrative for the planned
 // ones: their option names are proposed, not final.
@@ -47,6 +47,7 @@ import { server } from "@arthur/server"; // later, named
 import { session } from "@arthur/session"; // first, named
 import { signal } from "@arthur/signal"; // later, named
 import { slack } from "@arthur/slack"; // later, named
+import { speak } from "@arthur/speak"; // first, named
 import { stats } from "@arthur/stats"; // first, named
 import { telegram } from "@arthur/telegram"; // first, named
 import { uptime } from "@arthur/uptime"; // first, named
@@ -360,6 +361,17 @@ export default defineConfig({
 			language: "pl", // a language code, or "auto" for whisper's own detection
 			timeoutSeconds: 300, // ffmpeg or whisper running longer on one file is killed; the coordinator gets the path and why
 			maxSeconds: 600, // a longer file is not transcribed; the human is told in one line, the coordinator gets the path
+		}),
+
+		// The coordinator's reply to a voice note also goes back as a voice note, through the channel the note came from, where
+		// the text goes, after it: spoken on this server's CPU by Piper with the voice of the reply's language (Polish when it
+		// holds a Polish letter or word, else English), made OGG/Opus by ffmpeg in .arthur/speak/; nothing leaves the server. A reply
+		// to text gets text only. When the voice cannot go, one line says why. `arthur say <text> [--out <file>]` and `speak.say` do
+		// the same for any text. `arthur doctor` checks `piper`, each voice and `ffmpeg`; while one is missing the text goes alone.
+		speak({
+			voices: { pl: "pl_PL-gosia-medium", en: "en_US-lessac-medium" }, // a Piper voice name (the file .arthur/speak/voices/<name>.onnx and its .onnx.json) or the absolute path of a .onnx file
+			maxChars: 1500, // a longer reply goes as text alone, with one line saying why
+			timeoutSeconds: 120, // piper or ffmpeg running longer on one reply is killed; the text goes alone, with one line saying why
 		}),
 
 		// Videos from any channel, cut on this server by ffmpeg; nothing leaves the server. The coordinator gets a few frames as PNG

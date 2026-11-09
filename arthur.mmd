@@ -48,8 +48,9 @@ flowchart TD
         telegram[telegram<br/>text, media, phone menu]
         discord[discord<br/>main channel, one per project<br/>text, media and /name text]
         listen[listen<br/>whisper.cpp, on the CPU]
+        speak[speak<br/>Piper: a voice note for a voice note]
         video[video<br/>ffmpeg frames, words by listen]
-        telegram ~~~ discord ~~~ listen ~~~ video
+        telegram ~~~ discord ~~~ listen ~~~ speak ~~~ video
       end
       subgraph COORD[Coordinator]
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>morning report, decision log, decision classes]
@@ -150,7 +151,7 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings,resources,manage,orchestration,develop,listen,video,discord,dokploy built;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings,resources,manage,orchestration,develop,listen,speak,video,discord,dokploy built;
   class lpartial,stats partial;
   class lplanned,agents,docker,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites,dk outside;

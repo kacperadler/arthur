@@ -5372,15 +5372,15 @@
     "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
     "updated": "2026-11-09T09:56:58.072Z",
     "after": [
-      "AR0664"
+      "AR0668"
     ]
   },
   {
     "id": "AR0666",
     "title": "The threat model says the coordinator runs with no sandbox and no worktree guard",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0666-the-threat-model-says-the-coordinator-runs-with-no-sandbox-and-no-worktree-guard/ticket.md",
-    "updated": "2026-11-09T09:56:58.685Z"
+    "updated": "2026-11-09T20:15:54.589Z"
   },
   {
     "id": "AR0667",
@@ -5395,9 +5395,9 @@
   {
     "id": "AR0668",
     "title": "A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0668-a-decision-answer-can-quote-only-the-id-and-a-dash-from-the-owner-message-so-a/ticket.md",
-    "updated": "2026-11-09T14:05:08.975Z",
+    "updated": "2026-11-09T20:15:53.352Z",
     "after": [
       "AR0664"
     ]

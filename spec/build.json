@@ -5316,9 +5316,9 @@
   {
     "id": "AR0658",
     "title": "`npm run mutate` ends by itself before the call's 1800 s, with its summary",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0658-npm-run-mutate-ends-by-itself-before-the-call-s-1800-s-with-its-summary/ticket.md",
-    "updated": "2026-11-09T02:33:00.036Z",
+    "updated": "2026-11-09T09:50:39.279Z",
     "after": [
       "AR0637"
     ]

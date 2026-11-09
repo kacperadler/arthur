@@ -14,7 +14,7 @@ function pattern(words: string, flags = ""): RegExp {
 // sender chose, so of it only a transcript counts, `[voice|audio <seconds> s] <transcript> (<path>)`.
 function said(text: string): string {
 	const own = (line: string) => /^\[(?:voice|audio) \d+(?:\.\d+)? s\] (.*?)(?: \(\/.*\))?$/.exec(line)?.[1] ?? "";
-	return text.split("\n").map((line) => (/^\[(?:photo|video|voice|audio|file)\b/i.test(line) ? own(line) : line)).join("\n");
+	return text.split("\n").map((line) => (/^\[(?:photo|video|voice|audio|file)\b/.test(line) ? own(line) : line)).join("\n");
 }
 
 // The latest owner message that holds `words`, and names `id` too when given, else why none does: a message of the turn in

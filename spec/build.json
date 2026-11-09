@@ -5401,5 +5401,15 @@
     "after": [
       "AR0664"
     ]
+  },
+  {
+    "id": "AR0669",
+    "title": "Plan: project agents, each project its own agent in its own chat (roadmap 85 to 88)",
+    "status": "planning",
+    "path": "spec/features/AR0669-plan-project-agents-each-project-its-own-agent-in-its-own-chat-roadmap-85-to-88/ticket.md",
+    "updated": "2026-11-09T14:12:52.933Z",
+    "after": [
+      "AR0530"
+    ]
   }
 ]

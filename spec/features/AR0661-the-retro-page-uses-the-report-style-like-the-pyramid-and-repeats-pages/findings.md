@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/manage/src/report-file.ts:98`
 - What: `reportPage` runs each `> ` line of a `Before:` or `After:` column through the same inline rendering as the prose, so in a quoted TypeScript block a template literal such as `` console.log(`survived: ${mutant.file}`) `` shows as a grey chip with its backticks gone, and the ```` ```ts ```` and ```` ``` ```` fence lines show as typed. Seen in `spec/retro/2026-11-06.html` (proposals 1 and 4) at 420 px; the pyramid's page renders its columns the same way. A Markdown link (`[text](url)`) also shows as typed, in a column and in prose.
 - Suggestion: render a column's lines inside a fence as escaped text only (no code chip, no bold) and leave the fence lines out; keep the inline rendering for a column of prose. Links stay out unless a page needs them.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. a bare `**` outside a code span becomes bold
+
+- Kind: fix
+- Found by: 2026-11-08-review-428926fc (review), 2026-11-09
+- Where: `packages/manage/src/report-file.ts:80`
+- What: `files under src/**/*.ts and test/**/*.ts` renders as `src/<strong>/*.ts and test/</strong>/*.ts`. Inside a Before/After quote, `const n = 2 ** 3 ** 2;` renders as `2 <strong> 3 </strong> 2`. Globs in a retro's prose or code in a pyramid column will lose their `**` this way. This is the same kind of problem as F1.
+- Status: deferred (client summary)

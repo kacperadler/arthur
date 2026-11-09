@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-09
+
+### Fixed
+
+- AR0661 The retro page uses the report style, like the pyramid and repeats pages (7c4ba50c)
+
 ## 2026-11-07
 
 ### Added

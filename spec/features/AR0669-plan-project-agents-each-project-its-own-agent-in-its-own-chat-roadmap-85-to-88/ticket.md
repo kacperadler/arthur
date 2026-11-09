@@ -34,3 +34,4 @@ Out:
 - Agents above projects and the company edition (roadmap 79): not planned now, per decision 20.
 
 ## Decisions
+- 2026-11-09: Approve AR0669; its plan runs after the queue; the owner: "AR-D585 - 1" (AR-D585)

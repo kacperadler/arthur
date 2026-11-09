@@ -72,18 +72,20 @@ const TAGS: Readonly<Record<string, string>> = { codebase: "code", "static analy
 
 // Markdown as one self-contained page in the report style (`/repeats`, a retro's page, a pyramid's before and after page): its
 // title and the lines before its first `## ` in the header, the rest in `main`, a `- ` line as a list item (indented, one level
-// in), a backticked span as code, a `**` span as bold, each line of a `red` section in red, the `> ` lines after a `Before:` and
-// an `After:` line side by side, and the layer of a `Now at:` or `Move to:` line as its tag.
+// in), a backticked span as code, a `**` span around a word run as bold, each line of a `red` section in red, the `> ` lines
+// after a `Before:` and an `After:` line side by side, a fenced block in them as typed without its fences, and the layer of a
+// `Now at:` or `Move to:` line as its tag.
 export function reportPage(text: string, red: readonly string[] = []): string {
-	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too.
+	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too. A mark with a space just
+	// inside, or glued to a word or path outside (`2 ** 3`, `src/**/*.ts`), stays as typed.
 	const inline = (line: string) =>
-		escape(line).replace(/`([^`]+)`|\*\*(.+?)\*\*/g, (_, chip, bold) =>
+		escape(line).replace(/`([^`]+)`|(?<!\S)\*\*(?=\S)(.+?)(?<=\S)\*\*(?!\w)/g, (_, chip, bold) =>
 			chip !== undefined ? `<code>${chip}</code>` : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,
 		);
 	const out: string[] = [];
-	let [side, section, quote] = ["", "", [] as string[]];
+	let [side, section, quote, fenced] = ["", "", [] as string[], false];
 	// The open side's quote and its end; `close` ends the pair too.
-	const column = () => void out.push(`<p>${quote.splice(0).join("\n")}</p></div>`);
+	const column = () => void (out.push(`<p>${quote.splice(0).join("\n")}</p></div>`), (fenced = false));
 	const close = () => {
 		if (side !== "") (column(), out.push("</div>"));
 		side = "";
@@ -95,7 +97,9 @@ export function reportPage(text: string, red: readonly string[] = []): string {
 			out.push(line === "After:" ? '<div class="after"><h3>After</h3>' : "<div><h3>Before</h3>");
 			side = line.slice(0, -1);
 		} else if (side !== "" && (line.startsWith(">") || line.trim() === "")) {
-			if (line.startsWith(">")) quote.push(inline(line.replace(/^> ?/, "")));
+			const quoted = line.replace(/^> ?/, "");
+			if (quoted.startsWith("```")) fenced = !fenced;
+			else if (line.startsWith(">")) quote.push(fenced ? escape(quoted) : inline(quoted));
 		} else {
 			close();
 			const level = /^(#{1,3}) /.exec(line)?.[1]?.length;

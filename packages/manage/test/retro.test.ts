@@ -5,6 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type ManageOptions, manage } from "../src/manage.ts";
+import { reportPage } from "../src/report-file.ts";
 import { RETRO_TASK } from "../src/retro.ts";
 
 // The retro against the fake host and the fake agent, the test providing `schedule.register` as the schedule plugin would, and
@@ -176,6 +177,17 @@ test("a retro's page is in the report style: bullets as a list, one level in too
 	);
 	assert.doesNotMatch(page.replaceAll("<code>a ** b ** c</code>", ""), /\*\*|<p>\s*-/, "no raw bold or bullet outside a code span");
 	assert.match(page, /<style>[^<]*li\.sub\{margin-left:1\.5em;list-style:circle\}/, "an indented item is shown a level in");
+});
+
+// AR0663: a `**` is bold only around a word run, and code fenced in a Before or After quote shows as typed.
+test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as code without its fences", () => {
+	const lines = ["src/**/*.ts and test/**/*.ts", "const n = 2 ** 3 ** 2;", "** x** stays", "**x ** stays", "**x**y stays"];
+	const page = reportPage([...lines, "**x** is bold", "## 1. P", "Before:", "> ```ts", "> const s = `${a} ** b` < c;", ">", "> ```", "> Then `x` and **y**."].join("\n"));
+	assert.ok(page.includes(`${lines.map((line) => `<p>${line}</p>`).join("\n")}\n<p><strong>x</strong> is bold</p>\n`), page);
+	assert.ok(page.includes("<p>const s = `${a} ** b` &lt; c;\n\nThen <code>x</code> and <strong>y</strong>.</p>"), page);
+	// A fence left open ends with its column: the After's quote is formatted again.
+	const open = reportPage(["## 1. P", "Before:", "> ```", "> `a` **b**", "After:", "> `a` **b**"].join("\n"));
+	assert.ok(open.includes('<p>`a` **b**</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

@@ -5354,9 +5354,9 @@
   {
     "id": "AR0663",
     "title": "A bare ** in report page text becomes bold, so globs and code lose it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0663-a-bare-in-report-page-text-becomes-bold-so-globs-and-code-lose-it/ticket.md",
-    "updated": "2026-11-09T09:56:56.859Z"
+    "updated": "2026-11-09T14:50:55.198Z"
   },
   {
     "id": "AR0664",

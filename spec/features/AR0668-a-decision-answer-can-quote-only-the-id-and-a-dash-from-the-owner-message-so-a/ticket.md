@@ -38,3 +38,4 @@ Out:
 - Ticket approval and plain merges needing proof: AR0665.
 
 ## Decisions
+- 2026-11-09: Approve AR0668; it runs right after AR0664 merges; the owner: "Approve" (AR-D582)

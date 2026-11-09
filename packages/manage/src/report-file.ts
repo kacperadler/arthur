@@ -83,7 +83,8 @@ export function reportPage(text: string, red: readonly string[] = []): string {
 			chip !== undefined ? `<code>${chip}</code>` : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,
 		);
 	const out: string[] = [];
-	let [side, section, quote, fenced] = ["", "", [] as string[], false];
+	let [side, section, quote] = ["", "", [] as string[]];
+	let fenced = false;
 	// The open side's quote and its end; `close` ends the pair too.
 	const column = () => void (out.push(`<p>${quote.splice(0).join("\n")}</p></div>`), (fenced = false));
 	const close = () => {

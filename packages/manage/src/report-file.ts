@@ -72,18 +72,27 @@ const TAGS: Readonly<Record<string, string>> = { codebase: "code", "static analy
 
 // Markdown as one self-contained page in the report style (`/repeats`, a retro's page, a pyramid's before and after page): its
 // title and the lines before its first `## ` in the header, the rest in `main`, a `- ` line as a list item (indented, one level
-// in), a backticked span as code, a `**` span as bold, each line of a `red` section in red, the `> ` lines after a `Before:` and
-// an `After:` line side by side, and the layer of a `Now at:` or `Move to:` line as its tag.
+// in), a backticked span as code, a `**` span around a word run as bold, each line of a `red` section in red, the `> ` lines
+// after a `Before:` and an `After:` line side by side, a fenced block in them as typed without its fences, and the layer of a
+// `Now at:` or `Move to:` line as its tag.
 export function reportPage(text: string, red: readonly string[] = []): string {
-	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too.
+	// A code span first, so the `**` in it stays as typed; a bold span's own code spans are code too. An opening mark follows the
+	// line's start, a space, `(`, `[` or a quote, a closing one is followed by its end, a space, a closing bracket, a quote or a
+	// stop, and neither touches a space, `/` or `*` inside: `2 ** 3`, `**/*.ts`, `src/**/*.ts` and `a**b` stay as typed. A bold
+	// span holds no `**` outside its code spans, so a mark that cannot close ends it (`f(**kw) and **b**` bolds only `b`), and no
+	// `*` before its closing mark either; in it a backtick with another after it on the line opens a code span, a lone one is text.
+	const spans =
+		/`([^`]+)`|(?<![^\s([\x22\x27])\*\*(?=[^\s/*])((?:\x60[^\x60]+\x60|\x60(?![^\x60]*\x60)|(?!\*\*)[^\x60])+?)(?<=[^\s/])\*\*(?![^\s)\]\x22\x27.,;:!?])/g;
 	const inline = (line: string) =>
-		escape(line).replace(/`([^`]+)`|\*\*(.+?)\*\*/g, (_, chip, bold) =>
+		escape(line).replace(spans, (_, chip, bold) =>
 			chip !== undefined ? `<code>${chip}</code>` : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,
 		);
 	const out: string[] = [];
 	let [side, section, quote] = ["", "", [] as string[]];
+	// The open fence of the side's quote, `""` for none.
+	let fence = "";
 	// The open side's quote and its end; `close` ends the pair too.
-	const column = () => void out.push(`<p>${quote.splice(0).join("\n")}</p></div>`);
+	const column = () => void (out.push(`<p>${quote.splice(0).join("\n")}</p></div>`), (fence = ""));
 	const close = () => {
 		if (side !== "") (column(), out.push("</div>"));
 		side = "";
@@ -95,7 +104,11 @@ export function reportPage(text: string, red: readonly string[] = []): string {
 			out.push(line === "After:" ? '<div class="after"><h3>After</h3>' : "<div><h3>Before</h3>");
 			side = line.slice(0, -1);
 		} else if (side !== "" && (line.startsWith(">") || line.trim() === "")) {
-			if (line.startsWith(">")) quote.push(inline(line.replace(/^> ?/, "")));
+			const quoted = line.replace(/^> ?/, "");
+			// A fence opens with 3 or more backticks or tildes, and only as many or more of the same with nothing after close it.
+			const [, run = "", rest = ""] = /^ {0,3}(\x60{3,}|~{3,})(.*)$/.exec(quoted) ?? [];
+			if (run !== "" && (fence === "" || (run.startsWith(fence) && rest.trim() === ""))) fence = fence === "" ? run : "";
+			else if (line.startsWith(">")) quote.push(fence !== "" ? escape(quoted) : inline(quoted));
 		} else {
 			close();
 			const level = /^(#{1,3}) /.exec(line)?.[1]?.length;

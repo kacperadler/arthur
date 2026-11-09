@@ -5,6 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type ManageOptions, manage } from "../src/manage.ts";
+import { reportPage } from "../src/report-file.ts";
 import { RETRO_TASK } from "../src/retro.ts";
 
 // The retro against the fake host and the fake agent, the test providing `schedule.register` as the schedule plugin would, and
@@ -176,6 +177,37 @@ test("a retro's page is in the report style: bullets as a list, one level in too
 	);
 	assert.doesNotMatch(page.replaceAll("<code>a ** b ** c</code>", ""), /\*\*|<p>\s*-/, "no raw bold or bullet outside a code span");
 	assert.match(page, /<style>[^<]*li\.sub\{margin-left:1\.5em;list-style:circle\}/, "an indented item is shown a level in");
+});
+
+// AR0663: a `**` is bold only around a word run, and code fenced in a Before or After quote shows as typed.
+test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as code without its fences", () => {
+	const lines = [
+		...["src/**/*.ts and test/**/*.ts", "**/*.ts and src/**/*.ts", "globs **/roles/** and .agents/**", "use **/*.ts or packages/**"],
+		...["const n = 2 ** 3 ** 2;", "** x** stays", "**x ** stays", "**x**y stays", "**x**/y stays", "**src/** stays", "**x*** stays", "a**b**c stays"],
+		...["see **/tmp** now", "***x** now"],
+	];
+	// Each line with the bold it gets: at each opening and closing neighbour, and only from the nearest mark that can open.
+	const bold = [
+		["**x** is bold", "<strong>x</strong> is bold"],
+		['(**x**), "**y**", [**z**] and \'**v**\'; **w**.', '(<strong>x</strong>), "<strong>y</strong>", [<strong>z</strong>] and \'<strong>v</strong>\'; <strong>w</strong>.'],
+		["**a**, **b**; **c**: **d**! **e**? **f**", "<strong>a</strong>, <strong>b</strong>; <strong>c</strong>: <strong>d</strong>! <strong>e</strong>? <strong>f</strong>"],
+		["f(**kw) and **bold**", "f(**kw) and <strong>bold</strong>"],
+		["pass **kwargs and **opts**", "pass **kwargs and <strong>opts</strong>"],
+		["**x**y and **z**", "**x**y and <strong>z</strong>"],
+		["**see `6 ** 0`** now", "<strong>see <code>6 ** 0</code></strong> now"],
+		["**it's 6` 0 off** now", "<strong>it's 6` 0 off</strong> now"],
+		["**a `6` b ** c `0`** d", "**a <code>6</code> b ** c <code>0</code>** d"],
+		["**a `x** b`", "**a <code>x** b</code>"],
+	];
+	const page = reportPage([...lines, ...bold.map(([line]) => line), "## 1. P", "Before:", "> ```ts", "> const s = `${a} ** b` < c;", ">", "> ```", "> Then `x` and **y**."].join("\n"));
+	assert.ok(page.includes(`${[...lines, ...bold.map(([, html]) => html)].map((line) => `<p>${line}</p>`).join("\n")}\n`), page);
+	assert.ok(page.includes("<p>const s = `${a} ** b` &lt; c;\n\nThen <code>x</code> and <strong>y</strong>.</p>"), page);
+	// A fence left open ends with its column: the After's quote is formatted again. A fence indented up to 3 spaces is one too;
+	// only as many or more of its own marks with nothing after them close it.
+	const open = reportPage(["## 1. P", "Before:", ">    ```", "> `a` **b**", ">     ```", "> ```ts", "> ~~~", "After:", "> `a` **b**"].join("\n"));
+	assert.ok(open.includes('<p>`a` **b**\n    ```\n```ts\n~~~</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
+	const tildes = reportPage(["## 1. P", "Before:", "> ~~~~", "> **x**", "> ~~~", "> ~~~~~ ", "> ~~~", "> **v**", "> ~~~", "> `` **y**", "> ~~ **z**"].join("\n"));
+	assert.ok(tildes.includes("<p>**x**\n~~~\n**v**\n`` <strong>y</strong>\n~~ <strong>z</strong></p></div>"), tildes);
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

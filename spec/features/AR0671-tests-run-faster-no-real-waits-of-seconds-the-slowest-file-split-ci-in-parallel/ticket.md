@@ -46,4 +46,5 @@ Out:
 - Skipping `arthur merge`'s own `npm test` when CI passed on the same tree: not done; the owner decides that apart.
 
 ## Decisions
+- 2026-11-09: AR0671 approved; its plan runs next when a slot frees, before the Docker work; the owner: "AR-D593 - 1" (AR-D593)
 

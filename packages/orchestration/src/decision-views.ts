@@ -27,7 +27,7 @@ export function whole(host: Host, project: Project, decision: Decision, entries:
 	if (ask.class !== undefined) lines.push(`Class: ${described(ask.class)}; ${evidence(ask.class)}`);
 	if (ask.options.length > 0) lines.push(`Options: ${ask.options.map((each, at) => `${at + 1}. ${each}`).join("; ")}`);
 	if (ask.recommend !== undefined) lines.push(`Recommended: ${typeof ask.recommend === "number" ? option(ask.recommend) : ask.recommend}`);
-	for (const each of answers) lines.push(`Answered ${each.time}: ${each.decided}${each.picked === undefined ? "" : `; picked ${option(each.picked)}`}${policyOf(each) === undefined ? `; the owner: "${each.words}"` : `; by policy (${policyOf(each)})`}`);
+	for (const each of answers) lines.push(`Answered ${each.time}: ${each.decided}${each.picked === undefined ? "" : `; picked ${option(each.picked)}`}${policyOf(each) === undefined ? `; the owner: "${each.words}"` : `; by policy (${policyOf(each)})`}${each.message === undefined ? "" : ` (message ${each.message})`}`);
 	for (const each of closes) lines.push(`Closed ${each.time}: ${each.reason}`);
 	for (const each of entries) if (each.record === "revoke" && each.id === ask.id) lines.push(`Revoked ${each.time}: the owner: "${each.words}"`);
 	const held = classStates(entries).find((each) => each.ask.id === ask.id);

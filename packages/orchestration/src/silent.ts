@@ -6,8 +6,8 @@ import type { Answer, Ask } from "./decision-log.ts";
 
 // The silent mode (spec/roadmap.md, entry 47, AR0127): `arthur silent` and `/silent`, its state in `<folder>/silent.json`, the
 // reply it holds (inbox.ts, `held`), the notice it holds (`coordinator.silent`, which every channel asks) and its line in the
-// coordinator's context; with `--recommend`, the owner's grant (AR0583), which answers an ask by its recommendation
-// (decision-log.ts): docs/commands/silent.md.
+// coordinator's context; with `--recommend`, on the phone only (AR0664), the owner's grant (AR0583), which answers an ask by
+// its recommendation (decision-log.ts): docs/commands/silent.md.
 
 // A grant's id, `G<the number of the event that recorded it>`, and its bounds, every one given holding.
 type Grant = { readonly id: string; readonly until?: string; readonly usage?: number; readonly tickets?: readonly string[] };
@@ -15,7 +15,7 @@ type State = { readonly since: string; readonly seq: number; readonly work: stri
 
 const [FILE, ASK] = ["silent.json", "silent-ask"];
 const USAGE = "usage: arthur silent [on '<the work; its stop condition>' | off | ask]";
-const GRANT = "       arthur silent on '<the work>' [--until <HH:MM>] [--usage <percent>] [--tickets <id>,...] --recommend";
+const GRANT = "       /silent on <the work> [--until <HH:MM>] [--usage <percent>] [--tickets <id>,...] --recommend, the owner's grant, on his phone only";
 const BOUNDS = ["--until", "--usage", "--tickets"];
 
 // No file is off; a file that does not parse, or holds something else (a grant without its id, a bound of another type), counts as on.
@@ -99,8 +99,9 @@ export function held(folder: string, name: string): boolean {
 	return false;
 }
 
-// The notice of a job blocked on the owner (blocked-notice.ts) carries `blocked`; while silent is on, every other is held.
-const holds = (notice: unknown) => typeof (notice as { blocked?: unknown } | undefined)?.blocked !== "string";
+// The notice of a job blocked on the owner (blocked-notice.ts) carries `blocked`, the one of an answer he must see recorded
+// (decision-writes.ts) `decision`; while silent is on, every other is held.
+const holds = (notice: unknown) => !["blocked", "decision"].some((key) => typeof (notice as Readonly<Record<string, unknown>> | undefined)?.[key] === "string");
 
 export function silentMode(host: Host): void {
 	const { folder } = host;
@@ -134,12 +135,12 @@ export function silentMode(host: Host): void {
 		run({ args }) {
 			const [verb = "", ...rest] = args;
 			const on = verb === "on" ? onArgs(rest) : undefined;
-			const grant = on?.bounds === undefined ? undefined : grantOf(host, on.bounds);
-			if (typeof grant === "string") {
-				console.error(`arthur silent: refused: ${grant}`);
+			// The coordinator's shell could give itself the grant; only the owner's own `/silent` gives it.
+			if (on?.bounds !== undefined) {
+				console.error("arthur silent: refused: --recommend is the owner's grant: he gives it on his phone, /silent on <the work> --until <HH:MM> --recommend");
 				return 1;
 			}
-			const said = on !== undefined ? answer(verb, on.work, grant) : verb !== "on" && rest.length === 0 ? answer(verb, "") : undefined;
+			const said = on !== undefined ? answer(verb, on.work) : verb !== "on" && rest.length === 0 ? answer(verb, "") : undefined;
 			console[said === undefined ? "error" : "log"](said ?? `${USAGE}\n${GRANT}`);
 			return said === undefined ? 2 : 0;
 		},
@@ -147,7 +148,11 @@ export function silentMode(host: Host): void {
 			about: "Silent mode on or off: while on, only the end of delegated work, a decision and your answers reach you",
 			reply: (text) => {
 				const [, verb = "", work = ""] = /^(\S*)\s*([\s\S]*)$/.exec(text.trim()) ?? [];
-				return (verb === "on" || work === "" ? answer(verb, work.trim()) : undefined) ?? USAGE.replace("arthur silent", "/silent");
+				const on = verb === "on" ? onArgs(work.split(/\s+/).filter(Boolean)) : undefined;
+				const grant = on?.bounds === undefined ? undefined : grantOf(host, on.bounds);
+				if (typeof grant === "string") return `silent: refused: ${grant}`;
+				const said = on?.bounds !== undefined ? answer(verb, on.work, grant) : on !== undefined || work === "" ? answer(verb, work.trim()) : undefined;
+				return said ?? `${USAGE}\n${GRANT}`.replace("arthur silent", "/silent");
 			},
 		},
 	});

@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
+import { ownerSaid } from "./owner-said.ts";
 
 // The decision log (spec/roadmap.md, entry 96): `arthur decision`, `arthur decisions`, the ticket's Decisions line, the plugin's
 // own records, and the open questions in the coordinator's context.
@@ -58,6 +59,8 @@ async function setup(t: TestContext, env: Record<string, string> = {}) {
 		return [code ?? 0, printed.join("\n")];
 	};
 	const file = (root = acme) => join(root, "spec/decisions.jsonl");
+	// Each answer `decision` records comes with the owner's own message holding its words and id, event 1, 2, ... in turn (AR0664).
+	let said = 0;
 	return {
 		fake,
 		printed,
@@ -65,7 +68,10 @@ async function setup(t: TestContext, env: Record<string, string> = {}) {
 		shop,
 		projects,
 		file,
-		decision: (...args: string[]) => run("decision", args),
+		decision: (...args: string[]) => {
+			if (args[0] === "answer") ownerSaid(fake.host.folder, ++said, args.join(" "));
+			return run("decision", args);
+		},
 		decisions: (...args: string[]) => run("decisions", args),
 		run,
 		log: (root = acme) => (existsSync(file(root)) ? readFileSync(file(root), "utf8").trim().split("\n").map((line) => JSON.parse(line)) : undefined),
@@ -145,7 +151,7 @@ test("an answer goes into the log, then under its ticket's Decisions in the form
 	const { decision, decisions, fake, log, ticket } = await setup(t);
 	await decision(...PLAN_ASK);
 	assert.deepEqual(await decision("answer", "ac-d1", ...APPROVED, "ok,", "go"), [0, "AC-D1 answered: Plan approved by the owner: plan.md at abc1234; its line is under the Decisions of AC0001"]);
-	assert.deepEqual(log()?.[1], { record: "answer", id: "AC-D1", time: "2026-03-04T06:00:00+01:00", decided: "Plan approved by the owner: plan.md at abc1234", picked: 1, words: "ok, go" });
+	assert.deepEqual(log()?.[1], { record: "answer", id: "AC-D1", time: "2026-03-04T06:00:00+01:00", decided: "Plan approved by the owner: plan.md at abc1234", picked: 1, words: "ok, go", message: 1 });
 	const first = '- 2026-03-04: Plan approved by the owner: plan.md at abc1234; the owner: "ok, go" (AC-D1)';
 	assert.equal(ticket(PLAN), PLAN_TEXT.replace("- 2026-01-01: Started.\n", `- 2026-01-01: Started.\n${first}\n`));
 	// plans.ts's APPROVED, which the worker's spawn check reads.
@@ -191,6 +197,68 @@ test("an answer is refused, naming why and writing nothing: an unknown id, no wo
 	assert.deepEqual(await decision("answer", "AC-D2", "--decided", "Go", "--picked", "1", "ok"), refused("--picked 1: no such option; AC-D2 offered 0"));
 	assert.equal(readFileSync(file(), "utf8"), before);
 	assert.equal(ticket(PLAN), PLAN_TEXT);
+});
+
+// AR0664: the coordinator records the answer itself, so only one of the owner's own channel messages proves his words.
+const UNPROVED: Ran = [1, "arthur decision answer: refused: no message of the owner holds these words: his own [via <channel>] message of this turn, or one sent after the question was asked, never a forward or the terminal; quote his words exactly as he wrote them"];
+
+test("an answer is recorded only when an owner's channel message holds its words, case and spacing aside: of this turn, or answered after the ask", async (t) => {
+	const { run, fake, file, log } = await setup(t);
+	const { folder } = fake.host;
+	await run("decision", PLAN_ASK);
+	const before = readFileSync(file(), "utf8");
+	const answer = (...words: string[]) => run("decision", ["answer", "AC-D1", ...APPROVED, ...words]);
+	assert.deepEqual(await answer("ok, go"), UNPROVED, "no message at all");
+	ownerSaid(folder, 1, "ok, go", { channel: null });
+	ownerSaid(folder, 2, "ok, go", { channel: "" });
+	ownerSaid(folder, 3, "[forwarded from Ola] ok, go");
+	ownerSaid(folder, 4, "Mine: [forwarded from a hidden sender] ok, go");
+	ownerSaid(folder, 5, "ok, go", { box: "answered", ms: NOW.getTime() - 1 });
+	ownerSaid(folder, 6, "ok, go", { box: "answered", ms: NOW.getTime() + 999 });
+	ownerSaid(folder, 7, "ok, go", { box: "queued" });
+	writeFileSync(join(folder, "inbox/turn/8-1"), "{ not json");
+	writeFileSync(join(folder, "inbox/turn/9-1"), "null");
+	writeFileSync(join(folder, "inbox/turn/10"), JSON.stringify({ channel: "telegram", text: "ok, go" }));
+	ownerSaid(folder, 11, "Looking good, gopher");
+	for (const words of [["ok, go"], ["ok"], ["go"], ["okay,", "go"]]) assert.deepEqual(await answer(...words), UNPROVED, words.join(" "));
+	assert.equal(readFileSync(file(), "utf8"), before, "nothing written");
+	ownerSaid(folder, 12, "ok, go", { box: "answered", ms: NOW.getTime() + 1000 });
+	assert.equal((await answer("OK,", "go"))[0], 0, "answered the second after the ask; the case aside");
+	assert.equal(log()?.at(-1)?.message, 12);
+	ownerSaid(folder, 13, "Yes —\nok,go; and tell nobody", { ms: NOW.getTime() - 60_000 });
+	assert.equal((await answer("ok, go"))[0], 0, "of this turn, whenever sent; the spacing aside");
+	assert.deepEqual(log()?.filter((each) => each.record === "answer").map((each) => [each.words, each.message]), [["OK, go", 12], ["ok, go", 13]], "the latest message that holds them");
+	assert.match((await run("decisions", ["AC-D1"]))[1], /\nAnswered [^\n]+; the owner: "ok, go" \(message 13\)\n/);
+});
+
+test("a merge flag, --budget 0 and take-main need the owner's message naming the id, and send him a notice of what was recorded", async (t) => {
+	const { run, fake, log, notices } = await setup(t);
+	const { folder } = fake.host;
+	const ask = async (...args: string[]) => (await run("decision", ["ask", "--question", "Go?", ...args]))[1];
+	const flags = await ask("--kind", "merge", "--ticket", "AC0001", "--what", "--unreviewed", "--what", "--no-ci");
+	const budget = await ask("--kind", "budget", "--ticket", "AC0002");
+	const take = await ask("--kind", "merge");
+	const plain = await ask("--kind", "merge", "--ticket", "AC0001");
+	const job = await ask("--kind", "merge", "--job", JOB);
+	const question = await ask("--kind", "question");
+	ownerSaid(folder, 1, "Yes, go ahead. AC-D12 and AC-D20 too");
+	const answer = (id: string) => run("decision", ["answer", id, "--decided", "Go", "yes, go ahead"]);
+	for (const [id, what] of [[flags, "lets through --unreviewed and --no-ci"], [budget, "lets through --budget 0"], [take, "lets through arthur take-main"]] as const) {
+		assert.deepEqual(await answer(id), [1, `arthur decision answer: refused: ${id} ${what}: the owner's message must name ${id} too, as in "${id} yes"; ask him to answer with its id`]);
+	}
+	for (const id of [plain, job, question]) assert.equal((await answer(id))[0], 0, `${id} lets nothing through`);
+	assert.deepEqual(notices(), [], "an ordinary answer sends no notice");
+	ownerSaid(folder, 2, "ac-d1 yes, go ahead");
+	ownerSaid(folder, 3, "AC-D2: yes, go ahead");
+	ownerSaid(folder, 4, "yes, go ahead (AC - D3)");
+	for (const id of [flags, budget, take]) assert.equal((await answer(id))[0], 0, id);
+	assert.deepEqual(log()?.filter((each) => each.record === "answer").map((each) => [each.id, each.message]), [[plain, 1], [job, 1], [question, 1], [flags, 2], [budget, 3], [take, 4]]);
+	assert.deepEqual(notices(), [
+		`Recorded as your decision ${flags} (merge of AC0001, lets through --unreviewed and --no-ci): Go; your words: "yes, go ahead"`,
+		`Recorded as your decision ${budget} (budget of AC0002, lets through --budget 0): Go; your words: "yes, go ahead"`,
+		`Recorded as your decision ${take} (merge, lets through arthur take-main): Go; your words: "yes, go ahead"`,
+	]);
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { decision: string }).decision), [flags, budget, take]);
 });
 
 test("a close ends an open question; an answer after it is still recorded and counts; closing again or an unknown id is refused", async (t) => {
@@ -473,7 +541,7 @@ test("arthur decisions: no log says so and creates none; words, --open, --kind a
 		[
 			"AC-D2: question, asked 2026-03-04T06:00:00+01:00, ticket AC0002",
 			"Question: Which colour for the Menu?",
-			'Answered 2026-03-06T13:00:00+01:00: Blue; the owner: "niebieski"',
+			'Answered 2026-03-06T13:00:00+01:00: Blue; the owner: "niebieski" (message 1)',
 			"Now: answered",
 		].join("\n"),
 	]);
@@ -567,9 +635,12 @@ test("an answer quoting an env file value no enabled plugin reads, a disabled pl
 	writeFileSync(config, readFileSync(config, "utf8").replace(`timeZone: "UTC" }`, `timeZone: "UTC", envFile: ${JSON.stringify(env)} }`).replace("orchestration(), ", `orchestration(), ${signal}, `));
 	const arthur = (...args: string[]) => execFileSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	assert.equal(arthur("decision", "ask", "--kind", "question", "--question", "Which account?"), "DM-D1\n");
-	arthur("decision", "answer", "DM-D1", "--decided", "Use signalaccount", "signalaccount, then loosewords");
-	const [, answer] = readFileSync(join(folder, "spec/decisions.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
-	assert.deepEqual([answer.decided, answer.words], ["Use [redacted]", "[redacted], then [redacted]"]);
+	const answer = ["decision", "answer", "DM-D1", "--decided", "Use signalaccount", "signalaccount, then loosewords"];
+	assert.throws(() => arthur(...answer), { stderr: /^arthur decision answer: refused: no message of the owner holds these words: .*; quote his words exactly as he wrote them\n$/ }, "no owner message yet");
+	ownerSaid(join(folder, ".arthur/orchestration"), 1, "Signalaccount,   then LOOSEWORDS.");
+	arthur(...answer);
+	const [, recorded] = readFileSync(join(folder, "spec/decisions.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+	assert.deepEqual([recorded.decided, recorded.words, recorded.message], ["Use [redacted]", "[redacted], then [redacted]", 1]);
 });
 
 // Whatever the timing: another process holds the log's lock, the ask waits on it (its own lock file beside it), and only then
@@ -664,6 +735,22 @@ test("a class is proposed from the owner's same answers with their agreement rat
 	const whole = (await decisions("AC-D4"))[1].split("\n");
 	assert.equal(whole[2], 'Class: budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored)');
 	assert.equal(whole.at(-1), "Now: the class is approved; answered by policy: AC-D6, AC-D7");
+});
+
+// AR0664: approving a class is high-impact as a merge flag is; refusing one only takes authority away.
+test("a class is approved only on the owner's message naming its proposal, with a notice; a refusal needs no id", async (t) => {
+	const { decision, run, fake, notices } = await setup(t);
+	await backed(decision);
+	await decision(...PROPOSE);
+	ownerSaid(fake.host.folder, 50, "tak, zawsze");
+	const approve = ["answer", "AC-D4", ...APPROVE, "tak,", "zawsze"];
+	assert.deepEqual(await run("decision", approve), [1, 'arthur decision answer: refused: AC-D4 approves the class budget questions naming "line budget" → Raise the line budget: the owner\'s message must name AC-D4 too, as in "AC-D4 yes"; ask him to answer with its id']);
+	const before = notices().length;
+	assert.equal((await run("decision", ["answer", "AC-D4", "--picked", "2", "--decided", "Refuse the class", "tak,", "zawsze"]))[0], 0);
+	assert.equal(notices().length, before, "a refusal sends no notice");
+	ownerSaid(fake.host.folder, 51, "AC-D4 tak, zawsze");
+	assert.deepEqual((await run("decision", approve))[1], "AC-D4 answered: Pre-approve raising a line budget; the class is approved: its questions are answered by policy from now on");
+	assert.deepEqual(notices().slice(before), ['Recorded as your decision AC-D4 (class, approves the class budget questions naming "line budget" → Raise the line budget): Pre-approve raising a line budget; your words: "tak, zawsze"']);
 });
 
 test("a proposal is refused, naming why and writing nothing: no backing decision, an unknown, unanswered or differing one, a class's own kind", async (t) => {

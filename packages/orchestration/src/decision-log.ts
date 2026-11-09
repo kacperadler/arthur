@@ -20,7 +20,8 @@ export const DECISION_ID = /^([A-Z]+)-D(\d+)$/;
 export const LINE = 400;
 
 export type Ask = { readonly record: "ask"; readonly id: string; readonly time: string; readonly project: string; readonly kind: string; readonly question: string; readonly options: readonly string[]; readonly recommend?: number | string; readonly ticket?: string; readonly job?: string; readonly what?: readonly string[]; readonly class?: Class };
-export type Answer = { readonly record: "answer"; readonly id: string; readonly time: string; readonly decided: string; readonly picked?: number; readonly words: string };
+// `message` the number of the owner's channel message that holds his words (decision-proof.ts), on his own answers since AR0664.
+export type Answer = { readonly record: "answer"; readonly id: string; readonly time: string; readonly decided: string; readonly picked?: number; readonly words: string; readonly message?: number };
 export type Close = { readonly record: "close"; readonly id: string; readonly time: string; readonly reason: string };
 export type Revoke = { readonly record: "revoke"; readonly id: string; readonly time: string; readonly words: string };
 export type Entry = Ask | Answer | Close | Revoke;
@@ -67,7 +68,7 @@ function problem(value: unknown, asked: ReadonlyMap<string, string>, prefix: str
 	}
 	if (!asked.has(each.id)) return `no ask of ${each.id} above it`;
 	if (each.record === "close") return text("reason") ? undefined : "no reason";
-	if (each.record === "answer" && !(text("decided") && text("words") && (!("picked" in each) || Number.isInteger(each.picked)))) return "no decided or words, or picked not a number";
+	if (each.record === "answer" && !(text("decided") && text("words") && ["picked", "message"].every((key) => !(key in each) || Number.isSafeInteger(each[key])))) return "no decided or words, or picked or message not a number";
 	return classProblem(each, asked, KINDS);
 }
 

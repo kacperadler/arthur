@@ -1,8 +1,9 @@
 import { withLock } from "@arthur/core/lock";
 import type { Host, Project } from "@arthur/core/plugin";
 import { redact } from "./credential.ts";
-import { byPolicy, CLASS, ticketKind } from "./decision-classes.ts";
+import { byPolicy, CLASS, described, ticketKind } from "./decision-classes.ts";
 import { type Answer, type Ask, change, type Close, DECISION_ID, decisions, KINDS, oneLine, readLog, stamp } from "./decision-log.ts";
+import { proof } from "./decision-proof.ts";
 import { byRecommendation } from "./silent.ts";
 
 // A question asked, answered or closed in the decision log (decision-log.ts): docs/commands/decision.md.
@@ -31,7 +32,18 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 	return { id: added[0]?.id ?? "", unwritten, ...(added[1]?.record === "answer" ? { policy: added[1] } : {}), classes };
 }
 
-// Records the owner's answer; the record as written, with its question.
+// What an answer lets through that only the owner's message naming its id may record (AR0664), none for any other: a merge flag,
+// `--budget 0` (any budget question), `arthur take-main` (a merge question of no ticket and no job), a class approved.
+function impact(ask: Ask, picked: number | undefined): string | undefined {
+	if (ask.class !== undefined) return picked === 1 ? `approves the class ${described(ask.class)}` : undefined;
+	if (ask.kind === "budget") return "lets through --budget 0";
+	if (ask.kind !== "merge") return undefined;
+	if ((ask.what ?? []).length > 0) return `lets through ${ask.what?.join(" and ")}`;
+	return ask.ticket === undefined && ask.job === undefined ? "lets through arthur take-main" : undefined;
+}
+
+// Records the owner's answer, with the number of his message that holds its words (decision-proof.ts); the record as written,
+// with its question. A high-impact one sends him a notice, built without the model, of what was recorded.
 export function answer(host: Host, project: Project, id: string, given: { readonly decided?: string; readonly picked?: string; readonly words: string }): { readonly answer: Answer; readonly ask: Ask; readonly unwritten?: string } {
 	if (given.words.trim() === "") throw new Error(`an empty answer: the owner's words, as he wrote or said them, after the flags`);
 	if (/^by policy\b/i.test(given.words.trim())) throw new Error("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words");
@@ -42,8 +54,14 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 	const picked = given.picked === undefined ? undefined : Number(given.picked);
 	if (picked !== undefined && !(Number.isInteger(picked) && picked >= 1 && picked <= found.options.length)) throw new Error(`--picked ${given.picked}: no such option; ${id} offered ${found.options.length}`);
 	if (found.class !== undefined && picked === undefined) throw new Error(`${id} proposes a class: --picked 1 approves it, --picked 2 refuses it`);
-	const record: Answer = { record: "answer", id, time: stamp(host), decided: redact(oneLine(given.decided), host.secrets), ...(picked === undefined ? {} : { picked }), words: redact(given.words.trim(), host.secrets) };
-	return { answer: record, ask: found, unwritten: change(host, project, () => [record]).unwritten };
+	const high = impact(found, picked);
+	const message = proof(host.folder, given.words, Date.parse(found.time), high === undefined ? undefined : id);
+	if (typeof message === "string") throw new Error(high === undefined ? message : `${id} ${high}: ${message}`);
+	const record: Answer = { record: "answer", id, time: stamp(host), decided: redact(oneLine(given.decided), host.secrets), ...(picked === undefined ? {} : { picked }), words: redact(given.words.trim(), host.secrets), message };
+	const { unwritten } = change(host, project, () => [record]);
+	const where = found.ticket === undefined ? "" : ` of ${found.ticket}`;
+	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; your words: "${record.words}"`, decision: id });
+	return { answer: record, ask: found, unwritten };
 }
 
 // Closes the open questions `match` picks, with `reason`; the ids closed. A question answered or closed already is left.

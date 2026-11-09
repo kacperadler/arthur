@@ -10,6 +10,15 @@ const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const LOCK = join(import.meta.dirname, "..", "src", "lock.ts");
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
+const alive = (pid: number) => {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+};
+
 // Each entry under `folder`, itself included, whose mode lets the group or others in, with that mode in octal.
 const open = (folder: string) =>
 	[folder, ...readdirSync(folder, { recursive: true, encoding: "utf8" }).map((path) => join(folder, path))]
@@ -35,6 +44,9 @@ test("under umask 022 every file and folder an arthur command and its job write 
 	const id = spawned.stdout.trim();
 	await until("the job's end", () => readEvents(home, 1).some((event) => event.name === "job-ended"));
 	const record = join(home, "jobs", id);
+	// The wrapper appends `job-ended` under the log's lock and removes the lock just after: the walk waits until it wrote its last.
+	const wrapper = Number(readFileSync(join(record, "pid"), "utf8"));
+	await until("the wrapper's end", () => !alive(wrapper));
 	const worktree = readFileSync(join(record, "worktree"), "utf8");
 	for (const path of [join(record, "task"), join(record, "log"), join(home, "events.jsonl"), join(home, "wrapper.log"), join(home, "orchestration", "held.lock"), join(worktree, ".gitignore")])
 		assert.equal((lstatSync(path).mode & 0o777).toString(8), "600", path);

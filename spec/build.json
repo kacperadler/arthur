@@ -3836,16 +3836,16 @@
   {
     "id": "AR0485",
     "title": "A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0485-a-project-s-vision-ticket-titles-and-a-blocked-job-s-question-enter-the/ticket.md",
-    "updated": "2026-11-09T04:30:37.310Z"
+    "updated": "2026-11-09T10:03:33.864Z"
   },
   {
     "id": "AR0486",
     "title": "A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0486-a-finding-s-body-becomes-its-ticket-s-description-verbatim-which-the-worker/ticket.md",
-    "updated": "2026-11-09T05:28:35.313Z"
+    "updated": "2026-11-09T10:09:32.871Z"
   },
   {
     "id": "AR0487",
@@ -3953,9 +3953,9 @@
   {
     "id": "AR0499",
     "title": "A job writes the `review-needed` answer that `arthur merge` takes as a PASS",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0499-a-job-writes-the-review-needed-answer-that-arthur-merge-takes-as-a-pass/ticket.md",
-    "updated": "2026-11-09T06:49:58.997Z"
+    "updated": "2026-11-09T10:14:57.190Z"
   },
   {
     "id": "AR0500",
@@ -3977,9 +3977,9 @@
   {
     "id": "AR0502",
     "title": "An owner's answer in the decision log is the coordinator's word: nothing ties it to a message the owner sent",
-    "status": "planned",
+    "status": "dropped",
     "path": "spec/features/AR0502-an-owner-s-answer-in-the-decision-log-is-the-coordinator-s-word-nothing-ties-it/ticket.md",
-    "updated": "2026-11-07T18:05:09.302Z"
+    "updated": "2026-11-09T09:56:44.261Z"
   },
   {
     "id": "AR0503",
@@ -4064,9 +4064,9 @@
   {
     "id": "AR0513",
     "title": "Credentials outside `~/.ssh` and the env file still reach origin from a job",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0513-credentials-outside-ssh-and-the-env-file-still-reach-origin-from-a-job/ticket.md",
-    "updated": "2026-11-09T08:07:55.928Z"
+    "updated": "2026-11-09T10:20:01.039Z"
   },
   {
     "id": "AR0514",
@@ -5094,16 +5094,16 @@
   {
     "id": "AR0632",
     "title": "arthur merge points XDG_CACHE_HOME at a fresh folder, so a project whose tests run Playwright finds no browser and every browser test fails",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0632-arthur-merge-points-xdg-cache-home-at-a-fresh-folder-so-a-project-whose-tests/ticket.md",
-    "updated": "2026-11-07T18:04:41.066Z"
+    "updated": "2026-11-09T09:04:55.680Z"
   },
   {
     "id": "AR0633",
     "title": "The umask test walks .arthur while the job still writes, and fails on a lock file that vanished",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0633-the-umask-test-walks-arthur-while-the-job-still-writes-and-fails-on-a-lock-file/ticket.md",
-    "updated": "2026-11-07T18:04:41.851Z"
+    "updated": "2026-11-09T09:33:10.657Z"
   },
   {
     "id": "AR0634",
@@ -5299,9 +5299,9 @@
   {
     "id": "AR0656",
     "title": "A worker is told before its run ends that its checks did not pass on its clean committed tip",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0656-a-worker-is-told-before-its-run-ends-that-its-checks-did-not-pass-on-its-clean/ticket.md",
-    "updated": "2026-11-08T22:17:16.804Z",
+    "updated": "2026-11-09T09:40:36.657Z",
     "after": [
       "AR0661"
     ]
@@ -5309,16 +5309,16 @@
   {
     "id": "AR0657",
     "title": "A reviewer does not file again what the ticket's findings.md already holds",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0657-a-reviewer-does-not-file-again-what-the-ticket-s-findings-md-already-holds/ticket.md",
-    "updated": "2026-11-08T22:49:45.837Z"
+    "updated": "2026-11-09T09:45:38.201Z"
   },
   {
     "id": "AR0658",
     "title": "`npm run mutate` ends by itself before the call's 1800 s, with its summary",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0658-npm-run-mutate-ends-by-itself-before-the-call-s-1800-s-with-its-summary/ticket.md",
-    "updated": "2026-11-09T02:33:00.036Z",
+    "updated": "2026-11-09T09:50:39.279Z",
     "after": [
       "AR0637"
     ]
@@ -5326,9 +5326,9 @@
   {
     "id": "AR0659",
     "title": "The README's Status paragraph stops copying the roadmap's state",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0659-the-readme-s-status-paragraph-stops-copying-the-roadmap-s-state/ticket.md",
-    "updated": "2026-11-09T02:49:13.126Z"
+    "updated": "2026-11-09T09:55:40.616Z"
   },
   {
     "id": "AR0660",
@@ -5340,37 +5340,37 @@
   {
     "id": "AR0661",
     "title": "The retro page uses the report style, like the pyramid and repeats pages",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0661-the-retro-page-uses-the-report-style-like-the-pyramid-and-repeats-pages/ticket.md",
-    "updated": "2026-11-08T20:41:54.063Z"
+    "updated": "2026-11-09T09:35:32.230Z"
   },
   {
     "id": "AR0662",
     "title": "A bash timeout of 0 in a job runs the checks with 1800 s, not without a deadline",
     "status": "done",
     "path": "spec/features/AR0662-a-bash-timeout-of-0-in-a-job-runs-the-checks-with-1800-s-not-without-a-deadline/ticket.md",
-    "updated": "2026-11-09T03:32:30.861Z"
+    "updated": "2026-11-09T10:40:57.584Z"
   },
   {
     "id": "AR0663",
     "title": "A bare ** in report page text becomes bold, so globs and code lose it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0663-a-bare-in-report-page-text-becomes-bold-so-globs-and-code-lose-it/ticket.md",
-    "updated": "2026-11-08T20:42:18.664Z"
+    "updated": "2026-11-09T09:56:56.859Z"
   },
   {
     "id": "AR0664",
     "title": "arthur decision answer needs the owner own channel message, and high-impact answers name the decision id",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0664-arthur-decision-answer-needs-the-owner-own-channel-message-and-high-impact/ticket.md",
-    "updated": "2026-11-08T21:14:49.913Z"
+    "updated": "2026-11-09T09:56:57.465Z"
   },
   {
     "id": "AR0665",
     "title": "Ticket approval and a plain merge need a recorded owner decision",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
-    "updated": "2026-11-08T21:14:50.693Z",
+    "updated": "2026-11-09T09:56:58.072Z",
     "after": [
       "AR0664"
     ]
@@ -5378,16 +5378,16 @@
   {
     "id": "AR0666",
     "title": "The threat model says the coordinator runs with no sandbox and no worktree guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0666-the-threat-model-says-the-coordinator-runs-with-no-sandbox-and-no-worktree-guard/ticket.md",
-    "updated": "2026-11-08T21:21:30.118Z"
+    "updated": "2026-11-09T09:56:58.685Z"
   },
   {
     "id": "AR0667",
     "title": "Plan: the coordinator in a sandbox, with arthur run as a broker for its writing commands",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0667-plan-the-coordinator-in-a-sandbox-with-arthur-run-as-a-broker-for-its-writing/ticket.md",
-    "updated": "2026-11-08T21:21:30.723Z",
+    "updated": "2026-11-09T09:56:59.291Z",
     "after": [
       "AR0664"
     ]

@@ -73,7 +73,9 @@ async function setup(t: TestContext, env: Record<string, string> = {}) {
 		async context() {
 			printed.length = 0;
 			await fake.commands.find((command) => command.name === "coordinator")?.run({ args: ["context"], project: undefined });
-			return printed.join("\n").split("\n\n## Open decisions\n\n")[1]?.split("\n\n## Time\n\n")[0];
+			const section = printed.join("\n").split("\n\n### Open decisions\n\n")[1]?.split("\n\n## Time\n\n")[0];
+			assert.ok(section?.split("\n").every((line) => line.startsWith("> ")) ?? true, section);
+			return section?.replace(/^> /gm, "");
 		},
 		blocked: (id: string, question: string, ticket: string | null = "AC0001") => fake.emit("job-state", { id, project: "acme", ticket, machine: "local", from: "working", to: "blocked", reason: `user: ${question}` }),
 		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text),
@@ -518,7 +520,7 @@ test("the context lists each open question with its age and up to 5 answered one
 	const printed: string[] = [];
 	t.mock.method(console, "log", (text: string) => void printed.push(text));
 	await again.commands.find((command) => command.name === "coordinator")?.run({ args: ["context"], project: undefined });
-	assert.match(printed.join("\n"), /\n## Open decisions\n\n- AC-D8, plan, ticket AC0001, open for 2h05m: Approve the plan of the menu\?\n/);
+	assert.match(printed.join("\n"), /\n### Open decisions\n\n> - AC-D8, plan, ticket AC0001, open for 2h05m: Approve the plan of the menu\?\n/);
 });
 
 // A project demo (DM) in a folder of its own whose config sets up the plugin in UTC, for `arthur` run as a process there.

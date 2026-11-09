@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { temporaryFolder } from "@arthur/core/testing";
@@ -17,7 +17,8 @@ type Call = { readonly toolName: string; readonly input?: object; readonly outpu
 // The extension loaded as omp loads it into job `2026-01-01-worker-00000001` of a home folder, the worktree a Git repository
 // whose one commit holds its package.json `packageJson` (none when null); `run(calls)` plays each call as omp hands it over,
 // its `tool_call`, what the command does to the tree (`during`), then its `tool_result`, and answers the job's `checks`, the
-// worktree's HEAD in it written `<commit>`; `begin(id, call)` and `end(id, call)` play one half of a call.
+// worktree's HEAD in it written `<commit>`; `begin(id, call)` and `end(id, call)` play one half of a call; `stop()` plays the run's
+// end, `session_stop`, and answers what each handler said; `job(fields)` writes the job record's files.
 function load(t: TestContext, packageJson: string | null = BOTH) {
 	const [home, worktree] = [temporaryFolder(), temporaryFolder()];
 	const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", worktree, ...args], { encoding: "utf8" }).trim();
@@ -25,8 +26,8 @@ function load(t: TestContext, packageJson: string | null = BOTH) {
 	if (packageJson !== null) writeFileSync(join(worktree, "package.json"), packageJson);
 	git("add", "--all");
 	git("commit", "--quiet", "--allow-empty", "-m", "first");
-	const before = process.env.ARTHUR_JOB;
-	process.env.ARTHUR_JOB = join(home, "jobs", "2026-01-01-worker-00000001");
+	const [before, record] = [process.env.ARTHUR_JOB, join(home, "jobs", "2026-01-01-worker-00000001")];
+	process.env.ARTHUR_JOB = record;
 	t.after(() => (before === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = before)));
 	const handlers: { readonly event: string; readonly handler: (event: object, ctx: { readonly cwd: string }) => unknown }[] = [];
 	checks({ on: (event, handler) => void handlers.push({ event, handler: handler as (event: object, ctx: { readonly cwd: string }) => unknown }) });
@@ -48,7 +49,12 @@ function load(t: TestContext, packageJson: string | null = BOTH) {
 		}
 		return read();
 	};
-	return { run, begin, end, read, file, worktree, git };
+	const stop = () => emit("session_stop", {});
+	const job = (fields: Readonly<Record<string, string>>) => {
+		mkdirSync(record, { recursive: true });
+		for (const [name, value] of Object.entries(fields)) writeFileSync(join(record, name), `${value}\n`);
+	};
+	return { run, begin, end, read, stop, job, file, worktree, git };
 }
 
 const bash = (command: string, output = "", isError = false): Call => ({ toolName: "bash", input: { command }, output, isError });
@@ -168,6 +174,16 @@ test("the reads run no fsmonitor the worktree's config names, nor read a replace
 	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\ntest pass 3/3 <commit> dirty\n");
 });
 
+test("the reads take no optional lock: an index whose stat data went stale is not rewritten", (t) => {
+	const { run, worktree } = load(t);
+	const index = join(worktree, ".git", "index");
+	utimesSync(join(worktree, "package.json"), new Date(1_000_000), new Date(1_000_000));
+	const before = statSync(index, { bigint: true });
+	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\n");
+	const after = statSync(index, { bigint: true });
+	assert.deepEqual([after.ino, after.mtimeNs], [before.ino, before.mtimeNs], "git status refreshes the index only when it may lock it");
+});
+
 test("calls that overlap are each recorded on the tree they began on, in either order of their ends; a result whose call was not seen is dirty", (t) => {
 	const { begin, end, read, worktree, git } = load(t);
 	const [tests, check] = [bash("npm test", SUMMARY(3, 0)), bash("npm run check")];
@@ -200,7 +216,7 @@ test("a tracked file whose folder is now a file neither blocks the call nor thro
 	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> dirty\ntest pass 3/3 <commit> dirty\n", "ENOTDIR as the call begins");
 });
 
-test("a check call runs with a timeout of at least 1800 seconds; any other command, and a script the package.json lacks, run as given", (t) => {
+test("a check call runs with a timeout of at least 1800 seconds or none; any other command, and a script the package.json lacks, run as given", (t) => {
 	const { begin } = load(t, JSON.stringify({ scripts: { test: "node --test" } }));
 	const call = (input: object, toolName = "bash") => begin("toolu_1", { toolName, input });
 	assert.deepEqual(call({ command: "npm test" }), [{ input: { command: "npm test", timeout: 1800 } }], "no timeout: 300 s in omp");
@@ -208,6 +224,9 @@ test("a check call runs with a timeout of at least 1800 seconds; any other comma
 	assert.deepEqual(call({ command: "npm ci && npm t", timeout: 1799 }), [{ input: { command: "npm ci && npm t", timeout: 1800 } }]);
 	assert.deepEqual(call({ command: "npm test", timeout: 1800 }), [{ input: { command: "npm test", timeout: 1800 } }]);
 	assert.deepEqual(call({ command: "npm test", timeout: 2400, cwd: "sub" }), [{ input: { command: "npm test", timeout: 2400, cwd: "sub" } }], "a longer one kept, the rest of the input too");
+	assert.deepEqual(call({ command: "npm test", timeout: 0 }), [{ input: { command: "npm test", timeout: 0 } }], "0 is no deadline in omp, kept");
+	assert.deepEqual(call({ command: "npm test", timeout: -1 }), [{ input: { command: "npm test", timeout: 1800 } }], "only 0 is no deadline");
+	assert.deepEqual(call({ command: "npm test", timeout: "0" }), [{ input: { command: "npm test", timeout: 1800 } }], "a 0 that is no number is none");
 	assert.deepEqual(call({ command: "npm test", timeout: "2400" }), [{ input: { command: "npm test", timeout: 1800 } }], "a timeout that is no number is none");
 	for (const input of [{ command: "ls", timeout: 10 }, { command: "echo npm test" }, { command: "npm run check" }, {}]) assert.deepEqual(call(input), [undefined], JSON.stringify(input));
 	assert.deepEqual(call({ command: "npm test" }, "read"), [undefined], "another tool");
@@ -226,6 +245,8 @@ test("a mutate run passes only on a 0 exit status and a last summary with 0 surv
 	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 4", capped, true)), "mutate fail 4 run, 1 survived, 12 not run <commit> clean\n");
 	assert.equal(load(t, ALL).run(bash("npm run mutate -- --max 2", `${MUTATED(0)}mutate: 2 mutants, 2 caught, 0 survived; 10 not run (--max 2)\n`)), "mutate pass 2 run, 0 survived, 10 not run <commit> clean\n", "the last summary's counts");
 	assert.deepEqual(load(t, ALL).begin("toolu_1", bash("npm run mutate")), [{ input: { command: "npm run mutate", timeout: 1800 } }]);
+	const unbounded = { toolName: "bash", input: { command: "npm run mutate -- --max 25", timeout: 0 } };
+	assert.deepEqual(load(t, ALL).begin("toolu_1", unbounded), [{ input: unbounded.input }], "no deadline stays none (AR0662)");
 	const without = load(t);
 	assert.deepEqual(without.begin("toolu_1", bash("npm run mutate")), [undefined], "a package.json without the script: run as given");
 	assert.equal(without.run(bash("npm run mutate", MUTATED(0))), "", "and no line");
@@ -255,4 +276,57 @@ test("a call the bash tool moved to the background, and a job without a record, 
 	const handlers: unknown[] = [];
 	checks({ on: (_event, handler) => void handlers.push(handler) });
 	assert.deepEqual(handlers, [], "the coordinator, or omp run by hand, records nothing");
+});
+
+const BRANCH = "arthur/2026-01-01-worker-00000001";
+const ASK = "Commit your work, then run npm run check && npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.";
+const PASSING = bash("npm run check && npm test && npm run mutate", `${SUMMARY(3, 0)}${MUTATED(0)}`);
+// What each `session_stop` answer names as missing, from the reminder's `<why>: <what is missing>. Commit your work`; none, undefined.
+const missing = (answers: readonly unknown[]) => answers.map((answer) => /: ([^:]*)\. Commit your work/.exec((answer as { additionalContext?: string } | undefined)?.additionalContext ?? "")?.[1]);
+
+test("a worker's run that ends before check, test and mutate passed on its clean committed tip goes on once, told what is missing", (t) => {
+	const { stop, job, git } = load(t, ALL);
+	job({ kind: "worker", branch: BRANCH });
+	const tip = git("rev-parse", "HEAD").slice(0, 7);
+	const why = `${BRANCH} at ${tip} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(25, all) mutants)`;
+	assert.deepEqual(stop(), [{ continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${why}: no check, no test, no mutate. ${ASK}` }]);
+	assert.deepEqual(stop(), [undefined], "the run's second end is its end, its checks missing or not");
+	const worker = (packageJson = ALL) => {
+		const loaded = load(t, packageJson);
+		loaded.job({ kind: "worker", branch: BRANCH });
+		return loaded;
+	};
+	const some = worker();
+	some.run(bash("npm run check && npm test", SUMMARY(3, 0)));
+	assert.deepEqual(missing(some.stop()), ["no mutate"]);
+	const failing = worker();
+	failing.run(bash("npm run check && npm test && npm run mutate", `${SUMMARY(2, 1)}${MUTATED(0)}`));
+	assert.deepEqual(missing(failing.stop()), ["test fail 2/3"]);
+	const dirty = worker();
+	appendFileSync(join(dirty.worktree, "package.json"), "\n");
+	dirty.run(PASSING);
+	assert.deepEqual(missing(dirty.stop()), ["check ran on a dirty tree, test ran on a dirty tree, mutate ran on a dirty tree"]);
+	const later = worker();
+	later.run(PASSING);
+	const checked = later.git("rev-parse", "HEAD").slice(0, 7);
+	later.git("commit", "--quiet", "--allow-empty", "-m", "docs");
+	assert.deepEqual(missing(later.stop()), [`check ran on ${checked}, not the tip, test ran on ${checked}, not the tip, mutate ran on ${checked}, not the tip`], "a commit after the checks");
+});
+
+test("a run whose tip has its checks passed clean, a job of another kind or on another machine, and a worktree outside Git, are not told", (t) => {
+	const ended = (fields: Readonly<Record<string, string>>, packageJson = ALL, calls: readonly Call[] = []) => {
+		const { run, stop, job } = load(t, packageJson);
+		job(fields);
+		run(...calls);
+		return stop();
+	};
+	assert.deepEqual(ended({ kind: "worker", branch: BRANCH }, ALL, [PASSING]), [undefined]);
+	assert.deepEqual(ended({ kind: "worker", branch: BRANCH }, BOTH, [bash("npm run check && npm test", SUMMARY(3, 0))]), [undefined], "no mutate script, none due");
+	assert.deepEqual(ended({ kind: "review" }), [undefined]);
+	assert.deepEqual(ended({ branch: BRANCH }), [undefined], "a record without its kind");
+	assert.deepEqual(ended({ kind: "worker", branch: BRANCH, machine: "box" }), [undefined], "its checks are on its machine; arthur review asks none");
+	const outside = load(t, ALL);
+	outside.job({ kind: "worker", branch: BRANCH });
+	rmSync(join(outside.worktree, ".git"), { recursive: true });
+	assert.deepEqual(outside.stop(), [undefined]);
 });

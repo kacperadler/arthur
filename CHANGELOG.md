@@ -2,6 +2,23 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-09
+
+### Fixed
+
+- AR0485 A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked (4fa79860)
+- AR0486 A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth (14214a3f)
+- AR0499 A job writes the `review-needed` answer that `arthur merge` takes as a PASS (47fba13e)
+- AR0513 Credentials outside `~/.ssh` and the env file still reach origin from a job (a98cd706)
+- AR0661 The retro page uses the report style, like the pyramid and repeats pages (7c4ba50c)
+
+### Changed
+
+- AR0656 A worker is told before its run ends that its checks did not pass on its clean committed tip (2f2ef424)
+- AR0657 A reviewer does not file again what the ticket's findings.md already holds (611cd6ab)
+- AR0658 `npm run mutate` ends by itself before the call's 1800 s, with its summary (61027593)
+- AR0659 The README's Status paragraph stops copying the roadmap's state (c7f65e2d)
+
 ## 2026-11-07
 
 ### Added

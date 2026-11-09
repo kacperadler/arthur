@@ -148,7 +148,7 @@ test("no review moves the ticket to done, keeps the answer and asks github.push 
 	assert.deepEqual(pushes, [{ project: "acme", branch: name }]);
 	assert.equal(status(), "done");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").map((event) => event.data), [{ id: "AC0001", project: "acme", from: "in-progress", to: "done" }]);
-	const kept = () => JSON.parse(readFileSync(join(fake.host.folder, job.id, "review-needed"), "utf8")) as { readonly answer: string; readonly at: number };
+	const kept = () => JSON.parse(readFileSync(join(fake.host.folder, "review-needed", `${job.id}.json`), "utf8")) as { readonly answer: string; readonly at: number };
 	assert.deepEqual({ ...kept(), at: 0 }, { answer: "no review: 1 file, all docs (*.md)", ticket: "AC0001", branch: name, commit: tip, at: 0 });
 	branch(small);
 	assert.deepEqual(await decide(), { code: undefined, out: "review: 2 lines changed; the job recorded no checks", err: "" });
@@ -187,7 +187,7 @@ test("merge.check is asked first: a branch one answer refuses, or several, is re
 	answers = [one, "another plugin's reason"];
 	assert.deepEqual(await decide(PASSING), { code: 1, out: "", err: `arthur review-needed: refused by merge.check: ${answers.join("; ")}; no review until the branch passes it` });
 	assert.deepEqual(asked, [job.id, job.id, job.id, job.id], "asked with the job as host.jobs.list() has it");
-	assert.deepEqual([status(), existsSync(join(fake.host.folder, job.id, "review-needed")), pushes], ["in-progress", false, []]);
+	assert.deepEqual([status(), existsSync(join(fake.host.folder, "review-needed", `${job.id}.json`)), pushes], ["in-progress", false, []]);
 	answers = [undefined, ""];
 	assert.deepEqual(await decide(PASSING), { code: undefined, out: "no review: 1 file, all docs (*.md)\nAC0001 moves to done.\ngithub: pushed", err: "" });
 });

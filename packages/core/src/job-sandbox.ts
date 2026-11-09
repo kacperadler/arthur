@@ -93,7 +93,7 @@ export function unpruned(id: string, job: { readonly [key in "project" | "root" 
 	return there || (!existsSync(job.worktree) && job.worktree === join(dirname(root), ".arthur-worktrees", id)) ? undefined : misplaced(id, job, root);
 }
 
-// What the agent of the job whose record is `record` may not read: the env file `guarded` names and the user's `~/.ssh` (AR0508), from no record (AR0512).
+// What the agent of the job whose record is `record` may not read: the env file `guarded` names and `unread` (AR0508, AR0513), from no record (AR0512).
 // Then (AR0593), of the projects the projects plugin keeps in `<home>/projects/checkouts` and `folders`, which no job writes,
 // `<name> <path>` a line: each other project's checkout and folder, and every project's `.arthur-worktrees`, whole, so a worktree
 // made there later too; but `+<path>`, shown, the job's own worktree. Then (AR0590) its home, whole: the event log, the
@@ -116,8 +116,13 @@ export function hidden(record: string, { project, root, worktree }: Pick<Job, "p
 	const records = readdirSync(jobs).filter((id) => id === basename(record) || (project !== "" && read(join(jobs, id, "project")).trim() === project));
 	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders")];
 	const env = guarded.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
-	return [...env, ...sshFolders(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
+	return [...env, ...unread(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
 }
+
+// Each `sshFolders` (AR0508) and, in its home, Git's and `gh`'s credentials (AR0513): `.git-credentials`, `.config/git/credentials` and `.config/gh`; then
+// `$XDG_CONFIG_HOME/git/credentials` and `/gh` and `$GH_CONFIG_DIR`, which Git and `gh` read instead where set; each whether it exists or not, if absolute.
+const unread = ({ XDG_CONFIG_HOME: xdg = "", GH_CONFIG_DIR: gh = "" } = process.env): string[] =>
+	[...new Set([...sshFolders(), ...sshFolders().map(dirname).flatMap((home) => [join(home, ".git-credentials"), join(home, ".config", "git", "credentials"), join(home, ".config", "gh")]), join(xdg, "git", "credentials"), join(xdg, "gh"), gh])].filter(isAbsolute);
 
 // The Git folder of the repository `checkout` is in, absolute; "" for none given or a folder Git does not know (`-C ""` is the working folder).
 function gitCommon(checkout: string): string {
@@ -156,12 +161,12 @@ export const unsigned = (env: NodeJS.ProcessEnv, given = Number.parseInt(env.GIT
 
 // The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing only in the checkout `folder`
 // as `checkout` says, the cache folder `cache` (made here), which its caches use, the temporary folder and `/dev`, reading every file but the env file
-// `arthur.envFile` and the user's `~/.ssh`; `note` is told only where it cannot be set up, once, and each command then runs bare, its caches in `cache`
-// all the same. On Linux, Playwright's browsers are read where its default in Arthur's environment puts them, unless that names its own (AR0632).
+// `arthur.envFile` and `unread`; `note` is told only where it cannot be set up, once, and each command then runs bare, its caches in `cache` all the same.
+// On Linux, Playwright's browsers are read where its default in Arthur's environment puts them, unless that names its own (AR0632).
 export function stepSandbox(folder: string, cache: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
 	mkdirSync(cache, { recursive: true });
 	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), cache, tmpdir(), "/dev"];
-	const start = sandboxed(paths, [arthur.envFile, ...sshFolders()], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step", true);
+	const start = sandboxed(paths, [arthur.envFile, ...unread()], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step", true);
 	const browsers = `PLAYWRIGHT_BROWSERS_PATH=${resolve(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "ms-playwright")}`;
 	return (command) => start([...(process.platform === "linux" && !process.env.PLAYWRIGHT_BROWSERS_PATH ? [browsers] : []), ...cached(cache, command)]);
 }

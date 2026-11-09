@@ -44,13 +44,15 @@ async function setup(t: TestContext, now = "2026-10-18T10:00:00Z", env: Record<s
 	return {
 		fake,
 		home,
-		// The jobs section of what `arthur coordinator context` prints; undefined when there is none.
+		// The jobs section of what `arthur coordinator context` prints, its quoted lines unquoted; undefined when there is none.
 		async jobs() {
 			printed.length = 0;
 			assert.equal(await fake.commands.find((command) => command.name === "coordinator")?.run({ args: ["context"], project: undefined }), 0);
 			const text = printed.join("\n");
 			assert.match(text, /\n\n## Time\n\n/);
-			return text.split("\n\n## Jobs not ended\n\n")[1]?.split(/\n\n## (?:Open decisions|Time)\n\n/)[0];
+			const section = text.split("\n\n### Jobs not ended\n\n")[1]?.split(/\n\n(?:### Open decisions|## Time)\n\n/)[0];
+			assert.ok(section?.split("\n").every((line) => line.startsWith("> ")) ?? true, section);
+			return section?.replace(/^> /gm, "");
 		},
 		// Their text; the first test below asserts the whole notice.
 		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => ({ text: (event.data as { text: string }).text })),

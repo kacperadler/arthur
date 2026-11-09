@@ -40,4 +40,5 @@ Out:
 
 ## Decisions
 - 2026-11-07: AR0662 approved: a checks call with bash timeout 0 keeps no deadline; started tomorrow with the other approved tickets; the owner: "AR-D554 - 1" (AR-D554)
+- 2026-11-09: Merge it, in the order of the night summary (AR0659 before AR0499); the owner: "Merge all 11 in order above." (AR-D567)
 

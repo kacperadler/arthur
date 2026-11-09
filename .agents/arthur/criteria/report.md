@@ -1,6 +1,6 @@
 # Report
 
-How every HTML page sent to the owner looks, and the check it passes before `arthur send`: the night report, the pyramid report, a retro's or an audit's page, a before and after page. The coordinator reads this file, and so does every role that writes such a page. The plain page `arthur ticket file` writes beside a retro's report sets no colours and is not one of them.
+How every HTML page sent to the owner looks, and the check it passes before `arthur send`: the night report, the pyramid report, a retro's or an audit's page, a before and after page. The coordinator reads this file, and so does every role that writes such a page.
 
 ## Palette (AR-D298)
 

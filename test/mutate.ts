@@ -11,7 +11,8 @@ import { basename, dirname, join, resolve } from "node:path";
 // tracked file is refused, so `git checkout -- .` undoes even a SIGKILL. Exit 0 with no survivor, 1 with one, 2 when refused.
 
 type Mutant = { readonly file: string; readonly line: number; readonly what: string; readonly text: string };
-// A test run of one mutant that lasts longer is killed, its process group with it, and counts as caught: a mutant that hangs.
+// A test run of one mutant that lasts longer is killed, its process group with it, and counts as caught: a mutant that hangs;
+// one the run's deadline kills first counts as not run.
 const RUN_MS = 600_000;
 const KIT = import.meta.resolve("@arthur/core/testing");
 const FLIPS: Readonly<Record<string, string>> = { "===": "!==", "!==": "===", "<": "<=", "<=": "<", ">": ">=", ">=": ">" };
@@ -62,13 +63,20 @@ const mutants = interleave(
 	),
 );
 const run = mutants.slice(0, max);
-let survived = 0;
+// The checks extension gives the call 1800 s (AR0569) and omp kills it there, summary and all (AR0599 F1): no mutant starts
+// past 1500 s, and one whose tests the deadline cuts (killed answers undefined) is not run, not caught.
+const deadline = Date.now() + 1_500_000;
+let [survived, tried] = [0, 0];
 for (const mutant of run) {
-	if (await killed(mutant)) continue;
+	const caught = Date.now() < deadline ? await killed(mutant, deadline) : undefined;
+	if (caught === undefined) break;
+	tried++;
+	if (caught) continue;
 	survived++;
 	console.log(`survived: ${mutant.file}:${mutant.line}: ${mutant.what}`);
 }
-console.log(`mutate: ${run.length} mutants, ${run.length - survived} caught, ${survived} survived${mutants.length > max ? `; ${mutants.length - max} not run (--max ${max})` : ""}`);
+const late = run.length - tried;
+console.log(`mutate: ${tried} mutants, ${tried - survived} caught, ${survived} survived${late > 0 ? `; ${late} not run (time)` : ""}${mutants.length > max ? `; ${mutants.length - max} not run (--max ${max})` : ""}`);
 process.exitCode = survived > 0 ? 1 : 0;
 
 // The first item of each list, then the second of each, and on until every list is spent; no list is a length of -Infinity, 0.
@@ -164,13 +172,17 @@ function members(body: string, klass: RegExpExecArray): string[] {
 	return each.map((member) => `${body.slice(0, from + member.index)}${body.slice(from + member.index + member[0].length)}`);
 }
 
-// Caught: a test run the mutant written over its file fails, tier by tier; the file's own bytes are back after it.
-async function killed(mutant: Mutant): Promise<boolean> {
+// Caught: a test run the mutant written over its file fails, tier by tier; the file's own bytes are back after it. Undefined
+// when the run's `end` cut its tests first.
+async function killed(mutant: Mutant, end: number): Promise<boolean | undefined> {
 	const [path, bytes] = [join(root, mutant.file), readFileSync(join(root, mutant.file))];
 	kept = { path, bytes };
 	writeFileSync(path, mutant.text);
 	try {
-		for (const tier of tiers(mutant.file)) if (!(await passes(tier))) return true;
+		for (const tier of tiers(mutant.file)) {
+			const passed = await passes(tier, end);
+			if (passed !== true) return passed === undefined ? undefined : true;
+		}
 		return false;
 	} finally {
 		writeFileSync(path, bytes);
@@ -190,16 +202,19 @@ function tiers(file: string): string[][] {
 }
 
 // Whether node --test passes on `tests` with the core's test kit, in a process group of its own, killed as the run ends; never
-// as the child of a node --test that runs this (NODE_TEST_CONTEXT), which would report to it and exit 0.
-function passes(tests: readonly string[]): Promise<boolean> {
-	const child = spawn(process.execPath, ["--import", KIT, "--test", ...tests], { cwd: root, env: { ...process.env, NODE_TEST_CONTEXT: undefined }, detached: true, stdio: "ignore", timeout: RUN_MS, killSignal: "SIGKILL" });
-	const { promise, resolve: done, reject } = Promise.withResolvers<boolean>();
+// as the child of a node --test that runs this (NODE_TEST_CONTEXT), which would report to it and exit 0. Undefined when it
+// does not finish before `end` (spawn's timeout 0 would be none, so an `end` passed starts nothing).
+function passes(tests: readonly string[], end: number): Promise<boolean | undefined> {
+	const left = end - Date.now();
+	if (left <= 0) return Promise.resolve(undefined);
+	const child = spawn(process.execPath, ["--import", KIT, "--test", ...tests], { cwd: root, env: { ...process.env, NODE_TEST_CONTEXT: undefined }, detached: true, stdio: "ignore", timeout: Math.min(RUN_MS, left), killSignal: "SIGKILL" });
+	const { promise, resolve: done, reject } = Promise.withResolvers<boolean | undefined>();
 	running = child.pid;
 	child.on("error", reject);
-	child.on("exit", (code) => {
+	child.on("exit", (code, signal) => {
 		stopGroup(running);
 		running = undefined;
-		done(code === 0);
+		done(code === 0 ? true : signal === "SIGKILL" && left < RUN_MS ? undefined : false);
 	});
 	return promise;
 }

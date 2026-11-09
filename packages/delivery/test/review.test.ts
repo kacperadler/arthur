@@ -300,11 +300,13 @@ test("refused before any job: not a worker, in a run, no ticket, nothing to revi
 	});
 });
 
-test("a tip arthur review-needed answered no review for is refused before any job, naming the answer; a no review of an older commit, a review answer or none starts the review", async (t) => {
+test("a tip arthur review-needed answered no review for is refused before any job, naming the answer; a no review of an older commit, one in the job's own folder, a review answer or none starts the review", async (t) => {
 	const { fake, git, worker, review, home, field } = await load(t);
 	const jobs = () => readdirSync(join(home, "jobs")).length;
 	const job = await worker();
-	const answer = (text: string, commit: string) => writeFileSync(join(fake.host.folder, job.id, "review-needed"), `${JSON.stringify({ answer: text, ticket: "AC0001", branch: job.branch, commit, at: 1 })}\n`);
+	const kept = join(fake.host.folder, "review-needed", `${job.id}.json`);
+	const answer = (text: string, commit: string, path = kept) => writeFileSync(path, `${JSON.stringify({ answer: text, ticket: "AC0001", branch: job.branch, commit, at: 1 })}\n`);
+	mkdirSync(dirname(kept), { recursive: true });
 	mkdirSync(join(fake.host.folder, job.id), { recursive: true });
 	const no = "no review: 26 lines changed; the job's checks: check pass, test pass 12/12";
 	answer(no, job.commit);
@@ -319,9 +321,13 @@ test("a tip arthur review-needed answered no review for is refused before any jo
 	git(worktree, "commit", "--quiet", "-m", "more");
 	answer(no, job.commit);
 	assert.equal((await review("PASS", job.id)).code, undefined, "a no review of an older commit is reviewed");
-	rmSync(join(fake.host.folder, job.id, "review-needed"));
+	rmSync(kept);
 	assert.equal((await review("PASS", job.id)).code, undefined, "no answer is reviewed");
-	assert.equal(jobs(), count + 3);
+	const tip = git(worktree, "rev-parse", "HEAD");
+	// The job's own folder is its sandbox's to write (AR0499): an answer there, for its very tip, is no one's.
+	answer(no, tip, join(fake.host.folder, job.id, "review-needed"));
+	assert.equal((await review("PASS", job.id)).code, undefined, "an answer in the job's own folder is reviewed");
+	assert.equal(jobs(), count + 4);
 });
 
 test("a review's task is only what arthur review builds for an ended worker at its branch's tip: a hand-written one, another commit, a worker in a run, a moved tip are refused", async (t) => {

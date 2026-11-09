@@ -96,9 +96,9 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				const { id, project, to } = (data ?? {}) as { readonly id?: unknown; readonly project?: unknown; readonly to?: unknown };
 				if (to === "dropped" && typeof id === "string" && typeof project === "string") return dropped(project, id);
 			});
-			// Asked by the core's prune: the job's own folder here (`checks`, `review-needed`, the CI wait) goes with its record;
-			// delivery's record of a review, `reviews/<id>.json`, stays for the FAIL counts and the costs.
-			host.provide("jobs.keep", ({ id }: { readonly id: string }) => void (JOB.test(id) && rmSync(join(host.folder, id), { recursive: true, force: true })));
+			// Asked by the core's prune: the job's own folder here (`checks`, the CI wait) and `review-needed`'s answer of it go with
+			// its record; delivery's record of a review, `reviews/<id>.json`, stays for the FAIL counts and the costs.
+			host.provide("jobs.keep", ({ id }: { readonly id: string }) => void (JOB.test(id) && [join(host.folder, id), join(host.folder, "review-needed", `${id}.json`)].forEach((path) => rmSync(path, { recursive: true, force: true }))));
 			// Asked with the job-ended data and the final message the wake shows: a review of this home by its record, one in
 			// no home (an eval's) by the record its data names.
 			host.provide("coordinator.wake", (job: Readonly<Record<string, unknown>>, result?: unknown) => {

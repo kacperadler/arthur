@@ -6,7 +6,7 @@ import { loadConfig } from "@arthur/core";
 import type { Command } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { speak } from "../src/speak.ts";
-import { checkOptions } from "../src/speak-options.ts";
+import { checkOptions, DEFAULTS, table } from "../src/speak-options.ts";
 
 // The speak plugin against the fake host, with a fake `piper` and a fake `ffmpeg` on PATH that print and exit as the real ones
 // do. The text tells them what to do: a word `piper-fails`, `ffmpeg-fails`, `piper-hangs` or `ffmpeg-hangs`. docs/speak.md.
@@ -84,6 +84,16 @@ test("options: the defaults hold with none given; each wrong one is refused nami
 	for (const value of [{}, { de: "de_DE-thorsten-medium" }, { pl: "pl.onnx" }, { pl: "voices/pl" }, { pl: "/srv/pl.bin" }, { pl: "" }, { pl: 1 }, [], "pl_PL-gosia-medium", null])
 		assert.ok(paths({ voices: value })[0]?.startsWith(voices), JSON.stringify(value));
 	assert.deepEqual(paths({ nope: 1 }), ["nope: unknown option; options: voices, maxChars, timeoutSeconds"]);
+});
+
+test("arthur.config.example.ts gives speak every option of its table, each at its default", () => {
+	const example = readFileSync(new URL("../../../arthur.config.example.ts", import.meta.url), "utf8");
+	const call = /\n\t\tspeak\((\{[\s\S]*?\n\t\t\})\),\n/.exec(example);
+	assert.ok(call, "the example calls speak({ ... })");
+	const options = Function(`return (${call[1]});`)() as Record<string, unknown>;
+	assert.deepEqual(checkOptions(options), []);
+	assert.deepEqual(Object.keys(options), Object.keys(table));
+	assert.deepEqual(options, DEFAULTS);
 });
 
 test("speak.say: a Polish text by the Polish voice, any other by the English one, into an OGG/Opus file in the plugin's folder; the WAV is removed", async () => {

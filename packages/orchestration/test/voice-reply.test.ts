@@ -3,7 +3,9 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { NOT_TRANSCRIBED } from "@arthur/core/parts";
 import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
+import { inbox } from "../src/inbox.ts";
 import { orchestration } from "../src/orchestration.ts";
 
 // The coordinator's reply to a voice note, also sent as a voice note (AR0553): the test provides `speak.say` as the speak plugin
@@ -124,4 +126,24 @@ test("a channel without channel.send gets the line; with no plugin providing spe
 		{ text: "Again.", answers: [second.seq], channels: ["test"] },
 	]);
 	assert.deepEqual(alone.sent, []);
+});
+
+test("while the inbox runs, its sweep every 500 ms sends the voice note of a reply as it emits it; a claim's reply is not spoken", async (t) => {
+	const fake = fakeHost({ name: "orchestration" });
+	const [spoken, sent]: [string[], unknown[]] = [[], []];
+	fake.provide("speak.say", async (text: string) => (spoken.push(text), `/home/speak/${text}ogg`));
+	fake.provide("channel.send", (message: unknown) => async () => (sent.push(message), "sent 1 file in 1 message"));
+	const box = inbox(fake.host);
+	box.start();
+	t.after(() => box.stop());
+	const note = fake.emit("message-received", { channel: "test", parts: [VOICE] });
+	mkdirSync(join(fake.host.folder, "outbox"), { recursive: true });
+	writeFileSync(join(fake.host.folder, "outbox", `${Date.now()}-000001.json`), JSON.stringify({ text: "Started.", answers: [`${note.seq}-${Date.parse(note.time)}`], channels: ["test"] }));
+	await until("the voice note", () => sent.length === 1);
+	assert.deepEqual(sent, [{ files: ["/home/speak/Started.ogg"] }]);
+	assert.deepEqual(spoken, ["Started."]);
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data), [
+		{ text: NOT_TRANSCRIBED, answers: [note.seq], channels: ["test"] },
+		{ text: "Started.", answers: [note.seq], channels: ["test"] },
+	]);
 });

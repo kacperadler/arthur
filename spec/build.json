@@ -4369,9 +4369,7 @@
     "path": "spec/features/AR0548-the-coordinator-instructions-built-as-text-in-typescript-move-into-markdown/ticket.md",
     "updated": "2026-10-28T16:43:32.585Z",
     "after": [
-      "AR0537",
-      "AR0538",
-      "AR0539"
+      "AR0668"
     ]
   },
   {
@@ -4413,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-10-28T20:58:36.682Z",
+    "updated": "2026-11-09T23:04:21.740Z",
     "after": [
       "AR0554"
     ]

@@ -202,8 +202,8 @@ test("a page keeps a glob, a power and a lone ** as typed, and a fenced quote as
 	// only as many or more of its own marks with nothing after them close it.
 	const open = reportPage(["## 1. P", "Before:", ">    ```", "> `a` **b**", ">     ```", "> ```ts", "> ~~~", "After:", "> `a` **b**"].join("\n"));
 	assert.ok(open.includes('<p>`a` **b**\n    ```\n```ts\n~~~</p></div>\n<div class="after"><h3>After</h3>\n<p><code>a</code> <strong>b</strong></p></div>'), open);
-	const tildes = reportPage(["## 1. P", "Before:", "> ~~~~", "> **x**", "> ~~~", "> ~~~~~ ", "> **y**"].join("\n"));
-	assert.ok(tildes.includes("<p>**x**\n~~~\n<strong>y</strong></p></div>"), tildes);
+	const tildes = reportPage(["## 1. P", "Before:", "> ~~~~", "> **x**", "> ~~~", "> ~~~~~ ", "> `` **y**", "> ~~ **z**"].join("\n"));
+	assert.ok(tildes.includes("<p>**x**\n~~~\n`` <strong>y</strong>\n~~ <strong>z</strong></p></div>"), tildes);
 });
 
 test("a page alone takes its name too: the report and its page go to the next free -<n>", async (t) => {

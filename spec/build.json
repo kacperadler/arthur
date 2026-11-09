@@ -5309,9 +5309,9 @@
   {
     "id": "AR0657",
     "title": "A reviewer does not file again what the ticket's findings.md already holds",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0657-a-reviewer-does-not-file-again-what-the-ticket-s-findings-md-already-holds/ticket.md",
-    "updated": "2026-11-08T22:49:45.837Z"
+    "updated": "2026-11-09T09:45:38.201Z"
   },
   {
     "id": "AR0658",

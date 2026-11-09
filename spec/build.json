@@ -5101,9 +5101,9 @@
   {
     "id": "AR0633",
     "title": "The umask test walks .arthur while the job still writes, and fails on a lock file that vanished",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0633-the-umask-test-walks-arthur-while-the-job-still-writes-and-fails-on-a-lock-file/ticket.md",
-    "updated": "2026-11-07T18:04:41.851Z"
+    "updated": "2026-11-09T09:05:07.069Z"
   },
   {
     "id": "AR0634",

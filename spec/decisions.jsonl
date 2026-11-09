@@ -1167,3 +1167,4 @@
 {"record":"answer","id":"AR-D579","time":"2026-11-09T10:56:38+01:00","decided":"Approve AR0666","picked":1,"words":"Approve AR0663 to AR0667"}
 {"record":"ask","id":"AR-D580","time":"2026-11-09T10:56:38+01:00","project":"arthur","kind":"question","question":"Approve AR0667?","options":["Approve","Not yet"],"recommend":1,"ticket":"AR0667"}
 {"record":"answer","id":"AR-D580","time":"2026-11-09T10:56:39+01:00","decided":"Approve AR0667","picked":1,"words":"Approve AR0663 to AR0667"}
+{"record":"ask","id":"AR-D581","time":"2026-11-09T12:35:24+01:00","project":"arthur","kind":"merge","question":"Merge AR0660 (the model test stops failing when a lock file vanishes while it reads a job's folder; test file only, no review needed, checks pass on tip 55a8d74) into main?","options":["Merge now (once CI passes)","Not yet"],"recommend":1,"ticket":"AR0660"}

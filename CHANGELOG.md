@@ -23,6 +23,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0548 The coordinator instructions built as text in TypeScript move into Markdown procedures (b2152c78)
 - AR0673 Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise (6c8c041a)
 - AR0676 The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it (5537c9f2)
+- AR0685 Tests: a review on the fable model finds redundant tests and removes them, after the test speed work (c957ad44)
 
 ## 2026-11-09
 

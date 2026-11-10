@@ -1,73 +1,55 @@
 import { spawnSync } from "node:child_process";
 
 // The argument rewrite of a job's `docker` script (spec/roadmap.md, entry 70): `--label arthur.job=<id>` right after each
-// command that creates something, every `arthur.job` label the job gave taken out, so one job cannot label for another; every
-// other command passes unchanged. The prepare copies this file to the job's script folder on its machine and the script runs
-// it as `node <copy> <real docker> <id> <args>...`, so it imports only `node:` modules. docs/docker.md.
+// command that creates something, and every word that sets the `arthur.job` key dropped wherever it stands, so one job cannot
+// label for another; every other command passes unchanged. The prepare copies this file to the job's script folder on its
+// machine and the script runs it as `node <copy> <real docker> <id> <args>...`, so it imports only `node:` modules. docs/docker.md.
 
 const CREATES = [["run"], ["create"], ["container", "run"], ["container", "create"], ["build"], ["buildx", "build"], ["image", "build"], ["network", "create"], ["volume", "create"]];
 // docker's own options before the command (docker/cli v29, cli/flags/options.go) that take a value, long and short.
 const GLOBAL = ["--config", "--context", "--host", "--log-level", "--tlscacert", "--tlscert", "--tlskey"];
 const GLOBAL_SHORT = "cHl";
-// `run` and `create` (container/opts.go, run.go, create.go): the long options that take no value, every other one takes one;
-// the short ones that take one.
-const BARE = ["--detach", "--disable-content-trust", "--help", "--init", "--interactive", "--no-healthcheck", "--oom-kill-disable", "--privileged", "--publish-all", "--quiet", "--read-only", "--rm", "--sig-proxy", "--tty", "--use-api-socket"];
-const RUN_SHORT = "acehlmpuvw";
-// A label of the key `arthur.job`, with a value or without, as Docker splits it at its first `=`.
-const OURS = /^arthur\.job(=|$)/;
+// The `arthur.job` key, with a value or without, as Docker splits a label at its first `=`.
+const KEY = /^arthur\.job(=|$)/;
+// A short group whose last option is `l` and that gives its value in the same word: `-l=…`, `-l…`, `-dl…`.
+const SHORT = /^(-[A-Za-z]*?)l=?(.*)$/s;
 
-// How many arguments the short group at `args[at]` spans (`-it`, `-p 80:80`, `-dl x`), the label it gives with `l`, and the
-// group before its option that takes a value.
-function short(args: readonly string[], at: number, valued: string): { span: number; label?: string; before: string } {
-	const group = args[at] ?? "";
-	for (let index = 1; index < group.length; index++) {
-		if (!valued.includes(group[index] ?? "")) continue;
-		const rest = group.slice(index + 1).replace(/^=/, "");
-		const value = rest === "" ? args[at + 1] : rest;
-		return { span: rest === "" ? 2 : 1, ...(group[index] === "l" ? { label: value } : {}), before: group.slice(0, index) };
+// Which word may set the key is not guessed per option: an option's value can be `--label` or `--`, after which Docker reads on.
+// So every word that sets it goes, before or after a `--` or an image: `--label=k=v`, `-l=k=v`, `-lk=v`, a bare `k=v` with
+// the `--label`, `-l` or `-…l` before it (that group keeps its other options), and a bare `k=v` alone.
+function stripped(args: readonly string[]): string[] {
+	const kept: string[] = [];
+	for (const arg of args) {
+		const short = arg.startsWith("--") ? null : SHORT.exec(arg);
+		if (arg.startsWith("--label=") && KEY.test(arg.slice(8))) continue;
+		if (short !== null && KEY.test(short[2] ?? "")) {
+			if (short[1] !== "-") kept.push(short[1] ?? "");
+			continue;
+		}
+		if (!KEY.test(arg)) {
+			kept.push(arg);
+			continue;
+		}
+		const before = kept.at(-1) ?? "";
+		if (before === "--label" || /^-[A-Za-z]*l$/.test(before)) kept.pop();
+		if (/^-[A-Za-z]+l$/.test(before)) kept.push(before.slice(0, -1));
 	}
-	return { span: 1, before: group };
+	return kept;
 }
 
 export function labelled(args: readonly string[], id: string): string[] {
 	let at = 0;
 	while (args[at]?.startsWith("-") && args[at] !== "-" && args[at] !== "--") {
 		const arg = args[at] as string;
-		at += arg.startsWith("--") ? (GLOBAL.includes(arg) ? 2 : 1) : short(args, at, GLOBAL_SHORT).span;
+		const valued = [...arg.slice(1)].findIndex((letter) => GLOBAL_SHORT.includes(letter));
+		at += arg.startsWith("--") ? (GLOBAL.includes(arg) ? 2 : 1) : valued === arg.length - 2 ? 2 : 1;
 	}
 	// Docker runs the command after a `--` that ends its own options: `docker -- run img`.
 	if (args[at] === "--") at++;
 	const words = CREATES.find((each) => each.every((word, index) => args[at + index] === word));
 	if (words === undefined) return [...args];
-	// Arguments after `run`'s or `create`'s image are the container's; the other commands take options anywhere before `--`.
-	const container = words.length === 1 ? words[0] !== "build" : words[0] === "container";
-	const kept: string[] = [];
-	for (let index = at + words.length; index < args.length; ) {
-		const arg = args[index] as string;
-		const option = arg.startsWith("-") && arg !== "-";
-		if (arg === "--" || (container && !option)) {
-			kept.push(...args.slice(index));
-			break;
-		}
-		if (!option) {
-			kept.push(arg);
-			index++;
-		} else if (arg.startsWith("--")) {
-			const [name = "", value] = arg.split(/=(.*)/s);
-			const ours = name === "--label" && OURS.test(value ?? args[index + 1] ?? "");
-			// Outside run and create a bare `--label` takes the next word only when it is ours: it may be another option's value
-			// (`build --build-arg --label --label=arthur.job=x`), so each word after it is read again and no arthur.job label stays.
-			const span = value === undefined && (name === "--label" ? container || ours : container && !BARE.includes(name)) ? 2 : 1;
-			if (!ours) kept.push(...args.slice(index, index + span));
-			index += span;
-		} else {
-			const group = container ? short(args, index, RUN_SHORT) : { span: 1, before: arg };
-			if (!OURS.test(group.label ?? "")) kept.push(...args.slice(index, index + group.span));
-			else if (group.before !== "-") kept.push(group.before);
-			index += group.span;
-		}
-	}
-	return [...args.slice(0, at + words.length), "--label", `arthur.job=${id}`, ...kept];
+	const end = at + words.length;
+	return [...args.slice(0, end), "--label", `arthur.job=${id}`, ...stripped(args.slice(end))];
 }
 
 if (import.meta.main) {

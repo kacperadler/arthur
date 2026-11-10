@@ -43,7 +43,7 @@ Refused, the spawn ending with `plugin docker: prepare failed: <reason>; the job
 - For `run` and `create`, what follows the image belongs to the container and is left alone (`docker run img --label x`); so is everything after `--`. The options there that take no value (`--rm`, `-it`, `-d`, ...) are told from those that take one, as docker/cli v29 declares them.
 - Unlabelled, and left to the sweep: `docker` called by its absolute path, Docker's API called from a library, and a compose stack under a `-p` of the job's own.
 
-In a job whose sandbox hides Arthur's home (Linux with Landlock, `arthur spawn --help`, "The sandbox"), the job cannot read the script: `sh` and `node` then run the next `docker` on its PATH, unlabelled, and `bash` stops with `Permission denied` (exit 126). Such a job does not reach Docker's daemon either: its sandbox opens no Unix socket but a datagram one.
+A sandboxed job (Linux with Landlock, `arthur spawn --help`, "The sandbox"), whose sandbox hides Arthur's home, is shown its own script folder, `<home>/docker/jobs/<id>`, and no other job's nor the rest of the plugin's folder, so its shell runs the script (AR-D597). Such a job does not reach Docker's daemon: its sandbox opens no Unix socket but a datagram one, so the labelled command fails there as any `docker` command would.
 
 ## The disk floor
 

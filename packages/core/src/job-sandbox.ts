@@ -98,8 +98,9 @@ export function unpruned(id: string, job: { readonly [key in "project" | "root" 
 // `<name> <path>` a line: each other project's checkout and folder, and every project's `.arthur-worktrees`, whole, so a worktree
 // made there later too; but `+<path>`, shown, the job's own worktree. Then (AR0590) its home, whole: the event log, the
 // coordinator's files, every plugin's folder (its own folder of an extension too, which it still writes), every record and any
-// entry made later; but shown the job's own record, each other record there now that names its project, and the projects
-// plugin's `checkouts` and `folders` (job-place.ts). Never a path that is or holds the job's root, Git folder, install or config,
+// entry made later; but shown the job's own record, each other record there now that names its project, the projects
+// plugin's `checkouts` and `folders` (job-place.ts), and the job's own docker script folder, `<home>/docker/jobs/<id>`, when the
+// docker plugin's prepare made it, so its shell runs the script it finds first on its PATH (AR-D597). Never a path that is or holds the job's root, Git folder, install or config,
 // nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
 export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string): string[] {
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
@@ -114,7 +115,8 @@ export function hidden(record: string, { project, root, worktree }: Pick<Job, "p
 	const holds = (path: string, places: readonly string[]) => places.some((place) => place === path || place.startsWith(`${path}${sep}`));
 	const unkept = [...new Set(others.map((path) => real(path)))].filter((path) => !holds(path, [...kept, ...own]));
 	const records = readdirSync(jobs).filter((id) => id === basename(record) || (project !== "" && read(join(jobs, id, "project")).trim() === project));
-	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders")];
+	const script = join(home, "docker", "jobs", basename(record));
+	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders"), ...(existsSync(script) ? [script] : [])];
 	const env = guarded.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
 	return [...env, ...unread(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
 }

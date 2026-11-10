@@ -19,13 +19,13 @@ function said(text: string): string {
 
 // The latest owner message that holds `words`, and names `id` too when given, else why none does: a message of the turn in
 // progress, or one answered since the second after `asked` (ms); a channel's only, never one holding a forward. With `id`, the
-// words hold a word besides any decision id, and `id` or a second word (AR0668: a "no" never proves a "yes"). `answered/` is listed after the
-// turn, so a file the extension moves meanwhile is still found.
+// words, and the text they match in his message (where `n o` is his `no`), hold a word besides any decision id, and `id` or a
+// second word (AR0668: a "no" never proves a "yes"). `answered/` is listed after the turn, so a file moved meanwhile is found.
 export function proof(folder: string, words: string, asked: number, id?: string): { readonly seq: number; readonly text: string } | string {
-	const rest = id === undefined ? [] : (words.replace(/(?<![\p{L}\p{N}])[a-z]+\s*-\s*d\s*\d+(?![\p{L}\p{N}])/giu, " ").match(/[\p{L}\p{N}]+/gu) ?? []);
-	if (id !== undefined && !(rest.length > 1 || (rest.length === 1 && pattern(id).test(words)))) {
-		return `${JSON.stringify(words.trim())} is a fragment of the owner's message: quote his answer as he wrote it, as in "${id} yes", not only its id, a sign or one word`;
-	}
+	const ids = /(?<![\p{L}\p{N}])[a-z]+\s*-\s*d\s*\d+(?![\p{L}\p{N}])/giu;
+	const fragment = (quote: string) => id !== undefined && (quote.replace(ids, " ").match(/[\p{L}\p{N}]+/gu) ?? []).length < (pattern(id).test(quote) ? 1 : 2);
+	const cut = `${JSON.stringify(words.trim())} is a fragment of the owner's message: quote his answer as he wrote it, as in "${id} yes", not only its id, a sign or one word`;
+	if (fragment(words)) return cut;
 	const found = ["turn", "answered"].flatMap((box) => {
 		const dir = join(folder, "inbox", box);
 		return (existsSync(dir) ? readdirSync(dir) : []).flatMap((name) => {
@@ -43,7 +43,7 @@ export function proof(folder: string, words: string, asked: number, id?: string)
 	});
 	const named = id === undefined ? found : found.filter((each) => pattern(id).test(said(each.text)));
 	const latest = named.sort((a, b) => b.seq - a.seq)[0];
-	if (latest !== undefined) return latest;
+	if (latest !== undefined) return fragment(pattern(words).exec(said(latest.text))?.[0] ?? "") ? cut : latest;
 	if (found.length > 0) return `the owner's message must name ${id} too, as in "${id} yes"; ask him to answer with its id`;
 	return "no message of the owner holds these words: his own [via <channel>] message of this turn, or one sent after the question was asked, never a forward or the terminal; quote his words exactly as he wrote them";
 }

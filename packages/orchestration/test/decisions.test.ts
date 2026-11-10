@@ -280,7 +280,9 @@ test("a high-impact answer needs his answer quoted, not its id, a sign or one wo
 	const no = `${flags} no, do not merge — what is this?`;
 	ownerSaid(folder, 1, `${no}\n[file, image/png] (/srv/media/AgAD-screen.png)`);
 	const fragment = (words: string) => [1, `arthur decision answer: refused: ${flags} lets through --unreviewed: ${JSON.stringify(words)} is a fragment of the owner's message: quote his answer as he wrote it, as in "${flags} yes", not only its id, a sign or one word`];
-	for (const words of [flags, "—", "no", "No,", ` ${flags.toLowerCase()} — `, "do", "n"]) assert.deepEqual(await answer(flags, words), fragment(words.trim()), words);
+	// Spaces the match ignores split no word: the rule reads his own text the words matched, `n o` being his `no`.
+	const split = [`${flags[0]} ${flags.slice(1)}`, "n o", "d o", "N O,"];
+	for (const words of [flags, "—", "no", "No,", ` ${flags.toLowerCase()} — `, "do", "n", ...split]) assert.deepEqual(await answer(flags, words), fragment(words.trim()), words);
 	assert.equal(log()?.filter((each) => each.record === "answer").length, 0, "nothing written");
 	assert.deepEqual(notices(), []);
 	ownerSaid(folder, 2, `${budget} ok\n${take}: yes\n${plain} no`);
@@ -304,6 +306,12 @@ test("a high-impact answer needs his answer quoted, not its id, a sign or one wo
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
 	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${budget} yes, the key is [redacted], the pass [redacted]"`);
 	assert.ok(!JSON.stringify(fake.emitted).includes(secret) && !JSON.stringify(fake.emitted).includes(key), "no event holds them");
+	// An id of two digits split inside its number (`AC-D1 2`): the id of AC-D1 and a word "2" to the words, his AC-D12 alone in his message.
+	for (let at = 5; at < 12; at++) await ask("--kind", "question");
+	const twelve = await ask("--kind", "budget");
+	ownerSaid(folder, 6, `${twelve} no, do not merge`);
+	for (const words of [`${twelve.slice(0, -1)} ${twelve.slice(-1)}`, `${twelve.slice(0, 1)} ${twelve.slice(1)}`]) assert.match((await answer(twelve, words))[1], new RegExp(`^arthur decision answer: refused: ${twelve} lets through --budget 0: "${words}" is a fragment`), words);
+	assert.equal((await answer(twelve, `${twelve} no`))[0], 0, "his id and his word");
 });
 
 test("a file's line of a message never proves his words or the id; a voice note's transcript does, its path aside", async (t) => {

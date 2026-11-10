@@ -21,3 +21,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: after `npm test` in this worktree, a process `node packages/core/src/fake-agent.ts <tmp>/run.json --continue -e .../session/src/handoff-extension.ts` was still running 54 minutes later, reparented to the user's init (ps: ppid 817), its temporary folder under `/tmp/arthur-test-*`. Which test started it was not traced [INFERENCE: one that continues a job with the session plugin's handoff extension loaded].
 - Suggestion: find the test that continues a job with the handoff extension, and make it wait until the fake agent's process is gone (or kill it in `t.after`) before it ends.
 - Status: open
+
+## F3. A part's mime holding a line break splits its file line
+
+- Kind: security
+- Found by: 2026-11-10-review-2539324f (review), 2026-11-10
+- Where: `packages/core/src/message-parts.ts:53`, read by `packages/orchestration/src/decision-proof.ts:17`
+- What: the proof drops a file's line by its leading `[<kind>`, one line per part. The core's saved line writes the part's `mime` raw, and Telegram passes the client's `mime_type` through (`telegram/src/media-in.ts`), so a mime with `\n` would put the text after it on a line of its own, counted as the owner's words. [INFERENCE: not verified that Telegram delivers a line break in `mime_type`]
+- Suggestion: have `received` (message-parts.ts) refuse a `mime` with a control character, or the saved line collapse whitespace in it; the proof stays line-based.
+- Status: open

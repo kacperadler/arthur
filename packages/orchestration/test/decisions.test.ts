@@ -271,7 +271,8 @@ test("a merge flag, --budget 0 and take-main need the owner's message naming the
 
 // AR0668: a fragment of his "no" (its id, a dash, the word) once proved a "yes"; the notice now shows the message it came from.
 test("a high-impact answer needs his answer quoted, not its id, a sign or one word; the notice quotes his whole message, cut at 400", async (t) => {
-	const { run, fake, log, notices } = await setup(t);
+	const secret = "correct-horse-battery";
+	const { run, fake, log, notices } = await setup(t, { ARTHUR_ORCHESTRATION_PASS: secret });
 	const { folder } = fake.host;
 	const ask = async (...args: string[]) => (await run("decision", ["ask", "--question", "Go?", ...args]))[1];
 	const [flags, budget, take, plain] = [await ask("--kind", "merge", "--ticket", "AC0001", "--what", "--unreviewed"), await ask("--kind", "budget"), await ask("--kind", "merge"), await ask("--kind", "question")];
@@ -283,7 +284,7 @@ test("a high-impact answer needs his answer quoted, not its id, a sign or one wo
 	assert.equal(log()?.filter((each) => each.record === "answer").length, 0, "nothing written");
 	assert.deepEqual(notices(), []);
 	ownerSaid(folder, 2, `${budget} ok\n${take}: yes\n${plain} no`);
-	for (const [id, words] of [[budget, budget], [take, "yes"], [take, `${take} —`]] as const) assert.match((await answer(id, words))[1], / is a fragment of the owner's message: /, words);
+	for (const [id, words] of [[budget, budget], [take, "yes"], [take, `${take} —`], [take, `${budget} yes`], [take, `${budget} ${plain}`], [take, `${budget.toLowerCase()} - ${plain}: yes`]] as const) assert.match((await answer(id, words))[1], / is a fragment of the owner's message: /, words);
 	assert.equal((await answer(plain, "no"))[0], 0, "a question that lets nothing through takes one word");
 	assert.equal((await answer(budget, `${budget} ok`))[0], 0, "its id and one word");
 	assert.equal((await answer(take, `${take}: yes`))[0], 0, "its id and one word, as he wrote them");
@@ -297,6 +298,12 @@ test("a high-impact answer needs his answer quoted, not its id, a sign or one wo
 	ownerSaid(folder, 4, long.slice(0, -50));
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
 	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)}"`, "400 code points are not cut");
+	// A key and an env file's value he pastes reach neither the channel nor the event: his message is redacted as the log is.
+	const key = "sk-live-4f9a8b7c6d5e4f3a2b1c";
+	ownerSaid(folder, 5, `${budget} yes, the key is ${key}, the pass ${secret}`);
+	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${budget} yes, the key is [redacted], the pass [redacted]"`);
+	assert.ok(!JSON.stringify(fake.emitted).includes(secret) && !JSON.stringify(fake.emitted).includes(key), "no event holds them");
 });
 
 test("a file's line of a message never proves his words or the id; a voice note's transcript does, its path aside", async (t) => {

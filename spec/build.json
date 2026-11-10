@@ -5478,9 +5478,9 @@
   {
     "id": "AR0678",
     "title": "Report pages draw a double border on the right of the last number tile in a row and under the tiles of the last row",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0678-report-pages-draw-a-double-border-on-the-right-of-the-last-number-tile-in-a-row/ticket.md",
-    "updated": "2026-11-10T11:33:22.956Z"
+    "updated": "2026-11-10T12:07:00.428Z"
   },
   {
     "id": "AR0679",

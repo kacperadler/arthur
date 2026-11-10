@@ -85,13 +85,15 @@ const FIXED_WAITS = {
 
 	"packages/resources/test/feature-caps.test.ts": 1,
 
+	"packages/session/test/compaction.test.ts": 2,
+
 	"packages/session/test/restart-command.test.ts": 2,
 
 	"packages/session/test/restart.test.ts": 18,
 
 	"packages/session/test/service.test.ts": 5,
 
-	"packages/session/test/session.test.ts": 10,
+	"packages/session/test/session.test.ts": 8,
 
 	"packages/session/test/start-notice.test.ts": 1,
 

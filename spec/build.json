@@ -5458,9 +5458,9 @@
   {
     "id": "AR0676",
     "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
-    "updated": "2026-11-10T18:33:24.999Z",
+    "updated": "2026-11-10T20:08:28.343Z",
     "after": [
       "AR0673"
     ]
@@ -5538,10 +5538,7 @@
     "title": "Tests: a review on the fable model finds redundant tests and removes them, after the test speed work",
     "status": "planned",
     "path": "spec/features/AR0685-tests-a-review-on-the-fable-model-finds-redundant-tests-and-removes-them-after/ticket.md",
-    "updated": "2026-11-10T12:20:38.910Z",
-    "after": [
-      "AR0671"
-    ]
+    "updated": "2026-11-10T12:20:38.910Z"
   },
   {
     "id": "AR0686",

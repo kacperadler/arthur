@@ -59,8 +59,11 @@ test("a reply to a voice note goes after its text as a voice note, through the c
 	// A voice note and a plugin's message after it in the log, which the replies below do not answer: never spoken for them.
 	const unanswered = box.say("telegram", [VOICE]);
 	const wake = box.fake.emit("coordinator-message", { text: "[scheduled docs] Check." });
+	// Every other kind of file, with no voice note among them: answered by text alone.
+	const media = box.say("test", ["photo", "video", "audio", "file"].map((kind) => ({ kind, path: `/srv/media/a.${kind}`, mime: "application/octet-stream", seconds: 4 })));
 	await box.reply("Typed only.", [typed], ["test"]);
 	await box.reply("Read the docs.", [wake], []);
+	await box.reply("Media only.", [media], ["test"]);
 	const spoken = box.say("test", [TEXT, VOICE], "12");
 	await box.reply("Merged AR0081.", [typed, spoken], ["test"]);
 	await until("the voice note", () => box.sent.length === 1);
@@ -69,6 +72,7 @@ test("a reply to a voice note goes after its text as a voice note, through the c
 	assert.deepEqual(box.replies(), [
 		{ text: "Typed only.", answers: [typed.seq], channels: ["test"] },
 		{ text: "Read the docs.", answers: [wake.seq], channels: [] },
+		{ text: "Media only.", answers: [media.seq], channels: ["test"] },
 		{ text: "Merged AR0081.", answers: [typed.seq, spoken.seq], channels: ["test"] },
 	], `nothing for the voice note ${unanswered.seq} the replies do not answer, on telegram, which has no channel.send`);
 });
@@ -89,6 +93,22 @@ test("voice notes from two places and two channels that one reply answers: spoke
 		{ text: "Second", answers: [later.seq], channels: ["test"] },
 		{ text: "voice note not sent: telegram provides no channel.send", answers: [other.seq], channels: ["telegram"] },
 	], "the line goes to that channel alone, once its voice note is made");
+});
+
+test("one reply's voice note at a time: the next is not spoken while the one before is still being sent, and they go in the order of the replies", async () => {
+	const upload = Promise.withResolvers<void>();
+	const started: string[] = [];
+	const box = await setup(
+		async (text) => `/home/speak/${text}.ogg`,
+		(message) => () => (started.push(message.files[0] ?? ""), message.files[0]?.includes("First") ? upload.promise.then(() => "sent") : Promise.resolve("sent")),
+	);
+	await box.reply("First", [box.say("test", [VOICE])], ["test"]);
+	await until("the first upload", () => started.length === 1);
+	await box.reply("Second", [box.say("test", [VOICE])], ["test"]);
+	assert.deepEqual(box.spoken, ["First"], "the second reply waits for the first one's send");
+	upload.resolve();
+	await until("both sent", () => box.sent.length === 2);
+	assert.deepEqual([box.spoken, started, box.sent], [["First", "Second"], ["/home/speak/First.ogg", "/home/speak/Second.ogg"], [{ files: ["/home/speak/First.ogg"] }, { files: ["/home/speak/Second.ogg"] }]]);
 });
 
 test("a voice note that cannot be made or sent: the text went, and one line on that channel says why", async () => {

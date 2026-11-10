@@ -149,7 +149,7 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  %% One class line per node, in name order, a blank line after each: branches that each add or change a node merge without a conflict.
+  %% One class line per node, in name order, a blank line after each: branches that change two nodes merge without a conflict, as do two that each add one when an existing node sorts between theirs.
   class agents planned;
 
   class api built;

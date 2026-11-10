@@ -62,8 +62,8 @@ import * as youtrackFile from "@arthur/youtrack/options";
 
 type OptionsFile = { readonly table: OptionTable; readonly summary: string; readonly tools: readonly Tool[] };
 
-// Every plugin, and below the plugins without options and each plugin's tools: in name order, one line each, so two branches
-// that each add a plugin merge without a conflict.
+// Every plugin, and below the plugins without options and each plugin's tools: in name order, one line each (the lists a blank
+// line after each), so two branches that each add a plugin merge without a conflict when an existing name sorts between theirs.
 const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	activity: [activityFile, activity()],
 	"commit-rules": [commitRulesFile, commitRules()],

@@ -1,0 +1,1 @@
+Why: arthur ci {branch} --project {project}; then a failure in the branch's own code goes to the owner: {branch} has no worker; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: arthur ci {branch} --project {project} --rerun

@@ -16,13 +16,25 @@ const DEPLOYED = [{ title: "Manual deployment", status: "done" as const, created
 const DROP: FakeApp = { id: "kXx3drop04", name: "Drop", status: "done", project: "Shop", environment: "production", sourceType: "drop", deployments: DEPLOYED };
 // Already from acme/web-shop's main, deployed, auto-deploy off.
 const LINKED: FakeApp = { ...{ id: "kXx3linked05", name: "Linked", status: "done", project: "Shop", environment: "production", sourceType: "github", deployments: DEPLOYED }, ...{ githubId: "gh-acme01", owner: "acme", repository: "web-shop", branch: "main", autoDeploy: false } };
-const ACME: FakeGithub = { id: "gh-acme01", name: "acme", repositories: [{ owner: "acme", name: "web-shop", branches: ["main", "release/1.2"] }, { owner: "acme", name: "docs", branches: ["main"] }, { owner: "studio-9", name: "site_2.0", branches: ["v9"] }] };
+const ACME: FakeGithub = {
+	id: "gh-acme01",
+	name: "acme",
+	repositories: [
+		...[{ owner: "acme", name: "web-shop", branches: ["main", "release/1.2", "feat-x_y#1"] }, { owner: "acme", name: "docs", branches: ["main"] }],
+		...[{ owner: "studio-9", name: "site_2.0", branches: ["v9"] }, { owner: "acme-labs", name: "web-shop", branches: ["main"] }],
+	],
+};
 const OTHER: FakeGithub = { id: "gh-other02", name: "acme-two", repositories: [{ owner: "acme-two", name: "site", branches: ["main"] }] };
+// Another GitHub app that sees acme/web-shop too.
+const MIRROR: FakeGithub = { id: "gh-mirror03", name: "mirror", repositories: [{ owner: "acme", name: "web-shop", branches: ["main"] }] };
+// Switched to a Docker image in the panel after it deployed from acme/web-shop: Dokploy's saveDockerProvider and dropDeployment
+// change only sourceType, so the GitHub columns stay (routers/application.ts:650, :934 at v0.30.10).
+const SWITCHED: FakeApp = { ...LINKED, id: "kXx3switched06", name: "Switched", sourceType: "docker", autoDeploy: true };
 
 // The fake with these GitHub apps, and `run`, which runs `arthur dokploy` for the project `shop` and returns its exit code and
 // what it printed, or rejects with its refusal.
 async function load(t: TestContext, githubs: readonly FakeGithub[] = [ACME]) {
-	const main = await fakeDokploy(t, { apps: [FRESH, DROP, LINKED], githubs });
+	const main = await fakeDokploy(t, { apps: [FRESH, DROP, LINKED, SWITCHED], githubs });
 	const plugin = dokploy({ instances: [{ url: main.url, tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }] });
 	const fake = fakeHost({ name: "dokploy", options: plugin.options, env: { ARTHUR_DOKPLOY_TOKEN: TOKEN } });
 	fake.provide("projects", () => [{ name: "shop", pieces: dokploy.project({ app: FRESH.id }) }]);
@@ -71,9 +83,13 @@ test("source connects the app to its repository and branch through the only GitH
 	assert.match((await run("app", FRESH.id)).out, /source: github/);
 	// GitHub's names ignore case: the owner and name go as GitHub writes them, since the push webhook compares them so.
 	assert.equal((await run("source", FRESH.id, "--repo", "ACME/Web-Shop", "--branch", "main")).out, `${SET}: already set`);
-	// Digits in the owner, digits, _ and . in the name: each a repository GitHub names so.
-	assert.equal((await run("source", DROP.id, "--repo", "studio-9/site_2.0", "--branch", "v9", "--replace-source")).code, 0);
+	// Digits in the owner, digits, _ and . in the name, given in another case: saved as GitHub writes them, which no push would
+	// match otherwise.
+	assert.equal((await run("source", DROP.id, "--repo", "Studio-9/Site_2.0", "--branch", "v9", "--replace-source")).code, 0);
 	assert.deepEqual(posts(main.seen).at(-1), ["application.saveGithubProvider", { ...SAVE, applicationId: DROP.id, owner: "studio-9", repository: "site_2.0", branch: "v9", watchPaths: [], enableSubmodules: false }]);
+	// A branch with -, _ and #, each a character Dokploy's rule takes.
+	assert.equal((await run("source", DROP.id, "--repo", "acme/web-shop", "--branch", "feat-x_y#1", "--replace-source")).code, 0);
+	assert.deepEqual(posts(main.seen).at(-1)?.[1], { ...SAVE, applicationId: DROP.id, branch: "feat-x_y#1", watchPaths: [], enableSubmodules: false });
 	// A build path, a branch with a slash: each saved again; a tag trigger set in the panel goes back to push.
 	assert.equal((await run("source", FRESH.id, "--repo", "acme/web-shop", "--branch", "release/1.2", "--build-path", "/apps/web")).code, 0);
 	assert.deepEqual(posts(main.seen).at(-1), ["application.saveGithubProvider", { ...SAVE, branch: "release/1.2", buildPath: "/apps/web" }]);
@@ -151,6 +167,10 @@ test("source refuses an app with deployments from another source or repository w
 	const linked = `Linked (kXx3linked05) on instance (unnamed) ${replace("github acme/web-shop, branch main", "acme/web-shop, branch release/1.2")}`;
 	assert.equal(await refusal("source", LINKED.id, "--repo", "acme/web-shop", "--branch", "release/1.2"), linked);
 	assert.match(await refusal("source", LINKED.id, "--repo", "acme/docs", "--branch", "main"), /deploys from github acme\/web-shop, branch main and has deployments/);
+	// Another owner of a repository of the same name is another source.
+	assert.match(await refusal("source", LINKED.id, "--repo", "acme-labs/web-shop", "--branch", "main"), /deploys from github acme\/web-shop, branch main and has deployments; this makes it deploy from github acme-labs\/web-shop/);
+	// A Docker app that kept its GitHub columns does not deploy from GitHub: not already set, and refused.
+	assert.equal(await refusal("source", SWITCHED.id, "--repo", "acme/web-shop", "--branch", "main"), `Switched (kXx3switched06) on instance (unnamed) ${replace("docker", "acme/web-shop, branch main")}`);
 	assert.deepEqual(posts(main.seen), []);
 	assert.equal((await run("source", DROP.id, "--repo", "acme/web-shop", "--branch", "main", "--replace-source")).code, 0);
 	// An app without watch paths sends none, and its submodules off.
@@ -158,6 +178,18 @@ test("source refuses an app with deployments from another source or repository w
 	// The same repository and branch with another build path is no other source.
 	assert.equal((await run("source", LINKED.id, "--repo", "acme/web-shop", "--branch", "main", "--build-path", "/web")).code, 0);
 	assert.equal(main.live.find((app) => app.id === DROP.id)?.sourceType, "github");
+});
+
+test("source counts the same repository and branch through another GitHub app as another source", async (t) => {
+	const { main, run, refusal } = await load(t, [ACME, MIRROR]);
+	const switched = await refusal("source", LINKED.id, "--repo", "acme/web-shop", "--branch", "main", "--github", "mirror");
+	assert.match(switched, /^Linked \(kXx3linked05\) on instance \(unnamed\) deploys from github acme\/web-shop, branch main and has deployments; /);
+	assert.deepEqual(posts(main.seen), []);
+	assert.equal((await run("source", LINKED.id, "--repo", "acme/web-shop", "--branch", "main", "--github", "mirror", "--replace-source")).code, 0);
+	assert.deepEqual(posts(main.seen)[0]?.[1], { ...SAVE, applicationId: LINKED.id, githubId: "gh-mirror03", watchPaths: [], enableSubmodules: false });
+	// The docker app with --replace-source is saved, not already set.
+	assert.match((await run("source", SWITCHED.id, "--repo", "acme/web-shop", "--branch", "main", "--github", "acme", "--replace-source")).out, /GitHub app acme: set\n/);
+	assert.equal(main.live.find((app) => app.id === SWITCHED.id)?.sourceType, "github");
 });
 
 test("source without --repo or --branch, with a word too many, or a flag of another verb, prints the usage line and exits 2", async (t) => {

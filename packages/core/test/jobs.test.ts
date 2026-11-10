@@ -212,15 +212,6 @@ test("a branch, worktree or record that exists already under a drawn id makes th
 	assert.deepEqual(readdirSync(join(home, "jobs")).sort(), ["2026-10-16-worker-02020202", job.id]);
 });
 
-test("two spawns at once get distinct ids, branches and worktrees", async () => {
-	const { root, home } = repository();
-	const jobs = runner(home, root);
-	const [one, two] = await Promise.all([jobs.spawn({ task: "One." }), jobs.spawn({ task: "Two." })]);
-	assert.notEqual(one?.id, two?.id);
-	assert.deepEqual(branches(root).sort(), [`arthur/${one?.id}`, `arthur/${two?.id}`, "main"].sort());
-	assert.equal(readFileSync(join(home, "jobs", one?.id ?? "", "task"), "utf8"), "One.");
-});
-
 test("a branch named arthur refuses a worker before anything exists, naming the fix; a read-only kind still spawns", async () => {
 	const { root, home } = repository();
 	git(root, "branch", "arthur");

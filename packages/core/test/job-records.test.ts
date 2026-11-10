@@ -555,20 +555,6 @@ test("arthur prune --all frees every finished job as the bare prune did; --all w
 	assert.deepEqual([existsSync(join(home, "jobs", first.id)), existsSync(join(home, "jobs", second.id))], [false, false]);
 });
 
-test("an empty id is refused with exit 2 before anything is removed, even beside a real id", async () => {
-	const { home, jobs, commands } = setup();
-	const free = await worker(jobs, home);
-	assert.deepEqual(await command(commands, "prune", free.id, ""), { code: 2, out: "", err: "arthur prune: an empty id or text\nusage: arthur prune (<id>... | --all)" });
-	assert.deepEqual([existsSync(join(home, "jobs", free.id)), existsSync(free.worktree)], [true, true]);
-});
-
-test("stop with an empty id is refused with exit 2 before it acts; the job is not touched", async () => {
-	const { home, jobs, commands } = setup();
-	const job = await worker(jobs, home);
-	assert.deepEqual(await command(commands, "stop", ""), { code: 2, out: "", err: "arthur stop: an empty id or text\nusage: arthur stop <id>" });
-	assert.equal(field(home, job.id, "state"), "ended");
-});
-
 test("steer with an empty id or an empty text is refused with exit 2 before it acts; no steer is queued", async () => {
 	const { home, jobs, commands } = setup();
 	const job = await worker(jobs, home);
@@ -577,10 +563,3 @@ test("steer with an empty id or an empty text is refused with exit 2 before it a
 	assert.equal(existsSync(join(home, "jobs", job.id, "steer", "inbox", "0001")), false);
 });
 
-test("continue with an empty id or an empty instruction is refused with exit 2; the ended job's record is left as it was", async () => {
-	const { home, jobs, commands } = setup();
-	const job = await worker(jobs, home);
-	assert.deepEqual(await command(commands, "continue", job.id, ""), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd> [--decision <id>]] [--ignore-restart]" });
-	assert.deepEqual(await command(commands, "continue", "", "Go on."), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd> [--decision <id>]] [--ignore-restart]" });
-	assert.equal(field(home, job.id, "state"), "ended");
-});

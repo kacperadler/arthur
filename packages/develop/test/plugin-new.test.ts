@@ -84,17 +84,18 @@ test("a new package passes npm run check, its own test and the structure test as
 		"?? packages/acmetest/src/acmetest.ts",
 		"?? packages/acmetest/test/acmetest.test.ts",
 	]);
-	const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8")).packages;
-	assert.deepEqual([lock["node_modules/@arthur/acme-test-plugin"], lock["packages/acme-test-plugin"]], [{ resolved: "packages/acme-test-plugin", link: true }, { name: "@arthur/acme-test-plugin", license: "Apache-2.0" }]);
+	const [lock, release] = [JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8")).packages, JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version];
+	assert.deepEqual([lock["node_modules/@arthur/acme-test-plugin"], lock["packages/acme-test-plugin"]], [{ resolved: "packages/acme-test-plugin", link: true }, { name: "@arthur/acme-test-plugin", version: release, license: "Apache-2.0" }]);
 	const keys = Object.keys(lock);
 	assert.deepEqual(keys, [...keys].sort(), "in npm's order");
 	assert.equal(readlinkSync(join(root, "node_modules", "@arthur", "acme-test-plugin")), join("..", "..", "packages", "acme-test-plugin"));
 
 	const check = run(root, "npm", "run", "check");
 	assert.equal(check.status, 0, check.stdout + check.stderr);
-	const tests = run(root, process.execPath, "--import", "@arthur/core/testing", "--test", "packages/acme-test-plugin/test/acme-test-plugin.test.ts", "packages/acmetest/test/acmetest.test.ts", "test/structure.test.ts");
+	const files = ["packages/acme-test-plugin/test/acme-test-plugin.test.ts", "packages/acmetest/test/acmetest.test.ts", "test/structure.test.ts", "packages/core/test/plugin-range.test.ts"];
+	const tests = run(root, process.execPath, "--import", "@arthur/core/testing", "--test", ...files);
 	assert.equal(tests.status, 0, tests.stdout + tests.stderr);
-	for (const ran of ["acme-test-plugin sets up on the fake host", "acmetest sets up on the fake host", "the repository keeps every rule"]) assert.match(tests.stdout, new RegExp(`^✔ ${ran}`, "m"), ran);
+	for (const ran of ["acme-test-plugin sets up on the fake host", "acmetest sets up on the fake host", "the repository keeps every rule", "one release: "]) assert.match(tests.stdout, new RegExp(`^✔ ${ran}`, "m"), ran);
 	// The specifier as an argument: written out here, the structure test would take it for this package's import.
 	const options = run(root, process.execPath, "--input-type=module", "-e", "const o = await import(process.argv[1]); console.log(o.summary, Object.keys(o.table).length, o.tools.length)", "@arthur/acme-test-plugin/options");
 	assert.equal(options.stdout, "acme-test-plugin: what the plugin does, in one line 0 0\n", "arthur setup reads its options file");
@@ -207,6 +208,9 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 	assert.equal(changed(checkout), "");
 	assert.equal(changed(worktree), "");
 
+	// The release the new package holds is its own root's, the worktree's, not the checkout's.
+	const manifest = join(worktree, "package.json");
+	writeFileSync(manifest, JSON.stringify({ ...JSON.parse(readFileSync(manifest, "utf8")), version: "9.8.7" }));
 	const link = join(temporaryFolder(), "worktree");
 	symlinkSync(worktree, link);
 	assert.equal((await plugin(["new", "acme", "--budget", "100", "--root", link])).code, 0, "a link to the worktree is the worktree");
@@ -215,6 +219,8 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 	assert.match(budgets(worktree), /^\tacme: 100,\n\n\tactivity: /);
 	assert.equal(readlinkSync(join(worktree, "node_modules", "@arthur", "acme")), join("..", "..", "packages", "acme"));
 	assert.ok(!existsSync(join(checkout, "node_modules", "@arthur", "acme")));
+	const lock = JSON.parse(readFileSync(join(worktree, "package-lock.json"), "utf8")).packages;
+	assert.deepEqual([JSON.parse(readFileSync(join(worktree, "packages", "acme", "package.json"), "utf8")).version, lock["packages/acme"].version], ["9.8.7", "9.8.7"]);
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).

@@ -5485,9 +5485,9 @@
   {
     "id": "AR0679",
     "title": "The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0679-the-go-with-my-recommendation-grant-and-approved-policies-still-answer-plan/ticket.md",
-    "updated": "2026-11-10T07:14:37.656Z",
+    "updated": "2026-11-10T23:52:52.196Z",
     "after": [
       "AR0677"
     ]
@@ -5560,8 +5560,15 @@
   {
     "id": "AR0688",
     "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
-    "updated": "2026-11-10T19:45:57.709Z"
+    "updated": "2026-11-10T23:52:50.898Z"
+  },
+  {
+    "id": "AR0689",
+    "title": "The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed",
+    "status": "planning",
+    "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
+    "updated": "2026-11-10T23:52:58.464Z"
   }
 ]

@@ -49,3 +49,4 @@ Out:
 - 2026-11-10: Source: audit spec/quality/2026-11-10.md
 - 2026-11-10: Source: F1 of AR0486
 - 2026-11-10: Source: F2 of AR0486
+- 2026-11-10: AR0674 approved; the owner: "approve all five" (AR-D607)

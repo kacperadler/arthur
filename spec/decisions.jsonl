@@ -1225,3 +1225,8 @@
 {"record":"ask","id":"AR-D609","time":"2026-11-10T08:17:06+01:00","project":"arthur","kind":"plan","question":"Approve AR0675: a worker whose checks have not passed still gets the leftover-processes reminder at its run end?","options":["Approve","Not now"],"recommend":1,"ticket":"AR0675"}
 {"record":"ask","id":"AR-D610","time":"2026-11-10T08:17:08+01:00","project":"arthur","kind":"plan","question":"Approve AR0673: plugin branches built side by side stop conflicting on the shared lists every new plugin adds to?","options":["Approve","Not now"],"recommend":1,"ticket":"AR0673"}
 {"record":"ask","id":"AR-D611","time":"2026-11-10T08:17:09+01:00","project":"arthur","kind":"plan","question":"Approve AR0676: the roadmap, vision and diagrams show the activity log plugin (and fix three stale vision lines), after AR0673?","options":["Approve","Not now"],"recommend":1,"ticket":"AR0676"}
+{"record":"answer","id":"AR-D607","time":"2026-11-10T08:19:22+01:00","decided":"AR0674 approved","picked":1,"words":"approve all five","message":11740}
+{"record":"answer","id":"AR-D608","time":"2026-11-10T08:19:25+01:00","decided":"AR0672 approved","picked":1,"words":"approve all five","message":11740}
+{"record":"answer","id":"AR-D609","time":"2026-11-10T08:19:28+01:00","decided":"AR0675 approved","picked":1,"words":"approve all five","message":11740}
+{"record":"answer","id":"AR-D610","time":"2026-11-10T08:19:30+01:00","decided":"AR0673 approved","picked":1,"words":"approve all five","message":11740}
+{"record":"answer","id":"AR-D611","time":"2026-11-10T08:19:33+01:00","decided":"AR0676 approved","picked":1,"words":"approve all five","message":11740}

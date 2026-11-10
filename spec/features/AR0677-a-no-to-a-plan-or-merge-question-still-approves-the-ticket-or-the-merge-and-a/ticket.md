@@ -40,3 +40,4 @@ Out:
 - Whether the `/silent --recommend` grant and classes leave plan questions to the owner (AR0665 F2): the owner's own decision.
 
 ## Decisions
+- 2026-11-10: AR0677 approved; the owner: "AR-D604 - approve" (AR-D604)

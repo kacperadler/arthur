@@ -5413,9 +5413,9 @@
   {
     "id": "AR0670",
     "title": "A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0670-a-herdr-plugin-each-running-job-is-a-pane-in-herdr-on-the-server-with-its-live/ticket.md",
-    "updated": "2026-11-10T01:05:30.328Z"
+    "updated": "2026-11-10T07:13:11.127Z"
   },
   {
     "id": "AR0671",
@@ -5465,8 +5465,25 @@
   {
     "id": "AR0677",
     "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
-    "updated": "2026-11-10T07:02:06.500Z"
+    "updated": "2026-11-10T07:12:50.440Z"
+  },
+  {
+    "id": "AR0678",
+    "title": "Report pages draw a double border on the right of the last number tile in a row and under the tiles of the last row",
+    "status": "planned",
+    "path": "spec/features/AR0678-report-pages-draw-a-double-border-on-the-right-of-the-last-number-tile-in-a-row/ticket.md",
+    "updated": "2026-11-10T07:14:36.741Z"
+  },
+  {
+    "id": "AR0679",
+    "title": "The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603)",
+    "status": "planned",
+    "path": "spec/features/AR0679-the-go-with-my-recommendation-grant-and-approved-policies-still-answer-plan/ticket.md",
+    "updated": "2026-11-10T07:14:37.656Z",
+    "after": [
+      "AR0677"
+    ]
   }
 ]

@@ -13,7 +13,7 @@ const BUDGETS = {
 
 	"commit-rules": 184,
 
-	core: 7445,
+	core: 7528,
 
 	"core/testing": 405,
 
@@ -31,6 +31,8 @@ const BUDGETS = {
 
 	github: 1288,
 
+	herdr: 250,
+
 	listen: 262,
 
 	machines: 538,
@@ -41,7 +43,7 @@ const BUDGETS = {
 
 	nvm: 98,
 
-	orchestration: 2829,
+	orchestration: 2863,
 
 	projects: 595,
 

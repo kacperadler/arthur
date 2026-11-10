@@ -1,9 +1,9 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and activity,
 // commit-rules, delivery, develop, discord, docker (its labels; its cleanup and sweep are planned), dokploy, findings, github,
-// listen, machines, manage, models, nvm, orchestration, projects, resources, schedule, session, stats, telegram, uptime, video,
-// youtrack. Planned, no package yet (spec/roadmap.md builds them): server, signal, slack, whatsapp (later). So a copy of the
-// whole file does not load; it fails on the first planned import (`Cannot find package '@arthur/server'`). Take a plugin from it
-// once its package exists. Illustrative for the planned ones: their option names are proposed, not final.
+// herdr, listen, machines, manage, models, nvm, orchestration, projects, resources, schedule, session, stats, telegram, uptime,
+// video, youtrack. Planned, no package yet (spec/roadmap.md builds them): server, signal, slack, whatsapp (later). So a copy of
+// the whole file does not load; it fails on the first planned import (`Cannot find package '@arthur/server'`). Take a plugin
+// from it once its package exists. Illustrative for the planned ones: their option names are proposed, not final.
 //
 // Rules:
 // - One file, one list: a plugin is a function call with its options.
@@ -34,6 +34,7 @@ import { docker } from "@arthur/docker"; // first, named
 import { dokploy } from "@arthur/dokploy"; // first, named
 import { findings } from "@arthur/findings"; // first, named
 import { github } from "@arthur/github"; // first, derived
+import { herdr } from "@arthur/herdr"; // first, named
 import { listen } from "@arthur/listen"; // first, named
 import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
@@ -390,6 +391,11 @@ export default defineConfig({
 			keepDays: 90, // a day file more than this many days old is removed at arthur run's start and at each new day
 			textChars: 300, // the characters of an event's text a line keeps, its full length as `cut`; 0 keeps none
 		}),
+
+		// Each job in a run a tab of the `arthur` workspace in herdr on this server, running `arthur jobs --follow <id>`, its state
+		// in herdr's sidebar, closed by its prune; a `coordinator` tab running `arthur attach`. Only arthur run acts; herdr missing
+		// or down costs only its `arthur doctor` line. No options but `enabled`. packages/herdr/docs/herdr.md.
+		herdr(),
 
 		// Plugins for developing Arthur: `arthur plugin new` and `arthur eval`. The test kit (fake host, fake agent) is core's
 		// `@arthur/core/testing`, so a plugin tests against it without importing another plugin.

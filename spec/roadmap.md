@@ -26,6 +26,8 @@ Dokploy (113, AR0588 and AR0603) lets the coordinator read and deploy to the own
 
 The site-down runbook (114, AR0607) follows Dokploy (113): its redeploy step is `arthur dokploy deploy` (AR0603), asked of the owner through the decision log (96) and its classes (97). It adds to uptime (98) only the coordinator's wake and the runbook's path, and took the next free number after Dokploy.
 
+Herdr (115, AR0670) shows the owner every job Arthur runs as a tab in herdr on the server, on his word of 2026-11-09 (AR-D587). It needs only the job records and their state (15, 16), `arthur doctor` (80) and the option tables (93), all merged, and took the next free number after 114.
+
 The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.md`, which wins over this summary): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `registerMachine`, `run`, `list`, `running`, `result`: a job's final message), `board` (its `projects()` is the project list), `clock`, `code` (the package folders of the code the load runs: the core's and each enabled plugin's), and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
 ## Core
@@ -1027,6 +1029,18 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 - Depends on: 111, 82.
 - Size: half a day.
 - Covers: none (new: the owner approved the AR0480 plan on 2026-11-06, AR-D523).
+
+## Herdr
+
+### 115. Herdr: a tab per job with its live view, its state in herdr's sidebar
+
+- Package: core (`arthur jobs --follow`, `docs/commands/jobs.md`; the agent's text in the job's `log`), herdr; `packages/herdr/docs/herdr.md`.
+- Tickets: AR0670
+- Delivers (the AR0670 plan): `arthur jobs --follow <id>` prints a job's `log` from its first line and each line as it is written (the tool calls, the agent's text as `> ` lines, the wrapper's notes), a `state:` line at the start and on each change, and ends with its run, read from the record alone, without the model. The `herdr` plugin, no options but `enabled`: in `arthur run` once started, an `arthur` workspace in herdr 0.9.3 on this server, its `coordinator` tab running `arthur attach` again after each restart, and a tab per job in a run, `<ticket> <kind> <short id>`, running its follow view; each `job-state` reported to herdr's sidebar (`working`; `idle` as working with the message `idle`; `blocked` with its reason; `ended` as idle with `ended: <reason>`); the prune closes the tab. herdr missing, down or slow (5 s a call) costs only its `arthur doctor` line, never a spawn. Nothing listens; jobs stay headless in their scopes.
+- Done means: the follow view's edge cases: a line or a UTF-8 character split across writes, a reason written before its state, a record gone mid-follow, an unknown id, `--follow` with `--state`. The plugin against the fake host and a fake `herdr` answering in the shape of herdr 0.9.3's API schema: nothing before `start`; the start-up pass for jobs in a run and ended jobs with a tab; a second `job-started` closing the old tab first; a state never before its tab; herdr absent, down, refusing or hanging.
+- Depends on: 15, 16, 71, 80, 93.
+- Size: a day.
+- Covers: none (new: the owner asked on 2026-11-09 to see every agent in herdr on the server, AR-D587).
 
 ## Later
 

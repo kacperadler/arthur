@@ -77,7 +77,7 @@ The wrapper, one background process per job, starts the agent, `core.agent.comma
 
 - `pid`: the wrapper's process id, which `arthur stop` signals.
 - `active`: written at the start; its modification time is the agent's last output, a line on stdout or stderr. After `idle-minutes` without one the wrapper turns the job `idle`, and the next one turns it `working` again (see `arthur jobs --help`).
-- `log`: lines `[arthur <time>] ...` of the wrapper's own (the agent's command line, the end), one line per tool call (`<tool> <path, command or pattern>`), what the agent prints on stderr, and any line of its stdout that is not an event.
+- `log`: lines `[arthur <time>] ...` of the wrapper's own (the agent's command line, the end), one line per tool call (`<tool> <path, command or pattern>`), the text of each of the agent's messages, a line `> <line>` per line of it, what the agent prints on stderr, and any line of its stdout that is not an event. `arthur jobs --follow <id>` prints it as it grows.
 - `cost`: the USD the agent's messages report, summed, with 4 decimals; `tool-calls`: how many it started; `activity`: `tool` while a tool call runs, `think` otherwise.
 - `usage`: per model, `<provider>/<model>` as omp names it, a JSON object `{ messages, input, output, cacheRead, cacheWrite, cost }`: the agent's messages, the tokens they report (input, output, cache read, cache write) and their USD, summed; written after each message, as `cost` is, and missing until the first one. A run of `arthur continue` adds to what the record holds, so `usage` and `cost` count every run of the job.
 - No `checks`: the core records no results of the project's own checks; the `delivery` plugin's extension does, in its own folder (`arthur review-needed --help`).

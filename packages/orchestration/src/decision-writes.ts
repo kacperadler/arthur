@@ -43,7 +43,7 @@ function impact(ask: Ask, picked: number | undefined): string | undefined {
 }
 
 // Records the owner's answer, with the number of his message that holds its words (decision-proof.ts); the record as written,
-// with its question. A high-impact one sends him a notice, built without the model, of what was recorded.
+// with its question. A high-impact one sends him a notice, built without the model, of what was recorded and his whole message.
 export function answer(host: Host, project: Project, id: string, given: { readonly decided?: string; readonly picked?: string; readonly words: string }): { readonly answer: Answer; readonly ask: Ask; readonly unwritten?: string } {
 	if (given.words.trim() === "") throw new Error(`an empty answer: the owner's words, as he wrote or said them, after the flags`);
 	if (/^by policy\b/i.test(given.words.trim())) throw new Error("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words");
@@ -55,12 +55,15 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 	if (picked !== undefined && !(Number.isInteger(picked) && picked >= 1 && picked <= found.options.length)) throw new Error(`--picked ${given.picked}: no such option; ${id} offered ${found.options.length}`);
 	if (found.class !== undefined && picked === undefined) throw new Error(`${id} proposes a class: --picked 1 approves it, --picked 2 refuses it`);
 	const high = impact(found, picked);
-	const message = proof(host.folder, given.words, Date.parse(found.time), high === undefined ? undefined : id);
-	if (typeof message === "string") throw new Error(high === undefined ? message : `${id} ${high}: ${message}`);
-	const record: Answer = { record: "answer", id, time: stamp(host), decided: redact(oneLine(given.decided), host.secrets), ...(picked === undefined ? {} : { picked }), words: redact(given.words.trim(), host.secrets), message };
+	const proved = proof(host.folder, given.words, Date.parse(found.time), high === undefined ? undefined : id);
+	if (typeof proved === "string") throw new Error(high === undefined ? proved : `${id} ${high}: ${proved}`);
+	const record: Answer = { record: "answer", id, time: stamp(host), decided: redact(oneLine(given.decided), host.secrets), ...(picked === undefined ? {} : { picked }), words: redact(given.words.trim(), host.secrets), message: proved.seq };
 	const { unwritten } = change(host, project, () => [record]);
 	const where = found.ticket === undefined ? "" : ` of ${found.ticket}`;
-	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; your words: "${record.words}"`, decision: id });
+	// His whole message in code points, so a character of two UTF-16 units is never cut in half.
+	const whole = [...redact(proved.text.trim(), host.secrets)];
+	const message = `${whole.slice(0, 400).join("")}${whole.length > 400 ? " … (cut)" : ""}`;
+	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; your words: "${record.words}"; your message: "${message}"`, decision: id });
 	return { answer: record, ask: found, unwritten };
 }
 

@@ -28,7 +28,7 @@ How every HTML page sent to the owner looks, and the check it passes before `art
 
 Each is a class of the base style below.
 
-- Number tiles, `.nums`: a grid of `<div><b>44</b><span>steers sent by hand</span></div>`; `.r` makes the number red (needs the owner), `.b` blue.
+- Number tiles, `.nums`: a grid of `<div><b>44</b><span>steers sent by hand</span></div>`; `.r` makes the number red (needs the owner), `.b` blue. Each tile has its own 2 px border and overlaps its neighbours by it, so every line between tiles is drawn once, 2 px, and the last row is not framed past its tiles: no line encloses its empty cells (AR-D605).
 - Before and after, `.cols`: two `<div>`s, the second `.after` with a blue border; one column on a phone.
 - Tables: `th` ink with paper text, `td.id` blue and bold, `td.before` grey.
 - Notes, `.note`: a blue bar on grey. Warnings, `.warn`: a red bar on grey, the place for what the owner must do.
@@ -62,8 +62,8 @@ h2 small { display:block; font-weight:400; font-size:14px; color:var(--muted); }
 p.lead { text-align:center; max-width:720px; margin:10px auto; }
 code { font:13px ui-monospace, Menlo, monospace; background:var(--grey); color:var(--ink); padding:1px 4px; overflow-wrap:anywhere; }
 header code, th code, .cmd h3 code { background:var(--paper); color:var(--ink); }
-.nums { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); border:2px solid var(--ink); margin:24px 0 8px; }
-.nums div { padding:14px 12px; border-right:2px solid var(--ink); border-bottom:2px solid var(--ink); text-align:center; }
+.nums { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); padding:2px 0 0 2px; margin:24px 0 8px; }
+.nums div { padding:14px 12px; border:2px solid var(--ink); margin:-2px 0 0 -2px; text-align:center; }
 .nums b { display:block; font-size:36px; line-height:1; font-weight:800; }
 .nums .r b { color:var(--red); } .nums .b b { color:var(--blue); }
 .nums span { font-size:13px; }

@@ -1,7 +1,8 @@
 import { type AgentEvent, count, type Spent } from "./agent-stream.ts";
 
 // What the agent's events make of the job record while the wrapper runs it (spec/roadmap.md, entries 11 and 108): `log`, `tool-calls`,
-// `activity`, `cost` and `usage` kept current through `save`; `end` writes `cost`, `tool-calls` and `activity` with their final value, and `result`.
+// `activity`, `cost` and `usage` kept current through `save`, each message's text in `log` too, a line `> <line>` per line of it (AR0670);
+// `end` writes `cost`, `tool-calls` and `activity` with their final value, and `result`.
 
 type Save = (name: string, text: string, append?: boolean) => void;
 // Per `<provider>/<model>`: its messages, its tokens and its cost in USD.
@@ -53,7 +54,7 @@ export function runRecord(save: Save, cost: number, used: Usage, message: (cost:
 					save("log", `${event.name} ${event.detail}\n`, true);
 				} else if (event.kind === "tool-end") act("think");
 				else {
-					if (event.text !== "") result = event.text;
+					if (event.text !== "") save("log", (result = event.text).replace(/^/gm, "> ").concat("\n"), true);
 					stopped = event.stopReason === "error" || event.stopReason === "aborted" ? [event.stopReason, event.error].filter(Boolean).join(": ") : "";
 					cost += event.cost;
 					const was = usage[event.model];

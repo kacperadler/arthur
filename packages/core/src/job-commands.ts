@@ -1,5 +1,6 @@
 import type { Command } from "./commands.ts";
 import { amount, parseFlags, text } from "./flags.ts";
+import { followJob } from "./job-follow.ts";
 import { findJob } from "./job-records.ts";
 import { field, STATES } from "./job-state.ts";
 import type { JobRunner } from "./jobs.ts";
@@ -13,7 +14,7 @@ const USAGE = {
 	stop: "usage: arthur stop <id>",
 	continue: "usage: arthur continue <id> <instruction> [--budget <usd> [--decision <id>]] [--ignore-restart]",
 	steer: "usage: arthur steer <id> <text>",
-	jobs: "usage: arthur jobs [--state <state>]",
+	jobs: "usage: arthur jobs [--state <state> | --follow <id>]",
 	prune: "usage: arthur prune (<id>... | --all)",
 	stopall: "usage: arthur stopall",
 };
@@ -42,7 +43,14 @@ export function jobCommands(home: () => string, jobs: () => JobRunner, emit: () 
 			console.error(`${id}: failed: ${failed}`);
 			return 1;
 		}),
-		{ ...command("jobs", 0, (_, { state }) => console.log(jobs().list(state)), { about: "every project's jobs by state, one line each, with the short id", reply: () => jobs().list() }), inJob: true },
+		{
+			...command("jobs", 0, async (_, { state, follow }) => {
+				if (follow === undefined) return console.log(jobs().list(state));
+				if (state !== undefined) return usage("jobs", "--follow goes without --state");
+				await followJob(home(), follow, (line) => console.log(line));
+			}, { about: "every project's jobs by state, one line each, with the short id", reply: () => jobs().list() }),
+			inJob: true,
+		},
 		command("prune", -1, async (ids, { all }) => {
 			if (all === undefined && ids.length === 0) return usage("prune", "needs one or more ids, or --all for every finished job");
 			if (all !== undefined && ids.length > 0) return usage("prune", "--all takes no ids");
@@ -53,11 +61,11 @@ export function jobCommands(home: () => string, jobs: () => JobRunner, emit: () 
 }
 
 // `count` arguments (-1: any number), each one word or one quoted text; only `continue` takes `--budget`, `--decision` (with `--budget 0`, AR0355)
-// and `--ignore-restart`, only `jobs` `--state`, only `prune` `--all`, a switch the run gets with the value "". An empty word is refused before the command acts.
+// and `--ignore-restart`, only `jobs` `--state` or `--follow`, only `prune` `--all`, a switch the run gets with the value "". An empty word is refused before the command acts.
 type Run = (words: readonly string[], values: Partial<Record<string, string>>) => number | void | Promise<number | void>;
 const FLAGS: Partial<Record<keyof typeof USAGE, Parameters<typeof parseFlags>[1]>> = {
 	continue: { budget: (value, before) => (before === undefined ? amount(value, before) : "given twice"), decision: text },
-	jobs: { state: (value, before) => text(value, before) ?? (STATES.some((state) => state === value) ? undefined : `needs one of ${STATES.join(", ")}, got ${value}`) },
+	jobs: { state: (value, before) => text(value, before) ?? (STATES.some((state) => state === value) ? undefined : `needs one of ${STATES.join(", ")}, got ${value}`), follow: text },
 };
 const SWITCHES: Partial<Record<keyof typeof USAGE, readonly string[]>> = { prune: ["--all"], continue: ["--ignore-restart"] };
 function command(name: keyof typeof USAGE, count: number, run: Run, phone?: Command["phone"]): Command {

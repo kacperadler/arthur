@@ -336,10 +336,10 @@ test("a grant never answers a merge question, a budget question, a class's propo
 	await decision("answer", "AC-D5", "--decided", "Blue", "--picked", "1", "blue");
 	assert.equal((await decision("class", "propose", "--kind", "question", "--match", "blue red", "--decided", "Blue", "--backed-by", "AC-D5"))[0], 0);
 	assert.deepEqual(log().filter((each) => each.id === "AC-D6").map((each) => each.record), ["ask"], "the proposal is not answered");
-	await decision("answer", "AC-D6", "--picked", "1", "--decided", "Pre-approve blue", "yes");
+	await decision("answer", "AC-D6", "--picked", "1", "--decided", "Pre-approve blue", "AC-D6 yes");
 	assert.deepEqual(await ask("--recommend", "2"), [0, "AC-D7\nAC-D7 answered by policy (AC-D6): Blue; act on it as on the owner's answer, and say so in your reply"], "the class, not the recommendation");
 	await decision("class", "propose", "--kind", "question", "--match", "red", "--decided", "Blue", "--backed-by", "AC-D5");
-	await decision("answer", "AC-D8", "--picked", "1", "--decided", "Pre-approve blue again", "yes");
+	await decision("answer", "AC-D8", "--picked", "1", "--decided", "Pre-approve blue again", "AC-D8 yes");
 	assert.deepEqual(await ask("--recommend", "2"), [0, "AC-D9\nAC-D9 goes to the owner: it matches classes AC-D6 and AC-D8"]);
 	assert.deepEqual(await decision("ask", "--kind", "question", "--question", "Green or yellow?", "--option", "Green", "--recommend", "1"), [0, ANSWERED("AC-D10", grant(), "Green")]);
 	assert.deepEqual(await decision("class", "propose", "--kind", "question", "--match", "green", "--decided", "Green", "--backed-by", "AC-D10"), [1, `arthur decision class propose: refused: AC-D10 was answered by recommendation (${grant()}), not by the owner`]);

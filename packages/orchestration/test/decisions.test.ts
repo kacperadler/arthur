@@ -262,11 +262,95 @@ test("a merge flag, --budget 0 and take-main need the owner's message naming the
 	for (const id of [flags, budget, take]) assert.equal((await answer(id))[0], 0, id);
 	assert.deepEqual(log()?.filter((each) => each.record === "answer").map((each) => [each.id, each.message]), [[plain, 1], [job, 1], [question, 1], [flags, 2], [budget, 3], [take, 4]]);
 	assert.deepEqual(notices(), [
-		`Recorded as your decision ${flags} (merge of AC0001, lets through --unreviewed and --no-ci): Go; your words: "yes, go ahead"`,
-		`Recorded as your decision ${budget} (budget of AC0002, lets through --budget 0): Go; your words: "yes, go ahead"`,
-		`Recorded as your decision ${take} (merge, lets through arthur take-main): Go; your words: "yes, go ahead"`,
+		`Recorded as your decision ${flags} (merge of AC0001, lets through --unreviewed and --no-ci): Go; your words: "yes, go ahead"; your message: "ac-d1 yes, go ahead"`,
+		`Recorded as your decision ${budget} (budget of AC0002, lets through --budget 0): Go; your words: "yes, go ahead"; your message: "AC-D2: yes, go ahead"`,
+		`Recorded as your decision ${take} (merge, lets through arthur take-main): Go; your words: "yes, go ahead"; your message: "yes, go ahead (AC - D3)"`,
 	]);
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { decision: string }).decision), [flags, budget, take]);
+});
+
+// AR0668: a fragment of his "no" (its id, a dash, the word) once proved a "yes"; the notice now shows the message it came from.
+test("a high-impact answer needs his answer quoted, not its id, a sign or one word; the notice quotes his whole message, cut at 400", async (t) => {
+	const secret = "correct-horse-battery";
+	const { run, fake, log, notices } = await setup(t, { ARTHUR_ORCHESTRATION_PASS: secret });
+	const { folder } = fake.host;
+	const ask = async (...args: string[]) => (await run("decision", ["ask", "--question", "Go?", ...args]))[1];
+	const [flags, budget, take, plain] = [await ask("--kind", "merge", "--ticket", "AC0001", "--what", "--unreviewed"), await ask("--kind", "budget"), await ask("--kind", "merge"), await ask("--kind", "question")];
+	const answer = (id: string, words: string) => run("decision", ["answer", id, "--decided", "Merge it", words]);
+	const no = `${flags} no, do not merge — what is this?`;
+	ownerSaid(folder, 1, `${no}\n[file, image/png] (/srv/media/AgAD-screen.png)`);
+	const fragment = (words: string) => [1, `arthur decision answer: refused: ${flags} lets through --unreviewed: ${JSON.stringify(words)} is a fragment of the owner's message: quote his answer as he wrote it, as in "${flags} yes", not only its id, a sign or one word`];
+	// Spaces the match ignores split no word: the rule reads his own text the words matched, `n o` being his `no`.
+	const split = [`${flags[0]} ${flags.slice(1)}`, "n o", "d o", "N O,"];
+	for (const words of [flags, "—", "no", "No,", ` ${flags.toLowerCase()} — `, "do", "n", ...split]) assert.deepEqual(await answer(flags, words), fragment(words.trim()), words);
+	assert.equal(log()?.filter((each) => each.record === "answer").length, 0, "nothing written");
+	assert.deepEqual(notices(), []);
+	ownerSaid(folder, 2, `${budget} ok\n${take}: yes\n${plain} no`);
+	for (const [id, words] of [[budget, budget], [take, "yes"], [take, `${take} —`], [take, `${budget} yes`], [take, `${budget} ${plain}`], [take, `${budget.toLowerCase()} - ${plain}: yes`]] as const) assert.match((await answer(id, words))[1], / is a fragment of the owner's message: /, words);
+	assert.equal((await answer(plain, "no"))[0], 0, "a question that lets nothing through takes one word");
+	assert.equal((await answer(budget, `${budget} ok`))[0], 0, "its id and one word");
+	assert.equal((await answer(take, `${take}: yes`))[0], 0, "its id and one word, as he wrote them");
+	assert.equal((await answer(flags, `${flags} no, do not merge`))[0], 0, "his answer quoted");
+	assert.equal(notices().at(-1), `Recorded as your decision ${flags} (merge of AC0001, lets through --unreviewed): Merge it; your words: "${flags} no, do not merge"; your message: "${no}\n[file, image/png] (/srv/media/AgAD-screen.png)"`);
+	// 399 code points, then a character of two UTF-16 units as the 400th: kept whole, the rest cut and the cut marked.
+	const long = `${budget} yes ${"q".repeat(399 - budget.length - 5)}😀${"r".repeat(50)}`;
+	ownerSaid(folder, 3, `${long}\n`);
+	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)} … (cut)"`);
+	ownerSaid(folder, 4, long.slice(0, -50));
+	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)}"`, "400 code points are not cut");
+	ownerSaid(folder, 5, long.slice(0, -49));
+	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)} … (cut)"`, "401 code points are cut, the cut marked");
+	// A key and an env file's value he pastes reach neither the channel nor the event: his message is redacted as the log is.
+	const key = "sk-live-4f9a8b7c6d5e4f3a2b1c";
+	ownerSaid(folder, 6, `${budget} yes, the key is ${key}, the pass ${secret}`);
+	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${budget} yes, the key is [redacted], the pass [redacted]"`);
+	assert.ok(!JSON.stringify(fake.emitted).includes(secret) && !JSON.stringify(fake.emitted).includes(key), "no event holds them");
+	// An id of two digits split inside its number (`AC-D1 2`): the id of AC-D1 and a word "2" to the words, his AC-D12 alone in his message.
+	for (let at = 5; at < 12; at++) await ask("--kind", "question");
+	const twelve = await ask("--kind", "budget");
+	ownerSaid(folder, 7, `${twelve} no, do not merge`);
+	for (const words of [`${twelve.slice(0, -1)} ${twelve.slice(-1)}`, `${twelve.slice(0, 1)} ${twelve.slice(1)}`]) assert.match((await answer(twelve, words))[1], new RegExp(`^arthur decision answer: refused: ${twelve} lets through --budget 0: "${words}" is a fragment`), words);
+	assert.equal((await answer(twelve, `${twelve} no`))[0], 0, "his id and his word");
+});
+
+test("a file's line of a message never proves his words or the id; a voice note's transcript does, its path aside", async (t) => {
+	const { run, fake } = await setup(t);
+	const { folder } = fake.host;
+	const id = (await run("decision", ["ask", "--kind", "budget", "--question", "Go?"]))[1];
+	const answer = (words: string) => run("decision", ["answer", id, "--decided", "Go", words]);
+	const unproved = async (words: string) => assert.deepEqual(await answer(words), [1, `arthur decision answer: refused: ${id} lets through --budget 0: ${UNPROVED[1].slice("arthur decision answer: refused: ".length)}`], words);
+	ownerSaid(folder, 1, `${id} see the file\n[file, application/pdf] (/srv/media/BQAD-${id} yes, go ahead.pdf)`);
+	ownerSaid(folder, 2, `${id} hi\n[audio, audio/mpeg, 180 s] (/srv/media/CQAD-${id} yes go.mp3); listen failed: timed out`);
+	ownerSaid(folder, 3, `${id} hi\n[audio 180 s] la la la (/srv/media/CQAD-${id} yes go on.mp3)`);
+	ownerSaid(folder, 4, `${id} hi\n[photo ${id} yes, go now.png not saved: Discord gave no url]`);
+	for (const words of [`${id} yes, go ahead`, `${id} yes go`, "go on.mp3", `${id} yes go on`, `${id} yes, go now`, "application/pdf"]) await unproved(words);
+	// Each kind a channel saves, as the core's saved line and as a channel's not-saved line, both naming the sender's file.
+	for (const [at, kind] of ["photo", "video", "voice", "audio", "file"].entries()) {
+		ownerSaid(folder, 20 + at, `${id} hi\n[${kind}, ${kind}/x] (/srv/media/BAAD-${id} ${kind} saved, merge it.bin)\n[${kind} ${id} ${kind} lost, merge it.bin not saved: Discord gave no url]`);
+		for (const words of [`${id} ${kind} saved, merge it`, `${id} ${kind} lost, merge it`]) await unproved(words);
+	}
+	ownerSaid(folder, 5, `yes, go\n[file, text/plain] (/srv/media/BQAD-${id}.txt)`);
+	assert.match((await answer("yes, go"))[1], new RegExp(`the owner's message must name ${id} too`), "an id only in a file's name");
+	ownerSaid(folder, 6, `[voice 4 s] ${id} yes, go ahead now (/srv/media/AwAD-${id} no.ogg)`);
+	assert.equal((await answer(`${id} yes, go ahead now`))[0], 0, "the transcript");
+	await unproved(`${id} no`);
+	// Discord's line for a file it did not save, `[<kind> <file name> not saved: <why>]`, the file named `3 s] <id> yes, merge it.ogg`:
+	// it reads like a transcript but ends in `]`, never in a transcript's path.
+	ownerSaid(folder, 7, `${id} hi\n[audio 3 s] ${id} yes, merge it.ogg not saved: Discord gave no url]\n[voice 3 s] ${id} yes, merge now.ogg not saved: fetch failed (ECONNREFUSED)]`);
+	for (const words of [`${id} yes, merge it`, `${id} yes, merge now`]) await unproved(words);
+	// Discord gives a voice note's length unrounded, and listen writes it so; an audio file's transcript never counts (AR-D616):
+	// a forwarded recording holds someone else's voice.
+	ownerSaid(folder, 8, `[voice 3.52 s] ${id} yes, ship it (/srv/media/AwAD-voice.ogg)`);
+	assert.equal((await answer(`${id} yes, ship it`))[0], 0, "a length with a decimal");
+	ownerSaid(folder, 9, `[audio 61 s] ${id} yes, deploy it (/srv/media/CQAD-memo.mp3)`);
+	await unproved(`${id} yes, deploy it`);
+	// Only a part's own kind starts a file's line: his text that starts with a bracket and a longer word is his.
+	ownerSaid(folder, 10, `[filed under ops] ${id} yes, roll it`);
+	assert.equal((await answer(`${id} yes, roll it`))[0], 0, "a word that starts like a kind");
 });
 
 test("a close ends an open question; an answer after it is still recorded and counts; closing again or an unknown id is refused", async (t) => {
@@ -472,7 +556,7 @@ test("a value of the env file, which the process's environment never holds, is r
 	assert.ok(!Object.values(process.env).includes(secret));
 	await backed(decision);
 	await decision(...PROPOSE);
-	await decision("answer", "AC-D4", ...APPROVE, "yes");
+	await decision("answer", "AC-D4", ...APPROVE, "AC-D4 yes");
 	await decision("ask", "--kind", "question", "--question", `Use ${secret}?`, "--option", `keep ${secret}`, "--recommend", `rotate ${secret}`);
 	await decision("answer", "AC-D5", "--decided", `Rotate ${secret}`, `yes, ${secret}`);
 	await decision("ask", "--kind", "question", "--question", "Drop abcdefgh-longer-tail, abcdefgh, seventh?");
@@ -562,7 +646,7 @@ test("the context lists each open question with its age and up to 5 answered one
 	const answered = async (kind: string, question: string, decided: string, at: string) => {
 		fake.setNow(new Date(at));
 		const [, id] = await decision("ask", "--kind", kind, "--question", question);
-		await decision("answer", id, "--decided", decided, "ok");
+		await decision("answer", id, "--decided", decided, `${id} ok`);
 	};
 	await answered("question", "Is the menu colour blue?", "Blue menu", "2026-03-01T10:00:00Z");
 	await answered("plan", "Approve the plan of the menu colour?", "Approved", "2026-03-01T11:00:00Z");
@@ -690,11 +774,11 @@ test("an ask waits for the log's lock another process holds, and writes after th
 async function backed(decision: (...args: string[]) => Promise<Ran>) {
 	const said: Ran[] = [];
 	said.push(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of orchestration by 40?", "--ticket", "AC0001", "--option", "Raise it", "--option", "Cut code", "--recommend", "1"));
-	said.push(await decision("answer", "AC-D1", "--decided", "Raise the line budget", "--picked", "1", "tak"));
+	said.push(await decision("answer", "AC-D1", "--decided", "Raise the line budget", "--picked", "1", "AC-D1 tak"));
 	said.push(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of core by 6?", "--ticket", "AC0002", "--option", "Raise it", "--option", "Cut code", "--recommend", "Cut code"));
-	said.push(await decision("answer", "AC-D2", "--decided", "raise the line  budget", "--picked", "1", "yes"));
+	said.push(await decision("answer", "AC-D2", "--decided", "raise the line  budget", "--picked", "1", "AC-D2 yes"));
 	said.push(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of develop by 9?"));
-	said.push(await decision("answer", "AC-D3", "--decided", "Raise the line budget", "sure"));
+	said.push(await decision("answer", "AC-D3", "--decided", "Raise the line budget", "AC-D3 sure"));
 	assert.deepEqual(said.map(([code]) => code), [0, 0, 0, 0, 0, 0]);
 }
 const PROPOSE = ["class", "propose", "--kind", "budget", "--match", "line budget", "--decided", "Raise the line budget", "--backed-by", "AC-D1", "AC-D2", "ac-d3"];
@@ -759,7 +843,7 @@ test("a class is approved only on the owner's message naming its proposal, with 
 	assert.equal(notices().length, before, "a refusal sends no notice");
 	ownerSaid(fake.host.folder, 51, "AC-D4 tak, zawsze");
 	assert.deepEqual((await run("decision", approve))[1], "AC-D4 answered: Pre-approve raising a line budget; the class is approved: its questions are answered by policy from now on");
-	assert.deepEqual(notices().slice(before), ['Recorded as your decision AC-D4 (class, approves the class budget questions naming "line budget" → Raise the line budget): Pre-approve raising a line budget; your words: "tak, zawsze"']);
+	assert.deepEqual(notices().slice(before), ['Recorded as your decision AC-D4 (class, approves the class budget questions naming "line budget" → Raise the line budget): Pre-approve raising a line budget; your words: "tak, zawsze"; your message: "AC-D4 tak, zawsze"']);
 });
 
 test("a proposal is refused, naming why and writing nothing: no backing decision, an unknown, unanswered or differing one, a class's own kind", async (t) => {
@@ -771,9 +855,9 @@ test("a proposal is refused, naming why and writing nothing: no backing decision
 	await decision("ask", "--kind", "question", "--question", "Raise the line budget or cut?");
 	await decision("answer", "AC-D6", "--decided", "Raise the line budget", "raise");
 	await decision("ask", "--kind", "budget", "--question", "Raise the budget of uptime?");
-	await decision("answer", "AC-D7", "--decided", "Raise the line budget", "raise");
+	await decision("answer", "AC-D7", "--decided", "Raise the line budget", "AC-D7 raise");
 	await decision("ask", "--kind", "budget", "--question", "Raise the line budget of github?");
-	await decision("answer", "AC-D8", "--decided", "Cut code instead", "cut");
+	await decision("answer", "AC-D8", "--decided", "Cut code instead", "AC-D8 cut");
 	const before = readFileSync(file(), "utf8");
 	const refused = (why: string): Ran => [1, `arthur decision class propose: refused: ${why}`];
 	const propose = (...args: string[]) => decision("class", "propose", "--kind", "budget", "--match", "line budget", "--decided", "Raise the line budget", ...args);
@@ -812,7 +896,7 @@ test("a class is approved only on the owner's word: inside a job, by policy, or 
 	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "yes"), inside);
 	delete process.env.ARTHUR_JOB;
 	assert.equal(readFileSync(file(), "utf8"), before);
-	await decision("answer", "AC-D4", ...APPROVE, "yes");
+	await decision("answer", "AC-D4", ...APPROVE, "AC-D4 yes");
 	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of nvm?"), [0, POLICY_SAID("AC-D5", "AC-D4")]);
 	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", "nvm", "--decided", "Raise the line budget", "--backed-by", "AC-D5"), [1, "arthur decision class propose: refused: AC-D5 was answered by policy (AC-D4), not by the owner"]);
 	assert.equal(log()?.length, 10);
@@ -871,8 +955,8 @@ test("a question two approved classes match goes to the owner naming both; a cla
 	await backed(decision);
 	assert.equal((await decision(...PROPOSE))[0], 0);
 	assert.equal((await decision("class", "propose", "--kind", "budget", "--match", "orchestration", "--decided", "Raise the line budget", "--backed-by", "AC-D1"))[0], 0);
-	await decision("answer", "AC-D4", ...APPROVE, "yes");
-	await decision("answer", "AC-D5", ...APPROVE, "yes");
+	await decision("answer", "AC-D4", ...APPROVE, "AC-D4 yes");
+	await decision("answer", "AC-D5", ...APPROVE, "AC-D5 yes");
 	assert.deepEqual(log()?.find((each) => each.id === "AC-D5")?.class?.ticketKind, "feature", "every backing ticket is a feature");
 	assert.equal(log()?.find((each) => each.id === "AC-D4")?.class?.ticketKind, undefined, "AC-D3 has no ticket");
 	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of orchestration again?", "--ticket", "AC0001"), [0, "AC-D6\nAC-D6 goes to the owner: it matches classes AC-D4 and AC-D5"]);
@@ -894,7 +978,7 @@ async function dropClass(decision: (...args: string[]) => Promise<Ran>, blocked:
 	blocked(JOB, "May I drop the old orders table?");
 	await decision("answer", "AC-D1", "--decided", "Drop the table", "yes, drop it");
 	assert.equal((await decision("class", "propose", "--kind", "job", "--match", "drop table", "--decided", "Drop the table", "--backed-by", "AC-D1"))[0], 0);
-	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "always");
+	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "AC-D2 always");
 }
 
 test("a job's question an approved class matches is answered by policy; with no record of the job blocked on it, the wake says it was not continued", async (t) => {
@@ -1037,7 +1121,7 @@ test("a job's question answered by policy and longer than one message is cut bef
 	blocked(JOB, "May I drop the old orders table?");
 	await decision("answer", "AC-D1", "--decided", "Drop the table", "yes, drop it");
 	await decision("class", "propose", "--kind", "job", "--match", "drop table", "--decided", "Drop the table", "--backed-by", "AC-D1");
-	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "always");
+	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "AC-D2 always");
 	const other = "2026-03-04-worker-0000ffff";
 	// AC-D3 and AC-D4: heads of one length.
 	const head = `${other} asks [AC-D3]: `;
@@ -1059,7 +1143,7 @@ test("a job's question answered by policy and longer than one message is cut bef
 		blocked("2026-03-04-worker-0000eeee", `May I ${subject}?`);
 		await decision("answer", String(backing), "--decided", decided, "yes");
 		await decision("class", "propose", "--kind", "job", "--match", subject, "--decided", decided, "--backed-by", String(backing));
-		await decision("answer", String(proposal), "--picked", "1", "--decided", "Pre-approve it", "always");
+		await decision("answer", String(proposal), "--picked", "1", "--decided", "Pre-approve it", `${proposal} always`);
 		const question = `May I ${subject} again? ${"q".repeat(100)}`;
 		blocked(other, question);
 		return { head, ending: `${opening}${decided}`, text: `${head}${question}${opening}${decided}` };

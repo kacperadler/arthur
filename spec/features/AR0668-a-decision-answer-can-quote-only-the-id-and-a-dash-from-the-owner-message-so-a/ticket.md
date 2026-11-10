@@ -39,3 +39,4 @@ Out:
 
 ## Decisions
 - 2026-11-09: Approve AR0668; it runs right after AR0664 merges; the owner: "Approve" (AR-D582)
+- 2026-11-10: Merge it once it merges cleanly and CI is green; the owner: "What can be merge, just merge it" (AR-D600)

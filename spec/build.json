@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-10T11:02:07.837Z",
+    "updated": "2026-11-10T11:15:51.442Z",
     "after": [
       "AR0644"
     ]
@@ -5478,9 +5478,9 @@
   {
     "id": "AR0678",
     "title": "Report pages draw a double border on the right of the last number tile in a row and under the tiles of the last row",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0678-report-pages-draw-a-double-border-on-the-right-of-the-last-number-tile-in-a-row/ticket.md",
-    "updated": "2026-11-10T07:14:42.226Z"
+    "updated": "2026-11-10T11:21:57.759Z"
   },
   {
     "id": "AR0679",
@@ -5529,8 +5529,8 @@
   {
     "id": "AR0684",
     "title": "An audio file transcript still proves the owner answer; only his voice notes may (AR-D616)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0684-an-audio-file-transcript-still-proves-the-owner-answer-only-his-voice-notes-may/ticket.md",
-    "updated": "2026-11-10T11:12:14.585Z"
+    "updated": "2026-11-10T11:32:20.475Z"
   }
 ]

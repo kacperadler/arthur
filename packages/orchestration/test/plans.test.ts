@@ -230,8 +230,8 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 		commit(`approved by ${ids}`);
 		await assert.rejects(jobs.spawn({ task }), { message: refused(ids ?? "") }, ids);
 	}
-	// The line of a long answer, its words cut (decision-log.ts), names its decision too.
-	writeFileSync(join(root, TICKET), ticketText(`${line(question)}- 2026-01-01: Plan approved by the owner: plan.md at ${filed}; the owner: "ok…" (${proved}, cut: arthur decisions ${proved} prints it whole)\n`));
+	// The line of a long answer, its words cut (decision-log.ts), names its decision too; a line of another decision is no approval.
+	writeFileSync(join(root, TICKET), ticketText(`- 2026-01-01: Split from AC0002; the owner: "yes" (AC-D1)\n${line(question)}- 2026-01-01: Plan approved by the owner: plan.md at ${filed}; the owner: "ok…" (${proved}, cut: arthur decisions ${proved} prints it whole)\n`));
 	commit("approved");
 	assert.equal((await jobs.spawn({ task })).kind, "worker", "one proved approval among them");
 	// The owner's later answer counts: the plan to be done again, his approval is gone.

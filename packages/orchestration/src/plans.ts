@@ -77,7 +77,7 @@ function unplanned(where: Project, folder: string, id: string, lines: readonly s
 	const plan = `${folder}/plan.md`;
 	const now = blob(where.path, "HEAD", plan);
 	if (now === undefined) return `${id} says "- Plan: yes" and has no committed plan.md; plan it first: arthur spawn --kind plan 'Ticket: ${folder}/ticket.md', then the owner's ok`;
-	const approvals = lines.flatMap((line) => [APPROVED.exec(line) ?? []]).filter(([, commit]) => commit !== undefined && blob(where.path, commit, plan) === now);
+	const approvals = lines.map((line) => APPROVED.exec(line)).filter((match): match is RegExpExecArray => match !== null && blob(where.path, match[1] ?? "", plan) === now);
 	if (approvals.length === 0)
 		return `${id}: its plan.md at HEAD is not one the owner approved: no "- YYYY-MM-DD: Plan approved by the owner: plan.md at <commit>" under its Decisions names a commit with this plan.md`;
 	const log = decisions(readLog(where));

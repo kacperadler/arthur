@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/auto-merge.ts:30`, `packages/delivery/src/auto-merge.ts:48`, `packages/delivery/src/ci-wait.ts:87`, `packages/delivery/src/pass-forward.ts:83`
 - What: these refusals and wakes end `its merge waits for the owner: arthur merge <job> on his word`. Since AR0665 that command alone is refused (`arthur merge <job> needs the owner's decision: ...`); the coordinator learns the `--decision` only from that refusal.
 - Suggestion: end them `arthur merge <job> --decision <the owner's decision id>`, as the `--no-ci` line at `auto-merge.ts:61` already does; update `auto-merge.test.ts`, `review.test.ts`, `merge.md` and the `review-pass-hook` eval with them.
-- Status: open
+- Status: fixed in 1dcfa484
 
 ## F2. A plan or ticket approved by the grant or a class can no longer be set planned
 
@@ -29,4 +29,13 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `test/mutate.ts:68`
 - What: `npm run mutate -- --max 25` on this branch printed `mutate: 10 mutants, 10 caught, 0 survived; 15 not run (time); 140 not run (--max 25)`: each mutant of `packages/core/src/*.ts` or `packages/delivery/src/merge-command.ts` that its own test passes runs the package's whole `test/`, minutes each, so the 1500 s deadline ends the run before 25.
 - Suggestion: run a mutant's same-name test and importers only, and the rest of the package once per file, or let the deadline scale with `--max`; out: the mutation rules themselves.
+- Status: open
+
+## F4. Any answer to a plan question sets the ticket planned, a no included
+
+- Kind: security
+- Found by: 2026-11-10-review-c77071b9 (review), 2026-11-10
+- Where: `packages/orchestration/src/decision-use.ts:30` (`refusal`)
+- What: `decision.owner` checks that the owner answered a `plan` question of the ticket in his own message, not what he decided. An answer "Not yet", or "Plan the ticket again: ..." (`plan-ended.md` step 5), still lets `arthur ticket status <id> planned --decision <id>` through. A `- Plan: yes` ticket's worker is still refused by `plans.ts`, which reads the decided line; any other ticket's is not. A merge decision answered "no" lets a merge through the same way (AR0664 F1, deferred).
+- Suggestion: let `decision.owner` pass a `plan` or `merge` decision only when its later answer picked the option its use names (an approval option asked with the question, as `--picked 1`), and refuse `--decided` lines alone; out: reading the owner's words for their meaning.
 - Status: open

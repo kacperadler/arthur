@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-11-09: Approve AR0665; the owner: "Approve AR0663 to AR0667" (AR-D578)
+- 2026-11-10: Merge AR0665 once CI is green; the owner: "AR-D602 - 1" (AR-D602)

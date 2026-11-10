@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/decision-use.ts:47`, `packages/orchestration/src/silent.ts` (`byRecommendation`), `packages/orchestration/docs/commands/decision.md:37`
 - What: the `/silent on ... --recommend` grant and an approved class still answer a `plan` question, but `decision.owner` refuses an answer by recommendation or by policy, and the plan check refuses an approval without the owner's message. So `arthur ticket status <id> planned --decision <that id>` is refused, and the coordinator must ask the owner again.
 - Suggestion: the owner decides whether the grant and classes should leave `plan` questions to him, as they leave merge and budget questions; if so, `byRecommendation` and `byPolicy` skip kind `plan` and decision.md says so.
-- Status: open
+- Status: deferred (client summary)
 
 ## F3. `npm run mutate` reaches 10 of 25 mutants in its deadline on a diff that touches core and delivery
 
@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `test/mutate.ts:68`
 - What: `npm run mutate -- --max 25` on this branch printed `mutate: 10 mutants, 10 caught, 0 survived; 15 not run (time); 140 not run (--max 25)`: each mutant of `packages/core/src/*.ts` or `packages/delivery/src/merge-command.ts` that its own test passes runs the package's whole `test/`, minutes each, so the 1500 s deadline ends the run before 25.
 - Suggestion: run a mutant's same-name test and importers only, and the rest of the package once per file, or let the deadline scale with `--max`; out: the mutation rules themselves.
-- Status: open
+- Status: deferred (client summary)
 
 ## F4. Any answer to a plan question sets the ticket planned, a no included
 
@@ -38,4 +38,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/decision-use.ts:30` (`refusal`)
 - What: `decision.owner` checks that the owner answered a `plan` question of the ticket in his own message, not what he decided. An answer "Not yet", or "Plan the ticket again: ..." (`plan-ended.md` step 5), still lets `arthur ticket status <id> planned --decision <id>` through. A `- Plan: yes` ticket's worker is still refused by `plans.ts`, which reads the decided line; any other ticket's is not. A merge decision answered "no" lets a merge through the same way (AR0664 F1, deferred).
 - Suggestion: let `decision.owner` pass a `plan` or `merge` decision only when its later answer picked the option its use names (an approval option asked with the question, as `--picked 1`), and refuse `--decided` lines alone; out: reading the owner's words for their meaning.
-- Status: open
+- Status: deferred (client summary)
+
+## F5. the new gates rest on weaker proof than merge flags
+
+- Kind: fix
+- Found by: 2026-11-10-review-ad549ef0 (review), 2026-11-10
+- Where: `packages/orchestration/src/decision-writes.ts:37`
+- What: `impact()` returns undefined for a `plan` decision and for a plain merge decision of a ticket (no `--what`). Such an answer is recorded from any owner message that holds the words, without naming the id. So a bare "yes" sent after the ask is enough to set a ticket `planned` or merge a branch. The message proof itself is AR0664's (Scope Out); F4 covers only what the answer says, not this.
+- Status: deferred (client summary)

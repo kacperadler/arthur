@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-10
+
+### Fixed
+
+- AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
+
 ## 2026-11-09
 
 ### Fixed

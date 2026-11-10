@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-10T11:41:57.703Z",
+    "updated": "2026-11-10T12:09:30.501Z",
     "after": [
       "AR0644"
     ]
@@ -5468,9 +5468,9 @@
   {
     "id": "AR0677",
     "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
-    "updated": "2026-11-10T07:12:50.440Z",
+    "updated": "2026-11-10T12:07:16.608Z",
     "after": [
       "AR0684"
     ]
@@ -5532,5 +5532,15 @@
     "status": "merged",
     "path": "spec/features/AR0684-an-audio-file-transcript-still-proves-the-owner-answer-only-his-voice-notes-may/ticket.md",
     "updated": "2026-11-10T11:32:20.475Z"
+  },
+  {
+    "id": "AR0685",
+    "title": "Tests: a review on the fable model finds redundant tests and removes them, after the test speed work",
+    "status": "planning",
+    "path": "spec/features/AR0685-tests-a-review-on-the-fable-model-finds-redundant-tests-and-removes-them-after/ticket.md",
+    "updated": "2026-11-10T12:16:46.696Z",
+    "after": [
+      "AR0671"
+    ]
   }
 ]

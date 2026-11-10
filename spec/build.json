@@ -4413,7 +4413,7 @@
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
     "status": "in-progress",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-09T23:04:21.740Z",
+    "updated": "2026-11-10T00:57:05.828Z",
     "after": [
       "AR0554"
     ]

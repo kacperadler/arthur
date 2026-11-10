@@ -43,7 +43,7 @@ function impact(ask: Ask, picked: number | undefined): string | undefined {
 }
 
 // Records the owner's answer, with the number of his message that holds its words (decision-proof.ts); the record as written,
-// with its question. A high-impact one sends him a notice, built without the model, of what was recorded and his whole message.
+// with its question. A high-impact one sends him a notice, built without the model, of what was recorded, the option picked (AR0688) and his whole message.
 export function answer(host: Host, project: Project, id: string, given: { readonly decided?: string; readonly picked?: string; readonly words: string }): { readonly answer: Answer; readonly ask: Ask; readonly unwritten?: string } {
 	if (given.words.trim() === "") throw new Error(`an empty answer: the owner's words, as he wrote or said them, after the flags`);
 	if (/^by policy\b/i.test(given.words.trim())) throw new Error("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words");
@@ -63,7 +63,7 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 	// His whole message in code points, so a character of two UTF-16 units is never cut in half.
 	const whole = [...redact(proved.text.trim(), host.secrets)];
 	const message = `${whole.slice(0, 400).join("")}${whole.length > 400 ? " … (cut)" : ""}`;
-	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; your words: "${record.words}"; your message: "${message}"`, decision: id });
+	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; picked: ${picked === undefined ? "none" : `option ${picked}, "${found.options[picked - 1]}"`}; your words: "${record.words}"; your message: "${message}"`, decision: id });
 	return { answer: record, ask: found, unwritten };
 }
 

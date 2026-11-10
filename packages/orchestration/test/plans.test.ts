@@ -58,10 +58,10 @@ async function load(t: TestContext, run: AgentRun = { steps: [{ message: "## App
 		assert.equal(code ?? 0, 0, printed.join("\n"));
 		return printed.join("\n").split("\n")[0] ?? "";
 	};
-	// The owner's approval of plan.md at `commit`, asked as a `kind` question of `ticket` and answered in his own words; its id.
-	const approve = async (commit: string, kind = "plan", ticket = "AC0001") => {
-		const id = await decision("ask", "--kind", kind, "--ticket", ticket, "--question", `Approve the plan of ${ticket}?`, "--option", "Approve");
-		await decision("answer", id, "--decided", `Plan approved by the owner: plan.md at ${commit}`, "--picked", "1", "ok, go");
+	// The owner's approval of plan.md at `commit`, asked as a `kind` question of `ticket` and answered in his own words, `pick` the flags of his pick; its id.
+	const approve = async (commit: string, kind = "plan", ticket = "AC0001", pick = ["--picked", "1"]) => {
+		const id = await decision("ask", "--kind", kind, "--ticket", ticket, "--question", `Approve the plan of ${ticket}?`, "--option", "Approve", "--option", "Not yet");
+		await decision("answer", id, "--decided", `Plan approved by the owner: plan.md at ${commit}`, ...pick, "ok, go");
 		return id;
 	};
 	return { root, fake, jobs: fake.host.jobs, git, commit, ended, home, decision, approve };
@@ -201,7 +201,7 @@ test("a worker on a Plan: yes ticket needs its plan.md committed, approved by th
 	await assert.rejects(jobs.spawn({ task }), { message: unapproved });
 });
 
-test("a plan approval counts only as the owner's own answer, in his message, to a plan question of the ticket approving that commit: a line by hand, or naming another decision, is refused (AR0665)", async (t) => {
+test("a plan approval counts only as the owner's own answer, in his message, to a plan question of the ticket picking option 1 and approving that commit: a line by hand, or naming another decision, is refused (AR0665, AR0688)", async (t) => {
 	const { jobs, root, commit, approve, decision } = await load(t);
 	const task = `Ticket: ${TICKET}\nPlan: ${PLAN}`;
 	writeFileSync(join(root, PLAN), "# plan one\n");
@@ -209,6 +209,8 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 	const question = await approve(filed, "question");
 	const other = await approve(filed, "plan", "AC0002");
 	const stale = await approve("0000000");
+	// AR0688: the decided line approves, but his pick does not: none, or option 2.
+	const [unpicked, second] = [await approve(filed, "plan", "AC0001", []), await approve(filed, "plan", "AC0001", ["--picked", "2"])];
 	const unproved = await decision("ask", "--kind", "plan", "--ticket", "AC0001", "--question", "Approve the plan of AC0001?", "--option", "Approve");
 	const log = join(root, "spec/decisions.jsonl");
 	// An answer as one recorded before AR0664 holds it: no owner's message behind it.
@@ -216,7 +218,7 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 	const proved = await approve(filed);
 	const line = (id?: string) => `- 2026-01-01: Plan approved by the owner: plan.md at ${filed}; the owner: "ok"${id === undefined ? "" : ` (${id})`}\n`;
 	const refused = (ids: string) =>
-		`refused by orchestration: AC0001: the approval of its plan.md (${ids}) is no plan decision of AC0001 in the decision log that the owner answered in his own message, approving that commit; ask him: arthur decision ask --kind plan --ticket AC0001`;
+		`refused by orchestration: AC0001: the approval of its plan.md (${ids}) is no plan decision of AC0001 in the decision log that the owner answered in his own message, picking option 1 and approving that commit; ask him: arthur decision ask --kind plan --ticket AC0001`;
 	for (const [decisions, ids] of [
 		[line(), "no decision id"],
 		[line("AC-D99"), "AC-D99"],
@@ -224,6 +226,8 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 		[line(other), other],
 		[line(stale), stale],
 		[line(unproved), unproved],
+		[line(unpicked), unpicked],
+		[line(second), second],
 		[`${line(question)}${line(unproved)}`, `${question}, ${unproved}`],
 	]) {
 		writeFileSync(join(root, TICKET), ticketText(decisions));

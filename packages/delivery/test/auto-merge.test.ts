@@ -54,6 +54,9 @@ async function load(t: TestContext, github = true) {
 	// `autoMerge` is the project's piece, `delivery.project({ autoMerge })`; the rest is the project's own.
 	fake.provide("projects", () => [(({ autoMerge, ...own }) => ({ name: "acme", path: root, prefix: "AC", ...own, pieces: autoMerge === undefined ? {} : delivery.project({ autoMerge: autoMerge as boolean }) }))(project)]);
 	fake.provide("projects.install", () => "");
+	// The owner's decision of a plain merge, AC-D1 alone, each request noted; `--auto` never asks it.
+	const owner: unknown[] = [];
+	fake.provide("decision.owner", (asked: { readonly id: string }) => (owner.push(asked), asked.id === "AC-D1" ? "" : `${asked.id} is not the owner's`));
 	const asked: unknown[] = [];
 	const cancels: unknown[] = [];
 	const answers: { ci: CiRun | undefined | Error; cancelled: string | Error } = { ci: undefined, cancelled: "github: cancel of run 7 of acme/shop asked" };
@@ -115,7 +118,7 @@ async function load(t: TestContext, github = true) {
 	const messages = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { readonly text: string }).text);
 	const waiting = (id: string) => existsSync(join(fake.host.folder, id, "ci-wait"));
 	return {
-		...{ root, fake, plugin, git, commit, worker, review, run, merge: (...args: string[]) => run("merge", args), messages, waiting, asked, cancels, answers },
+		...{ root, fake, plugin, git, commit, worker, review, run, merge: (...args: string[]) => run("merge", args), messages, waiting, asked, cancels, answers, owner },
 		head: () => git(root, "rev-parse", "HEAD"),
 		set: (next: Record<string, unknown>) => void (project = next),
 	};
@@ -223,7 +226,7 @@ test("--auto reads past a replacement of main's tip under refs/replace: the held
 });
 
 test("--auto CI: failed refused, pending or no run of the tip waits (one on main, or one github puts on the tip whose commit is not the tip, counts as none; a plain merge keeps it), GitHub's refusal named; github not loaded refused, naming the owner's --no-ci; --auto --no-ci refused", async (t) => {
-	const { worker, review, merge, head, answers, waiting } = await load(t);
+	const { worker, review, merge, head, answers, waiting, owner } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
 	const start = head();
@@ -245,8 +248,10 @@ test("--auto CI: failed refused, pending or no run of the tip waits (one on main
 	assert.equal((await merge(job.id, "--auto")).err, rule(`run 7, attempt 1, on ${job.tip.slice(0, 7)}, the tip, is queued${waits}`));
 	assert.equal(head(), start);
 	answers.ci = ciRun(start, job.branch);
-	const plain = await merge(job.id);
+	assert.deepEqual(owner, [], "--auto asks no owner's decision");
+	const plain = await merge(job.id, "--decision", "AC-D1");
 	assert.equal(plain.code, undefined, `a plain merge keeps github's below 0: ${plain.err}`);
+	assert.equal(owner.length, 1);
 	assert.notEqual(head(), start);
 
 	const bare = await load(t, false);

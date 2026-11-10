@@ -1,18 +1,18 @@
 import type { Board } from "./board.ts";
 import type { Command } from "./commands.ts";
 import { amount, parseFlags, text } from "./flags.ts";
-import type { AutopilotRequest } from "./host.ts";
+import type { AutopilotRequest, OwnerRequest } from "./host.ts";
 import type { JobRunner } from "./jobs.ts";
 
 // `arthur ticket` (spec/roadmap.md, entries 17, 18, 28, 29 and 62): the one way a human or the coordinator changes the board, and
 // files a job's result in its ticket's folder, or one of no ticket where its kind keeps it. `board` and `jobs` throw when the
 // config did not load, since the board needs the plugins' project list and a filing the kinds they registered; `autopilot` asks
-// the plugin that pre-approves a ticket (`ticket.autopilot`).
+// the plugin that pre-approves a ticket (`ticket.autopilot`), and `owner` the one that checks the owner's decision (`decision.owner`).
 
 const USAGE =
-	"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>";
+	"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --decision <id>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>";
 
-export function ticketCommand(board: () => Board, jobs: () => JobRunner, autopilot: () => (request: AutopilotRequest) => unknown): Command {
+export function ticketCommand(board: () => Board, jobs: () => JobRunner, autopilot: () => (request: AutopilotRequest) => unknown, owner: () => (asked: OwnerRequest) => unknown): Command {
 	return {
 		name: "ticket",
 		doc: new URL("../docs/commands/ticket.md", import.meta.url),
@@ -39,12 +39,21 @@ export function ticketCommand(board: () => Board, jobs: () => JobRunner, autopil
 				console.log(await autopilot()({ id: flags.words[0] ?? "", ...(budget === undefined ? {} : { budgetUsd: Number(budget) }) }));
 				return 0;
 			}
-			const [id, second] = rest;
-			if (verb === "status" && id !== undefined && second !== undefined && rest.length === 2) {
-				const ticket = board().move(id, second);
+			if (verb === "status") {
+				const flags = parseFlags(rest, { decision: text });
+				const [id = "", to = ""] = typeof flags === "string" ? [] : flags.words;
+				if (typeof flags === "string" || flags.words.length !== 2 || (flags.values.decision !== undefined && to !== "planned")) {
+					console.error(typeof flags === "string" ? `arthur ticket: ${flags}\n${USAGE}` : flags.words.length !== 2 ? USAGE : `arthur ticket: --decision sets one ticket planned\n${USAGE}`);
+					return 2;
+				}
+				// Planned is the owner's approval (AR0665): his recorded plan decision of this ticket, autopilot's policy aside (above).
+				const refusal = to === "planned" ? owner()({ id: flags.values.decision ?? "", what: `arthur ticket status ${id} planned`, kind: "plan", ticket: id, use: `planned ${id}` }) : "";
+				if (refusal !== "") throw new Error(String(refusal));
+				const ticket = board().move(id, to);
 				console.log(`${ticket.id} ${ticket.status}`);
 				return 0;
 			}
+			const [id, second] = rest;
 			if (verb === "after" && id !== undefined) {
 				const ticket = board().after(id, rest.slice(1));
 				console.log(`${ticket.id} after ${ticket.after?.join(", ") ?? "nothing"}`);

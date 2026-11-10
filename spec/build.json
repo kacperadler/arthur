@@ -5492,9 +5492,9 @@
   {
     "id": "AR0680",
     "title": "Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0680-dokploy-t4a-arthur-dokploy-source-connects-an-app-to-its-github-repository-so-a/ticket.md",
-    "updated": "2026-11-10T07:25:25.215Z"
+    "updated": "2026-11-10T07:29:01.693Z"
   },
   {
     "id": "AR0681",

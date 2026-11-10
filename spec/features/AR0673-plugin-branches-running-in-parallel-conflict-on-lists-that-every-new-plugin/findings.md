@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `arthur.mmd:13`
 - What: the core subgraph's title says "26 of 27 core entries built", a count kept by hand like the status line this ticket dropped, and it has drifted the same way (the dropped line listed no core entry 99, 104 or 108). The diagram also has no node for `packages/activity` or `packages/herdr`, both built. The ticket's Scope leaves the diagram's content out.
 - Suggestion: drop the count from the title (the roadmap page computes it, AR0634) and add the two plugin nodes, each with its own `class <node> built;` line in name order.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. docs/setup.md names docker as the first planned package
 
@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `docs/setup.md:118`
 - What: the line quotes `Cannot find package '@arthur/docker'` as the error a copy of `arthur.config.example.ts` fails with, so the branch that builds docker must edit it too; this ticket made the example's own header say `'@arthur/<name>'` instead.
 - Suggestion: quote `Cannot find package '@arthur/<name>'` there too.
-- Status: open
+- Status: deferred (client summary)
 
 ## F3. Two new plugins' sections at one spot of the example config still conflict
 
@@ -29,4 +29,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `arthur.config.example.ts:84` (`plugins: [`)
 - What: the plugins' calls are in no order (load order matters: nvm before projects), and a new built plugin goes after the last built one, before `develop({` (activity, then herdr). With `git merge-tree --write-tree` on two throwaway branches of this ticket's commit, `kiosk` and `lamp`, each adding its section after `herdr(),`, the merge conflicts in `arthur.config.example.ts` only; the same two plugins with sections at different spots merge cleanly. This ticket's Scope changed only the file's header.
 - Suggestion: a rule in the file's header for where a new plugin's call goes (in name order among the calls that need no load order, say), so two branches pick different spots; the calls whose order matters stay as they are.
-- Status: open
+- Status: deferred (client summary)
+
+## F4. F3 says two new plugins whose calls go in the same place in `plugins: [` still conflict
+
+- Kind: fix
+- Found by: 2026-11-10-review-6242da99 (review), 2026-11-10
+- Where: `arthur.config.example.ts:84`
+- What: New: this means Done means point 4 ("no conflict") holds only when the two calls go in different places. The outcome should say that, not "no conflict" without the condition.
+- Status: deferred (client summary)

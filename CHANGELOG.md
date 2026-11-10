@@ -18,6 +18,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Changed
 
 - AR0548 The coordinator instructions built as text in TypeScript move into Markdown procedures (b2152c78)
+- AR0673 Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise (6c8c041a)
 
 ## 2026-11-09
 

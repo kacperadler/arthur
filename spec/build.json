@@ -4365,9 +4365,9 @@
   {
     "id": "AR0548",
     "title": "The coordinator instructions built as text in TypeScript move into Markdown procedures",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0548-the-coordinator-instructions-built-as-text-in-typescript-move-into-markdown/ticket.md",
-    "updated": "2026-10-28T16:43:32.585Z",
+    "updated": "2026-11-10T02:47:48.162Z",
     "after": [
       "AR0668"
     ]
@@ -5366,9 +5366,9 @@
   {
     "id": "AR0665",
     "title": "Ticket approval and a plain merge need a recorded owner decision",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
-    "updated": "2026-11-09T09:56:58.072Z",
+    "updated": "2026-11-10T02:47:43.598Z",
     "after": [
       "AR0668"
     ]

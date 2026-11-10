@@ -13,7 +13,7 @@ const WRITE = "Pull requests: read and write";
 
 // Writes its output; a refusal throws.
 export async function pr(each: Repository, verb: string, words: readonly string[], all: boolean, base?: string): Promise<number> {
-	if (verb === "merge") throw new Error("a merge is arthur merge <job>; the push of main marks the pull request merged; nothing was asked of GitHub");
+	if (verb === "merge") throw new Error("a merge is arthur merge <job> --decision <the owner's decision id>; the push of main marks the pull request merged; nothing was asked of GitHub");
 	const { repo, instance } = each;
 	const signal = new AbortController().signal;
 	if (verb === "create") {

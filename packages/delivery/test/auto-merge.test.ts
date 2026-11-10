@@ -129,7 +129,7 @@ test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused,
 	const job = await worker(1);
 	const passed = await review(job.id, "PASS");
 	const start = head();
-	const off = (value: string) => `arthur merge: --auto merges only in a project with autoMerge on; acme has autoMerge ${value}, so its merges wait for the owner: arthur merge ${job.id} on his word; main is unchanged`;
+	const off = (value: string) => `arthur merge: --auto merges only in a project with autoMerge on; acme has autoMerge ${value}, so its merges wait for the owner: arthur merge ${job.id} --decision <the owner's decision id>; main is unchanged`;
 	set({ autoMerge: false });
 	assert.deepEqual(await merge(job.id, "--auto"), { code: 1, out: "", err: off("false") });
 	assert.doesNotMatch(fake.call<string>("coordinator.wake", { id: passed, kind: "review" }), /--auto/, "no autoMerge, no --auto in the PASS wake");
@@ -205,7 +205,7 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 		const job = await worker(at + 1, changes, ...rename);
 		await review(job.id, "PASS");
 		answers.ci = ciRun(job.tip, job.branch);
-		assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} on his word; main is unchanged`, path);
+		assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>; main is unchanged`, path);
 	}
 	const plain = await worker(9, { "docs/roles.md": "# Roles\n", "spec/vision.md.bak": "x\n" });
 	await review(plain.id, "PASS");
@@ -222,7 +222,7 @@ test("--auto reads past a replacement of main's tip under refs/replace: the held
 	answers.ci = ciRun(job.tip, job.branch);
 	// Main's tip read as a child of the branch's tip, as a job's git replace would write: read through it, the branch changes nothing.
 	git(root, "replace", git(root, "rev-parse", "main"), git(root, "commit-tree", "-p", job.tip, "-m", "fake", "main^{tree}"));
-	assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes packages/shop/package.json (package.json); its merge waits for the owner: arthur merge ${job.id} on his word; main is unchanged`);
+	assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes packages/shop/package.json (package.json); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>; main is unchanged`);
 });
 
 test("--auto CI: failed refused, pending or no run of the tip waits (one on main, or one github puts on the tip whose commit is not the tip, counts as none; a plain merge keeps it), GitHub's refusal named; github not loaded refused, naming the owner's --no-ci; --auto --no-ci refused", async (t) => {
@@ -334,7 +334,7 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 	assert.equal(messages().length, 1, "told once");
 	set({ autoMerge: false });
 	assert.deepEqual(end({}, { attempt: 2, conclusion: "success" }), [true]);
-	assert.deepEqual(messages().slice(1), [`CI passed on ${where.replace("attempt 1", "attempt 2")}. acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} on his word`], "autoMerge off since the wait: the merge is the owner's");
+	assert.deepEqual(messages().slice(1), [`CI passed on ${where.replace("attempt 1", "attempt 2")}. acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`], "autoMerge off since the wait: the merge is the owner's");
 	set({ autoMerge: true });
 	assert.deepEqual(end({}, { attempt: 3, conclusion: "success" }), [true]);
 	assert.equal(messages().length, 2, "with autoMerge on delivery runs the merge in arthur run, whose output is the wake (review.test.ts)");

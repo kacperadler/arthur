@@ -33,3 +33,4 @@ Out:
 - The database (AR0681) and backups (AR0682).
 
 ## Decisions
+- 2026-11-10: AR0680 approved; the owner: "AR-D612 - approve" (AR-D612)

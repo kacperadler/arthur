@@ -1,6 +1,6 @@
 # arthur jobs
 
-Usage: `arthur jobs [--state <state>]`; on a channel `/jobs`.
+Usage: `arthur jobs [--state <state> | --follow <id>]`; on a channel `/jobs`.
 
 Every project's jobs, from their records in `<home>/jobs/`, answered without the model; `no jobs` when there is none. Inside a job, the records its sandbox shows: its own and those of its project that were there when its run started (`arthur spawn --help`, "The sandbox"). One group per state, under its heading, in this order, each newest spawn first: `blocked`, `working`, `idle`, `ended`. One line per job:
 
@@ -13,10 +13,18 @@ AR0018  worker  blocked  1h15m  $0.40/$2.00  acme  436045b4  user: may I drop th
 - A job that has not ended: how long it has been in its state (since `since`); an ended one: the time it ended in `timeZone` when that was today, else its date.
 - Its cost against its budget, in USD; `$0.00/$0.00` is a job without a budget.
 - Its project, when the records hold jobs of more than one project.
-- Its short id, the 8 hex digits that end its id. `arthur stop`, `steer`, `continue`, `prune` and `/steer` take it in place of the full id; a short id that matches two jobs is refused, naming both.
+- Its short id, the 8 hex digits that end its id. `arthur stop`, `steer`, `continue`, `prune`, `jobs --follow` and `/steer` take it in place of the full id; a short id that matches two jobs is refused, naming both.
 - Its reason, when it has one.
 
 `--state <state>` shows only the jobs in that state, `no <state> jobs` when there is none.
+
+## --follow <id>
+
+`arthur jobs --follow <id>`, by its full or short id, prints one job's run as it happens, read from its record alone, without the model: its `log` from the first line, then each line as the wrapper writes it (`arthur spawn --help`, the record's `log`): `[arthur <time>] ...` notes, one line per tool call with its path, command or pattern, `> <line>` per line of the agent's text, and what the agent printed on stderr. A line is printed once its line break is written. A line `state: <state> (<reason>)` comes at the start and after each change of the state or its reason, once the move has written `state` (`state: without a state` for a record that has none yet). It wakes on each change in the record's folder, so it costs nothing while the job is quiet.
+
+It ends once the run is over, exit code 0, its last line the final state: `ended`, or `blocked` once the run ended (a job a plugin holds `blocked` is still in its run, and it follows on). An ended job prints its whole log and ends at once. `arthur continue` starts a new run, which a new `--follow` shows. A job on another machine is followed in its record here, which the sweep of `arthur run` copies from there (`arthur spawn --help`). The `herdr` plugin runs it in a herdr tab per job (`packages/herdr/docs/herdr.md`).
+
+Refused: an unknown id, or a short id that matches two jobs, as `arthur stop` refuses it, and a record removed while it follows (`<id>: its record is gone`), exit code 1; `--follow` without an id, or with `--state`, prints the usage line and exits 2.
 
 ## States
 

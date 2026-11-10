@@ -48,3 +48,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: the voice step runs in memory after the reply moved to `outbox/sent/`; `arthur run` stopping before piper and the send end drops it with no line to the owner (the text went already).
 - Suggestion: mark a reply whose voice note is pending in `outbox/` until it went or its line was sent, and finish it at the next start.
 - Status: open
+
+## F6. The voice note can go before its text, or without it
+
+- Kind: fix
+- Found by: 2026-11-10-review-f626dbca (review), 2026-11-10
+- Where: `packages/orchestration/src/voice-reply.ts:13`
+- What: Telegram sends the text through its outbox, which keeps a failed slice for the next try or start, while `channel.send` sends the voice note at once. When `sendMessage` fails, the voice note goes alone, though the docs say it goes after the text; the order holds today only because speaking takes seconds.
+- Suggestion: let a channel take the voice note through its own outbox, behind the reply's text slices (a `voice` field on `coordinator-replied`, or a send that queues), so the voice note never overtakes its text; outside that, no change.
+- Status: open

@@ -12,7 +12,7 @@ import { checkOptions, DEFAULTS, table } from "../src/speak-options.ts";
 // do. The text tells them what to do: a word `piper-fails`, `ffmpeg-fails`, `piper-hangs` or `ffmpeg-hangs`. docs/speak.md.
 
 // piper: `--model <onnx> --output_file <wav>`, the text on stdin; writes the WAV as `<model>|<text>`. ffmpeg: `-i <wav>`, the
-// OGG last; writes `ogg:` and the WAV's bytes. Both log to calls.jsonl.
+// OGG last; writes `ogg:` and the WAV's bytes, or, before it fails or hangs, a half OGG as real ffmpeg leaves one. Both log to calls.jsonl.
 const FAKE = (tool: string) => `#!${process.execPath}
 const fs = require("node:fs"), path = require("node:path");
 const args = process.argv.slice(2), log = (phase, more) => fs.appendFileSync(path.join(__dirname, "calls.jsonl"), JSON.stringify({ tool: ${JSON.stringify(tool)}, phase, args, ...more }) + "\\n");
@@ -27,6 +27,7 @@ if (${JSON.stringify(tool)} === "piper") {
 } else {
 	log("start");
 	const wav = fs.readFileSync(args[args.indexOf("-i") + 1], "utf8");
+	if (/ffmpeg-(hangs|fails)/.test(wav)) fs.writeFileSync(args.at(-1), "OggS half");
 	if (wav.includes("ffmpeg-hangs")) setInterval(() => {}, 1000);
 	else if (wav.includes("ffmpeg-fails")) fail("Unknown encoder 'libopus'", 8);
 	else { fs.writeFileSync(args.at(-1), "ogg:" + wav); log("end"); }

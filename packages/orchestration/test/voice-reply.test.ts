@@ -26,6 +26,8 @@ async function setup(speak: Speak, send: Send = () => async () => "sent 1 file i
 	if (speak !== null) fake.provide("speak.say", (text: string) => (spoken.push(text), speak(text)));
 	fake.provide("channel.send", (message: { files: string[]; place?: string }) => {
 		const go = send(message);
+		// A channel whose check answers something other than a send, as a broken one would.
+		if (typeof go !== "function") return go;
 		return async () => {
 			const said = await go();
 			sent.push(message);
@@ -54,7 +56,11 @@ async function setup(speak: Speak, send: Send = () => async () => "sent 1 file i
 test("a reply to a voice note goes after its text as a voice note, through the channel it came from and, as the text, to no place; a reply to text alone does not", async () => {
 	const box = await setup(async (text) => `/home/speak/${text.length}.ogg`);
 	const typed = box.say("test", [TEXT], "7");
+	// A voice note and a plugin's message after it in the log, which the replies below do not answer: never spoken for them.
+	const unanswered = box.say("telegram", [VOICE]);
+	const wake = box.fake.emit("coordinator-message", { text: "[scheduled docs] Check." });
 	await box.reply("Typed only.", [typed], ["test"]);
+	await box.reply("Read the docs.", [wake], []);
 	const spoken = box.say("test", [TEXT, VOICE], "12");
 	await box.reply("Merged AR0081.", [typed, spoken], ["test"]);
 	await until("the voice note", () => box.sent.length === 1);
@@ -62,21 +68,24 @@ test("a reply to a voice note goes after its text as a voice note, through the c
 	assert.deepEqual(box.sent, [{ files: ["/home/speak/14.ogg"] }]);
 	assert.deepEqual(box.replies(), [
 		{ text: "Typed only.", answers: [typed.seq], channels: ["test"] },
+		{ text: "Read the docs.", answers: [wake.seq], channels: [] },
 		{ text: "Merged AR0081.", answers: [typed.seq, spoken.seq], channels: ["test"] },
-	]);
+	], `nothing for the voice note ${unanswered.seq} the replies do not answer, on telegram, which has no channel.send`);
 });
 
-test("voice notes from two places and two channels that one reply answers: spoken once, sent once by each channel, in the order of the replies", async () => {
+test("voice notes from two places and two channels that one reply answers: spoken once, sent once by each channel, in the order of the replies; a broken message it answers is skipped", async (t) => {
 	const box = await setup(async (text) => `/home/speak/${text}.ogg`);
+	t.mock.method(console, "error", () => {});
+	const broken = box.fake.emit("message-received", { channel: "test", parts: [] });
 	const [one, two, other] = [box.say("test", [VOICE], "12"), box.say("test", [VOICE]), box.say("telegram", [VOICE])];
-	await box.reply("First", [one, two, other], ["test", "telegram"]);
+	await box.reply("First", [broken, one, two, other], ["test", "telegram"]);
 	const later = box.say("test", [VOICE], "12");
 	await box.reply("Second", [later], ["test"]);
 	await until("two sends", () => box.sent.length === 2);
 	assert.deepEqual(box.spoken, ["First", "Second"]);
 	assert.deepEqual(box.sent, [{ files: ["/home/speak/First.ogg"] }, { files: ["/home/speak/Second.ogg"] }]);
 	assert.deepEqual(box.replies(), [
-		{ text: "First", answers: [one.seq, two.seq, other.seq], channels: ["test", "telegram"] },
+		{ text: "First", answers: [broken.seq, one.seq, two.seq, other.seq], channels: ["test", "telegram"] },
 		{ text: "Second", answers: [later.seq], channels: ["test"] },
 		{ text: "voice note not sent: telegram provides no channel.send", answers: [other.seq], channels: ["telegram"] },
 	], "the line goes to that channel alone, once its voice note is made");
@@ -93,6 +102,7 @@ test("a voice note that cannot be made or sent: the text went, and one line on t
 			throw new Error("/home/speak/a.ogg: no such file\nsecond line");
 		}, "/home/speak/a.ogg: no such file; second line"],
 		[async () => "/home/speak/a.ogg", () => () => Promise.reject(new Error("telegram bot (unnamed): sendVoice: 400: Bad Request; nothing went")), "telegram bot (unnamed): sendVoice: 400: Bad Request; nothing went"],
+		[async () => "/home/speak/a.ogg", () => "no send" as never, "test: channel.send answered no send"],
 	];
 	for (const [speak, send, why] of cases) {
 		const box = await setup(speak, send);

@@ -35,4 +35,5 @@ Out:
 - A change to the job sandbox; `docker.project({ service })`.
 
 ## Decisions
+- 2026-11-10: Option (a): the sandbox shows <home>/docker/jobs/<id> to its own job; defaults buildCache 10G, leftoverHours 48, no sweep accepted; the owner: "AR-D597 - 1" (AR-D597)
 

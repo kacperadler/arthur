@@ -741,7 +741,7 @@ test("in arthur run with autoMerge on, a PASS and then CI passed on a waiting br
 	fake.emit("job-ended", { id: passed.id, state: "ended" });
 	assert.equal(await forwarded(fake.host.folder, job.id), `${passed.id}\n`, "the repeated end runs no second merge");
 	// CI passed on the branch a refused --auto left waiting: the merge runs again, its refusal one wake.
-	merge.answer("", "arthur merge: --auto merges no held path: x changes roles/a.md (a role); its merge waits for the owner: arthur merge x on his word; main is unchanged\n", 1);
+	merge.answer("", "arthur merge: --auto merges no held path: x changes roles/a.md (a role); its merge waits for the owner: arthur merge x --decision <the owner's decision id>; main is unchanged\n", 1);
 	startWait(fake.host, { job: job.id, project: "acme", branch: job.branch, tip: job.commit, own: 1 });
 	const run = { id: 7, attempt: 1, sha: job.commit, branch: job.branch, status: "completed", conclusion: "success", url: "https://github.com/acme/shop/actions/runs/7", startedAt: "2026-01-01T00:00:00Z", below: 0 };
 	assert.deepEqual(fake.collect("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run }), [true]);
@@ -749,7 +749,7 @@ test("in arthur run with autoMerge on, a PASS and then CI passed on a waiting br
 	assert.deepEqual(merge.asked(), [["--auto", job.id], ["--auto", job.id]]);
 	assert.equal(
 		told(fake)[1],
-		`CI passed on ${job.branch} (run 7, attempt 1, on ${job.commit.slice(0, 7)}): ${run.url}. ${ran}: exit 1, it did not go in; act on its last line as arthur merge --help, "What the coordinator does with the result", says. What it printed:\n\narthur merge: --auto merges no held path: x changes roles/a.md (a role); its merge waits for the owner: arthur merge x on his word; main is unchanged`,
+		`CI passed on ${job.branch} (run 7, attempt 1, on ${job.commit.slice(0, 7)}): ${run.url}. ${ran}: exit 1, it did not go in; act on its last line as arthur merge --help, "What the coordinator does with the result", says. What it printed:\n\narthur merge: --auto merges no held path: x changes roles/a.md (a role); its merge waits for the owner: arthur merge x --decision <the owner's decision id>; main is unchanged`,
 	);
 	// A rerun that passes, attempt 2 of the same run: its own cause, so the merge runs again and wakes the coordinator again.
 	assert.deepEqual(fake.collect("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run: { ...run, attempt: 2 } }), [true]);
@@ -903,6 +903,27 @@ test("arthur run's start rolls back a merge that died half done, keeping the boa
 	const why = `The merge of ${job.id} on acme died half done, its process gone: main went back from its merge commit ${merged.slice(0, 7)} to ${before.slice(0, 7)}, the board kept.`;
 	assert.deepEqual(told(fake).slice(1), [`${why} acme merges on its own (autoMerge), so delivery ran arthur merge --auto ${job.id}: it went in; follow the procedure it printed last. What it printed:\n\nmerged again`], "one wake, the rerun's; none for the killed run");
 	assert.equal(existsSync(killed), false);
+});
+
+test("a merge that died half done in a project whose autoMerge is off since is rolled back, not run again: the coordinator is told it waits for the owner's decision", async (t) => {
+	const merge = fakeMerge(t);
+	const { root, fake, git, worker, setAutoMerge, plugin } = await load(t);
+	const job = await worker();
+	const before = git(root, "rev-parse", "HEAD");
+	git(root, "-c", "user.name=t", "-c", "user.email=t@example.com", "merge", "--quiet", "--no-ff", "-m", "Merge AC0001: shop", job.branch);
+	const merged = git(root, "rev-parse", "HEAD");
+	const own = join(fake.host.folder, "acme");
+	mkdirSync(own, { recursive: true });
+	writeFileSync(join(own, "merge.lock"), `${spawnSync("true").pid ?? 0}\n`);
+	writeFileSync(join(own, "merging"), `${job.id}\n`);
+	setAutoMerge(false);
+	await plugin.start?.();
+	t.after(() => plugin.stop?.());
+	await until("the coordinator told", () => told(fake).length === 1);
+	assert.equal(git(root, "rev-parse", "HEAD"), before);
+	const why = `The merge of ${job.id} on acme died half done, its process gone: main went back from its merge commit ${merged.slice(0, 7)} to ${before.slice(0, 7)}, the board kept.`;
+	assert.deepEqual(told(fake), [`${why} acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`]);
+	assert.deepEqual(merge.asked(), []);
 });
 
 // The hand-back's continue of a worker whose tip's checks did not pass, after the refusal.

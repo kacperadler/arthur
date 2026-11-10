@@ -215,8 +215,9 @@ test("arthur ticket creates, moves and lists tickets on the project's board, and
 	const created = arthur(folder, "ticket", "new", "Board", "from the shell");
 	assert.deepEqual([created.status, created.stdout, created.stderr], [0, `DM0001 ${path}\n`, ""]);
 	assert.match(readFileSync(join(folder, path), "utf8"), /^# DM0001 - Board from the shell\n/);
+	// No plugin checks the owner's decision here, so nothing sets a ticket planned.
 	const refused = arthur(folder, "ticket", "status", "DM0001", "planned");
-	assert.deepEqual([refused.status, refused.stderr.split("\n")[0]], [1, `arthur ticket: DM0001: not planned: ${path} still holds the template's guidance, replace it first:`]);
+	assert.deepEqual([refused.status, refused.stderr], [1, 'arthur ticket: plugin core: call("decision.owner"): no plugin provides it\n']);
 	const moved = arthur(folder, "ticket", "status", "DM0001", "dropped");
 	assert.deepEqual([moved.status, moved.stdout], [0, "DM0001 dropped\n"]);
 	assert.equal(arthur(folder, "ticket", "new", "Next").stdout.split(" ")[0], "DM0002");
@@ -234,7 +235,7 @@ test("arthur ticket: an empty board, wrong usage, and a config that does not loa
 	assert.deepEqual([arthur(folder, "board", "all").stdout, existsSync(join(folder, "spec"))], ["the board is empty\n", false]);
 	for (const args of [[], ["new"], ["status", "DM0001"], ["all"], ["move", "DM0001", "done"], ["after"], ["file"], ["file", "DM0001", "a", "b"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --decision <id>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n"], args.join(" "));
 	}
 	const unknown = arthur(folder, "ticket", "file", "DM0001", "2026-01-01-plan-0000beef");
 	assert.deepEqual([unknown.status, unknown.stderr], [1, "arthur ticket: DM0001 is not on the board\n"], "file reads the board, then the job");
@@ -253,7 +254,7 @@ test("arthur ticket with an empty word, in new, status or after, is refused with
 	const before = arthur(folder, "board", "all").stdout;
 	for (const args of [["status", "", "planned"], ["status", "DM0001", ""], ["new", ""], ["new", "Three", ""], ["after", "", "DM0001"], ["after", "DM0002", ""], ["after", "DM0002", "DM0001", ""], ["file", "DM0001", ""], ["file", "", "x"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --decision <id>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n"], args.join(" "));
 	}
 	assert.equal(arthur(folder, "board", "all").stdout, before);
 });
@@ -286,7 +287,7 @@ test("arthur ticket status <id> planned --autopilot asks ticket.autopilot with t
 	assert.deepEqual(run("DM0001", "planned", "--autopilot", "--budget", "0"), [0, 'asked {"id":"DM0001","budgetUsd":0}\n', ""], "budget 0 is the plugin's to refuse");
 	assert.deepEqual(run("DM0009", "planned", "--autopilot"), [1, "", "arthur ticket: DM0009: not pre-approved: its kind is feature\n"]);
 	const usage =
-		"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n";
+		"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --decision <id>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n";
 	for (const [args, problem] of [
 		[["DM0001", "dropped", "--autopilot"], "--autopilot sets one ticket planned"],
 		[["DM0001", "--autopilot"], "--autopilot sets one ticket planned"],
@@ -299,7 +300,51 @@ test("arthur ticket status <id> planned --autopilot asks ticket.autopilot with t
 	] as const)
 		assert.deepEqual(run(...args), [2, "", `arthur ticket: ${problem}\n${usage}`], args.join(" "));
 	// --budget without --autopilot is no move's flag.
-	assert.deepEqual(run("DM0001", "planned", "--budget", "1"), [2, "", usage]);
+	assert.deepEqual(run("DM0001", "planned", "--budget", "1"), [2, "", `arthur ticket: unknown flag --budget\n${usage}`]);
+});
+
+test("arthur ticket status <id> planned asks decision.owner for the owner's plan decision of the ticket, moves on its pass, and exits 1 on its refusal; no other move asks", () => {
+	const folder = project(`import { appendFileSync } from "node:fs";
+export default { plugins: [{ name: "orchestration", setup(host) {
+	host.provide("projects", () => [{ name: "demo", path: import.meta.dirname, prefix: "DM" }]);
+	host.provide("decision.owner", (asked) => {
+		appendFileSync(import.meta.dirname + "/asked.jsonl", JSON.stringify(asked) + "\\n");
+		return asked.id === "DM-D1" ? "" : asked.id === "" ? asked.what + " needs the owner's decision" : asked.id + " is not in the decision log";
+	});
+} }] };
+`);
+	for (const title of ["One", "Two"]) arthur(folder, "ticket", "new", title);
+	writeFileSync(join(folder, "spec/features/DM0001-one/ticket.md"), "# DM0001 - One\n");
+	const run = (...args: string[]) => {
+		const done = arthur(folder, "ticket", "status", ...args);
+		return [done.status, done.stdout, done.stderr];
+	};
+	const asked = () => (existsSync(join(folder, "asked.jsonl")) ? readFileSync(join(folder, "asked.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []);
+	const status = () => arthur(folder, "board", "all").stdout;
+	const before = status();
+	assert.deepEqual(run("DM0001", "planned"), [1, "", "arthur ticket: arthur ticket status DM0001 planned needs the owner's decision\n"]);
+	assert.deepEqual(run("DM0001", "planned", "--decision", "DM-D2"), [1, "", "arthur ticket: DM-D2 is not in the decision log\n"]);
+	assert.equal(status(), before, "a refusal moves nothing");
+	assert.deepEqual(run("DM0001", "--decision", "DM-D1", "planned"), [0, "DM0001 planned\n", ""]);
+	const of = (id: string) => ({ what: "arthur ticket status DM0001 planned", kind: "plan", ticket: "DM0001", use: "planned DM0001", id });
+	assert.deepEqual(asked(), [of(""), of("DM-D2"), of("DM-D1")]);
+	// The owner's decision passes first; the board's own refusal comes after it.
+	assert.match(run("DM0002", "planned", "--decision", "DM-D1")[2] as string, /^arthur ticket: DM0002: not planned: .* still holds the template's guidance/);
+	assert.equal(asked().length, 4);
+	assert.deepEqual(run("DM0001", "planning"), [0, "DM0001 planning\n", ""]);
+	assert.deepEqual(run("DM0002", "dropped"), [0, "DM0002 dropped\n", ""]);
+	assert.equal(asked().length, 4, "only a move to planned asks");
+	const usage =
+		"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --decision <id>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n";
+	for (const [args, problem] of [
+		[["DM0001", "planned", "--autopilot", "--decision", "DM-D1"], "unknown flag --decision"],
+		[["DM0001", "planned", "--decision"], "--decision needs a value"],
+		[["DM0001", "planning", "--decision", "DM-D1"], "--decision sets one ticket planned"],
+		[["DM0001", "planned", "--decision", "DM-D1", "--decision", "DM-D1"], "--decision given twice"],
+	] as const)
+		assert.deepEqual(run(...args), [2, "", `arthur ticket: ${problem}\n${usage}`], args.join(" "));
+	assert.deepEqual(run("DM0001", "DM0002", "planned", "--decision", "DM-D1"), [2, "", usage]);
+	assert.equal(asked().length, 4, "wrong usage asks nothing");
 });
 
 // Two channels as plugins provide `channel.send`: each checks the message and answers its send, which writes what it sent in

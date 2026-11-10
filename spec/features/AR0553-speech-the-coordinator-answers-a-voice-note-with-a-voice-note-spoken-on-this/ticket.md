@@ -40,3 +40,4 @@ Out:
 ## Decisions
 - 2026-10-28: AR0553 approved, after the fix queue Q1-Q3; Piper install asked at its merge; the owner: "teraz pytanie z powrotem... jaki plug-in musimy stworzyc, aby dac wam glos. Wiec zrobmy model i zmiencie tekst do glosu (voice note) + AR-D271 go with recommendations" (AR-D273)
 - 2026-10-28: Plugins named by verbs: listen (speech to text; the voice plugin renamed) and speak (text to speech, AR0553); video unchanged; the rename is a small ticket before AR0553; the owner: "AR-D277 1" (AR-D277)
+- 2026-11-10: Merge it once it merges cleanly and CI is green; the owner: "What can be merge, just merge it" (AR-D599)

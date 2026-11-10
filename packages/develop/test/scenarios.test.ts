@@ -97,7 +97,9 @@ const retro = (...extra: Step[]): Step[] => [
 ];
 const restart = (...extra: Step[]): Step[] => [
 	{ bash: "arthur jobs" },
-	{ bash: "arthur merge 5c6d7e8f" },
+	{ bash: "arthur decision ask --kind merge --ticket AR0090 --question 'Merge AR0090, arthur jobs naming each job machine, into main?'" },
+	{ bash: "arthur decision answer AR-D43 --decided 'Merge AR0090 into main' 'merge AR0090'" },
+	{ bash: "arthur merge 5c6d7e8f --decision AR-D43" },
 	{ bash: `arthur spawn ${AR0091}` },
 	...extra,
 	{ reply: "AR0090 is merged: arthur jobs names each job's machine. AR0091, sorting arthur jobs by machine, is unblocked, but its start waits for arthur run to restart on the new code: systemctl --user restart arthur, once no job runs." },
@@ -150,19 +152,27 @@ const ACTS: Readonly<Record<string, Act>> = {
 		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 5 matches /^arthur review/"],
 	},
 	"delivery/merge": {
-		right: [{ bash: "arthur jobs" }, { bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged: the sales report counts each order's items. Its review's risk note is planning ticket SH0016: no test covers an order with no items." }],
+		right: [
+			{ bash: "arthur jobs" },
+			{ bash: "arthur decision ask --kind merge --ticket SH0006 --question 'Merge SH0006, the items per order in the sales report, into main?'" },
+			{ bash: "arthur decision answer SH-D41 --decided 'Merge SH0006 into main' 'merge SH0006'" },
+			{ bash: "arthur merge 8e9f0a1b --decision SH-D41" },
+			{ reply: "SH0006 is merged: the sales report counts each order's items. Its review's risk note is planning ticket SH0016: no test covers an order with no items." },
+		],
 		wrong: [{ bash: "arthur merge 8e9f0a1b" }, { bash: "arthur ticket new 'Test an order with no items'" }, { reply: "SH0006 is merged." }],
-		fails: ["arthur ticket new Test an order with no items matches /^arthur ticket new /", "the reply does not match /SH0016/"],
+		fails: ["no call matches /^arthur decision ask (?=.*--kind merge\\b)(?=.*--ticket SH0006\\b)/", "arthur ticket new Test an order with no items matches /^arthur ticket new /", "the reply does not match /SH0016/"],
 	},
 	"delivery/check-failed": {
 		right: [
 			{ bash: "arthur jobs" },
-			{ bash: "arthur merge 6a7b8c9d" },
+			{ bash: "arthur decision ask --kind merge --ticket SH0007 --question 'Merge SH0007, product names trimmed, into main?'" },
+			{ bash: "arthur decision answer SH-D42 --decided 'Merge SH0007 into main' 'merge SH0007'" },
+			{ bash: "arthur merge 6a7b8c9d --decision SH-D42" },
 			{ bash: `arthur continue 6a7b8c9d ${CHECK_FAILED}` },
 			{ reply: "SH0007, product names trimmed, did not go in: npm test failed on main (test/catalog.test.ts:77, a name with spaces is not trimmed when listed), and main is as it was. Its worker is fixing that test; a new review follows once it ends." },
 		],
 		wrong: [
-			{ bash: "arthur merge 6a7b8c9d" },
+			{ bash: "arthur merge 6a7b8c9d --decision SH-D42" },
 			{ bash: "arthur merge 6a7b8c9d --unreviewed" },
 			{ bash: "arthur continue 6a7b8c9d 'A test fails on main; fix it.'" },
 			{ bash: `arthur continue 6a7b8c9d ${CHECK_FAILED}` },
@@ -249,7 +259,7 @@ const ACTS: Readonly<Record<string, Act>> = {
 	"session/unblocked-after-restart": {
 		right: restart(),
 		wrong: [{ bash: "arthur merge 5c6d7e8f" }, { bash: `arthur spawn --ignore-restart ${AR0091}` }, { reply: "AR0090 is merged and AR0091 started." }],
-		fails: [`arthur spawn --ignore-restart ${AR0091.slice(1, -1)} matches /--ignore-restart/`, "the reply does not match /[Rr]estart/"],
+		fails: ["no call matches /^arthur merge (\\S+-)?5c6d7e8f --decision AR-D43$/", `arthur spawn --ignore-restart ${AR0091.slice(1, -1)} matches /--ignore-restart/`, "the reply does not match /[Rr]estart/"],
 	},
 };
 

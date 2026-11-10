@@ -29,7 +29,7 @@ A write that got no answer in 30 s may still have been made on GitHub: read it w
 
 ## `pr merge`
 
-`pr merge <n>` only refuses, asking GitHub nothing: `a merge is arthur merge <job>; the push of main marks the pull request merged; nothing was asked of GitHub`, exit 1. A merge on GitHub would put a commit on origin's main that no `arthur merge` review or CI check covered; it would need Contents: write on the token; and it would leave the checkout's main behind origin, so the next push of main would be rejected. Inside a job it is refused as every write is (`arthur github --help`).
+`pr merge <n>` only refuses, asking GitHub nothing: `a merge is arthur merge <job> --decision <id>; main's push marks the pull request merged; nothing was asked of GitHub`, exit 1. A merge on GitHub would put a commit on origin's main that no `arthur merge` review or CI check covered; it would need Contents: write on the token; and it would leave the checkout's main behind origin, so the next push of main would be rejected. Inside a job it is refused as every write is (`arthur github --help`).
 
 ## Refused
 

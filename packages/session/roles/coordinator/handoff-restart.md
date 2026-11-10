@@ -1,0 +1,1 @@
+This conversation ends after this turn: the coordinator restarts and goes on with this one. First write your handoff to {handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The next conversation starts by reading it.

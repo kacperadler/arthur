@@ -14,14 +14,13 @@ import { noReview, reviewsOf } from "./review-records.ts";
 import { lastMerge, saveLastMerge } from "./take-main.ts";
 import { pruneTicket } from "./ticket-prune.ts";
 
-// `arthur merge <job> [--unreviewed]` (spec/roadmap.md, entry 54): an ended job's branch merged into the branch its project's
-// checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
-// (merge-outcome.ts) and its commit, main pushed by the plugin that provides `github.push` (entry 58) when one is loaded, the job and its
-// ticket's pruned (AR0555), and the procedure after a merge. `--auto` (entry 59): the merge
-// without the owner, after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362);
-// `--unreviewed` and `--no-ci`, never with `--auto`, only with the owner's decision `decision.owner` holds (AR0355, AR0503). docs/commands/merge.md.
+// `arthur merge <job> --decision <id>` (spec/roadmap.md, entry 54): an ended job's branch merged into the branch its project's checkout has, main, after
+// every refusal; the checks run there, and main reset when one fails; then the ticket's side (merge-outcome.ts) and its commit, main pushed by the plugin
+// that provides `github.push` (entry 58) when one is loaded, the job and its ticket's pruned (AR0555), and the procedure after a merge. `--auto` (entry 59):
+// the merge without the owner, after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362); every other merge,
+// a flag's or a plain one's, only with the owner's decision `decision.owner` holds (AR0355, AR0503, AR0665). docs/commands/merge.md.
 
-const USAGE = "usage: arthur merge <job> [--auto | [--unreviewed] [--no-ci] --decision <id>]";
+const USAGE = "usage: arthur merge <job> (--auto | [--unreviewed] [--no-ci] --decision <id>)";
 const FLAGS = ["--unreviewed", "--auto", "--no-ci"];
 // The board's moves since the last commit wait uncommitted for the merge's spec: commit (merge-outcome.ts), so they are no dirt; nor is the changelog each merge rebuilds (changelog.ts).
 const DERIVED = ["spec/build.json", "CHANGELOG.md"];
@@ -39,7 +38,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 			const flag = words.find((word) => word.startsWith("-"));
 			const [name] = words;
 			const [unreviewed = false, auto = false, noCi = false] = FLAGS.map((each) => args.includes(each));
-			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : auto && noCi ? "--auto merges only with CI passed, --no-ci without it on the owner's decision: one or the other" : decision === "" || decision?.startsWith("-") ? "--decision needs a value" : decision !== undefined && !unreviewed && !noCi ? "--decision goes with --unreviewed or --no-ci" : undefined;
+			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : auto && noCi ? "--auto merges only with CI passed, --no-ci without it on the owner's decision: one or the other" : decision === "" || decision?.startsWith("-") ? "--decision needs a value" : decision !== undefined && auto ? "--auto merges by policy, --decision on the owner's word: one or the other" : undefined;
 			if (name === undefined || words.length > 1 || flag !== undefined || mixed !== undefined) {
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : (mixed ?? (name === undefined ? "no job" : `one job; got ${words.length}`))}\n${USAGE}`);
 				return 2;
@@ -126,7 +125,8 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	if (strays.length > 0) throw new Error(`${main} has ${strays.length} commits since its last merge that change code (${named}); ${lift}`);
 	const gap = passGap(host, job, tip);
 	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed --decision <the owner's decision id>; main is unchanged`);
-	const owner = [...(mode.unreviewed ? ["--unreviewed"] : []), ...(mode.ci ? [] : ["--no-ci"])].reduce((said, what) => said || host.call<string>("decision.owner", { id: mode.decision ?? "", what, kind: "merge", ticket: ticket?.id, job: job.id, use: `merge ${job.id}` }), "");
+	const flags = [...(mode.unreviewed ? ["--unreviewed"] : []), ...(mode.ci ? [] : ["--no-ci"])];
+	const owner = (mode.auto ? [] : flags.length > 0 ? flags : [`arthur merge ${job.id}`]).reduce((said, what) => said || host.call<string>("decision.owner", { id: mode.decision ?? "", what, kind: "merge", ticket: ticket?.id, job: job.id, use: `merge ${job.id}` }), "");
 	if (owner !== "") throw new Error(`${owner}; main is unchanged`);
 	const refusal = mode.auto ? await autoRefusal(host, mode.held, { job, root, tip, before }) : mode.ci ? await ciRefusal(host, { job, root, tip, before }, false) : "";
 	if (refusal !== "") throw new Error(`${refusal}; main is unchanged`);

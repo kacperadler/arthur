@@ -39,4 +39,5 @@ Out:
 - Lowering a package's line budget: a later decision of the owner.
 
 ## Decisions
+- 2026-11-10: AR0686 approved: plan and worker on the same fable model as AR0685, after AR0685; the owner: "AR-D625: yes" (AR-D625)
 

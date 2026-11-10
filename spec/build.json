@@ -5427,9 +5427,9 @@
   {
     "id": "AR0672",
     "title": "`arthur plugin new` writes a package without the release version, so every new plugin fails `npm test` until it is edited by hand",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0672-arthur-plugin-new-writes-a-package-without-the-release-version-so-every-new/ticket.md",
-    "updated": "2026-11-10T19:58:29.556Z",
+    "updated": "2026-11-10T20:23:04.681Z",
     "after": [
       "AR0673"
     ]

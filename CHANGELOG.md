@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
+- AR0668 A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes (06f14a26)
 
 ### Changed
 

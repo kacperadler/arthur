@@ -46,13 +46,13 @@ async function load(t: TestContext, run: AgentRun = { steps: [{ message: "## App
 	const ended = async (id: string) => {
 		await until(`${id} to end`, () => readState(home, id) === "ended");
 	};
-	// `arthur decision <args>` as the coordinator runs it, an answer with the owner's own message holding its words (AR0664); its first line.
+	// `arthur decision <args>` as the coordinator runs it, an answer with the owner's own message holding its words and id (AR0664, AR0677); its first line.
 	let said = 0;
 	const decision = async (...args: string[]) => {
 		const printed: string[] = [];
 		t.mock.method(console, "log", (text: string) => void printed.push(text));
 		t.mock.method(console, "error", (text: string) => void printed.push(text));
-		if (args[0] === "answer") ownerSaid(fake.host.folder, ++said, args.at(-1) ?? "");
+		if (args[0] === "answer") ownerSaid(fake.host.folder, ++said, `${args[1]}: ${args.at(-1)}`);
 		const code = await fake.commands.find((command) => command.name === "decision")?.run({ args, project: undefined });
 		t.mock.restoreAll();
 		assert.equal(code ?? 0, 0, printed.join("\n"));
@@ -60,8 +60,8 @@ async function load(t: TestContext, run: AgentRun = { steps: [{ message: "## App
 	};
 	// The owner's approval of plan.md at `commit`, asked as a `kind` question of `ticket` and answered in his own words; its id.
 	const approve = async (commit: string, kind = "plan", ticket = "AC0001") => {
-		const id = await decision("ask", "--kind", kind, "--ticket", ticket, "--question", `Approve the plan of ${ticket}?`);
-		await decision("answer", id, "--decided", `Plan approved by the owner: plan.md at ${commit}`, "ok, go");
+		const id = await decision("ask", "--kind", kind, "--ticket", ticket, "--question", `Approve the plan of ${ticket}?`, "--option", "Approve");
+		await decision("answer", id, "--decided", `Plan approved by the owner: plan.md at ${commit}`, "--picked", "1", "ok, go");
 		return id;
 	};
 	return { root, fake, jobs: fake.host.jobs, git, commit, ended, home, decision, approve };
@@ -209,7 +209,7 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 	const question = await approve(filed, "question");
 	const other = await approve(filed, "plan", "AC0002");
 	const stale = await approve("0000000");
-	const unproved = await decision("ask", "--kind", "plan", "--ticket", "AC0001", "--question", "Approve the plan of AC0001?");
+	const unproved = await decision("ask", "--kind", "plan", "--ticket", "AC0001", "--question", "Approve the plan of AC0001?", "--option", "Approve");
 	const log = join(root, "spec/decisions.jsonl");
 	// An answer as one recorded before AR0664 holds it: no owner's message behind it.
 	writeFileSync(log, `${readFileSync(log, "utf8")}${JSON.stringify({ record: "answer", id: unproved, time: "2026-01-02T00:00:00+00:00", decided: `Plan approved by the owner: plan.md at ${filed}`, words: "ok" })}\n`);

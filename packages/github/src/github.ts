@@ -106,9 +106,8 @@ export function github(options: GithubOptions): Plugin {
 					if (!wakeOn.includes("ci-finished") || rest.length === 0 || run.conclusion === "success") continue;
 					// A job's branch goes back to its worker; main, or any branch no job has, is the owner's. A job id names one branch.
 					const job = host.jobs.list().find((each) => each.branch === rest[0])?.id;
-					const values: Readonly<Record<string, string>> = { branch: rest[0] ?? "", project, job: job ?? "" };
 					const procedure = new URL(`../roles/coordinator/ci-failed-${job === undefined ? "owner" : "worker"}.md`, import.meta.url);
-					const fill = (text: string) => text.replace(/\{(\w+)\}/g, (all, key: string) => values[key] ?? all);
+					const fill = (text: string) => text.replace(/\{(\w+)\}/g, (all, key: "branch" | "project" | "job") => ({ branch: rest[0], project, job })[key] ?? all);
 					const why = ["failure", "timed_out", "startup_failure", "cancelled"].includes(run.conclusion ?? "") ? `\n${fill(readFileSync(procedure, "utf8").trim())}` : "";
 					const text = `CI run ${run.id}, attempt ${run.attempt}, of ${workflow} in ${project} ended ${run.conclusion} on ${rest.join(", ")} (${run.sha.slice(0, 7)}): ${run.url}${why}`;
 					host.events.emit("coordinator-message", { text });

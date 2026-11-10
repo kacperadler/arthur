@@ -5488,5 +5488,32 @@
     "after": [
       "AR0677"
     ]
+  },
+  {
+    "id": "AR0680",
+    "title": "Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it",
+    "status": "planning",
+    "path": "spec/features/AR0680-dokploy-t4a-arthur-dokploy-source-connects-an-app-to-its-github-repository-so-a/ticket.md",
+    "updated": "2026-11-10T07:25:25.215Z"
+  },
+  {
+    "id": "AR0681",
+    "title": "Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL",
+    "status": "planning",
+    "path": "spec/features/AR0681-dokploy-t4b-arthur-dokploy-postgres-create-makes-a-postgres-beside-an-app-and/ticket.md",
+    "updated": "2026-11-10T07:25:26.479Z",
+    "after": [
+      "AR0680"
+    ]
+  },
+  {
+    "id": "AR0682",
+    "title": "Dokploy T4c: arthur dokploy postgres backup schedules backups of a Postgres to an S3 destination",
+    "status": "planning",
+    "path": "spec/features/AR0682-dokploy-t4c-arthur-dokploy-postgres-backup-schedules-backups-of-a-postgres-to-an/ticket.md",
+    "updated": "2026-11-10T07:25:27.651Z",
+    "after": [
+      "AR0681"
+    ]
   }
 ]

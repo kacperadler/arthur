@@ -17,7 +17,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: ux
 - Found by: 2026-11-10-worker-1ca8d870 (worker), 2026-11-10
-- Where: `packages/orchestration/src/decision-use.ts:45`, `packages/orchestration/src/silent.ts` (`byRecommendation`), `packages/orchestration/docs/commands/decision.md:37`
+- Where: `packages/orchestration/src/decision-use.ts:47`, `packages/orchestration/src/silent.ts` (`byRecommendation`), `packages/orchestration/docs/commands/decision.md:37`
 - What: the `/silent on ... --recommend` grant and an approved class still answer a `plan` question, but `decision.owner` refuses an answer by recommendation or by policy, and the plan check refuses an approval without the owner's message. So `arthur ticket status <id> planned --decision <that id>` is refused, and the coordinator must ask the owner again.
 - Suggestion: the owner decides whether the grant and classes should leave `plan` questions to him, as they leave merge and budget questions; if so, `byRecommendation` and `byPolicy` skip kind `plan` and decision.md says so.
 - Status: open

@@ -5556,8 +5556,15 @@
   {
     "id": "AR0687",
     "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
-    "updated": "2026-11-10T18:33:33.801Z"
+    "updated": "2026-11-10T19:04:32.949Z"
+  },
+  {
+    "id": "AR0688",
+    "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
+    "status": "planning",
+    "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
+    "updated": "2026-11-10T19:04:33.852Z"
   }
 ]

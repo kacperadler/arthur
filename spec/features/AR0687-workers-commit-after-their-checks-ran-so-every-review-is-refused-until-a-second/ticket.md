@@ -35,5 +35,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
 - 2026-11-10: AR0687 approved; built after the current feature work; the owner: "R-D628: 1" (AR-D628)

@@ -1262,3 +1262,4 @@
 {"record":"answer","id":"AR-D627","time":"2026-11-10T19:54:29+01:00","decided":"Merge AR0645 as is; the roadmap 70 line is reworded to match","picked":1,"words":"AR-D627: 1","message":12829}
 {"record":"answer","id":"AR-D626","time":"2026-11-10T19:54:30+01:00","decided":"Merge AR0677","picked":1,"words":"AR-D626: merge","message":12829}
 {"record":"answer","id":"AR-D628","time":"2026-11-10T19:54:34+01:00","decided":"AR0687 approved; built after the current feature work","picked":1,"words":"R-D628: 1","message":12829}
+{"record":"ask","id":"AR-D629","time":"2026-11-10T20:04:48+01:00","project":"arthur","kind":"plan","question":"Approve AR0688: close the two gaps AR0677 left: a plan worker can still start on a recorded no (its check reads only the decided line, not the option you picked), and nothing stops a no being recorded as option 1 or shows you the option recorded?","options":["Approve; build it next in line","Not now"],"recommend":1,"ticket":"AR0688"}

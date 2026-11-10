@@ -10,10 +10,10 @@ function pattern(words: string): RegExp {
 	return new RegExp(`(?<![\\p{L}\\p{N}])${chars.join("\\s*")}(?![\\p{L}\\p{N}])`, "iu");
 }
 
-// His own words: a part's line (message-parts.ts, docs/listen.md, a channel's `[<kind> ... not saved: ...]`) holds a file name the
-// sender chose, so of it only a transcript counts, `[voice|audio <seconds> s] <transcript> (<path>)`, ending in its path as listen writes it.
+// His own words: a part's line (message-parts.ts, docs/listen.md, a channel's `[<kind> ... not saved: ...]`) holds a file name the sender
+// chose, so of it only a voice note's transcript counts, `[voice <seconds> s] <transcript> (<path>)`; an audio file's may be another's voice (AR-D616).
 function said(text: string): string {
-	const own = (line: string) => /^\[(?:voice|audio) \d+(?:\.\d+)? s\] (.*?) \(\/.*\)$/.exec(line)?.[1] ?? "";
+	const own = (line: string) => /^\[voice \d+(?:\.\d+)? s\] (.*?) \(\/.*\)$/.exec(line)?.[1] ?? "";
 	return text.split("\n").map((line) => (/^\[(?:photo|video|voice|audio|file)\b/.test(line) ? own(line) : line)).join("\n");
 }
 

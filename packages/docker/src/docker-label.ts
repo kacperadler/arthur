@@ -54,8 +54,11 @@ export function labelled(args: readonly string[], id: string): string[] {
 			index++;
 		} else if (arg.startsWith("--")) {
 			const [name = "", value] = arg.split(/=(.*)/s);
-			const span = value === undefined && (name === "--label" || (container && !BARE.includes(name))) ? 2 : 1;
-			if (name !== "--label" || !OURS.test(value ?? args[index + 1] ?? "")) kept.push(...args.slice(index, index + span));
+			const ours = name === "--label" && OURS.test(value ?? args[index + 1] ?? "");
+			// Outside run and create a bare `--label` takes the next word only when it is ours: it may be another option's value
+			// (`build --build-arg --label --label=arthur.job=x`), so each word after it is read again and no arthur.job label stays.
+			const span = value === undefined && (name === "--label" ? container || ours : container && !BARE.includes(name)) ? 2 : 1;
+			if (!ours) kept.push(...args.slice(index, index + span));
 			index += span;
 		} else {
 			const group = container ? short(args, index, RUN_SHORT) : { span: 1, before: arg };

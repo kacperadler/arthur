@@ -41,6 +41,16 @@ test("an arthur.job label the job gives is taken out, in each spelling; a label 
 	for (const kept of [["--label", "arthur.jobs=1"], ["--label", "com.example=arthur.job=x"], ["-l", "arthur.keep"], ["--label-file", "labels"], ["--label", "x.arthur.job=1"]])
 		assert.deepEqual(labelled(["run", ...kept, "img"], ID), ["run", ...LABEL, ...kept, "img"], kept.join(" "));
 	assert.deepEqual(labelled(["network", "create", "-l", other, "net"], ID), ["network", "create", ...LABEL, "-l", other, "net"], "-l is no label of network create");
+	// A literal --label as another option's value, then the job's own try at another label: that label never stays.
+	const valued: [string[], string[]][] = [
+		[["build", "--build-arg", "--label", `--label=${other}`, "."], ["build", ...LABEL, "--build-arg", "--label", "."]],
+		[["build", "-f", "--label", "--label", other, "."], ["build", ...LABEL, "-f", "--label", "."]],
+		[["buildx", "build", "--tag", "--label", `--label=${other}`, "."], ["buildx", "build", ...LABEL, "--tag", "--label", "."]],
+		[["image", "build", "--target", "--label", "--label", other, "."], ["image", "build", ...LABEL, "--target", "--label", "."]],
+		[["network", "create", "--driver", "--label", `--label=${other}`, "net"], ["network", "create", ...LABEL, "--driver", "--label", "net"]],
+		[["volume", "create", "-o", "--label", `--label=${other}`, "v"], ["volume", "create", ...LABEL, "-o", "--label", "v"]],
+	];
+	for (const [args, expected] of valued) assert.deepEqual(labelled(args, ID), expected, args.join(" "));
 });
 
 test("what follows the image belongs to the container: run's and create's options with values and without are told apart", () => {

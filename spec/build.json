@@ -4365,9 +4365,9 @@
   {
     "id": "AR0548",
     "title": "The coordinator instructions built as text in TypeScript move into Markdown procedures",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0548-the-coordinator-instructions-built-as-text-in-typescript-move-into-markdown/ticket.md",
-    "updated": "2026-11-10T05:23:06.718Z",
+    "updated": "2026-11-10T07:28:07.511Z",
     "after": [
       "AR0668"
     ]

@@ -8,6 +8,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
 
+### Changed
+
+- AR0548 The coordinator instructions built as text in TypeScript move into Markdown procedures (b2152c78)
+
 ## 2026-11-09
 
 ### Fixed

@@ -64,7 +64,8 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	const output = openSync(log, "a");
 	let child: ChildProcess;
 	try {
-		child = spawn(command, args, { detached: true, env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), ...env, ARTHUR_GUARDED: guardedPlaces(config) }, stdio: ["ignore", output, bare === undefined ? "pipe" : output] });
+		// No `ARTHUR_` variable but a test's memory sample under node's test runner (wrapper.ts), which no other process sets.
+		child = spawn(command, args, { detached: true, env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_") || (key === "ARTHUR_TEST_MEMORY_SAMPLE_MS" && process.env.NODE_TEST_CONTEXT !== undefined))), ...env, ARTHUR_GUARDED: guardedPlaces(config) }, stdio: ["ignore", output, bare === undefined ? "pipe" : output] });
 	} finally {
 		closeSync(output);
 	}

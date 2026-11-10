@@ -15,9 +15,9 @@ const SIZE = /^(\d+)(?:\.(\d{1,2}))?([KMGT]?)$/;
 // (job-scope.ts) and the kernel kills a process over one: the scope's `memory.events` counts its own cap as `oom` and a kill of
 // one of its processes as `oom_kill`, the ticket's slice, which holds the scope, its own cap as `oom` in `memory.events.local`;
 // read every second. Without a scope (no user manager: macOS, a container), or without the memory controller in it, the
-// resident memory of every process below the wrapper is summed every 10 seconds against `cap`; the ticket's cap is not held. The
+// resident memory of every process below the wrapper is summed every `sampleMs`, 10 seconds, against `cap`; the ticket's cap is not held. The
 // returned stop ends the watch and says what went over, a kill since the last sample included.
-export function watchMemory(id: string, cap: string, ticket: string, ticketCap: string, over: (what: string) => void): () => string | undefined {
+export function watchMemory(id: string, cap: string, ticket: string, ticketCap: string, over: (what: string) => void, sampleMs = 10_000): () => string | undefined {
 	const limit = cap === "" ? Infinity : (memoryBytes(cap, totalmem()) ?? Infinity);
 	const scope = ownScope(id) ?? "";
 	const kernel = scope !== "" && existsSync(join(scope, "memory.events"));
@@ -45,7 +45,7 @@ export function watchMemory(id: string, cap: string, ticket: string, ticketCap: 
 			return;
 		}
 		if (went !== undefined) over(went);
-	}, kernel ? 1000 : 10_000);
+	}, kernel ? 1000 : sampleMs);
 	return () => {
 		clearInterval(timer);
 		return went ?? (kernel ? sample() : undefined);

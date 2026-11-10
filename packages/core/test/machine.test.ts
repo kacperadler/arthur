@@ -930,19 +930,22 @@ test("a copy that does not answer within 20 s counts as the machine unreachable,
 	t.after(() => writeFileSync(gate, ""));
 	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
-	// From here `arthur remote-job records` there does not end before `gate` exists, or 30 s on, in case the kit removed the gate's
-	// folder first; every other step is this core's.
-	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && n=0 && while [ ! -e '${gate}' ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done && exit 0\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
-	// Real timers: the copy's limit is real time on a real child process, and only a timer firing meanwhile shows the event loop free.
-	let ticks = 0;
-	const [timer, started] = [setInterval(() => ticks++, 100), Date.now()];
-	t.after(() => clearInterval(timer));
-	await jobs.sweep();
-	const waited = Date.now() - started;
-	clearInterval(timer);
+	// From here `arthur remote-job records` there notes it began, then does not end before `gate` exists, or 30 s on, in case the
+	// kit removed the gate's folder first; every other step is this core's.
+	const folder = temporaryFolder();
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && touch '${join(folder, "copying")}' && n=0 && while [ ! -e '${gate}' ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done && exit 0\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	// Fake time: 20 s need not pass for real. The test's own watch, answered while the copy waits, shows the event loop free.
+	t.mock.timers.enable({ apis: ["setTimeout"] });
+	const began = watch(folder);
+	let done = false;
+	const swept = jobs.sweep().finally(() => (done = true));
+	for await (const { filename } of began) if (filename === "copying") break;
+	t.mock.timers.tick(19_999);
+	await nextTurn();
+	assert.equal(done, false, "still copying 1 ms before its limit");
+	t.mock.timers.tick(1);
+	await swept;
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z"]);
-	assert.ok(waited >= 20_000 && waited < 25_000, `the copy gave up after ${waited} ms`);
-	assert.ok(ticks > 100, `the process ran ${ticks} timer ticks of 100 ms during the ${waited} ms copy`);
 });
 
 test("a spawn's step there and the sweep's fetch of an ended job's branch that do not end within 60 s fail, naming the machine and the step, the process answering meanwhile", async (t) => {
@@ -951,21 +954,26 @@ test("a spawn's step there and the sweep's fetch of an ended job's branch that d
 	const { root, home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	await endedThere(there, job.id);
-	// From here `arthur version` and `git-upload-pack` there do not end before `gate` exists, or 90 s on; every other step is this core's.
-	const wait = `n=0; while [ ! -e '${gate}' ] && [ $n -lt 900 ]; do sleep 0.1; n=$((n + 1)); done`;
-	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$1" = version ] && ${wait}\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
-	writeFileSync(join(machine, "bin/git-upload-pack"), `#!/bin/sh\n${wait}\nexec git upload-pack "$@"\n`, { mode: 0o755 });
-	// Real timers: the limits are real time on real child processes, and only a timer firing meanwhile shows the event loop free.
-	let ticks = 0;
-	const [timer, started] = [setInterval(() => ticks++, 100), Date.now()];
-	t.after(() => clearInterval(timer));
+	// From here `arthur version` and `git-upload-pack` there note they began, then do not end before `gate` exists, or 90 s on;
+	// every other step is this core's.
+	const folder = temporaryFolder();
+	const wait = (name: string) => `{ touch '${join(folder, name)}'; n=0; while [ ! -e '${gate}' ] && [ $n -lt 900 ]; do sleep 0.1; n=$((n + 1)); done; }`;
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$1" = version ] && ${wait("version")}\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	writeFileSync(join(machine, "bin/git-upload-pack"), `#!/bin/sh\n${wait("fetch")}\nexec git upload-pack "$@"\n`, { mode: 0o755 });
+	// Fake time: 60 s need not pass for real. The test's own watch, answered while both steps wait, shows the event loop free.
+	t.mock.timers.enable({ apis: ["setTimeout"] });
+	const began = watch(folder), seen = new Set<string>();
 	const said = (result: PromiseSettledResult<unknown>) => (result.status === "rejected" ? (result.reason as Error).message : "resolved");
-	const [spawned, swept] = (await Promise.allSettled([jobs.spawn({ task: "Go.", machine: "gpu" }), jobs.sweep()])).map(said);
-	const waited = Date.now() - started;
-	clearInterval(timer);
+	let done = false;
+	const both = Promise.allSettled([jobs.spawn({ task: "Go.", machine: "gpu" }), jobs.sweep()]).finally(() => (done = true));
+	for await (const { filename } of began) if (seen.add(filename ?? "").has("version") && seen.has("fetch")) break;
+	t.mock.timers.tick(59_999);
+	await nextTurn();
+	assert.equal(done, false, "both still wait 1 ms before their limit");
+	t.mock.timers.tick(1);
+	const [spawned, swept] = (await both).map(said);
+	t.mock.timers.reset();
 	assert.deepEqual([spawned, swept], ["machine gpu: ssh gpu: arthur version: timed out after 60 s", `machine gpu: job ${job.id}: git fetch: timed out after 60 s`]);
-	assert.ok(waited >= 60_000 && waited < 65_000, `both gave up after ${waited} ms`);
-	assert.ok(ticks > 500, `the process ran ${ticks} timer ticks of 100 ms during the ${waited} ms`);
 	assert.deepEqual([readdirSync(join(home, "jobs")), read(home, job.id, "state"), git(root, "branch", "--list", job.branch ?? "")], [[job.id], "working", ""]);
 	// The next sweep tries the fetch again.
 	rmSync(join(machine, "bin/git-upload-pack"));

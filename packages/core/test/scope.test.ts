@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { watch } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import { basename, delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { loadConfig } from "../src/config.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -183,7 +185,7 @@ function onPath(t: TestContext, scripts: Readonly<Record<string, string>>, alone
 
 // A job whose wrapper did not start, as `spawn` returns it: ended `failed: <reason>`, the reason `reasonIn` gives for the home
 // folder, its one `job-ended` emitted, the record's end written, no agent started, and its worktree and branch kept.
-async function endedAtSpawn(reasonIn: (home: string) => string): Promise<number> {
+async function endedAtSpawn(reasonIn: (home: string) => string): Promise<void> {
 	const agent = fakeAgent({ steps: [{ message: "Done." }] });
 	const { home, jobs } = setup(agent);
 	const reason = reasonIn(home);
@@ -198,7 +200,6 @@ async function endedAtSpawn(reasonIn: (home: string) => string): Promise<number>
 	assert.equal(existsSync(join(dirname(agent), "starts.jsonl")), false, "no agent started");
 	assert.ok(existsSync(join(job.worktree, "README.md")));
 	assert.equal(git(job.root, "branch", "--list", `arthur/${job.id}`).replace(/^[*+]?\s*/, ""), `arthur/${job.id}`);
-	return Date.now();
 }
 
 test("a systemd-run that refuses the scope ends the job failed at spawn with its first stderr line", async (t) => {
@@ -218,16 +219,28 @@ test("a systemd-run missing while systemctl is there ends the job failed at spaw
 });
 
 test("a wrapper that writes no pid within 10 s is killed, and the job ends failed at spawn", async (t) => {
-	const noted = join(temporaryFolder(), "pid");
+	const folder = temporaryFolder(), noted = join(folder, "pid");
 	onPath(t, { "systemd-run": `echo $$ > '${noted}'; exec sleep 300` });
 	// Pass or fail, the sleep goes at the test's end, as a kill the wrapper's limit missed would leave it.
 	t.after(() => {
 		const pid = Number(read(noted));
 		if (pid > 0 && running(pid)) process.kill(pid, "SIGKILL");
 	});
-	const start = Date.now();
-	const end = await endedAtSpawn(() => "the wrapper wrote no pid within 10 s and was killed");
-	assert.ok(end - start >= 10_000, `ended after ${end - start} ms`);
+	// Fake time: 10 s need not pass for real. launch looks for the pid every 20 ms until its deadline, both on this clock.
+	t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: Date.now() });
+	const began = watch(folder);
+	let done = false;
+	const ending = endedAtSpawn(() => "the wrapper wrote no pid within 10 s and was killed").finally(() => (done = true));
+	for await (const { filename } of began) if (filename === "pid") break;
+	for (let waited = 0; waited < 9_980; waited += 20) {
+		t.mock.timers.tick(20);
+		await nextTurn();
+	}
+	t.mock.timers.tick(19);
+	await nextTurn();
+	assert.equal(done, false, "still waiting 1 ms before its limit");
+	t.mock.timers.tick(1);
+	await ending;
 	assert.equal(running(Number(read(noted))), false, "the sleep it ran is gone");
 });
 
@@ -240,11 +253,11 @@ function noManager(t: TestContext): void {
 }
 
 // An agent that, while the file `on()` names exists, removes it and starts `node` holding `mb` MB in its own process group,
-// which notes its pid in `hog` once it holds them. Then it plays `run` as the fake agent, which notes each start in `starts`.
+// which notes its pid in `hog` as it starts. Then it plays `run` as the fake agent, which notes each start in `starts`.
 function hogging(mb: number, run: AgentRun): { readonly agent: string; readonly on: string; readonly hog: string; readonly starts: string } {
 	const folder = temporaryFolder();
 	const [on, hog] = [join(folder, "on"), join(folder, "hog")];
-	const code = `const a = []; for (let i = 0; i < ${mb}; i += 16) a.push(Buffer.alloc(16 << 20, 1)); require("fs").writeFileSync("${hog}", String(process.pid)); setInterval(() => a.length, 1000);`;
+	const code = `require("fs").writeFileSync("${hog}", String(process.pid)); const a = []; for (let i = 0; i < ${mb}; i += 16) a.push(Buffer.alloc(16 << 20, 1)); setInterval(() => a.length, 1000);`;
 	const played = fakeAgent(run);
 	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & fi`, `exec '${played}' "$@"`];
 	writeFileSync(join(folder, "omp"), `${script.join("\n")}\n`, { mode: 0o755 });
@@ -374,15 +387,19 @@ try { oomFirst(() => process.stdout.write("started"), ${JSON.stringify(other)});
 
 test("without a user manager a job over its memory cap is stopped within one 10 s sample, and the machine is told once", async (t) => {
 	noManager(t);
+	// A sample of 500 ms in place of 10 s, which launch passes on to the wrapper under the test runner only.
+	process.env.ARTHUR_TEST_MEMORY_SAMPLE_MS = "500";
+	t.after(() => delete process.env.ARTHUR_TEST_MEMORY_SAMPLE_MS);
 	const gate = join(temporaryFolder(), "gate");
 	const { agent, on, hog } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
 	const { home, jobs } = setup(agent, jobSlice, () => [{ cpu: 1, memory: "300M" }]);
 	writeFileSync(on, "");
 	const job = await jobs.spawn({ task: "Hog." });
-	const pid = Number(await until("the hog holding its memory", () => read(hog)));
-	const held = Date.now();
+	const pid = Number(await until("the hog's start", () => read(hog)));
+	const started = Date.now();
 	assert.equal(await endedWith(home, job.id), "limit: memory: the job went over its memory cap of 300M");
-	assert.ok(Date.now() - held < 12_000, `stopped ${Date.now() - held} ms after it held the memory`);
+	// What the hog takes to hold its memory, one sample, and the stop: far below the 10 s of one real sample.
+	assert.ok(Date.now() - started < 4_000, `stopped ${Date.now() - started} ms after the hog started`);
 	assert.equal(running(pid), false, "the hog is stopped with the agent");
 	writeFileSync(gate, "");
 	const next = await jobs.spawn({ task: "Go." });
@@ -390,6 +407,24 @@ test("without a user manager a job over its memory cap is stopped within one 10 
 	const notices = readEvents(home, 1).filter((event) => event.name === "notice").map((event) => event.data);
 	assert.equal(notices.length, 1, JSON.stringify(notices));
 	assert.match(JSON.stringify(notices[0]), /^\{"text":"machine local runs jobs without a systemd scope \(.+\): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held"\}$/);
+});
+
+test("a test's memory sample reaches the wrapper only under node's test runner; no other ARTHUR_ variable does", async (t) => {
+	const gate = join(temporaryFolder(), "gate");
+	t.after(() => writeFileSync(gate, ""));
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
+	const saved = { ...process.env };
+	t.after(() => void (process.env = saved));
+	Object.assign(process.env, { ARTHUR_TEST_MEMORY_SAMPLE_MS: "500", ARTHUR_OTHER: "set" });
+	// The names of the `ARTHUR_` variables the wrapper started with.
+	const started = async () => {
+		const { id } = await jobs.spawn({ task: "Go." });
+		const environ = readFileSync(`/proc/${read(join(home, "jobs", id, "pid"))}/environ`, "utf8").split("\0");
+		return environ.map((line) => line.split("=")[0] ?? "").filter((name) => name.startsWith("ARTHUR_")).toSorted();
+	};
+	assert.deepEqual(await started(), ["ARTHUR_GUARDED", "ARTHUR_TEST_MEMORY_SAMPLE_MS"]);
+	delete process.env.NODE_TEST_CONTEXT;
+	assert.deepEqual(await started(), ["ARTHUR_GUARDED"]);
 });
 
 test("a systemd older than 253, which takes no OOMPolicy on a scope, gets the memory cap without it", async (t) => {

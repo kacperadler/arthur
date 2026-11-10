@@ -40,4 +40,5 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0685 approved: plan and worker on claude-fable-5-1, or fable 5.2 if it exists when the job starts; after AR0671; the owner: "AR-D623 - 1" (AR-D623)
+- 2026-11-10: Plan approved by the owner: plan.md at 3b201a6b; the owner: "AR-D633: 1" (AR-D633)
 

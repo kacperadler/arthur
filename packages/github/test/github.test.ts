@@ -14,7 +14,7 @@ import { deleteOnOrigin, originBranches, push } from "../src/github-git.ts";
 import { DOCS, type FakePull, type FakeRun, fakeGithub } from "./fake-github.ts";
 
 // The github plugin against the fake host and a fake GitHub REST API (fake-github.ts). Each project is a real repository whose
-// origin names its GitHub repository; polls run every second.
+// origin names its GitHub repository; polls run every 200 ms, below the 1 s a config may set, so a test waits less for each.
 
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
 const ACME_TOKEN = "ghp_AcmeT0kenNeverPrinted0123456789abcdef";
@@ -85,7 +85,7 @@ async function started(t: TestContext, projects: readonly Project[], options: Gi
 }
 
 const PATH = "/repos/acme/shop/actions/workflows/ci.yml/runs";
-const options = (apiUrl: string, more: Partial<GithubOptions> = {}): GithubOptions => ({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl }], poll: { everySeconds: 1 }, ...more });
+const options = (apiUrl: string, more: Partial<GithubOptions> = {}): GithubOptions => ({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl }], poll: { everySeconds: 0.2 }, ...more });
 
 test("a finished run is told once per run attempt, across polls and a restart, and wakes the coordinator; a rerun's end is told once; what finished before the first poll is not told; the token stays out", async (t) => {
 	const api = await fakeGithub(t);
@@ -848,7 +848,8 @@ test("a pull request closed and reopened, while polled or across a restart, has 
 	const now = () => new Date().toISOString().replace(/\.\d+Z$/, "Z");
 	const cart: FakePull = { number: 7, title: "Add the cart", branch: "arthur/cart", updated: "2026-01-01T00:00:00Z", reviews: [{ id: 70, user: "kacper", state: "COMMENTED", body: "Before Arthur watched." }] };
 	api.pulls["acme/shop"] = [cart];
-	const first = await started(t, [project], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
+	// Polls a second apart, as a config's shortest: two in one whole second of `submitted_at` would tell its review twice.
+	const first = await started(t, [project], options(api.apiUrl, { wakeOn: ["pull-request-review"], poll: { everySeconds: 1 } }));
 	const told = (box: { readonly fake: FakeHost }) => box.fake.emitted.filter((event) => event.name === "pull-request-review").map((event) => (event.data as { readonly review: number }).review);
 	const LIST = "/repos/acme/shop/pulls?";
 	const polls = async (what: string) => {
@@ -876,10 +877,10 @@ test("a pull request closed and reopened, while polled or across a restart, has 
 	cart.reviews.push({ id: 73, user: "octo", state: "APPROVED", body: "", submitted: now() }, { id: 74, user: "octo", state: "COMMENTED", body: "No time said.", submitted: null });
 	api.pulls["acme/shop"] = [cart];
 	// A restart is a new process: a new host on the state file the first one left.
-	const again = fakeHost({ name: "github", options: options(api.apiUrl, { wakeOn: ["pull-request-review"] }), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
+	const again = fakeHost({ name: "github", options: options(api.apiUrl, { wakeOn: ["pull-request-review"], poll: { everySeconds: 1 } }), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	again.provide("projects", () => [project]);
 	copyFileSync(join(first.fake.host.folder, "state.json"), join(again.host.folder, "state.json"));
-	const restarted = await started(t, [project], options(api.apiUrl, { wakeOn: ["pull-request-review"] }), undefined, again);
+	const restarted = await started(t, [project], options(api.apiUrl, { wakeOn: ["pull-request-review"], poll: { everySeconds: 1 } }), undefined, again);
 	await until("reviews 73 and 74", () => told(restarted).length >= 2);
 	await polls("a poll after the restart");
 	assert.deepEqual(told(restarted), [73, 74], "reopened while stopped: the review submitted since the last poll before the stop, and one GitHub gives no time, told rather than lost");

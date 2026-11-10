@@ -431,14 +431,18 @@ test("a probe with no answer is cut after 10 s, and none answering is this machi
 	const site = await server(t);
 	site.answers["/"] = hang;
 	network.hang = true;
+	// Fake time for the probe's limit: its signal is cut here, as that time passing would; a site's check keeps its real 1 s.
+	const [real, limits, cut] = [AbortSignal.timeout, [] as number[], new AbortController()];
+	t.mock.method(AbortSignal, "timeout", (ms: number) => (ms === 1000 ? real.call(AbortSignal, ms) : (limits.push(ms), cut.signal)));
 	const logs = t.mock.method(console, "log", () => {});
 	const { notices } = await started(t, { acme: [{ url: site.url("/"), everySeconds: 1 }] }, undefined, { probes: ["https://probe.example/"] });
+	await until("the probe asked", () => network.asked.length === 1);
+	assert.deepEqual([limits, logs.mock.callCount()], [[10_000], 0], "the probe waits for its 10 s");
+	cut.abort(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
 	await until("the offline log line", () => logs.mock.callCount() === 1);
 	assert.match(String(logs.mock.calls[0]?.arguments[0]), /^uptime: none of the 1 sites answers, nor https:\/\/probe\.example\/, so this machine looks offline/);
 	assert.deepEqual(notices(), []);
-	// Within a timer's few ms early or late, never 10 ms short of the 10 s.
 	assert.equal(network.cuts.length, 1);
-	assert.ok((network.cuts[0] ?? 0) >= 9_995 && (network.cuts[0] ?? 0) < 10_500, `cut after ${network.cuts[0]} ms`);
 });
 
 test("one site with no answer while another answers is down, not offline", async (t) => {

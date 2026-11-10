@@ -5,6 +5,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, symli
 import { hostname, userInfo } from "node:os";
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { doctor } from "../src/doctor.ts";
 import { noSandbox } from "../src/job-sandbox.ts";
 import { coreRequirements } from "../src/requirements.ts";
@@ -330,21 +331,27 @@ test("under umask 022 the home is its user's alone: a new one is made 0700, one 
 	assert.equal(mode(home), 0o700, "arthur doctor");
 });
 
-test("a check that hangs is cut after 10 s, every check at once, and the others answer", async () => {
+test("a check that hangs is cut after 10 s, every check at once, and the others answer", async (t) => {
+	// Fake time: 10 s need not pass for real. Checks one after another would leave the second hanging past the first tick.
+	t.mock.timers.enable({ apis: ["setTimeout"] });
 	const hang = (name: string) => ({ name, check: () => new Promise<string>(() => {}), costs: "c", fix: "f", critical: true });
-	const started = Date.now();
-	const lines = await doctor([], [{ plugin: "slow", value: [hang("one"), hang("two"), { name: "quick", check: () => "ok", costs: "c", fix: "f" }] }]);
-	const took = Date.now() - started;
+	let done = false;
+	const answered = doctor([], [{ plugin: "slow", value: [hang("one"), hang("two"), { name: "quick", check: () => "ok", costs: "c", fix: "f" }] }]).finally(() => (done = true));
+	await nextTurn();
+	t.mock.timers.tick(9_999);
+	await nextTurn();
+	assert.equal(done, false, "still checking 1 ms before the limit");
+	t.mock.timers.tick(1);
+	await nextTurn();
+	assert.equal(done, true, "every check cut at the same tick");
 	assert.deepEqual(
-		lines.map((line) => [line.text, line.critical]),
+		(await answered).map((line) => [line.text, line.critical]),
 		[
 			["slow one: missing: check timed out after 10 s; without it: c; fix: f", true],
 			["slow two: missing: check timed out after 10 s; without it: c; fix: f", true],
 			["slow quick: ok", false],
 		],
 	);
-	// The cut runs on Node's timer clock, `took` on the wall clock, which can run a little slow (GitHub measured 9999 ms).
-	assert.ok(took >= 9_950 && took < 15_000, `took ${took} ms`);
 });
 
 // `arthur run` in the background, until the test ends.

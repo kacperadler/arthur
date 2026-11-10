@@ -47,11 +47,11 @@ A sandboxed job (Linux with Landlock, `arthur spawn --help`, "The sandbox"), who
 
 ## The disk floor
 
-With the `resources` plugin's `keepFree.disk`, each machine check asks `resources.disk` for the paths its jobs write; the plugin names Docker's data root on a labelled machine, `docker info --format '{{.DockerRootDir}}'` there (`/var/lib/docker`; rootless Docker's under the user's home), read once per process. Nothing is named when Docker is not running there (asked again at the next check), for a daemon the machine's Docker context reaches over TCP or SSH, whose data lies on another machine, or on a machine labelled `os: macos`: Docker Desktop keeps its data in its own virtual machine, said once in a `notice`, `docker: machine <machine> runs Docker Desktop, whose data lives in its own virtual machine, so keepFree.disk does not count it there`.
+With the `resources` plugin's `keepFree.disk`, each machine check asks `resources.disk` for the paths its jobs write; the plugin names Docker's data root on a labelled machine, `docker info --format '{{.DockerRootDir}}'` there (`/var/lib/docker`; rootless Docker's under the user's home), read once per process, the call cut after 10 s. Nothing is named when Docker is not running there (asked again at the next check), for a daemon the machine's Docker context reaches over TCP or SSH, whose data lies on another machine, or on a machine labelled `os: macos`: Docker Desktop keeps its data in its own virtual machine, said once in a `notice`, `docker: machine <machine> runs Docker Desktop, whose data lives in its own virtual machine, so keepFree.disk does not count it there`.
 
 ## `arthur doctor`
 
-One line per machine labelled `tools: docker`, never critical, from one `sh -c` there cut after 10 s:
+One line per machine labelled `tools: docker`, never critical, from one `sh -c` there cut after 5 s, before the doctor's own 10 s (`missing: docker info on <machine> timed out after 5 s`):
 
 - `docker <machine>: ok (Docker <version>)`, `ok (Docker <version>, rootless)` for rootless Docker (`name=rootless` in `docker info`'s `SecurityOptions`): Docker answers as the user Arthur runs as, without `sudo`.
 - `missing: command -v finds no docker on <machine>`.

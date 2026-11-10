@@ -3,7 +3,8 @@ import type { Host, Ran, Requirement } from "@arthur/core/plugin";
 // The docker plugin's `arthur doctor` lines (spec/roadmap.md, entries 70 and 80): one per machine labelled `tools: docker`,
 // whether Docker answers there as the user Arthur runs as, without sudo, and is not unsafe. docs/docker.md, "arthur doctor".
 
-const LIMIT_SECONDS = 10;
+// Under the core doctor's own 10 s cut, so a hung machine gets this line's reason and fix.
+const LIMIT_SECONDS = 5;
 const INSTALL = "install Docker Engine there (https://docs.docker.com/engine/install/), or drop docker from its tools label";
 
 // Exit 4: Arthur's user there is root; 3: no docker; 0: Docker's version, then its security options and warnings, a JSON line

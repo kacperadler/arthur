@@ -12,3 +12,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: the plan (AR0604, Risks: "The script folder may be unreadable in a sandboxed job ... W2 tests it. If it does not fall through, the script folder must be readable by the job") left this to W2. It does not fall through in bash. A job spawned through the fake host with the docker plugin's prepare, on this Linux machine where the Landlock sandbox runs, its `omp` running `sh -c 'docker run img'` and `bash -c 'docker run img'`: sh ran the next `docker` on PATH, unlabelled (the fake docker noted `["run","img"]`), and bash printed `bash: line 1: <home>/docker/jobs/<id>/docker: Permission denied`, exit 126. Landlock checks READ_FILE on the open of an exec, and Arthur's home is hidden from the job, so bash's PATH lookup finds the script by `stat` and its `execve` fails. So in such a job every `docker` command run by bash fails, those that need no daemon too (`docker --version`, `docker compose config`). The sandbox already keeps the job from Docker's daemon (no stream Unix socket), so labels cannot act there either, as the approved Option 1 says.
 - Suggestion: one of (a) the job's sandbox shows `<home>/docker/jobs/<id>` to the job, as it shows its own record: a sandbox change, which this ticket's Scope leaves out; (b) the prepare adds the script only where the job runs unsandboxed, which needs the core to say so to a plugin (a host API change not approved) or the plugin to repeat the core's Landlock probe; (c) accept it, documented in docs/docker.md as now. The owner chose (a) on 2026-11-10, AR-D597.
 - Status: fixed in 4cf5156c
+
+## F2. Some commands that make images get no label: builder build, buildx b, commit, image import
+
+- Kind: fix
+- Found by: 2026-11-10-review-5fcd6049 (review), 2026-11-10
+- Where: `packages/docker/src/docker-label.ts:8` (`CREATES`)
+- What: roadmap 70 lists `run`, `create`, `build`, `buildx build`, `container run`, `container create`, `image build`, `network create` and `volume create`, and the rewrite labels exactly those. `docker builder build` and `docker buildx b` (aliases of build), and `docker commit`, `docker container commit` and `docker image import` make images without `arthur.job`; per roadmap 72 the sweep never removes a tagged image no job built, so such an image stays.
+- Suggestion: add the build aliases to `CREATES`; `commit` takes `--change "LABEL arthur.job=<id>"` and `import` `--change` too, so label them that way; a test row each. Roadmap 70's list widens, which is the owner's call.
+- Status: open

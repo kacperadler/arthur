@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { chmodSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { test } from "node:test";
-import type { Requirement } from "@arthur/core/plugin";
+import type { Host, Requirement } from "@arthur/core/plugin";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { docker } from "../src/docker.ts";
 import { fakeDocker, VERSION } from "./fake-docker.ts";
@@ -16,23 +16,43 @@ process.env.PATH = [bin, process.env.PATH].join(delimiter);
 // Commands here run in a folder of the test's own, so a mutant that writes a relative path (npm run mutate) leaves nothing in the checkout.
 process.chdir(temporaryFolder());
 
-// The plugin with the test as the machines plugin: `labels` by machine, `gpu` registered, reached through the fake ssh.
-async function load(labels: Readonly<Record<string, unknown>>) {
+// The plugin with the test as the machines plugin: `labels` by machine, `gpu` registered, reached through the fake ssh; `run`
+// in place of the core's when given.
+async function load(labels: Readonly<Record<string, unknown>>, run?: Host["jobs"]["run"]) {
 	const host = fakeHost({ name: "docker" });
 	host.provide("machines.labels", (name: string) => labels[name]);
 	host.host.jobs.registerMachine({ name: "gpu", ssh: "gpu", home: temporaryFolder(), labels: {} });
-	await host.setup(docker());
+	const plugin = docker();
+	await host.setup({ setup: (given) => plugin.setup({ ...given, jobs: { ...given.jobs, ...(run === undefined ? {} : { run }) } }) });
 	const disk = async (machine: string) => (await Promise.all(host.collect<Promise<string[]>>("resources.disk", machine)))[0];
 	const notices = () => host.emitted.flatMap((event) => (event.name === "notice" && typeof event.data === "object" && event.data !== null && "text" in event.data ? [event.data.text] : []));
 	return { host, disk, notices };
 }
 
 // Each doctor line's machine, what its check answers and its fix.
-async function doctor(labels: Readonly<Record<string, unknown>>): Promise<string[]> {
-	const { host } = await load(labels);
+async function doctor(labels: Readonly<Record<string, unknown>>, run?: Host["jobs"]["run"]): Promise<string[]> {
+	const { host } = await load(labels, run);
 	const lines = host.collect<readonly Requirement[]>("doctor").flat();
 	return Promise.all(lines.map(async (line) => `${line.name}: ${await line.check()}${line.fix === "" ? "" : `; fix: ${line.fix}`}`));
 }
+
+// A machine that hangs, as the core's `run` answers a command it cut: code null, its line last on stderr; each limit noted.
+function hanging() {
+	const limits: (number | undefined)[] = [];
+	const run: Host["jobs"]["run"] = async (_machine, _argv, limitSeconds) => (limits.push(limitSeconds), { code: null, stdout: "", stderr: `timed out after ${limitSeconds} s\n` });
+	return { limits, run };
+}
+
+test("on a machine that hangs, the doctor's line is cut after 5 s, before the doctor's own 10 s, and the data root's ask after 10 s, naming nothing", async () => {
+	const doctorHang = hanging();
+	assert.deepEqual(await doctor({ local: { tools: ["docker"] } }, doctorHang.run), ["local: missing: docker info on local timed out after 5 s; fix: start Docker on local: sudo systemctl start docker"]);
+	assert.deepEqual(doctorHang.limits, [5]);
+	const diskHang = hanging();
+	assert.deepEqual(await (await load({ local: { tools: ["docker"] } }, diskHang.run)).disk("local"), []);
+	assert.deepEqual(diskHang.limits, [10]);
+	const relative: Host["jobs"]["run"] = async () => ({ code: 0, stdout: "var/lib/docker\n", stderr: "" });
+	assert.deepEqual(await (await load({ local: { tools: ["docker"] } }, relative)).disk("local"), [], "a root that is no absolute path is not named");
+});
 
 // `work` run with PATH set to `path`.
 async function withPath<T>(path: string, work: () => Promise<T>): Promise<T> {

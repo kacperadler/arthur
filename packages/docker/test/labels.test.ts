@@ -78,13 +78,13 @@ function repository(): string {
 
 // The plugin on the fake host, the test as the machines plugin answering `labels`, and as projects when `pieces` are given;
 // `prepare` runs the plugin's prepare as the core does at a spawn, on a job of `project` on `machine`.
-async function load(labels: Readonly<Record<string, unknown>>, pieces?: unknown) {
+async function load(labels: Readonly<Record<string, unknown>>, pieces?: unknown, run?: Host["jobs"]["run"]) {
 	const root = repository();
 	const host = fakeHost({ name: "docker", root });
 	host.provide("machines.labels", (name: string) => labels[name]);
 	if (pieces !== undefined) host.provide("projects", () => [{ name: "shop", path: root, prefix: "SH", pieces }]);
 	const prepares: Prepare[] = [];
-	await docker().setup({ ...host.host, jobs: { ...host.host.jobs, prepare: (fn: Prepare) => void prepares.push(fn) } } as Host);
+	await docker().setup({ ...host.host, jobs: { ...host.host.jobs, ...(run === undefined ? {} : { run }), prepare: (fn: Prepare) => void prepares.push(fn) } } as Host);
 	// The fields of a Job the prepare reads; the rest are the spawn's.
 	const job = (id: string, machine: string, project: string) => ({ id, machine, project }) as Job;
 	const prepare = async (machine = "local", env: Readonly<Record<string, string>> = {}, project = "shop", id = ID) => prepares[0]?.(job(id, machine, project), env, false);
@@ -173,6 +173,15 @@ test("refused, naming why: no node on the machine to run the script, and a path 
 	assert.ok(quoted.startsWith(`writing the docker script of ${ID} on machine quoted exited 4: a path with a ' in it: ${there}/docker/jobs/${ID}, /`), quoted);
 	assert.ok(quoted.endsWith(` or ${bin}/docker`), quoted);
 	assert.equal(existsSync(there), false, "nothing written there");
+});
+
+test("the script's write is cut after 30 s on a machine that hangs, refusing the spawn with the limit named", async () => {
+	// As the core's `run` answers a command it cut: code null, its line last on stderr; no real wait.
+	const limits: (number | undefined)[] = [];
+	const hung: Host["jobs"]["run"] = async (_machine, _argv, limitSeconds) => (limits.push(limitSeconds), { code: null, stdout: "", stderr: `timed out after ${limitSeconds} s\n` });
+	const { prepare } = await load({ local: { tools: ["docker"] } }, undefined, hung);
+	await assert.rejects(prepare(), { message: `writing the docker script of ${ID} on machine local timed out after 30 s` });
+	assert.deepEqual(limits, [30]);
 });
 
 test("a spawned job's agent gets the variables the prepare returned", async () => {

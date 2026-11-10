@@ -243,6 +243,11 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 	writeFileSync(join(root, TICKET), ticketText(line(proved)));
 	commit("answered again");
 	await assert.rejects(jobs.spawn({ task }), { message: refused(proved) });
+	// His later answer's pick counts, not his first: option 2 under the approval's words refuses; option 1 again starts the worker.
+	await decision("answer", proved, "--decided", `Plan approved by the owner: plan.md at ${filed}`, "--picked", "2", "not yet");
+	await assert.rejects(jobs.spawn({ task }), { message: refused(proved) });
+	await decision("answer", proved, "--decided", `Plan approved by the owner: plan.md at ${filed}`, "--picked", "1", "ok, go now");
+	assert.equal((await jobs.spawn({ task })).kind, "worker");
 });
 
 test("the plan guard reads only the Goal: a Plan: yes line elsewhere, a ticket without it, and other kinds are not checked", async (t) => {

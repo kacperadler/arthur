@@ -5563,8 +5563,8 @@
   {
     "id": "AR0688",
     "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
-    "updated": "2026-11-10T19:04:33.852Z"
+    "updated": "2026-11-10T19:45:57.709Z"
   }
 ]

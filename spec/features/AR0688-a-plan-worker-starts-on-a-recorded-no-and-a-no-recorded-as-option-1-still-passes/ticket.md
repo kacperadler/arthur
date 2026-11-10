@@ -37,4 +37,5 @@ Out:
 - The Decisions line's format.
 
 ## Decisions
+- 2026-11-10: AR0688 approved; build it next in line; the owner: "AR-D629: 1" (AR-D629)
 

@@ -33,3 +33,4 @@ Out:
 - How listen transcribes, or what a channel writes for an audio file.
 
 ## Decisions
+- 2026-11-10: AR0684 approved; the owner: "yes" (AR-D617)

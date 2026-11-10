@@ -5470,7 +5470,10 @@
     "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
     "status": "planned",
     "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
-    "updated": "2026-11-10T07:12:50.440Z"
+    "updated": "2026-11-10T07:12:50.440Z",
+    "after": [
+      "AR0684"
+    ]
   },
   {
     "id": "AR0678",
@@ -5526,8 +5529,8 @@
   {
     "id": "AR0684",
     "title": "An audio file transcript still proves the owner answer; only his voice notes may (AR-D616)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0684-an-audio-file-transcript-still-proves-the-owner-answer-only-his-voice-notes-may/ticket.md",
-    "updated": "2026-11-10T10:49:53.900Z"
+    "updated": "2026-11-10T10:51:09.919Z"
   }
 ]

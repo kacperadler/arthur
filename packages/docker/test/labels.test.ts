@@ -18,7 +18,7 @@ const LABEL = ["--label", `arthur.job=${ID}`];
 test("each command that creates something gets the job's label right after its words; every other command passes unchanged", () => {
 	for (const words of [["run"], ["create"], ["container", "run"], ["container", "create"], ["build"], ["buildx", "build"], ["image", "build"], ["network", "create"], ["volume", "create"]])
 		assert.deepEqual(labelled([...words, "x"], ID), [...words, ...LABEL, "x"], words.join(" "));
-	for (const args of [["ps", "-a"], ["compose", "up", "-d"], ["image", "ls"], ["network", "ls"], ["volume", "rm", "x"], ["buildx", "ls"], ["exec", "c", "run"], ["start", "run"], [], ["--version"], ["--", "run"], ["-", "run"]])
+	for (const args of [["ps", "-a"], ["compose", "up", "-d"], ["image", "ls"], ["network", "ls"], ["volume", "rm", "x"], ["buildx", "ls"], ["exec", "c", "run"], ["start", "run"], [], ["--version"], ["--", "ps"], ["-", "run"]])
 		assert.deepEqual(labelled(args, ID), args, args.join(" "));
 });
 
@@ -27,6 +27,8 @@ test("global options before the command keep their values, and the label still g
 		assert.deepEqual(labelled([...globals, "run", "img"], ID), [...globals, "run", ...LABEL, "img"], globals.join(" "));
 	for (const valued of ["--config", "--context", "--host", "--log-level", "--tlscacert", "--tlscert", "--tlskey", "-c", "-H", "-l"])
 		assert.deepEqual(labelled([valued, "run", "run", "img"], ID), [valued, "run", "run", ...LABEL, "img"], `${valued} takes the next word as its value`);
+	assert.deepEqual(labelled(["--", "run", "-l", "arthur.job=other", "img"], ID), ["--", "run", ...LABEL, "img"], "docker runs the command after a leading --");
+	assert.deepEqual(labelled(["-D", "--", "volume", "create", "v"], ID), ["-D", "--", "volume", "create", ...LABEL, "v"]);
 });
 
 test("an arthur.job label the job gives is taken out, in each spelling; a label with another key is kept", () => {

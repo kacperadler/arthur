@@ -512,10 +512,11 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
       language        a language code, or "auto"; default "pl"
       timeoutSeconds  a longer transcription is cut; default 300
       maxSeconds      a longer note is not transcribed; default 600
-    docker (not in the config): labels and removes the Docker resources of each job
-      buildCache      the cap of Docker's build cache
-      leftoverHours   unlabelled leftovers older than this are swept
-      sweep.at        the daily sweep, "HH:MM"
+    docker (not in the config): Docker on machines labelled tools: docker: what a job creates is labelled arthur.job=<id>, its compose stacks get its own project name, and Docker's data root counts for keepFree.disk
+      buildCache      The size Docker's shared build cache is cut to after each job's cleanup and each sweep: bytes with K, M, G or T, 0 for no cap
+      leftoverHours   The sweep removes unlabelled leftovers older than this: stopped containers, unused networks, dangling images, unused anonymous volumes, build cache
+      sweep           The daily sweep, a schedule entry; a machine under keepFree.disk is swept at once all the same
+      sweep.at        When it runs, in core.timeZone
 
   Next
     1. Set ARTHUR_TELEGRAM_CHAT_ID in .env (telegram.bots[0].chatIdEnv), then arthur config check. Refuses the start.

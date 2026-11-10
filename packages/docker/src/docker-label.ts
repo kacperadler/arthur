@@ -35,6 +35,8 @@ export function labelled(args: readonly string[], id: string): string[] {
 		const arg = args[at] as string;
 		at += arg.startsWith("--") ? (GLOBAL.includes(arg) ? 2 : 1) : short(args, at, GLOBAL_SHORT).span;
 	}
+	// Docker runs the command after a `--` that ends its own options: `docker -- run img`.
+	if (args[at] === "--") at++;
 	const words = CREATES.find((each) => each.every((word, index) => args[at + index] === word));
 	if (words === undefined) return [...args];
 	// Arguments after `run`'s or `create`'s image are the container's; the other commands take options anywhere before `--`.

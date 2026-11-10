@@ -1,0 +1,1 @@
+Review verdict: FAIL on {branch} at {commit}, {fails} since its last PASS; {ticket} moves back to in-progress. Delivery files it as the next review-N.md in {ticket}'s folder; commit that, then arthur prune {review}. It hands the branch back: {worker} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.

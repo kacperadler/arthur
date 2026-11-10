@@ -128,6 +128,12 @@ test("speak.say refuses before anything runs: a text over maxChars, an empty one
 	assert.equal(left().length, 1);
 });
 
+test("the language: each Polish letter, in either case, and each Polish word as a whole word, in any case, is Polish; a word that holds one is not", async () => {
+	const { say } = await load({ voices: { en: VOICES[1] } });
+	for (const said of [..."ąćęłńóśźżĄĆĘŁŃÓŚŹŻ", "nie", "Tak", "JEST", "czy", "dla", "oraz", "przez", "tylko", "jeszcze", "teraz", "AR0081: tak."]) await assert.rejects(say(said), { message: "no voice for pl in voices" }, said);
+	for (const said of ["takes", "Jester", "dlast", "nieve", "a", "z"]) assert.ok((await say(said)).endsWith(".ogg"), said);
+});
+
 test("piper or ffmpeg failing, or a run past timeoutSeconds, rejects naming the tool and why, leaves no file, and the queue goes on", async () => {
 	const { all, left } = await load({ timeoutSeconds: 1 });
 	assert.deepEqual(await all(["piper-fails now", "ffmpeg-fails now", "piper-hangs now", "ffmpeg-hangs now", "Fine."]), ["piper: ValueError: Unable to find voice", "ffmpeg: Unknown encoder 'libopus'", "piper: timed out after 1 s", "ffmpeg: timed out after 1 s", true]);
@@ -187,6 +193,9 @@ test("arthur doctor names piper, each voice and ffmpeg, none critical, each with
 	writeFileSync(`${own}.json`, "config");
 	assert.deepEqual((await doctor({ voices: { pl: own } })).map((need) => need.line.split(";")[0]), ["piper: ok", "voice pl: ok", "ffmpeg: missing: ffmpeg not found on PATH"], "only the languages voices names");
 	assert.equal((await doctor({ voices: { en: "my-voice" } }))[1]?.fix, `put the voice at ${join(voices, "my-voice.onnx")} and its config at ${join(voices, "my-voice.onnx")}.json (https://huggingface.co/rhasspy/piper-voices)`);
+	const fix = async (name: string) => (await doctor({ voices: { en: name } }))[1]?.fix ?? "";
+	assert.ok((await fix("fil_PH-x-medium")).startsWith("curl -fL --create-dirs -o "), "a language code of three letters is published too");
+	for (const name of ["x_PL-a-medium", "abcd_PL-a-medium", "en_us-a-medium", "en_US-a-big"]) assert.ok((await fix(name)).startsWith("put the voice at "), name);
 });
 
 // `arthur say` of a plugin loaded by `load`, run with its fakes on PATH: its exit code, then each line it printed, `! ` before stderr's.

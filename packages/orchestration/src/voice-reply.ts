@@ -16,7 +16,7 @@ export function voiceReplies(host: Pick<Host, "events" | "collectEach">): (reply
 
 async function voice(host: Pick<Host, "events" | "collectEach">, reply: Event): Promise<void> {
 	const { text, answers } = (reply.data ?? {}) as { readonly text?: unknown; readonly answers?: unknown };
-	const seqs = Array.isArray(answers) ? answers.filter((seq): seq is number => Number.isSafeInteger(seq) && seq > 0) : [];
+	const seqs = Array.isArray(answers) ? answers.filter((seq): seq is number => Number.isSafeInteger(seq)) : [];
 	if (typeof text !== "string" || seqs.length === 0) return;
 	// Each channel a voice note it answers came from, with the event numbers of those messages.
 	const channels = new Map<string, number[]>();

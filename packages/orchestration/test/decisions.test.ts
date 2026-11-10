@@ -337,6 +337,14 @@ test("a file's line of a message never proves his words or the id; a voice note'
 	await unproved(`${id} no`);
 	ownerSaid(folder, 7, `[voice 4 s] ${id} yes, start it`);
 	assert.equal((await answer(`${id} yes, start it`))[0], 0, "a transcript without its path");
+	// Discord gives a voice note's length unrounded, and listen writes it so; an audio file's transcript counts as a voice note's.
+	ownerSaid(folder, 8, `[voice 3.52 s] ${id} yes, ship it (/srv/media/AwAD-voice.ogg)`);
+	assert.equal((await answer(`${id} yes, ship it`))[0], 0, "a length with a decimal");
+	ownerSaid(folder, 9, `[audio 61 s] ${id} yes, deploy it (/srv/media/CQAD-memo.mp3)`);
+	assert.equal((await answer(`${id} yes, deploy it`))[0], 0, "an audio file's transcript");
+	// Only a part's own kind starts a file's line: his text that starts with a bracket and a longer word is his.
+	ownerSaid(folder, 10, `[filed under ops] ${id} yes, roll it`);
+	assert.equal((await answer(`${id} yes, roll it`))[0], 0, "a word that starts like a kind");
 });
 
 test("a close ends an open question; an answer after it is still recorded and counts; closing again or an unknown id is refused", async (t) => {

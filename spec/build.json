@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-10T11:15:51.442Z",
+    "updated": "2026-11-10T11:41:57.703Z",
     "after": [
       "AR0644"
     ]

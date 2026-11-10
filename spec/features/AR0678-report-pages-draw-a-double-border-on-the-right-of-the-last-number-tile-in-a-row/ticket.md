@@ -42,3 +42,4 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0678 approved; the owner: "I dont like the double border on last item in first line and bottom border in first item in last line, remember do do not repeat this" (AR-D605)
+- 2026-11-10: Merge AR0678 once CI on its branch passes; the owner: "AR-D621: merge" (AR-D621)

@@ -5536,9 +5536,9 @@
   {
     "id": "AR0685",
     "title": "Tests: a review on the fable model finds redundant tests and removes them, after the test speed work",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0685-tests-a-review-on-the-fable-model-finds-redundant-tests-and-removes-them-after/ticket.md",
-    "updated": "2026-11-10T12:16:46.696Z",
+    "updated": "2026-11-10T12:20:38.910Z",
     "after": [
       "AR0671"
     ]

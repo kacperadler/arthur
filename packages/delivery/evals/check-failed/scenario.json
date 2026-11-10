@@ -8,6 +8,14 @@
 			"output": "ended\nSH0007  review  ended  10:41  $0.35/$2.00  8f9e0d1c  finished\nSH0007  worker  ended  09:58  $0.90/$2.00  6a7b8c9d  finished"
 		},
 		{
+			"match": "^arthur decision ask ",
+			"output": "SH-D42"
+		},
+		{
+			"match": "^arthur decision answer ",
+			"output": "SH-D42 answered: Merge SH0007 into main; its line is under the Decisions of SH0007"
+		},
+		{
 			"match": "^arthur merge ",
 			"exit": 1,
 			"output": "merged arthur/2026-10-22-worker-6a7b8c9d into main: 9b8a7c6\nnpm ci: passed.\nnpm run check: passed.\nnpm test: failed.\nnot ok 31 - a product named with spaces around it is listed trimmed\n  expected: 'Blue mug'\n  actual: ' Blue mug'\n  at test/catalog.test.ts:77\n# tests 52\n# pass 51\n# fail 1\narthur merge: check failed on main (npm test); main reset to 1a2b3c4, branch kept"
@@ -23,7 +31,7 @@
 			"origin:refs/heads/main": "kept"
 		},
 		"calls": [
-			"^arthur merge (\\S+-)?6a7b8c9d$",
+			"^arthur merge (\\S+-)?6a7b8c9d --decision SH-D42$",
 			{
 				"match": "^arthur continue (\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed)",
 				"times": 1

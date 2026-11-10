@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-09T21:37:16.765Z",
+    "updated": "2026-11-10T10:36:53.463Z",
     "after": [
       "AR0644"
     ]
@@ -5522,5 +5522,12 @@
     "status": "planned",
     "path": "spec/features/AR0683-measure-the-test-suite-on-bun-beside-node-and-report-whether-moving-the-tests-is/ticket.md",
     "updated": "2026-11-10T09:19:58.669Z"
+  },
+  {
+    "id": "AR0684",
+    "title": "An audio file transcript still proves the owner answer; only his voice notes may (AR-D616)",
+    "status": "planning",
+    "path": "spec/features/AR0684-an-audio-file-transcript-still-proves-the-owner-answer-only-his-voice-notes-may/ticket.md",
+    "updated": "2026-11-10T10:49:53.900Z"
   }
 ]

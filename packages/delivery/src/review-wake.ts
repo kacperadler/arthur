@@ -43,8 +43,8 @@ export function wake({ review, verdict, project, autoMerge, reason, fails: place
 		return `Review ${review.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone though Arthur resumed it once for that already, or its run did not finish. It is never filed, and ${review.ticket} stays at review. Review again with arthur review ${worker}, then arthur prune ${review.id}.`;
 	const fails = place();
 	const values: Readonly<Record<string, string>> = { branch: review.branch, commit: review.commit.slice(0, 7), fails: String(fails), ticket: review.ticket, review: review.id, worker };
-	// The wording in roles/coordinator/, below the limit and at it, the live parts filled in.
-	const wording = new URL(`../roles/coordinator/review-failed${fails < LIMIT ? "" : "-limit"}.md`, import.meta.url);
+	// The wording beside the limit's procedure (roles/coordinator/), below the limit and at it, the live parts filled in.
+	const wording = new URL(`review-failed${fails < LIMIT ? "" : "-limit"}.md`, procedure);
 	const line = readFileSync(wording, "utf8").trim().replace(/\{(\w+)\}/g, (all, key: string) => values[key] ?? all);
 	return fails < LIMIT ? line : `${line}\n\n${readFileSync(procedure, "utf8").trim()}`;
 }

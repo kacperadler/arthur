@@ -1237,3 +1237,4 @@
 {"record":"answer","id":"AR-D614","time":"2026-11-10T08:36:31+01:00","decided":"AR0682 approved","picked":1,"words":"AR-D614 - yes","message":11805}
 {"record":"answer","id":"AR-D612","time":"2026-11-10T08:37:13+01:00","decided":"AR0680 approved","picked":1,"words":"AR-D612 - approve","message":11784}
 {"record":"ask","id":"AR-D615","time":"2026-11-10T10:17:39+01:00","project":"arthur","kind":"plan","question":"Approve AR0683: measure the whole test suite on Bun beside Node on this server and report times, what breaks, and whether to move; no code changes?","options":["Approve","Not now"],"recommend":1,"ticket":"AR0683"}
+{"record":"answer","id":"AR-D615","time":"2026-11-10T10:19:57+01:00","decided":"AR0683 approved","picked":1,"words":"AR-D615 - yes","message":11983}

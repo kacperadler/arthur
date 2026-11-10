@@ -37,3 +37,4 @@ Out:
 - The speed-up work itself (AR0671).
 
 ## Decisions
+- 2026-11-10: AR0683 approved; the owner: "AR-D615 - yes" (AR-D615)

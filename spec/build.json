@@ -5413,9 +5413,9 @@
   {
     "id": "AR0670",
     "title": "A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0670-a-herdr-plugin-each-running-job-is-a-pane-in-herdr-on-the-server-with-its-live/ticket.md",
-    "updated": "2026-11-10T08:04:28.021Z"
+    "updated": "2026-11-10T09:19:56.429Z"
   },
   {
     "id": "AR0671",
@@ -5519,8 +5519,8 @@
   {
     "id": "AR0683",
     "title": "Measure the test suite on Bun beside Node, and report whether moving the tests is worth it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0683-measure-the-test-suite-on-bun-beside-node-and-report-whether-moving-the-tests-is/ticket.md",
-    "updated": "2026-11-10T09:17:25.025Z"
+    "updated": "2026-11-10T09:19:58.669Z"
   }
 ]

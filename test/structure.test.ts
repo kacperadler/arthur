@@ -79,7 +79,9 @@ const FIXED_WAITS = {
 
 	"packages/orchestration/test/coordinator.test.ts": 5,
 
-	"packages/orchestration/test/inbox.test.ts": 3,
+	"packages/orchestration/test/hand-over.test.ts": 1,
+
+	"packages/orchestration/test/inbox.test.ts": 2,
 
 	"packages/orchestration/test/job-states.test.ts": 1,
 

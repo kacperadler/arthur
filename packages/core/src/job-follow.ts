@@ -37,9 +37,11 @@ export async function followJob(home: string, query: string, write: (line: strin
 		const end = all.lastIndexOf(10) + 1;
 		rest = all.subarray(end);
 		for (const line of all.subarray(0, end).toString("utf8").split("\n").slice(0, -1)) write(line);
-		if (`${moved?.ino} ${moved?.mtimeMs}` !== seen && told(now) !== said) write(`state: ${(said = told(now))}`);
+		// The end is told even when `state` moved between its stat and its read: the run's last move wrote its reason first.
+		const over = now.state !== "" && !inRun(now);
+		if ((over || `${moved?.ino} ${moved?.mtimeMs}` !== seen) && told(now) !== said) write(`state: ${(said = told(now))}`);
 		seen = `${moved?.ino} ${moved?.mtimeMs}`;
-		return now.state !== "" && !inRun(now);
+		return over;
 	};
 	const wake = () => {
 		try {

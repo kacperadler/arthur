@@ -11,7 +11,7 @@ import { fakeHerdr, type Mode, pathWithoutHerdr } from "./fake-herdr.ts";
 // The herdr plugin against the fake host and a fake `herdr` on PATH (AR0670): docs/herdr.md.
 
 const PATH = process.env.PATH ?? "";
-const [A, B, C, D, E] = ["a", "b", "c", "d", "e"].map((letter) => `2026-11-09-worker-0000000${letter}`) as [string, string, string, string, string];
+const [A, B, C, D, E, F] = ["a", "b", "c", "d", "e", "f"].map((letter) => `2026-11-09-worker-0000000${letter}`) as [string, string, string, string, string, string];
 // A field of an event's data as text, "" when it has none.
 const text = (data: unknown, key: string): string => String((typeof data === "object" && data !== null ? Reflect.get(data, key) : undefined) ?? "");
 
@@ -134,7 +134,7 @@ test("each job state as herdr shows it; a second job-started closes the job's ol
 	assert.deepEqual([reported.length, [...new Set(reported)]], [8, [oldPane, box.pane(A)?.pane_id]], "each state of A once on the tab it had, none for B or an unknown state");
 });
 
-test("before start nothing reaches herdr; start opens a tab for each job in a run, reports each ended job that still has a tab, and leaves the rest", async (t) => {
+test("before start nothing reaches herdr; start opens a tab for each job in a run, idle and held ones too, reports each ended job that still has a tab, and leaves the rest", async (t) => {
 	const box = await load(t);
 	box.server.seed([`worker ${C.slice(-8)}`, `worker ${D.slice(-8)}`]);
 	box.record(A, { state: "working" });
@@ -142,15 +142,18 @@ test("before start nothing reaches herdr; start opens a tab for each job in a ru
 	box.record(C, { state: "ended", reason: "finished" });
 	box.record(D, { state: "blocked", reason: "user: may I?" });
 	box.record(E, { state: "ended", reason: "stopped" });
+	// Idle: its run goes on, its agent quiet; a herdr that came up since its start has no tab for it.
+	box.record(F, { state: "idle" });
 	// Replayed at `arthur run`'s start, before `start`: the start-up pass covers them, once.
 	box.fake.emit("job-started", { id: A, kind: "worker" });
 	box.fake.emit("job-state", { id: C, to: "working", reason: "" });
 	assert.deepEqual(box.server.calls(), []);
 	await box.plugin.start?.();
-	await until("the start-up pass", () => box.pane(A)?.agent_status === "working" && box.pane(B)?.agent_status === "blocked" && box.pane(C)?.agent_status === "idle" && box.pane(D)?.agent_status === "blocked");
+	await until("the start-up pass", () => box.pane(A)?.agent_status === "working" && box.pane(B)?.agent_status === "blocked" && box.pane(C)?.agent_status === "idle" && box.pane(D)?.agent_status === "blocked" && box.pane(F)?.message === "idle");
 	assert.deepEqual([box.pane(C)?.agent_status, box.pane(C)?.message, box.pane(D)?.message, box.pane(B)?.message], ["idle", "ended: finished", "user: may I?", "dependency: the deploy"]);
+	assert.deepEqual([box.tab(F)?.label, box.pane(F)?.ran, box.pane(F)?.agent_status], [`worker ${F.slice(-8)}`, [`arthur jobs --follow ${F}`], "working"], "an idle job is in its run: its tab follows it, reported working with the message idle");
 	assert.equal(box.server.calls().filter((args) => args[1] === "report-agent" && args[2] === box.pane(C)?.pane_id).length, 1, "C's job-state before start reported nothing");
-	assert.deepEqual([box.creates(`worker ${A.slice(-8)}`), box.creates(`worker ${B.slice(-8)}`), box.tab(E)], [1, 1, undefined], "one tab each; an ended job without a tab gets none");
+	assert.deepEqual([box.creates(`worker ${A.slice(-8)}`), box.creates(`worker ${B.slice(-8)}`), box.creates(`worker ${F.slice(-8)}`), box.tab(E)], [1, 1, 1, undefined], "one tab each; an ended job without a tab gets none");
 	// A job-started for a job not in a run opens nothing.
 	box.fake.emit("job-started", { id: E, kind: "worker" });
 	box.fake.emit("job-state", { id: A, to: "idle", reason: "" });

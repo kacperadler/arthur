@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test } from "node:test";
+import { type TestContext, test } from "node:test";
 import { clock } from "../src/clock.ts";
 import { eventBus } from "../src/events.ts";
 import { followJob } from "../src/job-follow.ts";
@@ -28,7 +28,9 @@ function setup(run: AgentRun) {
 }
 
 // The follow of `query`: the lines it printed so far, and its end, `done` (resolved) or the refusal it rejected with.
-function follow(home: string, query: string) {
+function follow(t: TestContext, home: string, query: string) {
+	// A test that fails mid-follow leaves no watcher open: its records go once it is over, which ends the follow.
+	t.after(() => rmSync(join(home, "jobs"), { recursive: true, force: true }));
 	const lines: string[] = [];
 	let end: string | undefined;
 	const ended = followJob(home, query, (line) => void lines.push(line)).then(
@@ -46,7 +48,7 @@ function record(home: string, id: string, files: Readonly<Record<string, string>
 	return folder;
 }
 
-test("a run as it happens: the agent's text, each tool call, the state, then the rest once it goes on, and its end", async () => {
+test("a run as it happens: the agent's text, each tool call, the state, then the rest once it goes on, and its end", async (t) => {
 	const gate = join(temporaryFolder(), "go");
 	const { home, jobs } = setup({
 		steps: [
@@ -60,7 +62,7 @@ test("a run as it happens: the agent's text, each tool call, the state, then the
 	const job = await jobs.spawn({ task: "Fix the README." });
 	const log = join(home, "jobs", job.id, "log");
 	await until("the tool calls in the log", () => existsSync(log) && readFileSync(log, "utf8").includes("bash npm test\n"));
-	const followed = follow(home, job.id.slice(-8));
+	const followed = follow(t, home, job.id.slice(-8));
 	const own = (line: string) => !line.startsWith("[arthur ");
 	await until("the state after the log", () => followed.lines.includes("state: working"));
 	assert.deepEqual(followed.lines.filter(own), ["> Reading first.", "> Then the tests.", "read README.md", "bash npm test", "state: working"]);
@@ -71,27 +73,32 @@ test("a run as it happens: the agent's text, each tool call, the state, then the
 	assert.match(followed.lines.at(-2) ?? "", /^\[arthur [^\]]+\] ended: finished$/, "the log's last line comes before the state that ends the run");
 });
 
-test("a run that ends blocked on the user ends the follow with its reason", async () => {
+test("a run that ends blocked on the user ends the follow with its reason", async (t) => {
 	const { home, jobs } = setup({ steps: [{ message: "Blocked: user may I drop the old table?" }] });
 	const job = await jobs.spawn({ task: "Go." });
-	const followed = follow(home, job.id);
+	const followed = follow(t, home, job.id);
 	await followed.ended;
 	assert.deepEqual([followed.end(), followed.lines.at(-1)], ["done", "state: blocked (user: may I drop the old table?)"]);
 	assert.ok(followed.lines.includes("> Blocked: user may I drop the old table?"));
 });
 
-test("an ended job prints its whole log and its state at once; a change of state or reason in a run is one line each; a record without a state waits", async () => {
+test("an ended job prints its whole log and its state at once; a change of state or reason in a run is one line each; a record without a state waits", async (t) => {
 	const home = temporaryFolder();
 	record(home, "2026-11-09-worker-0000000a", { log: "read README.md\n> Done.\n", state: "ended", reason: "stopped" });
-	const ended = follow(home, "0000000a");
+	const ended = follow(t, home, "0000000a");
 	await ended.ended;
 	assert.deepEqual([ended.end(), ended.lines], ["done", ["read README.md", "> Done.", "state: ended (stopped)"]]);
 	// No state yet, then held by a plugin: still in a run; only its end ends the follow.
 	const folder = record(home, "2026-11-09-worker-0000000b", {});
-	const held = follow(home, "0000000b");
+	const held = follow(t, home, "0000000b");
 	await until("the first state line", () => held.lines.length === 1);
 	writeFileSync(join(folder, "state"), "working");
 	await until("working", () => held.lines.at(-1) === "state: working");
+	// The same state written again under a new name, as a sweep's copy does: no second line.
+	writeFileSync(join(folder, ".state"), "working");
+	renameSync(join(folder, ".state"), join(folder, "state"));
+	appendFileSync(join(folder, "log"), "same\n");
+	await until("the line after the rewrite", () => held.lines.at(-1) === "same");
 	for (const [name, text] of [["hold", "the deploy"], ["reason", "dependency: the deploy"], ["state", "blocked"]] as const) writeFileSync(join(folder, name), text);
 	await until("held", () => held.lines.at(-1) === "state: blocked (dependency: the deploy)");
 	// A reason written before its state: told once the state is written too, as a move does.
@@ -103,13 +110,28 @@ test("an ended job prints its whole log and its state at once; a change of state
 	assert.equal(held.end(), undefined, "a held job is in its run");
 	for (const [name, text] of [["hold", ""], ["reason", "finished"], ["state", "ended"]] as const) writeFileSync(join(folder, name), text);
 	await held.ended;
-	assert.deepEqual([held.end(), held.lines], ["done", ["state: without a state", "state: working", "state: blocked (dependency: the deploy)", "marker", "state: blocked (dependency: the release)", "state: ended (finished)"]]);
+	assert.deepEqual([held.end(), held.lines], ["done", ["state: without a state", "state: working", "same", "state: blocked (dependency: the deploy)", "marker", "state: blocked (dependency: the release)", "state: ended (finished)"]]);
 });
 
-test("a line waits for its line break, a character split across two writes included", async () => {
+test("the end is told even when `state` changed but its stat reads as before, as when the move lands between the stat and the read", async (t) => {
+	const home = temporaryFolder();
+	const folder = record(home, "2026-11-09-worker-0000000e", { state: "working" });
+	const at = new Date("2026-11-09T08:00:00Z");
+	utimesSync(join(folder, "state"), at, at);
+	const followed = follow(t, home, "0000000e");
+	await until("working", () => followed.lines.at(-1) === "state: working");
+	// In one tick, so the watcher wakes once both are done: the same file, its time put back.
+	writeFileSync(join(folder, "reason"), "finished");
+	writeFileSync(join(folder, "state"), "ended");
+	utimesSync(join(folder, "state"), at, at);
+	await followed.ended;
+	assert.deepEqual([followed.end(), followed.lines], ["done", ["state: working", "state: ended (finished)"]]);
+});
+
+test("a line waits for its line break, a character split across two writes included", async (t) => {
 	const home = temporaryFolder();
 	const folder = record(home, "2026-11-09-worker-0000000c", { state: "working", log: "" });
-	const followed = follow(home, "0000000c");
+	const followed = follow(t, home, "0000000c");
 	const check = Buffer.from("✓");
 	appendFileSync(join(folder, "log"), Buffer.concat([Buffer.from("first\nhalf"), Buffer.from("line "), check.subarray(0, 2)]));
 	await until("the whole line", () => followed.lines.includes("first"));
@@ -119,12 +141,12 @@ test("a line waits for its line break, a character split across two writes inclu
 	assert.deepEqual(followed.lines, ["state: working", "first", "halfline ✓", "state: ended"]);
 });
 
-test("refused: an unknown id, and a record removed while it follows", async () => {
+test("refused: an unknown id, and a record removed while it follows", async (t) => {
 	const home = temporaryFolder();
 	mkdirSync(join(home, "jobs"));
 	await assert.rejects(followJob(home, "deadbeef", () => {}), { message: `deadbeef: no such job in ${join(home, "jobs")}` });
 	const folder = record(home, "2026-11-09-worker-0000000d", { state: "working" });
-	const followed = follow(home, "0000000d");
+	const followed = follow(t, home, "0000000d");
 	await until("its first line", () => followed.lines.length === 1);
 	rmSync(folder, { recursive: true });
 	await followed.ended;

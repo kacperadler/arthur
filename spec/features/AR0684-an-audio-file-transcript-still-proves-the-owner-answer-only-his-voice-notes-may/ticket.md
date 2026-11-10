@@ -34,3 +34,4 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0684 approved; the owner: "yes" (AR-D617)
+- 2026-11-10: Merge AR0684 once CI on its branch passes; the owner: "AR-D618: merge AR0684 once its CI passes" (AR-D618)

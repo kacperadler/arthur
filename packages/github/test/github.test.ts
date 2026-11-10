@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
@@ -54,16 +55,16 @@ function withEnv(t: TestContext, env: Readonly<Record<string, string | undefined
 
 type Project = { readonly name: string; readonly path: string; readonly prefix: string; readonly pieces?: { readonly github?: { readonly workflow: string } } };
 
-// The plugin set up on a fake host with `projects` and started; stopped at the end. `record` writes a job's record as the core
+// The plugin `make` makes set up on a fake host with `projects` and started; stopped at the end. `record` writes a job's record as the core
 // does, which the plugin reads through `host.jobs.list()`; `ci` runs `arthur ci` and gives its exit code and output.
-async function started(t: TestContext, projects: readonly Project[], options: GithubOptions, env: Readonly<Record<string, string>> = { ARTHUR_GITHUB_TOKEN: TOKEN }, fake?: FakeHost) {
+async function started(t: TestContext, projects: readonly Project[], options: GithubOptions, env: Readonly<Record<string, string>> = { ARTHUR_GITHUB_TOKEN: TOKEN }, fake?: FakeHost, make = github) {
 	const errors: string[] = [];
 	const out: string[] = [];
 	t.mock.method(console, "error", (text: string) => void errors.push(text));
 	t.mock.method(console, "log", (text: string) => void out.push(text));
 	const host = fake ?? fakeHost({ name: "github", options, env });
 	if (fake === undefined) host.provide("projects", () => projects);
-	const plugin = github(options);
+	const plugin = make(options);
 	await host.setup(plugin);
 	await plugin.start?.();
 	t.after(() => plugin.stop?.());
@@ -179,6 +180,28 @@ test("a passed run is told as ci-finished and wakes no one; a failed one on the 
 	await until("the failed run told", () => box.finished().length === 2);
 	assert.equal(box.messages().length, 1);
 	assert.match(box.messages()[0] ?? "", /^CI run 62, attempt 1, of ci.yml in shop ended failure on arthur\/one /);
+});
+
+test("a failed run's Why line is the wording of roles/coordinator/ci-failed-worker.md beside the plugin, each placeholder filled in", async (t) => {
+	// A copy of the package whose roles/coordinator/ holds this test's wording; @arthur/core resolves to this checkout's.
+	const copy = temporaryFolder();
+	for (const part of ["src", "docs"]) cpSync(fileURLToPath(new URL(`../${part}`, import.meta.url)), join(copy, "github", part), { recursive: true });
+	mkdirSync(join(copy, "github/roles/coordinator"), { recursive: true });
+	writeFileSync(join(copy, "github/roles/coordinator/ci-failed-worker.md"), "Why: {branch} of {project}, ask {job}; {other}\n");
+	mkdirSync(join(copy, "node_modules/@arthur"), { recursive: true });
+	symlinkSync(fileURLToPath(new URL("../../core", import.meta.url)), join(copy, "node_modules/@arthur/core"));
+	// Its path is known only at run time, so it cannot be a static import.
+	const { github: copied } = (await import(pathToFileURL(join(copy, "github/src/github.ts")).href)) as { readonly github: typeof github };
+	const api = await fakeGithub(t);
+	const shop = repository();
+	const failed: FakeRun = { id: 63, sha: shop.commit("arthur/one"), branch: "arthur/one", status: "in_progress", conclusion: null };
+	api.runs["acme/shop/ci.yml"] = [failed];
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl), undefined, undefined, copied);
+	box.record("2026-01-01-worker-0000000b", "shop", "arthur/one");
+	await until("a poll", () => api.count(PATH) >= 2);
+	[failed.status, failed.conclusion] = ["completed", "failure"];
+	await until("the failed run's wake", () => box.messages()[0]);
+	assert.deepEqual(box.messages(), [`CI run 63, attempt 1, of ci.yml in shop ended failure on arthur/one (${failed.sha.slice(0, 7)}): https://github.com/acme/shop/actions/runs/63\nWhy: arthur/one of shop, ask 2026-01-01-worker-0000000b; {other}`]);
 });
 
 test("a commit with no run of its own has the run of the nearest commit before it, for the poll and arthur ci; a branch not pushed yet has none, main's run is main's alone; wakeOn [] wakes nobody", async (t) => {

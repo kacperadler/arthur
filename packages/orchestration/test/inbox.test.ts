@@ -548,12 +548,12 @@ test("an @<path> in a message's text reaches the agent as that text with a word 
 	put(2, { channel: "telegram", text });
 	handlers.get("tool_result")?.({}, ctx);
 	put(3, { channel: "telegram", text });
-	const resumed = handlers.get("session_stop")?.({}, ctx) as { additionalContext: string };
+	const resumed = handlers.get("session_stop")?.({}, ctx) as { continue: boolean; additionalContext: string };
 	assert.deepEqual(sent, [
 		[`[Arthur]\n${quoted}\n\n${ARTHUR}`, { attribution: "agent" }],
 		[`[via telegram, sent during this turn]\n${quoted}`, { deliverAs: "aside" }],
 	]);
-	assert.equal(resumed.additionalContext, `[via telegram, sent during this turn, after your last tool call]\n${quoted}\n\n${AGAIN}`);
+	assert.deepEqual(resumed, { continue: true, additionalContext: `[via telegram, sent during this turn, after your last tool call]\n${quoted}\n\n${AGAIN}` });
 	for (const content of [...sent.map((args) => String(args[0])), resumed.additionalContext]) assert.deepEqual(mentions(content), [], content);
 });
 

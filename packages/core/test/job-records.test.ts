@@ -494,12 +494,16 @@ test("the arthur binary lists, stops, steers, continues and prunes a job by its 
 	assert.equal(arthur("continue", short, "Go on.").stdout, `${id}: continued\n`);
 	assert.deepEqual(events(join(root, ".arthur"), "job-steered"), [{ id, kind: "worker", text: "Mind the tests.", via: "steer" }, { id, kind: "worker", text: "Go on.", via: "continue" }]);
 	assert.equal(arthur("stopall").stdout, `${id}: stopped\n`);
+	const followed = arthur("jobs", "--follow", short);
+	assert.deepEqual([followed.status, followed.stdout.split("\n").slice(-2)], [0, ["state: ended (stopped)", ""]], "an ended job's follow ends at once");
 	assert.equal(arthur("prune", short).stdout, `${id}: worktree ${join(root, "..", ".arthur-worktrees", id)} removed; branch arthur/${id} deleted; record deleted\n`);
 	for (const [args, problem] of [
-		[["jobs", "all"], "expected no arguments, got 1 arguments\nusage: arthur jobs [--state <state>]"],
-		[["jobs", "--state", "running"], "--state needs one of blocked, working, idle, ended, got running\nusage: arthur jobs [--state <state>]"],
-		[["jobs", "--state"], "--state needs a value\nusage: arthur jobs [--state <state>]"],
-		[["jobs", "--state", "idle", "--state", "ended"], "--state given twice\nusage: arthur jobs [--state <state>]"],
+		[["jobs", "all"], "expected no arguments, got 1 arguments\nusage: arthur jobs [--state <state> | --follow <id>]"],
+		[["jobs", "--state", "running"], "--state needs one of blocked, working, idle, ended, got running\nusage: arthur jobs [--state <state> | --follow <id>]"],
+		[["jobs", "--state"], "--state needs a value\nusage: arthur jobs [--state <state> | --follow <id>]"],
+		[["jobs", "--state", "idle", "--state", "ended"], "--state given twice\nusage: arthur jobs [--state <state> | --follow <id>]"],
+		[["jobs", "--follow"], "--follow needs a value\nusage: arthur jobs [--state <state> | --follow <id>]"],
+		[["jobs", "--follow", short, "--state", "ended"], "--follow goes without --state\nusage: arthur jobs [--state <state> | --follow <id>]"],
 		[["stopall", "now"], "expected no arguments, got 1 arguments\nusage: arthur stopall"],
 		[["prune", "--force"], "unknown flag --force\nusage: arthur prune (<id>... | --all)"],
 	] as const) assert.deepEqual([arthur(...args).status, arthur(...args).stderr], [2, `arthur ${args[0]}: ${problem}\n`]);

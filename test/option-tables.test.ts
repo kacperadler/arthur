@@ -24,6 +24,8 @@ import { findings } from "@arthur/findings";
 import * as findingsFile from "@arthur/findings/options";
 import { github } from "@arthur/github";
 import * as githubFile from "@arthur/github/options";
+import { herdr } from "@arthur/herdr";
+import * as herdrFile from "@arthur/herdr/options";
 import { listen } from "@arthur/listen";
 import * as listenFile from "@arthur/listen/options";
 import { machines } from "@arthur/machines";
@@ -84,6 +86,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	video: [videoFile, video()],
 	stats: [statsFile, stats()],
 	activity: [activityFile, activity()],
+	herdr: [herdrFile, herdr()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one
@@ -106,7 +109,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	}
 	assert.deepEqual(
 		Object.entries(PLUGINS).flatMap(([name, [file]]) => (everyOption(file.table).length === 0 ? [name] : [])),
-		["nvm", "commit-rules", "findings", "stats"],
+		["nvm", "commit-rules", "findings", "stats", "herdr"],
 		"the plugins without options are checked here too, and only they have an empty table",
 	);
 	assert.deepEqual(
@@ -115,7 +118,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	);
 	assert.deepEqual(
 		Object.values(PLUGINS).flatMap(([file]) => file.tools.map((tool) => tool.name)),
-		["tmux", "curl", "ffmpeg", "ffmpeg"],
+		["tmux", "curl", "ffmpeg", "ffmpeg", "herdr"],
 	);
 });
 

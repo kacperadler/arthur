@@ -4,9 +4,18 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-10
 
+### Added
+
+- AR0670 A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar (31286fa2)
+
 ### Fixed
 
 - AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
+- AR0668 A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes (06f14a26)
+
+### Changed
+
+- AR0548 The coordinator instructions built as text in TypeScript move into Markdown procedures (b2152c78)
 
 ## 2026-11-09
 

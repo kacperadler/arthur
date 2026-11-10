@@ -62,3 +62,4 @@ Out:
 
 ## Decisions
 - 2026-11-10: Source: audit spec/quality/2026-11-10.md
+- 2026-11-10: AR0673 approved; the owner: "approve all five" (AR-D610)

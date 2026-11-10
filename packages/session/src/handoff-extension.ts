@@ -90,11 +90,10 @@ export default function handoffs(pi: ExtensionApi): void {
 			if (busy >= request.waitSeconds * 1000) return finish(request, `${compact ? "compact: skipped, " : "handoff not written: "}session busy for ${Math.floor(busy / 1000)} s`);
 			if (!settled) return;
 			[phase, before, sent] = ["handoff", changed(), Date.now()];
-			const next = compact
-				? "Your conversation is compacted after this turn"
-				: `This conversation ends after this turn: the coordinator restarts${request.then === "fresh" ? " in a fresh conversation" : " and goes on with this one"}`;
+			// The request's wording, one file per `then` (request.ts checks it is one of them), the handoff's path filled in.
+			const ask = new URL(`../roles/coordinator/handoff-${request.then}.md`, import.meta.url);
 			try {
-				pi.sendUserMessage(`[Arthur] ${next}. First write your handoff to ${handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The ${compact ? "compacted" : "next"} conversation starts by reading it. ${ARTHUR}`, { attribution: "agent" });
+				pi.sendUserMessage(`[Arthur] ${readFileSync(ask, "utf8").trim().replaceAll("{handoff}", () => handoff)} ${ARTHUR}`, { attribution: "agent" });
 			} catch (error) {
 				failed(`the request did not reach the agent: ${reason(error)}`);
 			}

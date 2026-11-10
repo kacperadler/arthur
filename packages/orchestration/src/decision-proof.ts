@@ -11,9 +11,9 @@ function pattern(words: string): RegExp {
 }
 
 // His own words: a part's line (message-parts.ts, docs/listen.md, a channel's `[<kind> ... not saved: ...]`) holds a file name the
-// sender chose, so of it only a transcript counts, `[voice|audio <seconds> s] <transcript> (<path>)`.
+// sender chose, so of it only a transcript counts, `[voice|audio <seconds> s] <transcript> (<path>)`, ending in its path as listen writes it.
 function said(text: string): string {
-	const own = (line: string) => /^\[(?:voice|audio) \d+(?:\.\d+)? s\] (.*?)(?: \(\/.*\))?$/.exec(line)?.[1] ?? "";
+	const own = (line: string) => /^\[(?:voice|audio) \d+(?:\.\d+)? s\] (.*?) \(\/.*\)$/.exec(line)?.[1] ?? "";
 	return text.split("\n").map((line) => (/^\[(?:photo|video|voice|audio|file)\b/.test(line) ? own(line) : line)).join("\n");
 }
 

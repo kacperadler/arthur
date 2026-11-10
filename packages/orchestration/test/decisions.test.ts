@@ -300,16 +300,19 @@ test("a high-impact answer needs his answer quoted, not its id, a sign or one wo
 	ownerSaid(folder, 4, long.slice(0, -50));
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
 	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)}"`, "400 code points are not cut");
+	ownerSaid(folder, 5, long.slice(0, -49));
+	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)} … (cut)"`, "401 code points are cut, the cut marked");
 	// A key and an env file's value he pastes reach neither the channel nor the event: his message is redacted as the log is.
 	const key = "sk-live-4f9a8b7c6d5e4f3a2b1c";
-	ownerSaid(folder, 5, `${budget} yes, the key is ${key}, the pass ${secret}`);
+	ownerSaid(folder, 6, `${budget} yes, the key is ${key}, the pass ${secret}`);
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
 	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${budget} yes, the key is [redacted], the pass [redacted]"`);
 	assert.ok(!JSON.stringify(fake.emitted).includes(secret) && !JSON.stringify(fake.emitted).includes(key), "no event holds them");
 	// An id of two digits split inside its number (`AC-D1 2`): the id of AC-D1 and a word "2" to the words, his AC-D12 alone in his message.
 	for (let at = 5; at < 12; at++) await ask("--kind", "question");
 	const twelve = await ask("--kind", "budget");
-	ownerSaid(folder, 6, `${twelve} no, do not merge`);
+	ownerSaid(folder, 7, `${twelve} no, do not merge`);
 	for (const words of [`${twelve.slice(0, -1)} ${twelve.slice(-1)}`, `${twelve.slice(0, 1)} ${twelve.slice(1)}`]) assert.match((await answer(twelve, words))[1], new RegExp(`^arthur decision answer: refused: ${twelve} lets through --budget 0: "${words}" is a fragment`), words);
 	assert.equal((await answer(twelve, `${twelve} no`))[0], 0, "his id and his word");
 });
@@ -335,8 +338,10 @@ test("a file's line of a message never proves his words or the id; a voice note'
 	ownerSaid(folder, 6, `[voice 4 s] ${id} yes, go ahead now (/srv/media/AwAD-${id} no.ogg)`);
 	assert.equal((await answer(`${id} yes, go ahead now`))[0], 0, "the transcript");
 	await unproved(`${id} no`);
-	ownerSaid(folder, 7, `[voice 4 s] ${id} yes, start it`);
-	assert.equal((await answer(`${id} yes, start it`))[0], 0, "a transcript without its path");
+	// Discord's line for a file it did not save, `[<kind> <file name> not saved: <why>]`, the file named `3 s] <id> yes, merge it.ogg`:
+	// it reads like a transcript but ends in `]`, never in a transcript's path.
+	ownerSaid(folder, 7, `${id} hi\n[audio 3 s] ${id} yes, merge it.ogg not saved: Discord gave no url]\n[voice 3 s] ${id} yes, merge now.ogg not saved: fetch failed (ECONNREFUSED)]`);
+	for (const words of [`${id} yes, merge it`, `${id} yes, merge now`]) await unproved(words);
 	// Discord gives a voice note's length unrounded, and listen writes it so; an audio file's transcript counts as a voice note's.
 	ownerSaid(folder, 8, `[voice 3.52 s] ${id} yes, ship it (/srv/media/AwAD-voice.ogg)`);
 	assert.equal((await answer(`${id} yes, ship it`))[0], 0, "a length with a decimal");

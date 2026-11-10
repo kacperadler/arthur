@@ -5395,7 +5395,7 @@
     "title": "A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes",
     "status": "in-progress",
     "path": "spec/features/AR0668-a-decision-answer-can-quote-only-the-id-and-a-dash-from-the-owner-message-so-a/ticket.md",
-    "updated": "2026-11-10T07:45:28.366Z",
+    "updated": "2026-11-10T08:37:34.181Z",
     "after": [
       "AR0664"
     ]
@@ -5413,9 +5413,9 @@
   {
     "id": "AR0670",
     "title": "A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0670-a-herdr-plugin-each-running-job-is-a-pane-in-herdr-on-the-server-with-its-live/ticket.md",
-    "updated": "2026-11-10T07:13:11.127Z"
+    "updated": "2026-11-10T08:04:28.021Z"
   },
   {
     "id": "AR0671",

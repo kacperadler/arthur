@@ -21,6 +21,6 @@ Refused, exit code 1, on stderr, `refused: <why>`:
 - a text in a language `voices` gives no voice: `no voice for <pl | en> in voices`;
 - `piper` or `ffmpeg` not on `PATH`, or the voice's model or its config missing: `<piper | ffmpeg> not found on PATH; see arthur doctor`, or `no file <path>; see arthur doctor`;
 - piper or ffmpeg failing: `<piper | ffmpeg>: <the last line it printed on stderr>`, or `<piper | ffmpeg>: timed out after <timeoutSeconds> s`;
-- a `--out` file that cannot be written (its folder missing): Node's error, and the voice note stays in `.arthur/speak/`.
+- a `--out` file that cannot be written (its folder missing): Node's error, and the voice note is removed, not left in `.arthur/speak/`.
 
 Exit code 2 for no text, an empty `--out`, or an option other than `--out`. Without the speak plugin enabled, `arthur` has no `say` command.

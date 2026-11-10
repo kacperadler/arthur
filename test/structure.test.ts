@@ -49,7 +49,7 @@ const BUDGETS = {
 
 	session: 953,
 
-	speak: 243,
+	speak: 248,
 
 	stats: 200,
 

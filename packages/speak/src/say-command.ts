@@ -30,9 +30,14 @@ export function sayCommand(host: Pick<Host, "call">): Command {
 			try {
 				path = await host.call<Promise<string>>("speak.say", text);
 				if (out !== undefined) {
-					copyFileSync(path, resolve(out));
-					rmSync(path);
+					const spoken = path;
 					path = resolve(out);
+					// Moved, or on a failed copy removed: either way no copy stays in .arthur/speak/.
+					try {
+						copyFileSync(spoken, path);
+					} finally {
+						rmSync(spoken);
+					}
 				}
 			} catch (error) {
 				console.error(`refused: ${(error as Error).message}`);

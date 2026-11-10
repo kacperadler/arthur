@@ -227,6 +227,7 @@ test("arthur say prints the voice note's path, or with --out writes it there; re
 	const gone = join(temporaryFolder(), "no", "such", "reply.ogg");
 	const [failed, said] = await cli(loaded, "Hello.", "--out", gone);
 	assert.deepEqual([failed, String(said).startsWith(`! refused: ENOENT: no such file or directory, copyfile`)], [1, true]);
+	assert.deepEqual([loaded.left().length, existsSync(gone)], [1, false], "a failed --out leaves no voice note behind");
 	assert.deepEqual(await cli(loaded, "a".repeat(21)), [1, "! refused: the text has 21 characters, over maxChars 20"]);
 	assert.deepEqual(await cli(loaded, "piper-fails"), [1, "! refused: piper: ValueError: Unable to find voice"]);
 	for (const args of [[], [""], [" "], ["Hello.", "--out", ""], ["--out", out]]) assert.deepEqual(await cli(loaded, ...args), [2, "! usage: arthur say <text> [--out <file>]"], JSON.stringify(args));

@@ -452,3 +452,13 @@ test("arthur doctor names, one non-critical line each, a piece no loaded plugin 
 	assert.deepEqual(await lines([reader("uptime"), reader("dokploy"), reader("uptim")]), []);
 	assert.deepEqual(await lines([reader("dokploy"), fake([], "uptime"), reader("uptim")]), [missing("blog", "uptime")], "a loaded plugin without piece reads none");
 });
+
+test("owner asks the one plugin that provides decision.owner with the request and answers what it answers (AR0665)", async () => {
+	const asked: unknown[] = [];
+	const loaded = await loadPlugins(config([fake([], "orchestration", { setup: (host) => host.provide("decision.owner", (request: { readonly id: string }) => (asked.push(request), request.id === "DM-D1" ? "" : `${request.id} is not the owner's`)) })]));
+	const request = { id: "DM-D1", what: "arthur ticket status DM0001 planned", kind: "plan", ticket: "DM0001", use: "planned DM0001" };
+	assert.deepEqual([loaded.owner(request), loaded.owner({ ...request, id: "DM-D2" })], ["", "DM-D2 is not the owner's"]);
+	assert.deepEqual(asked, [request, { ...request, id: "DM-D2" }]);
+	const bare = await loadPlugins(config([fake([], "orchestration")]));
+	assert.throws(() => bare.owner(request), { message: 'plugin core: call("decision.owner"): no plugin provides it' });
+});

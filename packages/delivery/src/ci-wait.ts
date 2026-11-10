@@ -84,7 +84,7 @@ export function ciEnded(host: Host, { project, branch, below, run }: CiEnd, forw
 		appendFileSync(file, `${key} ended\n`);
 		const text = ended(wait, run, cancelled);
 		if (run.conclusion !== "success" || !forward(project, id, text, `ci ${key}`))
-			host.events.emit("coordinator-message", { text: run.conclusion === "success" ? `${text} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${id} on his word` : text });
+			host.events.emit("coordinator-message", { text: run.conclusion === "success" ? `${text} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${id} --decision <the owner's decision id>` : text });
 		return true;
 	}
 	return false;

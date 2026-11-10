@@ -172,6 +172,28 @@ test("a merge decision lets through only the flags its --what names: one for --u
 	assert.match(call({ ...asked, id: unreviewed }), /decisions\.jsonl line \d+ is not a decision record \(options or what not a list of texts\)/, "a hand-edited what is no list");
 });
 
+test("a plain merge takes any owner's merge decision of its ticket, flags or none; a move to planned his plan decision of that ticket, the same move again passing it (AR0665)", async (t) => {
+	const { owners, call, used, fake } = await setup(t);
+	const plain = { what: `arthur merge ${JOB}`, ticket: "AC0001", job: JOB };
+	assert.equal(call({ ...plain, id: "" }), `arthur merge ${JOB} needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then arthur merge ${JOB} --decision <its id>`);
+	const none = await owners("merge", "--ticket", "AC0001");
+	assert.equal(call({ ...plain, id: none }), "", "a merge decision without --what");
+	const flagged = await owners("merge", "--ticket", "AC0001", "--what", "--no-ci");
+	assert.equal(call({ ...plain, id: flagged }), "", "one for --no-ci lets the merge with CI through too");
+	assert.equal(used(none), `merge ${JOB}`);
+	const planned = (id: string, ticket = "AC0001") => fake.host.call<string>("decision.owner", { id, what: `arthur ticket status ${ticket} planned`, kind: "plan", ticket, use: `planned ${ticket}` });
+	assert.equal(planned(""), "arthur ticket status AC0001 planned needs the owner's decision: arthur decision ask --kind plan --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then arthur ticket status AC0001 planned --decision <its id>");
+	const question = await owners("question", "--ticket", "AC0001");
+	assert.equal(planned(question), `${question} is a question question, not plan: arthur ticket status AC0001 planned takes a plan decision`);
+	const approval = await owners("plan", "--ticket", "AC0001");
+	assert.equal(planned(approval, "AC0002"), `${approval} is of ticket AC0001, not of ticket AC0002`);
+	assert.equal(used(approval), undefined, "a refusal uses no decision");
+	assert.equal(planned(approval), "");
+	assert.equal(used(approval), "planned AC0001");
+	assert.equal(planned(approval), "", "the same move tried again, after the board refused it");
+	assert.equal(call({ ...plain, id: none, job: "2026-03-04-worker-0000eeee", use: "merge 2026-03-04-worker-0000eeee" }), `${none} was used already (merge ${JOB}); ask the owner again`);
+});
+
 test("--budget 0 on a paid spawn starts only with the owner's budget decision of its ticket, or of no ticket for a spawn of none, once", async (t) => {
 	const { fake, owners, used } = await setup(t);
 	const spawn = (task: string, decision: string) => fake.host.jobs.spawn({ task, budgetUsd: 0, decision });

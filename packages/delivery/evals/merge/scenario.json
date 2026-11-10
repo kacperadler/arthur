@@ -8,6 +8,14 @@
 			"output": "ended\nSH0006  review  ended  10:03  $0.38/$2.00  2b3c4d5e  finished\nSH0006  worker  ended  09:12  $1.12/$2.00  8e9f0a1b  finished"
 		},
 		{
+			"match": "^arthur decision ask ",
+			"output": "SH-D41"
+		},
+		{
+			"match": "^arthur decision answer ",
+			"output": "SH-D41 answered: Merge SH0006 into main; its line is under the Decisions of SH0006"
+		},
+		{
 			"match": "^arthur merge ",
 			"output": "merged arthur/2026-10-22-worker-8e9f0a1b into main: 5f6a7b8\nnpm ci: passed.\nnpm run check: passed.\nnpm test: 52/52 passed.\n- Tickets from findings: SH0016 (F1).\nwrote spec/features/SH0006-count-the-items-per-order-in-the-sales-report/outcome.md\nSH0006 merged\nwrote CHANGELOG.md: 3 merged tickets\ncommitted spec: SH0006 merged: 9c0d1e2\nnothing pushed: no plugin provides github.push\n2026-10-22-worker-8e9f0a1b: worktree /home/owner/.arthur-worktrees/2026-10-22-worker-8e9f0a1b removed; branch arthur/2026-10-22-worker-8e9f0a1b deleted; record deleted\n2026-10-22-review-2b3c4d5e: worktree /home/owner/.arthur-worktrees/2026-10-22-review-2b3c4d5e removed; record deleted\n\n# After a merge that went in\n\n`arthur merge` printed this after its last step (`arthur merge --help`). In the same turn:\n\n1. Tell the owner the tickets made from findings, each with its title and a plain sentence on what it would change.\n2. On `spec: <id> merged not committed: <why>`, tell the owner the line; once he has fixed what it names, commit the paths it lists. On `unblocked: …`, spawn those tickets at once: their approval covered the order.",
 			"files": {
@@ -21,7 +29,8 @@
 	],
 	"expect": {
 		"calls": [
-			"^arthur merge (\\S+-)?8e9f0a1b$"
+			"^arthur decision ask (?=.*--kind merge\\b)(?=.*--ticket SH0006\\b)",
+			"^arthur merge (\\S+-)?8e9f0a1b --decision SH-D41$"
 		],
 		"never": [
 			"--unreviewed",

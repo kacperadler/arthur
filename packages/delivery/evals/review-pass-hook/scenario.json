@@ -1,13 +1,13 @@
 {
 	"turn": {
-		"arthur": "Review 2026-10-22-review-3a4b5c6d says PASS on SH0012, arthur/2026-10-22-worker-c9d0e1f2 at 4e5f6a7. shop merges on its own (autoMerge), so delivery ran arthur merge --auto 2026-10-22-worker-c9d0e1f2: exit 1, it did not go in; act on its last line as arthur merge --help, \"What the coordinator does with the result\", says. What it printed:\n\narthur merge: --auto merges no held path: arthur/2026-10-22-worker-c9d0e1f2 changes roles/support.md (a role); its merge waits for the owner: arthur merge 2026-10-22-worker-c9d0e1f2 on his word; main is unchanged",
+		"arthur": "Review 2026-10-22-review-3a4b5c6d says PASS on SH0012, arthur/2026-10-22-worker-c9d0e1f2 at 4e5f6a7. shop merges on its own (autoMerge), so delivery ran arthur merge --auto 2026-10-22-worker-c9d0e1f2: exit 1, it did not go in; act on its last line as arthur merge --help, \"What the coordinator does with the result\", says. What it printed:\n\narthur merge: --auto merges no held path: arthur/2026-10-22-worker-c9d0e1f2 changes roles/support.md (a role); its merge waits for the owner: arthur merge 2026-10-22-worker-c9d0e1f2 --decision <the owner's decision id>; main is unchanged",
 		"plugin": "delivery"
 	},
 	"stub": [
 		{
 			"match": "^arthur merge ",
 			"exit": 1,
-			"output": "arthur merge: --auto merges no held path: arthur/2026-10-22-worker-c9d0e1f2 changes roles/support.md (a role); its merge waits for the owner: arthur merge 2026-10-22-worker-c9d0e1f2 on his word; main is unchanged"
+			"output": "arthur merge: --auto merges no held path: arthur/2026-10-22-worker-c9d0e1f2 changes roles/support.md (a role); its merge waits for the owner: arthur merge 2026-10-22-worker-c9d0e1f2 --decision <the owner's decision id>; main is unchanged"
 		}
 	],
 	"expect": {

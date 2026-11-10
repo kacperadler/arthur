@@ -41,4 +41,5 @@ Out:
 
 ## Decisions
 - 2026-10-28: AR0548 approved, after AR0539; the owner: "AR-D250 2" (AR-D253)
+- 2026-11-10: Merge it once it merges cleanly and CI is green; the owner: "What can be merge, just merge it" (AR-D601)
 

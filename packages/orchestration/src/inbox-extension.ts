@@ -36,7 +36,7 @@ const KEEP_MS = 7 * 24 * 3_600_000;
 const QUIET_MS = 30_000;
 const RESTART = "sent before a restart; no reply to it was sent";
 const UNANSWERED = "sent before; its turn ended without a reply";
-const AGAIN = "Your reply above has not been sent; write one reply that answers this together with everything your reply above answered.";
+const AGAIN = new URL("../roles/coordinator/reply-not-sent.md", import.meta.url);
 
 // The wait before the messages of the `failed`th turn in a row without a reply go again: none, then 5 s doubling to 5 min; a new owner message ends it.
 export const pause = (failed: number) => (failed < 2 ? 0 : Math.min(5000 * 2 ** (failed - 2), 300_000));
@@ -185,7 +185,7 @@ export default function inbox(pi: ExtensionApi): void {
 		const { content } = compose(names, "sent during this turn, after your last tool call");
 		resumed = names;
 		handed.push(...names);
-		return { continue: true, additionalContext: `${content}\n\n${AGAIN}` };
+		return { continue: true, additionalContext: `${content}\n\n${readFileSync(AGAIN, "utf8").trim()}` };
 	});
 	pi.on("agent_end", (event, ctx) => {
 		if (!ctx.hasUI) return;

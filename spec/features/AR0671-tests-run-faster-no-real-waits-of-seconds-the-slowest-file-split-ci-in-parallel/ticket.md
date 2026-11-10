@@ -47,4 +47,5 @@ Out:
 
 ## Decisions
 - 2026-11-09: AR0671 approved; its plan runs next when a slot frees, before the Docker work; the owner: "AR-D593 - 1" (AR-D593)
+- 2026-11-10: Plan approved by the owner: plan.md at 7c960f32; the owner: "AR-D596 - approve" (AR-D596)
 

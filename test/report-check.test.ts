@@ -19,9 +19,8 @@ const page = (style: string, body: string) =>
 	`<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>T</title><style>${style}</style></head><body>${body}</body></html>\n`;
 const SHOTS = "screenshots, look at each before sending: ";
 
-// The top and bottom rows of a PNG as Chrome writes one (8 bits, RGB or RGBA, not interlaced), each as the page's width in
-// it: the pixels before the window's grey (#808080) right of the frame, every pixel after them grey; -1 when they are mixed.
-function frame(png: Buffer): [number, number] {
+// The rows of a PNG as Chrome writes one (8 bits, RGB or RGBA, not interlaced), each row its bytes, `bpp` of them a pixel.
+function decode(png: Buffer): { width: number; bpp: number; rows: Uint8Array[] } {
 	const [width, height, bpp] = [png.readUInt32BE(16), png.readUInt32BE(20), png[25] === 6 ? 4 : 3];
 	const idat: Buffer[] = [];
 	for (let at = 8; at < png.length; at += png.readUInt32BE(at) + 12) if (png.toString("latin1", at + 4, at + 8) === "IDAT") idat.push(png.subarray(at + 8, at + 8 + png.readUInt32BE(at)));
@@ -39,12 +38,19 @@ function frame(png: Buffer): [number, number] {
 		}
 		rows.push(row);
 	}
+	return { width, bpp, rows };
+}
+
+// The top and bottom rows of a screenshot, each as the page's width in it: the pixels before the window's grey (#808080)
+// right of the frame, every pixel after them grey; -1 when they are mixed.
+function frame(png: Buffer): [number, number] {
+	const { width, bpp, rows } = decode(png);
 	const edge = (row: Uint8Array) => {
 		const grey = Array.from({ length: width }, (_, x) => [0, 1, 2].every((n) => row[x * bpp + n] === 128));
 		const first = grey.indexOf(true);
 		return first === -1 ? width : grey.slice(first).every(Boolean) ? first : -1;
 	};
-	return [edge(rows[0]!), edge(rows[height - 1]!)];
+	return [edge(rows[0]!), edge(rows.at(-1)!)];
 }
 
 // The command as the file writes it, `<page>` the page's path, from the repository's root, in `env`; `files` beside the page.
@@ -100,6 +106,23 @@ test("a page of the base style and every component passes at 420 px, with one sc
 	assert.deepEqual([code, lines.length], [0, 1], lines.join("\n"));
 	assert.match(lines[0] ?? "", /^ok: .*page\.html at 420 px: \d+ texts at 4\.5:1 or more against their declared background, nothing scrolls sideways$/);
 	assert.deepEqual(shots, [{ name: "page.html.420px/1.png", width: 500, height: 1500, page: [420, 420] }], "the page 420 px wide, top to bottom, grey right of it");
+});
+
+// AR0678: the number tiles' lines, read off the 420 px screenshot (two columns of tiles), as the thickness of each run of ink
+// down a column of pixels inside each column of tiles, and across a row of pixels just under each row's top line.
+test("number tiles draw each line once, 2 px, and frame no empty cell of the last row", skip, () => {
+	const lines = (tiles: number) => {
+		const { code, pngs } = check(page(STYLE, `<main><div class="nums">${"<div><b>44</b><span>steers</span></div>".repeat(tiles)}</div></main>`));
+		assert.equal(code, 0);
+		const { bpp, rows } = decode(pngs[0]!);
+		const ink = (x: number, y: number) => [0, 1, 2].every((c) => (rows[y]![x * bpp + c] ?? 255) < 64);
+		const runs = (dark: readonly boolean[]) => dark.flatMap((on, at) => (on && !dark[at - 1] ? [[at, dark.slice(at).indexOf(false)] as const] : []));
+		const left = runs(rows.map((_, y) => ink(20, y)));
+		const across = left.slice(0, -1).map(([top, size]) => runs(Array.from({ length: 420 }, (_, x) => ink(x, top + size + 5))).map(([, size]) => size));
+		return { left: left.map(([, size]) => size), right: runs(rows.map((_, y) => ink(390, y))).map(([, size]) => size), across };
+	};
+	assert.deepEqual(lines(6), { left: [2, 2, 2, 2], right: [2, 2, 2, 2], across: [[2, 2, 2], [2, 2, 2], [2, 2, 2]] }, "3 full rows: every line 2 px");
+	assert.deepEqual(lines(5), { left: [2, 2, 2, 2], right: [2, 2, 2], across: [[2, 2, 2], [2, 2, 2], [2, 2]] }, "no line under or right of the last row's empty cell");
 });
 
 test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run's slices are replaced", skip, () => {

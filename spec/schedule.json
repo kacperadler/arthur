@@ -62,5 +62,12 @@
     "action": {
       "message": "Morning (AR-D595): stop starting work, run arthur silent off, build the night report in /home/kacper/arthur-reports/2026-11-10.html (criteria report.md: per merged or progressed ticket Before/Now/What you notice; still open with decision ids; numbers incl. Claude 7 Day usage), check it, send it with arthur send, and reply with the summary."
     }
+  },
+  {
+    "id": "omp-update-2026-11-10",
+    "at": "2026-11-10T23:30",
+    "action": {
+      "message": "AR-D624 (owner approved): update OMP from 18.3.0 to 18.18.6 now if no job runs (else wait until none does, before 03:00): `omp update`, check `omp --version` and `npx arthur doctor`, then spawn one small test job (e.g. AR0683 or a read-only task) and confirm it runs and ends normally. If anything breaks, roll back: `npm i -g @oh-my-pi/pi-coding-agent@18.3.0` (or the way omp was installed in ~/.local/bin), and tell the owner. Then tell him the result in one line."
+    }
   }
 ]

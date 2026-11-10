@@ -4365,13 +4365,11 @@
   {
     "id": "AR0548",
     "title": "The coordinator instructions built as text in TypeScript move into Markdown procedures",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0548-the-coordinator-instructions-built-as-text-in-typescript-move-into-markdown/ticket.md",
-    "updated": "2026-10-28T16:43:32.585Z",
+    "updated": "2026-11-10T07:28:07.511Z",
     "after": [
-      "AR0537",
-      "AR0538",
-      "AR0539"
+      "AR0668"
     ]
   },
   {
@@ -4413,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-10-28T20:58:36.682Z",
+    "updated": "2026-11-10T02:42:46.922Z",
     "after": [
       "AR0554"
     ]
@@ -5195,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-09T21:37:16.765Z",
+    "updated": "2026-11-10T14:58:45.184Z",
     "after": [
       "AR0644"
     ]
@@ -5368,9 +5366,9 @@
   {
     "id": "AR0665",
     "title": "Ticket approval and a plain merge need a recorded owner decision",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
-    "updated": "2026-11-09T09:56:58.072Z",
+    "updated": "2026-11-10T06:55:56.132Z",
     "after": [
       "AR0668"
     ]
@@ -5395,9 +5393,9 @@
   {
     "id": "AR0668",
     "title": "A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0668-a-decision-answer-can-quote-only-the-id-and-a-dash-from-the-owner-message-so-a/ticket.md",
-    "updated": "2026-11-09T22:20:53.483Z",
+    "updated": "2026-11-10T10:30:02.196Z",
     "after": [
       "AR0664"
     ]
@@ -5415,9 +5413,9 @@
   {
     "id": "AR0670",
     "title": "A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0670-a-herdr-plugin-each-running-job-is-a-pane-in-herdr-on-the-server-with-its-live/ticket.md",
-    "updated": "2026-11-09T22:26:40.488Z"
+    "updated": "2026-11-10T10:35:39.536Z"
   },
   {
     "id": "AR0671",
@@ -5425,5 +5423,134 @@
     "status": "planned",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
     "updated": "2026-11-09T20:39:15.428Z"
+  },
+  {
+    "id": "AR0672",
+    "title": "`arthur plugin new` writes a package without the release version, so every new plugin fails `npm test` until it is edited by hand",
+    "status": "planned",
+    "path": "spec/features/AR0672-arthur-plugin-new-writes-a-package-without-the-release-version-so-every-new/ticket.md",
+    "updated": "2026-11-10T07:19:26.749Z",
+    "after": [
+      "AR0673"
+    ]
+  },
+  {
+    "id": "AR0673",
+    "title": "Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise",
+    "status": "planned",
+    "path": "spec/features/AR0673-plugin-branches-running-in-parallel-conflict-on-lists-that-every-new-plugin/ticket.md",
+    "updated": "2026-11-10T07:19:32.135Z"
+  },
+  {
+    "id": "AR0674",
+    "title": "A finding quoted in a ticket is data only for the worker; the planner, plan reviewer, reviewer and auditor still read it as their ticket's instruction",
+    "status": "planned",
+    "path": "spec/features/AR0674-a-finding-quoted-in-a-ticket-is-data-only-for-the-worker-the-planner-plan/ticket.md",
+    "updated": "2026-11-10T07:19:23.988Z"
+  },
+  {
+    "id": "AR0675",
+    "title": "A worker's run end that gets the checks reminder loses the leftover-processes reminder for the rest of that run",
+    "status": "planned",
+    "path": "spec/features/AR0675-a-worker-s-run-end-that-gets-the-checks-reminder-loses-the-leftover-processes/ticket.md",
+    "updated": "2026-11-10T07:19:29.360Z"
+  },
+  {
+    "id": "AR0676",
+    "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
+    "status": "planned",
+    "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
+    "updated": "2026-11-10T07:19:34.794Z",
+    "after": [
+      "AR0673"
+    ]
+  },
+  {
+    "id": "AR0677",
+    "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
+    "status": "done",
+    "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
+    "updated": "2026-11-10T13:46:29.214Z",
+    "after": [
+      "AR0684"
+    ]
+  },
+  {
+    "id": "AR0678",
+    "title": "Report pages draw a double border on the right of the last number tile in a row and under the tiles of the last row",
+    "status": "merged",
+    "path": "spec/features/AR0678-report-pages-draw-a-double-border-on-the-right-of-the-last-number-tile-in-a-row/ticket.md",
+    "updated": "2026-11-10T12:07:00.428Z"
+  },
+  {
+    "id": "AR0679",
+    "title": "The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603)",
+    "status": "planned",
+    "path": "spec/features/AR0679-the-go-with-my-recommendation-grant-and-approved-policies-still-answer-plan/ticket.md",
+    "updated": "2026-11-10T07:14:37.656Z",
+    "after": [
+      "AR0677"
+    ]
+  },
+  {
+    "id": "AR0680",
+    "title": "Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it",
+    "status": "planned",
+    "path": "spec/features/AR0680-dokploy-t4a-arthur-dokploy-source-connects-an-app-to-its-github-repository-so-a/ticket.md",
+    "updated": "2026-11-10T07:37:13.794Z"
+  },
+  {
+    "id": "AR0681",
+    "title": "Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL",
+    "status": "planned",
+    "path": "spec/features/AR0681-dokploy-t4b-arthur-dokploy-postgres-create-makes-a-postgres-beside-an-app-and/ticket.md",
+    "updated": "2026-11-10T07:36:30.393Z",
+    "after": [
+      "AR0680"
+    ]
+  },
+  {
+    "id": "AR0682",
+    "title": "Dokploy T4c: arthur dokploy postgres backup schedules backups of a Postgres to an S3 destination",
+    "status": "planned",
+    "path": "spec/features/AR0682-dokploy-t4c-arthur-dokploy-postgres-backup-schedules-backups-of-a-postgres-to-an/ticket.md",
+    "updated": "2026-11-10T07:36:31.740Z",
+    "after": [
+      "AR0681"
+    ]
+  },
+  {
+    "id": "AR0683",
+    "title": "Measure the test suite on Bun beside Node, and report whether moving the tests is worth it",
+    "status": "planned",
+    "path": "spec/features/AR0683-measure-the-test-suite-on-bun-beside-node-and-report-whether-moving-the-tests-is/ticket.md",
+    "updated": "2026-11-10T09:19:58.669Z"
+  },
+  {
+    "id": "AR0684",
+    "title": "An audio file transcript still proves the owner answer; only his voice notes may (AR-D616)",
+    "status": "merged",
+    "path": "spec/features/AR0684-an-audio-file-transcript-still-proves-the-owner-answer-only-his-voice-notes-may/ticket.md",
+    "updated": "2026-11-10T11:32:20.475Z"
+  },
+  {
+    "id": "AR0685",
+    "title": "Tests: a review on the fable model finds redundant tests and removes them, after the test speed work",
+    "status": "planned",
+    "path": "spec/features/AR0685-tests-a-review-on-the-fable-model-finds-redundant-tests-and-removes-them-after/ticket.md",
+    "updated": "2026-11-10T12:20:38.910Z",
+    "after": [
+      "AR0671"
+    ]
+  },
+  {
+    "id": "AR0686",
+    "title": "Code: a review on the fable model finds redundant comments and removes them",
+    "status": "planned",
+    "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
+    "updated": "2026-11-10T12:42:13.369Z",
+    "after": [
+      "AR0685"
+    ]
   }
 ]

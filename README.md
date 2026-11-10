@@ -6,8 +6,6 @@ Arthur lets one human direct many coding agents through one coordinator: the hum
 
 ## What Arthur is
 
-In short; the whole of it is [`spec/vision.md`](spec/vision.md).
-
 - One human directs many agents through one coordinator, who does not read code. The human talks to it through a channel plugin (Telegram or Discord) or from the terminal (`arthur attach`).
 - Work happens in isolated worktrees, on their own branches, on this machine or on another one reached over SSH on a private network.
 - Plain files in Git and in the home folder `.arthur/` are the truth: tickets, the board, job records. No database.
@@ -55,6 +53,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **speak**, built: the coordinator's reply to a voice note also sent as a voice note, spoken on this server by Piper, and `arthur say` ([speak](packages/speak/docs/speak.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
 - **activity**, built: one file per day of who did what, each logged event with its actor and the messages it acted on, kept 90 days ([activity](packages/activity/docs/activity.md)).
+- **herdr**, built: each job a tab in [herdr](https://herdr.dev) on the server, streaming its run with `arthur jobs --follow`, its state in herdr's sidebar, and a tab for `arthur attach` ([herdr](packages/herdr/docs/herdr.md)).
 - Planned: project agents and docker; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).

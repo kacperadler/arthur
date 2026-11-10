@@ -22,8 +22,8 @@ import { setup } from "./setup.ts";
 export const USAGE = "usage: arthur <command> [args] [--project <name>]; arthur <command> --help; arthur help <command>";
 
 // What `arthur run` starts: the plugins as loaded, in setup order, the home folder and how to follow the event log; `jobs` is
-// what `arthur spawn` uses, `board`, the core's, and `autopilot` what `arthur ticket` uses; `channels` what `arthur send` uses.
-export type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot" | "doctor" | "emit" | "channels"> & { readonly home: string };
+// what `arthur spawn` uses, `board`, the core's, and `autopilot` and `owner` what `arthur ticket` uses; `channels` what `arthur send` uses.
+export type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot" | "owner" | "doctor" | "emit" | "channels"> & { readonly home: string };
 
 // `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up;
 // `config` when it loaded and a plugin did not, for the core's own requirements and each plugin's own `doctor`.
@@ -36,7 +36,7 @@ export function coreCommands(problem: string | undefined, loaded: () => Loaded |
 		return pick(app);
 	};
 	const jobs = need("", (app) => app.jobs);
-	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board), jobs, need("", (app) => app.autopilot)));
+	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board), jobs, need("", (app) => app.autopilot), need("", (app) => app.owner)));
 	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
 	commands.register("core", spawnCommand(jobs));
 	commands.register("core", sendCommand(need("the channels are plugins, and ", (app) => app.channels)));

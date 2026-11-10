@@ -85,6 +85,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | github (derived) | first | Polls CI runs and pull requests, wakes the coordinator. |
 | manage (named: managing Arthur) | first | The audit, the retro, health, prune. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |
 | stats (named) | first | The tokens, cost at list price and time of every job and of the coordinator, per role, ticket, project, model and day. `arthur stats`, `/stats` and the morning report's Spend; manage's merged-ticket report as `arthur stats tickets`; each Claude usage window beside what each role spent in its span, an estimate marked `≈`. Roadmap 108 to 112. |
+| herdr (named) | first | Each job a tab in herdr on this server, running `arthur jobs --follow`, its state in herdr's sidebar; a tab for `arthur attach`; nothing listens. Roadmap 115. |
 | develop (named: developing Arthur) | first | A command that creates a plugin, evals of the coordinator's turns. |
 | docker (named) | first | Labels the Docker resources a job creates with its id and removes them with its worktree, on every machine; keeps the build cache under a cap; a daily sweep of leftovers. Below. |
 | signal (named) | later | A channel, through signal-cli. |

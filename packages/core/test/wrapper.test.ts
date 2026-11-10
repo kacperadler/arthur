@@ -124,7 +124,7 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	assert.match(log ?? "", /^(\[arthur [^\]]+\] no systemd scope: [^\n]+\n)?\[arthur [^\]]+\] agent: \S+ -p --mode json/);
 	// The worktree guard's one line, written by the agent's own process, may land anywhere among the tool lines.
 	const tools = (log ?? "").replace(/\[arthur [^\]]+\] worktree guard: [^\n]*\n/, "");
-	assert.match(tools, /\nread README\.md\nbash npm test\nedit README\.md\nbash git commit -am 'fix the README'\n\[arthur [^\]]+\] ended: finished\n$/);
+	assert.match(tools, /\n> Reading first\.\nread README\.md\nbash npm test\nedit README\.md\nbash git commit -am 'fix the README'\n> Fixed the README\.\n> All tests pass\.\n\[arthur [^\]]+\] ended: finished\n$/);
 	assert.deepEqual(readdirSync(folder).filter((name) => name.startsWith(".") || name.startsWith("state.lock")), [], "no temporary file or lock left");
 });
 

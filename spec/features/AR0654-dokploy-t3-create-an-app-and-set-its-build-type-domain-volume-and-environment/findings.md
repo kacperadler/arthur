@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:77`
 - What: the row says `arthur dokploy` reads, uploads and deploys on the owner's word; since AR0654 it also creates an app and sets its build type, domain, volume and env. The vision is the owner's, so the branch leaves it as it is.
 - Suggestion: the owner adds "creates an app and sets its build type, domain, volume and env" to the row; nothing else changes.
-- Status: deferred (client summary)
+- Status: ticket AR0676
 
 ## F3. Node's `parseEnv` is not dotenv
 

@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-11-09: Approve AR0667; the owner: "Approve AR0663 to AR0667" (AR-D580)
+- 2026-11-10: Plan approved by the owner: plan.md at f75c9bc7; the owner: "AR-D594 - approve" (AR-D594)

@@ -42,4 +42,5 @@ Out:
 ## Decisions
 - 2026-11-09: AR0670 approved, its plan runs right after AR0663; docs and roadmap updated with it; the owner: "AR-D587 - 1 - remembert to add this to docs and roadmap" (AR-D587)
 - 2026-11-09: Plan approved by the owner: plan.md at 84bedbd7 (all recommendations; herdr first line budget 250; core raised by what the follow view needs, AR-D538); the owner: "AR-D589 - 1" (AR-D589)
+- 2026-11-10: Merge it once it merges cleanly and CI is green; the owner: "What can be merge, just merge it" (AR-D598)
 

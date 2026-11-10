@@ -1,0 +1,188 @@
+{
+	"herdr": "0.9.3",
+	"recorded": "2026-11-09",
+	"source": "herdr api schema --json: success_response (ResponseResult, WorkspaceInfo, TabInfo, PaneInfo) and error_response",
+	"shapes": {
+		"workspace_created": {
+			"id": "string",
+			"result": {
+				"root_pane": {
+					"agent": "string | null",
+					"agent_session": "AgentSessionInfo | null",
+					"agent_status": "AgentStatus",
+					"cwd": "string | null",
+					"display_agent": "string | null",
+					"focused": "boolean",
+					"foreground_cwd": "string | null",
+					"label": "string | null",
+					"pane_id": "string",
+					"restore_error": "string | null",
+					"revision": "integer",
+					"scroll": "PaneScrollInfo | null",
+					"state_labels": "object",
+					"tab_id": "string",
+					"terminal_id": "string",
+					"terminal_title": "string | null",
+					"terminal_title_stripped": "string | null",
+					"title": "string | null",
+					"tokens": "object",
+					"workspace_id": "string"
+				},
+				"tab": {
+					"agent_status": "AgentStatus",
+					"focused": "boolean",
+					"label": "string",
+					"number": "integer",
+					"pane_count": "integer",
+					"tab_id": "string",
+					"workspace_id": "string"
+				},
+				"type": "string",
+				"workspace": {
+					"active_tab_id": "string",
+					"agent_status": "AgentStatus",
+					"focused": "boolean",
+					"label": "string",
+					"number": "integer",
+					"pane_count": "integer",
+					"tab_count": "integer",
+					"tokens": "object",
+					"workspace_id": "string",
+					"worktree": "WorkspaceWorktreeInfo | null"
+				}
+			}
+		},
+		"workspace_list": {
+			"id": "string",
+			"result": {
+				"type": "string",
+				"workspaces": [
+					{
+						"active_tab_id": "string",
+						"agent_status": "AgentStatus",
+						"focused": "boolean",
+						"label": "string",
+						"number": "integer",
+						"pane_count": "integer",
+						"tab_count": "integer",
+						"tokens": "object",
+						"workspace_id": "string",
+						"worktree": "WorkspaceWorktreeInfo | null"
+					}
+				]
+			}
+		},
+		"tab_info": {
+			"id": "string",
+			"result": {
+				"tab": {
+					"agent_status": "AgentStatus",
+					"focused": "boolean",
+					"label": "string",
+					"number": "integer",
+					"pane_count": "integer",
+					"tab_id": "string",
+					"workspace_id": "string"
+				},
+				"type": "string"
+			}
+		},
+		"tab_created": {
+			"id": "string",
+			"result": {
+				"root_pane": {
+					"agent": "string | null",
+					"agent_session": "AgentSessionInfo | null",
+					"agent_status": "AgentStatus",
+					"cwd": "string | null",
+					"display_agent": "string | null",
+					"focused": "boolean",
+					"foreground_cwd": "string | null",
+					"label": "string | null",
+					"pane_id": "string",
+					"restore_error": "string | null",
+					"revision": "integer",
+					"scroll": "PaneScrollInfo | null",
+					"state_labels": "object",
+					"tab_id": "string",
+					"terminal_id": "string",
+					"terminal_title": "string | null",
+					"terminal_title_stripped": "string | null",
+					"title": "string | null",
+					"tokens": "object",
+					"workspace_id": "string"
+				},
+				"tab": {
+					"agent_status": "AgentStatus",
+					"focused": "boolean",
+					"label": "string",
+					"number": "integer",
+					"pane_count": "integer",
+					"tab_id": "string",
+					"workspace_id": "string"
+				},
+				"type": "string"
+			}
+		},
+		"tab_list": {
+			"id": "string",
+			"result": {
+				"tabs": [
+					{
+						"agent_status": "AgentStatus",
+						"focused": "boolean",
+						"label": "string",
+						"number": "integer",
+						"pane_count": "integer",
+						"tab_id": "string",
+						"workspace_id": "string"
+					}
+				],
+				"type": "string"
+			}
+		},
+		"pane_list": {
+			"id": "string",
+			"result": {
+				"panes": [
+					{
+						"agent": "string | null",
+						"agent_session": "AgentSessionInfo | null",
+						"agent_status": "AgentStatus",
+						"cwd": "string | null",
+						"display_agent": "string | null",
+						"focused": "boolean",
+						"foreground_cwd": "string | null",
+						"label": "string | null",
+						"pane_id": "string",
+						"restore_error": "string | null",
+						"revision": "integer",
+						"scroll": "PaneScrollInfo | null",
+						"state_labels": "object",
+						"tab_id": "string",
+						"terminal_id": "string",
+						"terminal_title": "string | null",
+						"terminal_title_stripped": "string | null",
+						"title": "string | null",
+						"tokens": "object",
+						"workspace_id": "string"
+					}
+				],
+				"type": "string"
+			}
+		},
+		"ok": {
+			"id": "string",
+			"result": {
+				"type": "string"
+			}
+		},
+		"error": {
+			"id": "string",
+			"error": {
+				"code": "string",
+				"message": "string"
+			}
+		}
+	}
+}

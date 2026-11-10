@@ -56,7 +56,7 @@ async function setup(t: TestContext) {
 	// A question of `kind` the owner answered, of `--ticket <id>` or `--job <id>` when given.
 	const owners = async (kind: string, ...of: string[]) => {
 		const id = await decision("ask", "--kind", kind, "--question", `May it go on, ${kind}?`, ...of);
-		await decision("answer", id, "--decided", "It may", "tak");
+		await decision("answer", id, "--decided", "It may", `${id} tak`);
 		return id;
 	};
 	const used = (id: string) => (existsSync(join(fake.host.folder, "used", id)) ? readFileSync(join(fake.host.folder, "used", id), "utf8") : undefined);
@@ -96,7 +96,7 @@ test("--unreviewed refuses a decision a class answered by policy; the owner's la
 	const { decision, owners, call } = await setup(t);
 	const backing = await owners("merge", "--ticket", "AC0002");
 	const proposal = await decision("class", "propose", "--kind", "merge", "--match", "go on", "--decided", "It may", "--backed-by", backing);
-	await decision("answer", proposal, "--picked", "1", "--decided", "Pre-approve unreviewed merges", "zawsze");
+	await decision("answer", proposal, "--picked", "1", "--decided", "Pre-approve unreviewed merges", `${proposal} zawsze`);
 	const policy = await decision("ask", "--kind", "merge", "--question", "May it go on unreviewed?", "--ticket", "AC0001", "--what", "--unreviewed");
 	assert.equal(call({ id: policy, ticket: "AC0001", job: JOB }), `${policy} was answered by policy (${proposal}), not by the owner`);
 	await decision("answer", policy, "--decided", "It may", "tak, sam");
@@ -135,7 +135,7 @@ test("take-main, --unreviewed and --budget 0 refuse an answer that names no owne
 	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), why(unreviewed));
 	const budget = await bare("--kind", "budget", "--ticket", "AC0001");
 	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${ONE}`, budgetUsd: 0, decision: budget }), { message: `refused by orchestration: ${why(budget)}` });
-	await decision("answer", unreviewed, "--decided", "Go", "tak");
+	await decision("answer", unreviewed, "--decided", "Go", `${unreviewed} tak`);
 	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), "", "the owner's later answer, with his message");
 	const proved = await owners("merge", "--ticket", "AC0002", "--what", "--no-ci");
 	writeFileSync(log, readFileSync(log, "utf8").replace(/"message":\d+/, '"message":"1"'));
@@ -170,6 +170,28 @@ test("a merge decision lets through only the flags its --what names: one for --u
 	const log = join(root, "spec/decisions.jsonl");
 	writeFileSync(log, `${readFileSync(log, "utf8")}${JSON.stringify({ record: "ask", id: "AC-D5", time: "2026-03-04T08:00:00+00:00", project: "acme", kind: "merge", question: "Go?", options: [], ticket: "AC0001", what: "--no-ci" })}\n`);
 	assert.match(call({ ...asked, id: unreviewed }), /decisions\.jsonl line \d+ is not a decision record \(options or what not a list of texts\)/, "a hand-edited what is no list");
+});
+
+test("a plain merge takes any owner's merge decision of its ticket, flags or none; a move to planned his plan decision of that ticket, the same move again passing it (AR0665)", async (t) => {
+	const { owners, call, used, fake } = await setup(t);
+	const plain = { what: `arthur merge ${JOB}`, ticket: "AC0001", job: JOB };
+	assert.equal(call({ ...plain, id: "" }), `arthur merge ${JOB} needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then arthur merge ${JOB} --decision <its id>`);
+	const none = await owners("merge", "--ticket", "AC0001");
+	assert.equal(call({ ...plain, id: none }), "", "a merge decision without --what");
+	const flagged = await owners("merge", "--ticket", "AC0001", "--what", "--no-ci");
+	assert.equal(call({ ...plain, id: flagged }), "", "one for --no-ci lets the merge with CI through too");
+	assert.equal(used(none), `merge ${JOB}`);
+	const planned = (id: string, ticket = "AC0001") => fake.host.call<string>("decision.owner", { id, what: `arthur ticket status ${ticket} planned`, kind: "plan", ticket, use: `planned ${ticket}` });
+	assert.equal(planned(""), "arthur ticket status AC0001 planned needs the owner's decision: arthur decision ask --kind plan --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then arthur ticket status AC0001 planned --decision <its id>");
+	const question = await owners("question", "--ticket", "AC0001");
+	assert.equal(planned(question), `${question} is a question question, not plan: arthur ticket status AC0001 planned takes a plan decision`);
+	const approval = await owners("plan", "--ticket", "AC0001");
+	assert.equal(planned(approval, "AC0002"), `${approval} is of ticket AC0001, not of ticket AC0002`);
+	assert.equal(used(approval), undefined, "a refusal uses no decision");
+	assert.equal(planned(approval), "");
+	assert.equal(used(approval), "planned AC0001");
+	assert.equal(planned(approval), "", "the same move tried again, after the board refused it");
+	assert.equal(call({ ...plain, id: none, job: "2026-03-04-worker-0000eeee", use: "merge 2026-03-04-worker-0000eeee" }), `${none} was used already (merge ${JOB}); ask the owner again`);
 });
 
 test("--budget 0 on a paid spawn starts only with the owner's budget decision of its ticket, or of no ticket for a spawn of none, once", async (t) => {

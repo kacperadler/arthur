@@ -4,16 +4,28 @@ import { join } from "node:path";
 // The proof behind an owner's answer (AR0664): his own channel message, as the inbox keeps it (inbox.ts), holding its words.
 // Text from anywhere else (a forward, a job's message, the terminal) never answers for him: docs/commands/decision.md, "Answering".
 
-// Whether `text` holds `words`, case and spacing ignored, neither starting nor ending inside a word.
-function holds(text: string, words: string): boolean {
+// `words`, case and spacing ignored, neither starting nor ending inside a word.
+function pattern(words: string): RegExp {
 	const chars = [...words.replace(/\s+/g, "")].map((char) => char.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&"));
-	return new RegExp(`(?<![\\p{L}\\p{N}])${chars.join("\\s*")}(?![\\p{L}\\p{N}])`, "iu").test(text);
+	return new RegExp(`(?<![\\p{L}\\p{N}])${chars.join("\\s*")}(?![\\p{L}\\p{N}])`, "iu");
 }
 
-// The number of the latest owner message that holds `words`, and names `id` too when given, else why none does: a message of
-// the turn in progress, or one answered since the second after `asked` (ms); a channel's only, never one holding a forward.
-// `answered/` is listed after the turn, so a file the extension moves between them meanwhile is still found.
-export function proof(folder: string, words: string, asked: number, id?: string): number | string {
+// His own words: a part's line (message-parts.ts, docs/listen.md, a channel's `[<kind> ... not saved: ...]`) holds a file name the sender
+// chose, so of it only a voice note's transcript counts, `[voice <seconds> s] <transcript> (<path>)`; an audio file's may be another's voice (AR-D616).
+function said(text: string): string {
+	const own = (line: string) => /^\[voice \d+(?:\.\d+)? s\] (.*?) \(\/.*\)$/.exec(line)?.[1] ?? "";
+	return text.split("\n").map((line) => (/^\[(?:photo|video|voice|audio|file)\b/.test(line) ? own(line) : line)).join("\n");
+}
+
+// The latest owner message that holds `words`, and names `id` too when given, else why none does: a message of the turn in
+// progress, or one answered since the second after `asked` (ms); a channel's only, never one holding a forward. With `id`, the
+// words, and the text they match in his message (where `n o` is his `no`), hold a word besides any decision id, and `id` or a
+// second word (AR0668: a "no" never proves a "yes"). `answered/` is listed after the turn, so a file moved meanwhile is found.
+export function proof(folder: string, words: string, asked: number, id?: string): { readonly seq: number; readonly text: string } | string {
+	const ids = /(?<![\p{L}\p{N}])[a-z]+\s*-\s*d\s*\d+(?![\p{L}\p{N}])/giu;
+	const fragment = (quote: string) => id !== undefined && (quote.replace(ids, " ").match(/[\p{L}\p{N}]+/gu) ?? []).length < (pattern(id).test(quote) ? 1 : 2);
+	const cut = `${JSON.stringify(words.trim())} is a fragment of the owner's message: quote his answer as he wrote it, as in "${id} yes", not only its id, a sign or one word`;
+	if (fragment(words)) return cut;
 	const found = ["turn", "answered"].flatMap((box) => {
 		const dir = join(folder, "inbox", box);
 		return (existsSync(dir) ? readdirSync(dir) : []).flatMap((name) => {
@@ -26,11 +38,12 @@ export function proof(folder: string, words: string, asked: number, id?: string)
 				return [];
 			}
 			const { channel, text } = message ?? {};
-			return typeof channel === "string" && channel !== "" && typeof text === "string" && !text.includes("[forwarded from ") && holds(text, words) ? [{ seq: Number(seq), text }] : [];
+			return typeof channel === "string" && channel !== "" && typeof text === "string" && !text.includes("[forwarded from ") && pattern(words).test(said(text)) ? [{ seq: Number(seq), text }] : [];
 		});
 	});
-	const named = id === undefined ? found : found.filter((each) => holds(each.text, id));
-	if (named.length > 0) return Math.max(...named.map((each) => each.seq));
+	const named = id === undefined ? found : found.filter((each) => pattern(id).test(said(each.text)));
+	const latest = named.sort((a, b) => b.seq - a.seq)[0];
+	if (latest !== undefined) return fragment(pattern(words).exec(said(latest.text))?.[0] ?? "") ? cut : latest;
 	if (found.length > 0) return `the owner's message must name ${id} too, as in "${id} yes"; ask him to answer with its id`;
 	return "no message of the owner holds these words: his own [via <channel>] message of this turn, or one sent after the question was asked, never a forward or the terminal; quote his words exactly as he wrote them";
 }

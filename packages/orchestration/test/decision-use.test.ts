@@ -56,7 +56,7 @@ async function setup(t: TestContext) {
 	// A question of `kind` the owner answered, of `--ticket <id>` or `--job <id>` when given.
 	const owners = async (kind: string, ...of: string[]) => {
 		const id = await decision("ask", "--kind", kind, "--question", `May it go on, ${kind}?`, ...of);
-		await decision("answer", id, "--decided", "It may", "tak");
+		await decision("answer", id, "--decided", "It may", `${id} tak`);
 		return id;
 	};
 	const used = (id: string) => (existsSync(join(fake.host.folder, "used", id)) ? readFileSync(join(fake.host.folder, "used", id), "utf8") : undefined);
@@ -96,7 +96,7 @@ test("--unreviewed refuses a decision a class answered by policy; the owner's la
 	const { decision, owners, call } = await setup(t);
 	const backing = await owners("merge", "--ticket", "AC0002");
 	const proposal = await decision("class", "propose", "--kind", "merge", "--match", "go on", "--decided", "It may", "--backed-by", backing);
-	await decision("answer", proposal, "--picked", "1", "--decided", "Pre-approve unreviewed merges", "zawsze");
+	await decision("answer", proposal, "--picked", "1", "--decided", "Pre-approve unreviewed merges", `${proposal} zawsze`);
 	const policy = await decision("ask", "--kind", "merge", "--question", "May it go on unreviewed?", "--ticket", "AC0001", "--what", "--unreviewed");
 	assert.equal(call({ id: policy, ticket: "AC0001", job: JOB }), `${policy} was answered by policy (${proposal}), not by the owner`);
 	await decision("answer", policy, "--decided", "It may", "tak, sam");
@@ -135,7 +135,7 @@ test("take-main, --unreviewed and --budget 0 refuse an answer that names no owne
 	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), why(unreviewed));
 	const budget = await bare("--kind", "budget", "--ticket", "AC0001");
 	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${ONE}`, budgetUsd: 0, decision: budget }), { message: `refused by orchestration: ${why(budget)}` });
-	await decision("answer", unreviewed, "--decided", "Go", "tak");
+	await decision("answer", unreviewed, "--decided", "Go", `${unreviewed} tak`);
 	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), "", "the owner's later answer, with his message");
 	const proved = await owners("merge", "--ticket", "AC0002", "--what", "--no-ci");
 	writeFileSync(log, readFileSync(log, "utf8").replace(/"message":\d+/, '"message":"1"'));

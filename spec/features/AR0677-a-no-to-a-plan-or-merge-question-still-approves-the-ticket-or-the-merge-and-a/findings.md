@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/plans.ts:84-88`
 - What: since AR0677 `decision.owner` passes a plan decision only when its later answer picked option 1, its approval. The spawn check of a `- Plan: yes` ticket's worker (`unplanned`) still counts an approval when the answer's `--decided` reads `Plan approved by the owner: plan.md at <commit>`, whatever it picked: an answer recorded with that `--decided` and `--picked 2` (or no `--picked`) still lets the worker start, though `arthur ticket status <id> planned --decision <id>` refuses it.
 - Suggestion: in `proved`, require `answer.picked === 1` beside the decided line, with a row in `plans.test.ts` for no pick and for `--picked 2`; out: the Decisions line's format.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. The merge evals name a decision id the turn's context never shows
 
@@ -20,4 +20,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/evals/merge/scenario.json:3`, `packages/delivery/evals/check-failed/scenario.json:3`, `packages/session/evals/after-restart-plan/scenario.json:6`, `packages/session/evals/unblocked-after-restart/scenario.json:6`
 - What: since AR0677 a plain merge's answer is recorded only from an owner message that names its id, so these four scenarios now play the owner's reply `<id> yes, merge <ticket>` to a merge question asked earlier. An eval's context has no open decisions (`context.ts:23-26`, `coordinatorContext` with a checkout), so the coordinator sees the id only in the message, not the question it answers; the round trip itself (the owner's unasked "merge X", the ask, his reply naming the id) is measured by no scenario.
 - Suggestion: let a scenario give the open decisions of its fixture's `spec/decisions.jsonl` to the checkout context, and add a scenario where "merge SH0006" alone leads to `arthur decision ask --kind merge ... --option` and a reply naming the id, with `never: ["^arthur merge "]`; out: the scoring rules.
-- Status: open
+- Status: deferred (client summary)
+
+## F3. the approval is option 1 by convention only
+
+- Kind: fix
+- Found by: 2026-11-10-review-53c4d6ad (review), 2026-11-10
+- Where: `packages/orchestration/src/decision-use.ts:53`
+- What: A coordinator that asks `--option 'Not yet' --option 'Merge it'` can record a "no" as `--picked 1` and it passes. The notice sent to the owner (`decision-writes.ts:66`) does not show the option picked, so he cannot see that this happened.
+- Status: deferred (client summary)

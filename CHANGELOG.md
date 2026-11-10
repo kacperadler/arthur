@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
 - AR0668 A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes (06f14a26)
+- AR0677 A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough (01269ca8)
 - AR0678 Report pages draw a double border on the right of the last number tile in a row and under the tiles of the last row (6260e8d7)
 - AR0684 An audio file transcript still proves the owner answer; only his voice notes may (AR-D616) (cd7c1eef)
 

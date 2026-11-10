@@ -1,9 +1,7 @@
-// Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and activity,
-// commit-rules, delivery, develop, discord, dokploy, findings, github, herdr, listen, machines, manage, models, nvm, orchestration, projects,
-// resources, schedule, session, stats, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
-// docker (first); server, signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first
-// planned import (`Cannot find package '@arthur/docker'`). Take a plugin from it once its package exists. Illustrative for the planned
-// ones: their option names are proposed, not final.
+// Example arthur.config.ts with every plugin, planned ones included. A plugin is built when `packages/` holds its folder; the
+// others are planned, no package yet (spec/roadmap.md builds them). So a copy of the whole file does not load; it fails on the
+// first planned import (`Cannot find package '@arthur/<name>'`). Take a plugin from it once its package exists. Illustrative for
+// the planned ones: their option names are proposed, not final.
 //
 // Rules:
 // - One file, one list: a plugin is a function call with its options.

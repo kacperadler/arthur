@@ -62,31 +62,59 @@ import * as youtrackFile from "@arthur/youtrack/options";
 
 type OptionsFile = { readonly table: OptionTable; readonly summary: string; readonly tools: readonly Tool[] };
 
+// Every plugin, and below the plugins without options and each plugin's tools: in name order, one line each, so two branches
+// that each add a plugin merge without a conflict.
 const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
-	orchestration: [orchestrationFile, orchestration()],
-	projects: [projectsFile, projects({ folders: [] })],
-	machines: [machinesFile, machines()],
-	resources: [resourcesFile, resources({})],
-	session: [sessionFile, session()],
-	schedule: [scheduleFile, schedule()],
-	models: [modelsFile, models()],
-	youtrack: [youtrackFile, youtrack({ instances: [] })],
-	telegram: [telegramFile, telegram({ bots: [] })],
-	discord: [discordFile, discord({ bots: [] })],
-	nvm: [nvmFile, nvm()],
+	activity: [activityFile, activity()],
 	"commit-rules": [commitRulesFile, commitRules()],
-	uptime: [uptimeFile, uptime()],
 	delivery: [deliveryFile, delivery()],
-	github: [githubFile, github({ instances: [] })],
-	manage: [manageFile, manage()],
 	develop: [developFile, develop()],
+	discord: [discordFile, discord({ bots: [] })],
 	dokploy: [dokployFile, dokploy({ instances: [] })],
 	findings: [findingsFile, findings()],
-	listen: [listenFile, listen()],
-	video: [videoFile, video()],
-	stats: [statsFile, stats()],
-	activity: [activityFile, activity()],
+	github: [githubFile, github({ instances: [] })],
 	herdr: [herdrFile, herdr()],
+	listen: [listenFile, listen()],
+	machines: [machinesFile, machines()],
+	manage: [manageFile, manage()],
+	models: [modelsFile, models()],
+	nvm: [nvmFile, nvm()],
+	orchestration: [orchestrationFile, orchestration()],
+	projects: [projectsFile, projects({ folders: [] })],
+	resources: [resourcesFile, resources({})],
+	schedule: [scheduleFile, schedule()],
+	session: [sessionFile, session()],
+	stats: [statsFile, stats()],
+	telegram: [telegramFile, telegram({ bots: [] })],
+	uptime: [uptimeFile, uptime()],
+	video: [videoFile, video()],
+	youtrack: [youtrackFile, youtrack({ instances: [] })],
+};
+
+const WITHOUT_OPTIONS: readonly string[] = [
+	"commit-rules",
+
+	"findings",
+
+	"herdr",
+
+	"nvm",
+
+	"stats",
+
+];
+
+const TOOLS: Readonly<Record<string, readonly string[]>> = {
+	herdr: ["herdr"],
+
+	listen: ["ffmpeg"],
+
+	models: ["curl"],
+
+	orchestration: ["tmux"],
+
+	video: ["ffmpeg"],
+
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one
@@ -109,7 +137,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	}
 	assert.deepEqual(
 		Object.entries(PLUGINS).flatMap(([name, [file]]) => (everyOption(file.table).length === 0 ? [name] : [])),
-		["nvm", "commit-rules", "findings", "stats", "herdr"],
+		WITHOUT_OPTIONS,
 		"the plugins without options are checked here too, and only they have an empty table",
 	);
 	assert.deepEqual(
@@ -117,8 +145,8 @@ test("every option of the core and of each plugin has its meaning in one line, e
 		["git", "node", "omp", "ssh", "systemd-run", "tailscale"],
 	);
 	assert.deepEqual(
-		Object.values(PLUGINS).flatMap(([file]) => file.tools.map((tool) => tool.name)),
-		["tmux", "curl", "ffmpeg", "ffmpeg", "herdr"],
+		Object.fromEntries(Object.entries(PLUGINS).flatMap(([name, [file]]) => (file.tools.length === 0 ? [] : [[name, file.tools.map((tool) => tool.name)]]))),
+		TOOLS,
 	);
 });
 

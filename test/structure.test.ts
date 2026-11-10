@@ -23,7 +23,7 @@ const BUDGETS = {
 
 	discord: 976,
 
-	dokploy: 615,
+	dokploy: 690,
 
 	findings: 276,
 

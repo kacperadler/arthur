@@ -13,7 +13,8 @@ export type Instance = {
 	readonly timeoutSeconds: number;
 };
 
-// A Dokploy id (nanoid's alphabet), the only text a command puts into a query.
+// A Dokploy id (nanoid's alphabet), as `source` checks the GitHub app's: what a command puts into a query, besides the owner and
+// repository `source` checked as `--repo`.
 export const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const NOTHING = "nothing was asked of Dokploy";

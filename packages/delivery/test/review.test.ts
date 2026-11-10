@@ -905,6 +905,27 @@ test("arthur run's start rolls back a merge that died half done, keeping the boa
 	assert.equal(existsSync(killed), false);
 });
 
+test("a merge that died half done in a project whose autoMerge is off since is rolled back, not run again: the coordinator is told it waits for the owner's decision", async (t) => {
+	const merge = fakeMerge(t);
+	const { root, fake, git, worker, setAutoMerge, plugin } = await load(t);
+	const job = await worker();
+	const before = git(root, "rev-parse", "HEAD");
+	git(root, "-c", "user.name=t", "-c", "user.email=t@example.com", "merge", "--quiet", "--no-ff", "-m", "Merge AC0001: shop", job.branch);
+	const merged = git(root, "rev-parse", "HEAD");
+	const own = join(fake.host.folder, "acme");
+	mkdirSync(own, { recursive: true });
+	writeFileSync(join(own, "merge.lock"), `${spawnSync("true").pid ?? 0}\n`);
+	writeFileSync(join(own, "merging"), `${job.id}\n`);
+	setAutoMerge(false);
+	await plugin.start?.();
+	t.after(() => plugin.stop?.());
+	await until("the coordinator told", () => told(fake).length === 1);
+	assert.equal(git(root, "rev-parse", "HEAD"), before);
+	const why = `The merge of ${job.id} on acme died half done, its process gone: main went back from its merge commit ${merged.slice(0, 7)} to ${before.slice(0, 7)}, the board kept.`;
+	assert.deepEqual(told(fake), [`${why} acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`]);
+	assert.deepEqual(merge.asked(), []);
+});
+
 // The hand-back's continue of a worker whose tip's checks did not pass, after the refusal.
 const RUN_CHECKS =
 	"Commit your work, then run the project's check, test and mutate scripts (npm run check, npm test, npm run mutate) on the committed tip, change nothing after them, name each mutant that survives in your final message, and end: Arthur reviews the branch when you end.";

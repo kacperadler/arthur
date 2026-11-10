@@ -37,10 +37,13 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 	const form = new FormData();
 	form.set("applicationId", "kXx3");
 	form.set("zip", new Blob(["PK\x05\x06".padEnd(22, "\0")], { type: "application/zip" }), "upload.zip");
+	// An app with a GitHub app answers its record, which the comparison skips when it is null.
+	const one = await get(current.url, "/api/application.one?applicationId=kXx3");
+	assert.equal(one.github?.githubId, "gh-1");
 	const routes: [string, unknown][] = [
 		["project-all", await get(current.url, "/api/project.all")],
 		["project-all-documented", await get(documented.url, "/api/project.all")],
-		["application-one", await get(current.url, "/api/application.one?applicationId=kXx3")],
+		["application-one", one],
 		["deployment-all", await get(current.url, "/api/deployment.all?applicationId=kXx3")],
 		["error", await get(current.url, "/api/application.one?applicationId=gone")],
 		["error-unauthorized", await get(current.url, "/api/project.all", {})],

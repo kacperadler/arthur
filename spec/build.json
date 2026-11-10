@@ -4411,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-10T02:07:35.412Z",
+    "updated": "2026-11-10T02:23:53.514Z",
     "after": [
       "AR0554"
     ]
@@ -5393,9 +5393,9 @@
   {
     "id": "AR0668",
     "title": "A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0668-a-decision-answer-can-quote-only-the-id-and-a-dash-from-the-owner-message-so-a/ticket.md",
-    "updated": "2026-11-10T01:42:47.449Z",
+    "updated": "2026-11-10T02:23:52.832Z",
     "after": [
       "AR0664"
     ]

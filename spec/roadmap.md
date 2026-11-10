@@ -22,6 +22,8 @@ Releases (104 to 107) close the first version, after Docker (70 to 72), on the o
 
 Stats (108 to 112) follow the releases, on the owner's approval of the AR0480 plan on 2026-11-06 (AR-D523): a stats plugin that keeps the tokens, cost and time of every job and of the coordinator, and shows them per role, ticket, project, model and day. It only reads, and needs no channel or outside service. Each entry names the section of `spec/features/AR0480-plan-a-stats-plugin-token-use-cost-and-time-of-every-job-and-of-the-coordinator/plan.md` that holds its detail. They took the numbers after 107, since 99 to 101 are held for the activity log (AR0527).
 
+The activity log (99 to 101, AR0528 to AR0530) follows the stats entries, on the owner's approval of the AR0527 plan (AR-D203): who did what, one file per day, each line naming its actor and the messages it acted on. It needs only the frozen host API (51), which 99 changes by a decision, and the event stream (5). Each entry names the section of `spec/features/AR0527-plan-an-activity-log-plugin-what-each-user-and-each-agent-or-the-harness-did-one/plan.md` that holds its detail. It took 99 to 101, which that plan held for it.
+
 Dokploy (113, AR0588 and AR0603) lets the coordinator read and deploy to the owner's Dokploy servers, so no API key passes through a chat. It needs only the project files (103), `arthur doctor` (80) and the option tables (93), all merged; its approved plan (AR0588) built it in two tickets, the reads and then upload and deploy. It took the next free number after the stats entries.
 
 The site-down runbook (114, AR0607) follows Dokploy (113): its redeploy step is `arthur dokploy deploy` (AR0603), asked of the owner through the decision log (96) and its classes (97). It adds to uptime (98) only the coordinator's wake and the runbook's path, and took the next free number after Dokploy.
@@ -1028,6 +1030,38 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 - Depends on: 111, 82.
 - Size: half a day.
 - Covers: none (new: the owner approved the AR0480 plan on 2026-11-06, AR-D523).
+
+## Activity
+
+### 99. Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts
+
+- Package: core (`actor.ts`, `event-log.ts`, `events.ts`, `host.ts`, `cli.ts`, `plugin-host.ts`, `run.ts`, `wrapper.ts`); orchestration (`provide("actor")`); schedule (`sweep.ts`); `docs/plugin-api.md`, "Who acted".
+- Tickets: AR0528
+- Delivers (AR0527 plan, Approach, sections 1 and 2): every event carries `by: { actor, on? }`, set by the core as it logs it: `on` the event numbers of the messages acted on; `actor`, in this order, `job:<id>` inside a job (the wrapper stamps its own events so too), `user:<channel>[/<instance>]` for a channel's `message-received` or `phone-command`, the first plugin's answer to `actor` (orchestration's `coordinator` in the coordinator's session, `on` the messages of its turn in progress), `arthur` or `plugin:<name>` in the process that holds `<home>/run.pid`, else `user:terminal:<OS user>`. New events: `command-ran { command, args, project?, code }` after a shell command returns, never inside a job nor when the config did not load; `phone-command { channel, place?, instance?, text }` where a channel hands `/name text` to `commands.route`; `schedule-fired { id, slot, late, does }` once an entry's slot is claimed; `run-started { pid, plugins }` once `arthur run` started every plugin. A change to the frozen host API (51), recorded as a decision in its ticket.
+- Done means: each actor stamped in that order, a test each; each new event emitted where it is named and never inside a job, a test each; whether omp has a hook for typed terminal input checked and reported; the line budget raises of core, orchestration and schedule recorded as decisions.
+- Depends on: 51.
+- Size: a day.
+- Covers: none (new: the owner approved the AR0527 plan, AR-D203).
+
+### 100. The activity log: one file per day of who did what, kept 90 days
+
+- Package: activity, created with `arthur plugin new activity --budget 350`; `packages/activity/docs/activity.md`.
+- Tickets: AR0529
+- Delivers (AR0527 plan, Approach, sections 2 to 4): an optional `activity` plugin writes `<home>/activity/days/YYYY-MM-DD.jsonl`, the day the event's date in `core.timeZone`, one line per logged event, `{ seq, time, actor, on?, plugin, what, project?, ticket?, job?, kind?, text, cut? }`, from a fixed list of events (99's included; `job-state` only to `blocked` or `ended`). The text is one line cut at `textChars` (default 300) with `cut` its full length; a media part is `[<kind> <seconds> s]`, never its path; a forwarded part is `[forwarded, <N> chars]`, without the sender's name or words. Only `arthur run` writes, after its `start`: events before it wait in memory and are written in number order; an event not above the last line written is skipped; a gap after it is read from the event log once. Day files older than `keepDays` (default 90) are removed by name at `start` and at the first line of each new day. Under `.arthur/`, never committed.
+- Done means: tested against the fake host. Refused at load: an unknown option, `keepDays` outside 0 to 36500, `textChars` below 0 or not whole. Edge cases: each logged event; the cut at its limits; a forward; the day boundary in `core.timeZone`; a replay that writes nothing twice; a gap filled once; a last line a crash cut; retention at the `keepDays` boundary; a command process that never calls `start` writes nothing.
+- Depends on: 99.
+- Size: a day.
+- Covers: none (new: the owner approved the AR0527 plan, AR-D203).
+
+### 101. `arthur log` and `/log`: the activity log by day, user, actor, ticket or job
+
+- Package: activity (the command and its doc page).
+- Tickets: AR0530
+- Delivers (AR0527 plan, Approach, section 5): `arthur log [--day YYYY-MM-DD|today|yesterday] [--user <u>] [--actor <a>] [--ticket <id>] [--job <id>] [--project <name>] [--all]`, by default today, one line each, `HH:MM  <actor>  <what>  <text>`; `--user` shows that user's own lines and every line whose `on` names one of his messages, "on whose word"; read-only commands (`jobs`, `help`, `coordinator context`) hidden unless `--all`. `/log [today|yesterday|<date>] [<ticket id>] [job <id>]` on a channel answers the last 30 lines. A Log screen in the web panel (77) is not built here.
+- Done means: each filter and the default (today, read-only commands hidden) has a test; `/log` answers on a channel through the fake host.
+- Depends on: 100.
+- Size: half a day.
+- Covers: none (new: the owner approved the AR0527 plan, AR-D203).
 
 ## Herdr
 

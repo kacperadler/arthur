@@ -81,6 +81,10 @@ test("source connects the app to its repository and branch through the only GitH
 	main.live[index] = { ...(main.live[index] as FakeApp), triggerType: "tag" };
 	assert.match((await run("source", FRESH.id, "--repo", "acme/web-shop", "--branch", "release/1.2", "--build-path", "/apps/web")).out, /: set\n/);
 	assert.deepEqual(posts(main.seen).at(-1)?.[1], { ...SAVE, branch: "release/1.2", buildPath: "/apps/web" });
+	// The same repository and branch with only the build path changed: saved, and without --build-path it goes back to /.
+	const before = posts(main.seen).length;
+	assert.match((await run("source", FRESH.id, "--repo", "acme/web-shop", "--branch", "release/1.2")).out, /build path \/, GitHub app acme: set\n/);
+	assert.deepEqual(posts(main.seen).slice(before), [["application.saveGithubProvider", { ...SAVE, branch: "release/1.2" }]]);
 });
 
 test("source turns auto-deploy on when it is off or unset, and only then; an app with nothing else to change gets the update alone", async (t) => {

@@ -86,6 +86,9 @@ test("a new package passes npm run check, its own test and the structure test as
 	]);
 	const [lock, release] = [JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8")).packages, JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version];
 	assert.deepEqual([lock["node_modules/@arthur/acme-test-plugin"], lock["packages/acme-test-plugin"]], [{ resolved: "packages/acme-test-plugin", link: true }, { name: "@arthur/acme-test-plugin", version: release, license: "Apache-2.0" }]);
+	const exports = { ".": "./src/acme-test-plugin.ts", "./options": "./src/acme-test-plugin.ts" };
+	const manifest = { name: "@arthur/acme-test-plugin", version: release, private: true, type: "module", license: "Apache-2.0", exports };
+	assert.equal(readFileSync(join(root, "packages", "acme-test-plugin", "package.json"), "utf8"), `${JSON.stringify(manifest, null, 2)}\n`);
 	const keys = Object.keys(lock);
 	assert.deepEqual(keys, [...keys].sort(), "in npm's order");
 	assert.equal(readlinkSync(join(root, "node_modules", "@arthur", "acme-test-plugin")), join("..", "..", "packages", "acme-test-plugin"));

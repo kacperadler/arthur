@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/processes-extension.ts:23`, `packages/delivery/src/delivery.ts:117`
 - What: omp's `session_stop` asks every handler and keeps only the first continuation (`s ??= a` in omp's `emitSessionStop`, seen with `strings ~/.local/bin/omp`; the fake agent does the same, `packages/core/src/fake-agent.ts:154`, `answers.find`). delivery registers the checks extension before the processes extension, so when a worker's run ends with its checks missing and a process left running, both handlers answer: the checks reminder goes to the agent, the processes one is dropped, yet the processes extension has already set `reminded = true`, so it never names the leftovers in that run. docs/delivery.md, "Processes a job leaves running", says such a run goes on with that message. [INFERENCE from the code named; not reproduced with a live omp run.]
 - Suggestion: the processes extension marks itself reminded only once its message reached the run (its text in the next `session_stop`'s `messages`), or delivery answers `session_stop` from one handler that joins both reminders. The checks reminder itself stays as it is.
-- Status: deferred (client summary)
+- Status: ticket AR0675
 
 ## F2. The docs do not name the checks reminder at a worker's run end
 
@@ -28,4 +28,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-08-review-03f1f51c (review), 2026-11-09
 - Where: `packages/delivery/src/checks-extension.ts:49`
 - What: omp keeps only the first continuation, and the checks extension is registered first (`delivery.ts:117`). When both reminders fire, the processes one is dropped, and since its `reminded` flag is already set it never comes back in that run. The ticket's design causes this and the Scope keeps the fix out; it is already F1 in `findings.md`. Nothing is lost for good: the wrapper still kills leftover processes at the job's end.
-- Status: deferred (client summary)
+- Status: ticket AR0675

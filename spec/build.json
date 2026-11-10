@@ -4365,13 +4365,11 @@
   {
     "id": "AR0548",
     "title": "The coordinator instructions built as text in TypeScript move into Markdown procedures",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0548-the-coordinator-instructions-built-as-text-in-typescript-move-into-markdown/ticket.md",
-    "updated": "2026-10-28T16:43:32.585Z",
+    "updated": "2026-11-10T05:23:06.718Z",
     "after": [
-      "AR0537",
-      "AR0538",
-      "AR0539"
+      "AR0668"
     ]
   },
   {
@@ -4413,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-10-28T20:58:36.682Z",
+    "updated": "2026-11-10T02:42:46.922Z",
     "after": [
       "AR0554"
     ]
@@ -5195,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-06T08:22:34.727Z",
+    "updated": "2026-11-09T21:37:16.765Z",
     "after": [
       "AR0644"
     ]
@@ -5368,19 +5366,19 @@
   {
     "id": "AR0665",
     "title": "Ticket approval and a plain merge need a recorded owner decision",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
-    "updated": "2026-11-09T09:56:58.072Z",
+    "updated": "2026-11-10T06:55:56.132Z",
     "after": [
-      "AR0664"
+      "AR0668"
     ]
   },
   {
     "id": "AR0666",
     "title": "The threat model says the coordinator runs with no sandbox and no worktree guard",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0666-the-threat-model-says-the-coordinator-runs-with-no-sandbox-and-no-worktree-guard/ticket.md",
-    "updated": "2026-11-09T09:56:58.685Z"
+    "updated": "2026-11-09T20:54:23.299Z"
   },
   {
     "id": "AR0667",
@@ -5395,9 +5393,9 @@
   {
     "id": "AR0668",
     "title": "A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0668-a-decision-answer-can-quote-only-the-id-and-a-dash-from-the-owner-message-so-a/ticket.md",
-    "updated": "2026-11-09T14:05:08.975Z",
+    "updated": "2026-11-10T02:47:23.505Z",
     "after": [
       "AR0664"
     ]
@@ -5415,8 +5413,60 @@
   {
     "id": "AR0670",
     "title": "A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0670-a-herdr-plugin-each-running-job-is-a-pane-in-herdr-on-the-server-with-its-live/ticket.md",
-    "updated": "2026-11-09T17:24:33.162Z"
+    "updated": "2026-11-10T01:05:30.328Z"
+  },
+  {
+    "id": "AR0671",
+    "title": "Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first",
+    "status": "planned",
+    "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
+    "updated": "2026-11-09T20:39:15.428Z"
+  },
+  {
+    "id": "AR0672",
+    "title": "`arthur plugin new` writes a package without the release version, so every new plugin fails `npm test` until it is edited by hand",
+    "status": "planning",
+    "path": "spec/features/AR0672-arthur-plugin-new-writes-a-package-without-the-release-version-so-every-new/ticket.md",
+    "updated": "2026-11-10T01:24:50.289Z"
+  },
+  {
+    "id": "AR0673",
+    "title": "Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise",
+    "status": "planning",
+    "path": "spec/features/AR0673-plugin-branches-running-in-parallel-conflict-on-lists-that-every-new-plugin/ticket.md",
+    "updated": "2026-11-10T01:24:51.312Z"
+  },
+  {
+    "id": "AR0674",
+    "title": "A finding quoted in a ticket is data only for the worker; the planner, plan reviewer, reviewer and auditor still read it as their ticket's instruction",
+    "status": "planning",
+    "path": "spec/features/AR0674-a-finding-quoted-in-a-ticket-is-data-only-for-the-worker-the-planner-plan/ticket.md",
+    "updated": "2026-11-10T01:24:52.359Z"
+  },
+  {
+    "id": "AR0675",
+    "title": "A worker's run end that gets the checks reminder loses the leftover-processes reminder for the rest of that run",
+    "status": "planning",
+    "path": "spec/features/AR0675-a-worker-s-run-end-that-gets-the-checks-reminder-loses-the-leftover-processes/ticket.md",
+    "updated": "2026-11-10T01:24:53.385Z"
+  },
+  {
+    "id": "AR0676",
+    "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
+    "status": "planning",
+    "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
+    "updated": "2026-11-10T01:24:54.373Z",
+    "after": [
+      "AR0673"
+    ]
+  },
+  {
+    "id": "AR0677",
+    "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
+    "status": "planning",
+    "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
+    "updated": "2026-11-10T07:02:06.500Z"
   }
 ]

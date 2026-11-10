@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/develop/src/plugin-template.ts`, `packages/develop/src/plugin-new.ts:59`
 - What: main's `packages/core/test/plugin-range.test.ts` ("one release") wants every first-party package.json and its lockfile entry to hold the root's version (0.1.0). `arthur plugin new` writes neither `version` in the new `package.json` nor in its `package-lock.json` entry, so a package made by it fails `npm test` until edited by hand, though `docs/commands/plugin.md` says it passes with no hand edit. Seen when main was merged into this branch: stats' package failed that test; this branch added `"version": "0.1.0"` to both by hand.
 - Suggestion: write the root `package.json`'s `version` into the new package.json and its lockfile entry, and test it in `plugin-new.test.ts`.
-- Status: deferred (client summary)
+- Status: ticket AR0672
 
 ## F4. F3 is still open: `arthur plugin new` writes no `version`, so the next new package will fail main's one-release test until that command is fixed
 
@@ -37,4 +37,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-07-review-a2c55e3a (review), 2026-11-07
 - Where: `packages/stats/package.json:10`
 - What: It is already filed in findings.md.
-- Status: deferred (client summary)
+- Status: ticket AR0672

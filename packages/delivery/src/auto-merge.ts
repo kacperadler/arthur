@@ -27,7 +27,7 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 	const { job, root, tip, before } = merge;
 	const entry = entryOf(host, job.project);
 	const autoMerge = entry?.pieces?.delivery?.autoMerge;
-	if (autoMerge !== true) return `--auto merges only in a project with autoMerge on; ${job.project} has autoMerge ${autoMerge ?? "unset"}, so its merges wait for the owner: arthur merge ${job.id} on his word`;
+	if (autoMerge !== true) return `--auto merges only in a project with autoMerge on; ${job.project} has autoMerge ${autoMerge ?? "unset"}, so its merges wait for the owner: arthur merge ${job.id} --decision <the owner's decision id>`;
 	const reviews = reviewsOf(host, job.branch);
 	const onTip = reviews.findLast(([review, verdict]) => tip.startsWith(review.commit) && (verdict === "PASS" || verdict === "FAIL"));
 	const ofTip = reviews.findLast(([review]) => tip.startsWith(review.commit));
@@ -45,7 +45,7 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 	// Both names of a renamed file count.
 	for (const path of git(root, "diff", "--no-renames", "--name-only", `${before}...${tip}`).split("\n").filter(Boolean)) {
 		const rule = rules.find(([, globs]) => globs.some((glob) => matchesGlob(path, glob)))?.[0] ?? (held(path) ? "the always-review list" : undefined);
-		if (rule !== undefined) return `--auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} on his word`;
+		if (rule !== undefined) return `--auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`;
 	}
 	return ciRefusal(host, merge, true);
 }

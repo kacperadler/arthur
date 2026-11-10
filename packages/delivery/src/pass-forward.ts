@@ -80,7 +80,7 @@ export function passForward(host: Host): PassForward {
 	const rerun = (project: string) => {
 		const dead = recoverMerge(host, project);
 		if (dead !== undefined && !forward(project, dead.job, dead.why, `rerun ${dead.hash}`))
-			host.events.emit("coordinator-message", { text: `${dead.why} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${dead.job} on his word` });
+			host.events.emit("coordinator-message", { text: `${dead.why} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${dead.job} --decision <the owner's decision id>` });
 		return dead !== undefined;
 	};
 	// `arthur review-needed`'s `no review`, emitted in its own process (review-needed.ts) and delivered here from the log.

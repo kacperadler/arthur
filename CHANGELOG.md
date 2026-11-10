@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-10
+
+### Fixed
+
+- AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
+
 ## 2026-11-09
 
 ### Fixed
@@ -24,6 +30,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0658 `npm run mutate` ends by itself before the call's 1800 s, with its summary (61027593)
 - AR0659 The README's Status paragraph stops copying the roadmap's state (c7f65e2d)
 - AR0660 The model test reads every file of a job folder while the job still writes, and fails on a lock file that vanished (cc9e82ee)
+- AR0666 The threat model says the coordinator runs with no sandbox and no worktree guard (d514bb2a)
 
 ## 2026-11-07
 

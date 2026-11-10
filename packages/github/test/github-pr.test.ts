@@ -176,7 +176,7 @@ test("refused before any request: wrong usage (exit 2), a number that is none; p
 		assert.deepEqual(await run(args), { code: 2, out: "", err: usage }, args.join(" "));
 	for (const args of [...writes, ["pr", "list", "--base", "x"], ["pr", "list", "--all", "--all"], ["pr", "close", "12", "--base", "main"]]) assert.deepEqual(await run(args), { code: 2, out: "", err: usage }, args.join(" "));
 	for (const word of ["0", "012", "abc", "1.5", "１２"]) assert.deepEqual(await run(["pr", "get", word]), { code: 1, out: "", err: `${word} is not a pull request number such as 12; nothing was asked of GitHub` });
-	const merge = "a merge is arthur merge <job>; the push of main marks the pull request merged; nothing was asked of GitHub";
+	const merge = "a merge is arthur merge <job> --decision <id>; main's push marks the pull request merged; nothing was asked of GitHub";
 	assert.deepEqual(await run(["pr", "merge", "12"]), { code: 1, out: "", err: merge });
 	assert.equal(api.seen.length, 0, "nothing was asked of GitHub");
 	const was = process.env.ARTHUR_JOB;

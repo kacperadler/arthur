@@ -55,5 +55,12 @@
     "action": {
       "message": "AR-D460 (owner: the down-site runbook, after the weekly reset): run arthur usage (under 87%, AR-D443); then arthur spawn --kind plan for AR0607 (spec/features/AR0607-*). If the board refuses it for \"after AR0603\", plan it anyway is not possible: tell the owner and ask whether to drop the after or wait for AR0603."
     }
+  },
+  {
+    "id": "morning-report-2026-11-10",
+    "at": "2026-11-10T08:00",
+    "action": {
+      "message": "Morning (AR-D595): stop starting work, run arthur silent off, build the night report in /home/kacper/arthur-reports/2026-11-10.html (criteria report.md: per merged or progressed ticket Before/Now/What you notice; still open with decision ids; numbers incl. Claude 7 Day usage), check it, send it with arthur send, and reply with the summary."
+    }
   }
 ]

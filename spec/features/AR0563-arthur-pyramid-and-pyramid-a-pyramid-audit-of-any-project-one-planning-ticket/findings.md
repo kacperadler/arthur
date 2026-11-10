@@ -20,4 +20,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:36`
 - What: the settings table names "worker, reviewer, planner, auditor, retro, onboarding" as the roles of `roles`; `plan-reviewer` and now `pyramid` are roles too, which `roles.pyramid` sets like the rest. The vision is the owner's, so the worker left it.
 - Suggestion: the owner adds `plan-reviewer` and `pyramid` to the list, or ends it with "...".
-- Status: deferred (client summary)
+- Status: ticket AR0676

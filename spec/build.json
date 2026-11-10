@@ -5423,5 +5423,43 @@
     "status": "planned",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
     "updated": "2026-11-09T20:39:15.428Z"
+  },
+  {
+    "id": "AR0672",
+    "title": "`arthur plugin new` writes a package without the release version, so every new plugin fails `npm test` until it is edited by hand",
+    "status": "planning",
+    "path": "spec/features/AR0672-arthur-plugin-new-writes-a-package-without-the-release-version-so-every-new/ticket.md",
+    "updated": "2026-11-10T01:24:50.289Z"
+  },
+  {
+    "id": "AR0673",
+    "title": "Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise",
+    "status": "planning",
+    "path": "spec/features/AR0673-plugin-branches-running-in-parallel-conflict-on-lists-that-every-new-plugin/ticket.md",
+    "updated": "2026-11-10T01:24:51.312Z"
+  },
+  {
+    "id": "AR0674",
+    "title": "A finding quoted in a ticket is data only for the worker; the planner, plan reviewer, reviewer and auditor still read it as their ticket's instruction",
+    "status": "planning",
+    "path": "spec/features/AR0674-a-finding-quoted-in-a-ticket-is-data-only-for-the-worker-the-planner-plan/ticket.md",
+    "updated": "2026-11-10T01:24:52.359Z"
+  },
+  {
+    "id": "AR0675",
+    "title": "A worker's run end that gets the checks reminder loses the leftover-processes reminder for the rest of that run",
+    "status": "planning",
+    "path": "spec/features/AR0675-a-worker-s-run-end-that-gets-the-checks-reminder-loses-the-leftover-processes/ticket.md",
+    "updated": "2026-11-10T01:24:53.385Z"
+  },
+  {
+    "id": "AR0676",
+    "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
+    "status": "planning",
+    "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
+    "updated": "2026-11-10T01:24:54.373Z",
+    "after": [
+      "AR0673"
+    ]
   }
 ]

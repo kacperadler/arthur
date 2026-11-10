@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `arthur.mmd:53`, `docs/architecture/core-and-plugins.mmd:98`, `docs/architecture/versions.mmd:7`, `spec/roadmap.md:19`
 - What: `spec/roadmap.md` names 99 to 101 as held for the activity log but has no entry for them, and no diagram has an `activity` node; this ticket's Scope In is the package, its docs and `arthur.config.example.ts`. The example config marks it `first, named`, an assumption: where 99 to 101 go in the order is AR0527's open question.
 - Suggestion: once the owner places 99 to 101, write their roadmap entries and add an `activity` node to the three diagrams, built.
-- Status: deferred (client summary)
+- Status: ticket AR0676
 
 ## F3. plugin-new's tests pin the budget that sorts next to `acme`
 

@@ -5366,9 +5366,9 @@
   {
     "id": "AR0665",
     "title": "Ticket approval and a plain merge need a recorded owner decision",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0665-ticket-approval-and-a-plain-merge-need-a-recorded-owner-decision/ticket.md",
-    "updated": "2026-11-10T06:01:10.274Z",
+    "updated": "2026-11-10T06:21:01.589Z",
     "after": [
       "AR0668"
     ]

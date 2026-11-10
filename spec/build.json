@@ -4413,7 +4413,7 @@
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
     "status": "done",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-10T02:42:46.922Z",
+    "updated": "2026-11-10T17:52:54.971Z",
     "after": [
       "AR0554"
     ]
@@ -5437,9 +5437,9 @@
   {
     "id": "AR0673",
     "title": "Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0673-plugin-branches-running-in-parallel-conflict-on-lists-that-every-new-plugin/ticket.md",
-    "updated": "2026-11-10T07:19:32.135Z"
+    "updated": "2026-11-10T17:42:34.816Z"
   },
   {
     "id": "AR0674",
@@ -5495,9 +5495,9 @@
   {
     "id": "AR0680",
     "title": "Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0680-dokploy-t4a-arthur-dokploy-source-connects-an-app-to-its-github-repository-so-a/ticket.md",
-    "updated": "2026-11-10T07:37:13.794Z"
+    "updated": "2026-11-10T17:00:13.684Z"
   },
   {
     "id": "AR0681",

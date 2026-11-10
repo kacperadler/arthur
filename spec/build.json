@@ -5427,9 +5427,9 @@
   {
     "id": "AR0672",
     "title": "`arthur plugin new` writes a package without the release version, so every new plugin fails `npm test` until it is edited by hand",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0672-arthur-plugin-new-writes-a-package-without-the-release-version-so-every-new/ticket.md",
-    "updated": "2026-11-10T07:19:26.749Z",
+    "updated": "2026-11-10T18:16:16.152Z",
     "after": [
       "AR0673"
     ]
@@ -5458,9 +5458,9 @@
   {
     "id": "AR0676",
     "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
-    "updated": "2026-11-10T07:19:34.794Z",
+    "updated": "2026-11-10T18:33:24.999Z",
     "after": [
       "AR0673"
     ]
@@ -5552,5 +5552,12 @@
     "after": [
       "AR0685"
     ]
+  },
+  {
+    "id": "AR0687",
+    "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
+    "status": "planning",
+    "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
+    "updated": "2026-11-10T18:33:33.801Z"
   }
 ]

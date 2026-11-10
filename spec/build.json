@@ -5542,5 +5542,15 @@
     "after": [
       "AR0671"
     ]
+  },
+  {
+    "id": "AR0686",
+    "title": "Code: a review on the fable model finds redundant comments and removes them",
+    "status": "planning",
+    "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
+    "updated": "2026-11-10T12:34:36.053Z",
+    "after": [
+      "AR0685"
+    ]
   }
 ]

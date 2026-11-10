@@ -5393,9 +5393,9 @@
   {
     "id": "AR0668",
     "title": "A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0668-a-decision-answer-can-quote-only-the-id-and-a-dash-from-the-owner-message-so-a/ticket.md",
-    "updated": "2026-11-10T08:37:34.181Z",
+    "updated": "2026-11-10T08:57:29.203Z",
     "after": [
       "AR0664"
     ]
@@ -5515,5 +5515,12 @@
     "after": [
       "AR0681"
     ]
+  },
+  {
+    "id": "AR0683",
+    "title": "Measure the test suite on Bun beside Node, and report whether moving the tests is worth it",
+    "status": "planning",
+    "path": "spec/features/AR0683-measure-the-test-suite-on-bun-beside-node-and-report-whether-moving-the-tests-is/ticket.md",
+    "updated": "2026-11-10T09:17:25.025Z"
   }
 ]

@@ -5437,9 +5437,9 @@
   {
     "id": "AR0673",
     "title": "Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0673-plugin-branches-running-in-parallel-conflict-on-lists-that-every-new-plugin/ticket.md",
-    "updated": "2026-11-10T17:42:34.816Z"
+    "updated": "2026-11-10T17:53:10.144Z"
   },
   {
     "id": "AR0674",

@@ -5461,5 +5461,12 @@
     "after": [
       "AR0673"
     ]
+  },
+  {
+    "id": "AR0677",
+    "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
+    "status": "planning",
+    "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
+    "updated": "2026-11-10T07:02:06.500Z"
   }
 ]

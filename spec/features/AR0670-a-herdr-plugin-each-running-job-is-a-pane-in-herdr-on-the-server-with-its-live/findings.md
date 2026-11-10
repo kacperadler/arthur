@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/herdr/src/herdr.ts` (`queue`), `packages/herdr/src/herdr-cli.ts` (`call`, `LIMIT_SECONDS`)
 - What: every herdr call waits up to 5 s and all go through one chain, so with herdr hanging each `job-started` and `job-state` adds at least 5 s to the chain, and a `jobs.cleanup` in `arthur run` waits behind all of them; in another process `arthur prune --all` costs about 5 s per job. [INFERENCE from the code; not measured.]
 - Suggestion: after a call that did not answer in time, skip herdr calls for a while (one minute), so a hung herdr costs one timeout, not one per event; the doctor line stays as it is.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. Each job-state makes three herdr calls before its report
 
@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/herdr/src/herdr.ts` (`job-state` handler), `packages/herdr/src/herdr-cli.ts` (`space`)
 - What: `workspace list`, `tab list` and `pane list` run before every `report-agent`, each a process of its own, though the workspace and tabs rarely change.
 - Suggestion: keep the last `Space` in memory and look it up again only when a call on it fails; measure first, since a state change is rare (a few per job).
-- Status: open
+- Status: deferred (client summary)
 
 ## F3. No test covers the herdr call's fallback message
 
@@ -29,4 +29,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/herdr/src/herdr-cli.ts:40` (`|| failed.message`)
 - What: a herdr that exits non-zero with an empty stderr, or answers with stdout that is not JSON, gets `failed.message` in its doctor line; no test drives either, so a mutant removing the fallback (`herdr workspace list: ` with nothing after it) would pass.
 - Suggestion: a fake herdr mode that exits 1 without output, and a doctor-line test of it.
-- Status: open
+- Status: deferred (client summary)

@@ -5458,9 +5458,9 @@
   {
     "id": "AR0676",
     "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
-    "updated": "2026-11-10T20:29:14.245Z",
+    "updated": "2026-11-10T20:51:29.991Z",
     "after": [
       "AR0673"
     ]

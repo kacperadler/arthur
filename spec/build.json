@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-10T12:09:30.501Z",
+    "updated": "2026-11-10T13:46:36.283Z",
     "after": [
       "AR0644"
     ]
@@ -5468,9 +5468,9 @@
   {
     "id": "AR0677",
     "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
-    "updated": "2026-11-10T12:07:16.608Z",
+    "updated": "2026-11-10T13:46:29.214Z",
     "after": [
       "AR0684"
     ]

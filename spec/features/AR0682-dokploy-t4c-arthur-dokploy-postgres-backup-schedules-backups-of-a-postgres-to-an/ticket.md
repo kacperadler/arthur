@@ -33,3 +33,4 @@ Out:
 - Restoring a backup.
 
 ## Decisions
+- 2026-11-10: AR0682 approved; the owner: "AR-D614 - yes" (AR-D614)

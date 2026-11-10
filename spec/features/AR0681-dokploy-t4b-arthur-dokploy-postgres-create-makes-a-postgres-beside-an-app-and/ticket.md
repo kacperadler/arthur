@@ -33,3 +33,4 @@ Out:
 - Backups (AR0682).
 
 ## Decisions
+- 2026-11-10: AR0681 approved; the owner: "AR-D613 - yes" (AR-D613)

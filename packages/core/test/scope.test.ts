@@ -409,6 +409,24 @@ test("without a user manager a job over its memory cap is stopped within one 10 
 	assert.match(JSON.stringify(notices[0]), /^\{"text":"machine local runs jobs without a systemd scope \(.+\): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held"\}$/);
 });
 
+// Without the test's sample the wrapper's first sample comes 10 s after its start: a hog over the cap whose job ends before
+// then ends finished; a sample every few ms, as one of no value would be, stops it first.
+test("without the test's sample a job without a user manager is sampled every 10 s, not at once: one over its cap that ends sooner ends finished", async (t) => {
+	noManager(t);
+	assert.equal(process.env.ARTHUR_TEST_MEMORY_SAMPLE_MS, undefined);
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, on, hog } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, jobSlice, () => [{ memory: "300M" }]);
+	writeFileSync(on, "");
+	const job = await jobs.spawn({ task: "Hog." });
+	const pid = Number(await until("the hog's start", () => read(hog)));
+	t.after(() => void (running(pid) && process.kill(pid, "SIGKILL")));
+	const resident = () => Number(/^VmRSS:\s+(\d+) kB$/m.exec(read(`/proc/${pid}/status`) ?? "")?.[1] ?? 0) * 1024;
+	await until("the hog over the cap", () => resident() > 300 * 2 ** 20 || read(join(home, "jobs", job.id, "state")) === "ended");
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
+});
+
 test("a test's memory sample reaches the wrapper only under node's test runner; no other ARTHUR_ variable does", async (t) => {
 	const gate = join(temporaryFolder(), "gate");
 	t.after(() => writeFileSync(gate, ""));

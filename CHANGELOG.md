@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0670 A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar (31286fa2)
+- AR0680 Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it (3c9144dc)
 
 ### Fixed
 

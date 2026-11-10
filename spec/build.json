@@ -5458,9 +5458,9 @@
   {
     "id": "AR0676",
     "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
-    "updated": "2026-11-10T20:08:28.343Z",
+    "updated": "2026-11-10T20:29:14.245Z",
     "after": [
       "AR0673"
     ]
@@ -5495,9 +5495,9 @@
   {
     "id": "AR0680",
     "title": "Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0680-dokploy-t4a-arthur-dokploy-source-connects-an-app-to-its-github-repository-so-a/ticket.md",
-    "updated": "2026-11-10T19:47:23.526Z"
+    "updated": "2026-11-10T20:30:53.074Z"
   },
   {
     "id": "AR0681",

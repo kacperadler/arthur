@@ -51,8 +51,8 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 	// Main's ticket, never the branch's copy, which it may have changed: the paths in backticks in its `## Scope` before `Out:`.
 	const scope = (folder ? git(root, "show", `${before}:${folder}/ticket.md`) : "").split(/^## Scope[ \t]*$/m)[1]?.split(/^## /m)[0]?.split(/^Out:/m)[0];
 	const named = new Set([...(scope ?? "").matchAll(/`([^`\n]+)`/g)].map((match) => match[1]));
-	// Both names of a renamed file count.
-	for (const path of git(root, "diff", "--no-renames", "--name-only", `${before}...${tip}`).split("\n").filter(Boolean)) {
+	// Both names of a renamed file count; `-z` gives each name as it is, never quoted, so a non-ASCII one still meets its glob.
+	for (const path of git(root, "diff", "--no-renames", "--name-only", "-z", `${before}...${tip}`).split("\0").filter(Boolean)) {
 		if (path.endsWith(".md") && named.has(path) && prompts.some((glob) => matchesGlob(path, glob))) continue;
 		const rule = rules.find(([, globs]) => globs.some((glob) => matchesGlob(path, glob)))?.[0] ?? (held(path) ? "the always-review list" : undefined);
 		if (rule !== undefined) return `--auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`;

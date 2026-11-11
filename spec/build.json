@@ -5588,8 +5588,46 @@
   {
     "id": "AR0692",
     "title": "herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0692-herdr-start-up-test-fails-under-load-its-20-s-wait-for-the-start-up-pass-times/ticket.md",
-    "updated": "2026-11-11T20:00:50.806Z"
+    "updated": "2026-11-11T20:01:11.808Z"
+  },
+  {
+    "id": "AR0693",
+    "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
+    "status": "planning",
+    "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
+    "updated": "2026-11-11T20:22:38.112Z"
+  },
+  {
+    "id": "AR0694",
+    "title": "A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision",
+    "status": "planning",
+    "path": "spec/features/AR0694-a-plan-yes-ticket-goes-straight-to-its-planner-the-plan-question-is-the-owner-s/ticket.md",
+    "updated": "2026-11-11T20:22:39.192Z"
+  },
+  {
+    "id": "AR0695",
+    "title": "The coordinator checks a finding's or audit's ticket against autopilot before asking the owner",
+    "status": "planning",
+    "path": "spec/features/AR0695-the-coordinator-checks-a-finding-s-or-audit-s-ticket-against-autopilot-before/ticket.md",
+    "updated": "2026-11-11T20:22:40.378Z"
+  },
+  {
+    "id": "AR0696",
+    "title": "The review gate needs min(100, all) mutants, not min(25, all)",
+    "status": "planning",
+    "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
+    "updated": "2026-11-11T20:22:41.509Z",
+    "after": [
+      "AR0671"
+    ]
+  },
+  {
+    "id": "AR0697",
+    "title": "The test kit stops every process a test left in its folder when a test file exits",
+    "status": "planning",
+    "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
+    "updated": "2026-11-11T20:22:42.504Z"
   }
 ]

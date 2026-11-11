@@ -5485,9 +5485,9 @@
   {
     "id": "AR0679",
     "title": "The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603)",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0679-the-go-with-my-recommendation-grant-and-approved-policies-still-answer-plan/ticket.md",
-    "updated": "2026-11-10T23:52:52.196Z",
+    "updated": "2026-11-11T00:51:23.212Z",
     "after": [
       "AR0677"
     ]
@@ -5560,9 +5560,9 @@
   {
     "id": "AR0688",
     "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
-    "updated": "2026-11-11T00:15:47.537Z"
+    "updated": "2026-11-11T00:30:33.083Z"
   },
   {
     "id": "AR0689",

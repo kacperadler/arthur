@@ -50,10 +50,13 @@ export default function checks(pi: ExtensionApi): void {
 		if (reminded || field("kind") !== "worker") return undefined;
 		// `untested` (review-command.ts) reads only these of the host and the job; outside Git no package.json, so no checks due.
 		const [host, job] = [{ folder: dirname(dirname(file)) } as Host, { id: basename(record), branch: field("branch"), machine: field("machine") || "local" } as JobRecord];
-		const missing = untested(host, job, { git: (...words) => git(ctx.cwd, ...words).stdout.trim(), commit: git(ctx.cwd, "rev-parse", "HEAD").stdout.trim() });
+		const tip = git(ctx.cwd, "rev-parse", "HEAD").stdout.trim();
+		const missing = untested(host, job, { git: (...words) => git(ctx.cwd, ...words).stdout.trim(), commit: tip });
 		if (missing === undefined) return undefined;
 		reminded = true;
-		return { continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${missing}. Commit your work, then run npm run check && npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.` };
+		const ran = /ran on (\w+), not the tip/.exec(missing)?.[1];
+		const moved = ran === undefined ? "" : ` Your checks ran on ${ran}, and your tip is now ${tip.slice(0, 7)}: any commit after them needs them run again.`;
+		return { continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${missing}.${moved} Commit your work, then run npm run check && npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.` };
 	});
 }
 

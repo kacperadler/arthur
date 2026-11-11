@@ -5611,7 +5611,10 @@
     "title": "The coordinator checks a finding's or audit's ticket against autopilot before asking the owner",
     "status": "planned",
     "path": "spec/features/AR0695-the-coordinator-checks-a-finding-s-or-audit-s-ticket-against-autopilot-before/ticket.md",
-    "updated": "2026-11-11T20:24:15.444Z"
+    "updated": "2026-11-11T20:24:15.444Z",
+    "after": [
+      "AR0694"
+    ]
   },
   {
     "id": "AR0696",
@@ -5628,6 +5631,9 @@
     "title": "The test kit stops every process a test left in its folder when a test file exits",
     "status": "planned",
     "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
-    "updated": "2026-11-11T20:24:20.604Z"
+    "updated": "2026-11-11T20:24:20.604Z",
+    "after": [
+      "AR0671"
+    ]
   }
 ]

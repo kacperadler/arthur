@@ -5570,5 +5570,12 @@
     "status": "planning",
     "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
     "updated": "2026-11-10T23:52:58.464Z"
+  },
+  {
+    "id": "AR0690",
+    "title": "docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays",
+    "status": "planning",
+    "path": "spec/features/AR0690-docker-buildx-with-its-own-options-before-build-docker-buildx-builder-x-build/ticket.md",
+    "updated": "2026-11-11T07:03:46.522Z"
   }
 ]

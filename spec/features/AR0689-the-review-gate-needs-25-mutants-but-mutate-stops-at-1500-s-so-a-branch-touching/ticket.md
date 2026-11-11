@@ -37,4 +37,5 @@ Out:
 - 2026-11-11: Approve; the owner: "by recommendation: G13058" (AR-D635)
 - 2026-11-11: AR0689 approved: a plan job picks the smallest fix, then a worker builds it; the owner: "AR-D636 - approve" (AR-D636)
 - 2026-11-11: Test speed first: AR0689 (mutate limit), then AR0671 (faster tests) review and merge, before the rest of the queue; the owner: "speed up tests should be done first bcs this will improve how fast we can move" (AR-D642)
+- 2026-11-11: Plan approved by the owner: plan.md at 0955bb1d; the owner: "AR-D643 approve" (AR-D643)
 

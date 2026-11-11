@@ -54,7 +54,7 @@ export default function checks(pi: ExtensionApi): void {
 		const missing = untested(host, job, { git: (...words) => git(ctx.cwd, ...words).stdout.trim(), commit: tip });
 		if (missing === undefined) return undefined;
 		reminded = true;
-		const ran = /ran on ([0-9a-f]+), not the tip/.exec(missing)?.[1];
+		const ran = /ran on (\w+), not the tip/.exec(missing)?.[1];
 		const moved = ran === undefined ? "" : ` Your checks ran on ${ran}, and your tip is now ${tip.slice(0, 7)}: any commit after them needs them run again.`;
 		return { continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${missing}.${moved} Commit your work, then run npm run check && npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.` };
 	});

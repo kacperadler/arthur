@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { TestContext } from "node:test";
@@ -15,7 +16,8 @@ export const TOKEN = "kdQ7uZ3sA0pT1mN2vB4xC6yD8eF9gH0iJ1kL2mN3oP4qR5sT6uV7wX8yZ9
 export const SECRETS = ["DATABASE_URL=postgres://shop:s3cr3t-db@db/shop", "NPM_TOKEN=npm_s3cr3tBuildArg", "SENTRY_AUTH=s3cr3tBuildSecret", "PREVIEW_KEY=s3cr3tPreview", "ghr_s3cr3tRefresh", "s3cr3t-registry", "PROJECT_KEY=s3cr3tProject", "ENVIRONMENT_KEY=s3cr3tEnvironment", "h13BzO6y3KYSHaQg", "mM1b7JeoPA7jArxj", "Yvb8gqClfomjcue8"];
 
 export type FakeDeployment = { readonly title: string; readonly status: "running" | "done" | "error" | "cancelled"; readonly createdAt: string; readonly finishedAt?: string; readonly errorMessage?: string };
-// An app; the keys after `dropBuildPath` are what the setup writes change, each left out as Dokploy's default or the fake's.
+// An app; the keys after `dropBuildPath` are what the setup and source writes change, each left out as Dokploy's default or the
+// fake's; `githubId` one of the fake's `githubs`.
 export type FakeApp = {
 	readonly id: string;
 	readonly name: string;
@@ -31,7 +33,19 @@ export type FakeApp = {
 	readonly dockerContextPath?: string | null;
 	readonly env?: string | null;
 	readonly mounts?: readonly { readonly type: "volume" | "bind" | "file"; readonly volumeName?: string; readonly mountPath: string }[];
+	readonly githubId?: string;
+	readonly owner?: string;
+	readonly repository?: string;
+	readonly branch?: string;
+	readonly buildPath?: string;
+	readonly triggerType?: "push" | "tag";
+	readonly autoDeploy?: boolean | null;
+	readonly watchPaths?: readonly string[] | null;
+	readonly enableSubmodules?: boolean;
 };
+// A GitHub app of Dokploy (Settings, Git providers): its id, its name, and the repositories its installation sees, each with
+// its branches.
+export type FakeGithub = { readonly id: string; readonly name: string; readonly repositories: readonly { readonly owner: string; readonly name: string; readonly branches: readonly string[] }[] };
 // What a procedure answers in place of its own: a status and body, a redirect to `location`, no answer at all, text that is not
 // JSON, or no body at all under the status `empty`.
 export type Scripted = { readonly status: number; readonly body: unknown } | { readonly redirect: string } | { readonly empty: number } | "hang" | "not-json";
@@ -65,31 +79,51 @@ const mountRecord = (app: FakeApp, mount: NonNullable<FakeApp["mounts"]>[number]
 	...{ mountId: `mnt-${app.id}-${index}`, type: mount.type, hostPath: null, volumeName: mount.volumeName ?? null, filePath: null, content: null, serviceType: "application", mountPath: mount.mountPath },
 	...{ applicationId: app.id, composeId: null, libsqlId: null, mariadbId: null, mongoId: null, mysqlId: null, postgresId: null, redisId: null },
 });
+
+// GitHub's own repository and branch, as docs.github.com's examples show them (github-examples.json), named as the fake's.
+const GITHUB = JSON.parse(readFileSync(new URL("github-examples.json", import.meta.url), "utf8")) as { repository: { owner: object }; branch: object };
+const repositoryRecord = (owner: string, name: string) => ({ ...GITHUB.repository, name, full_name: `${owner}/${name}`, owner: { ...GITHUB.repository.owner, login: owner } });
+// A GitHub app as the github table holds it, its git provider beside it as `github.githubProviders` answers.
+const githubRecord = (github: FakeGithub) => ({
+	...{ githubId: github.id, githubAppName: `${github.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-app`, githubAppId: 1234567, githubClientId: "Iv23liAbCdEf0123", githubInstallationId: "55501234" },
+	...{ githubUrl: "https://github.com", gitProviderId: `gp-${github.id}` },
+});
+const providerRecord = (github: FakeGithub) => ({
+	...{ githubId: github.id, githubUrl: "https://github.com" },
+	gitProvider: { gitProviderId: `gp-${github.id}`, name: github.name, providerType: "github", createdAt: `${DAY}T08:00:00.000Z`, organizationId: "org-1", userId: "user-1", sharedWithOrganization: false },
+});
 // The related records findApplicationById adds to the application's own columns, which `application.create` answers alone.
 const RELATED = ["environment", "domains", "deployments", "mounts", "redirects", "security", "ports", "gitlab", "github", "bitbucket", "gitea", "server", "previewDeployments", "registry", "buildRegistry", "rollbackRegistry", "hasGitProviderAccess", "unauthorizedProvider"];
 
 // `application.one`: every column of the application table, its environment with its project, and the related records
-// findApplicationById reads, the git providers, server and registries none, as for an app without them.
-function applicationRecord(app: FakeApp) {
+// findApplicationById reads: its GitHub app without the three secrets when it has one, the other git providers, server and
+// registries none, as for an app without them.
+function applicationRecord(app: FakeApp, githubs: readonly FakeGithub[] = []) {
+	const github = githubs.find((each) => each.id === app.githubId);
 	return {
 		...{ applicationId: app.id, name: app.name, appName: `${app.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-a1b2c3`, description: null, env: app.env === undefined ? "DATABASE_URL=postgres://shop:s3cr3t-db@db/shop" : app.env, previewEnv: "PREVIEW_KEY=s3cr3tPreview" },
-		...{ watchPaths: null, previewBuildArgs: null, previewBuildSecrets: null, previewLabels: null, previewWildcard: null, previewPort: 3000, previewHttps: false, previewPath: "/", previewCertificateType: "none" },
+		...{ watchPaths: app.watchPaths ?? null, previewBuildArgs: null, previewBuildSecrets: null, previewLabels: null, previewWildcard: null, previewPort: 3000, previewHttps: false, previewPath: "/" },
+		...{ previewCertificateType: "none" },
 		...{ previewCustomCertResolver: null, previewLimit: 3, isPreviewDeploymentsActive: false, previewRequireCollaboratorPermissions: true, rollbackActive: false, buildArgs: "NPM_TOKEN=npm_s3cr3tBuildArg" },
 		...{ buildSecrets: "SENTRY_AUTH=s3cr3tBuildSecret", memoryReservation: null, memoryLimit: null, cpuReservation: null, cpuLimit: null, title: null, enabled: null, subtitle: null, command: null, args: null, icon: null },
-		...{ refreshToken: "ghr_s3cr3tRefresh", sourceType: app.sourceType ?? "drop", cleanCache: false, repository: null, owner: null, branch: null, buildPath: "/", triggerType: "push", autoDeploy: true },
+		...{ refreshToken: "ghr_s3cr3tRefresh", sourceType: app.sourceType ?? "drop", cleanCache: false, repository: app.repository ?? null, owner: app.owner ?? null, branch: app.branch ?? null },
+		...{ buildPath: app.buildPath ?? "/", triggerType: app.triggerType ?? "push", autoDeploy: app.autoDeploy === undefined ? true : app.autoDeploy },
 		...{ gitlabProjectId: null, gitlabRepository: null, gitlabOwner: null, gitlabBranch: null, gitlabBuildPath: "/", gitlabPathNamespace: null, giteaRepository: null, giteaOwner: null, giteaBranch: null },
 		...{ giteaBuildPath: "/", bitbucketRepository: null, bitbucketRepositorySlug: null, bitbucketOwner: null, bitbucketBranch: null, bitbucketBuildPath: "/", username: "deploy", password: "s3cr3t-registry" },
-		...{ dockerImage: null, registryUrl: null, customGitUrl: null, customGitBranch: null, customGitBuildPath: null, customGitSSHKeyId: null, enableSubmodules: false, dockerfile: app.dockerfile ?? null },
+		...{ dockerImage: null, registryUrl: null, customGitUrl: null, customGitBranch: null, customGitBuildPath: null, customGitSSHKeyId: null, enableSubmodules: app.enableSubmodules ?? false },
+		...{ dockerfile: app.dockerfile ?? null },
 		...{ dockerContextPath: app.dockerContextPath ?? null, dockerBuildStage: null, dropBuildPath: app.dropBuildPath ?? null, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null },
 		...{ rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null, networkSwarm: null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, applicationStatus: app.status },
 		...{ buildType: app.buildType ?? "nixpacks", railpackVersion: "0.2.2", herokuVersion: "24", publishDirectory: null, isStaticSpa: null, createEnvFile: true, createdAt: `${DAY}T08:00:00.000Z`, registryId: null },
-		...{ rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment), githubId: null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: null, buildServerId: null },
+		...{ rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment), githubId: app.githubId ?? null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: null },
+		...{ buildServerId: null },
 		...{ buildRegistryId: null, networkIds: [], detachDokployNetwork: false },
 		environment: { ...environmentRecord(app.project, app.environment), project: projectRecord(app.project) },
 		domains: (app.domains ?? []).map((domain, index) => domainRecord(app, domain, index)),
 		deployments: (app.deployments ?? []).map((deployment, index) => deploymentRecord(app, deployment, index)),
 		mounts: (app.mounts ?? []).map((mount, index) => mountRecord(app, mount, index)),
-		...{ redirects: [], security: [], ports: [], gitlab: null, github: null, bitbucket: null, gitea: null, server: null, previewDeployments: [], registry: null, buildRegistry: null, rollbackRegistry: null },
+		...{ redirects: [], security: [], ports: [], gitlab: null, github: github === undefined ? null : githubRecord(github), bitbucket: null, gitea: null, server: null, previewDeployments: [] },
+		...{ registry: null, buildRegistry: null, rollbackRegistry: null },
 		...{ hasGitProviderAccess: true, unauthorizedProvider: null },
 	};
 }
@@ -129,7 +163,7 @@ const inputError = (path: string, fields: readonly string[]) => {
 };
 
 // What each write's input requires (apiCreateApplication, apiSaveBuildType, apiSaveEnvironmentVariables, apiCreateDomain,
-// apiCreateMount at v0.30.10); `applicationId` or `serviceId` names the app it changes.
+// apiCreateMount, apiSaveGithubProvider, apiUpdateApplication at v0.30.10); `applicationId` or `serviceId` names the app it changes.
 const REQUIRED: Readonly<Record<string, readonly string[]>> = {
 	"application.deploy": ["applicationId"],
 	"application.dropDeployment": ["applicationId", "zip"],
@@ -139,6 +173,8 @@ const REQUIRED: Readonly<Record<string, readonly string[]>> = {
 	"domain.create": ["host", "applicationId"],
 	"mounts.create": ["type", "mountPath", "serviceType", "serviceId"],
 	"domain.validateDomain": ["domain"],
+	"application.saveGithubProvider": ["applicationId", "repository", "owner", "buildPath", "githubId", "branch", "triggerType"],
+	"application.update": ["applicationId"],
 };
 // What `domain.validateDomain` answers (validateDomain at v0.30.10): a host under `.invalid` does not resolve, one starting
 // `elsewhere.` resolves to another server, any other to this one.
@@ -188,10 +224,10 @@ export function readZip(zip: Buffer): { readonly name: string; readonly method: 
 	return entries;
 }
 
-// The fake, with `apps` on it, and `empty` projects without any; `form` the `project.all` it answers; `scripted` what a
-// procedure answers instead of its own, changed by a test as it goes. `seen`: every request, in order; `live`: the apps as
-// the writes left them.
-export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeApp[], empty = [] as readonly string[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {}) {
+// The fake, with `apps` on it, `empty` projects without any, and `githubs`, its GitHub apps; `form` the `project.all` it
+// answers; `scripted` what a procedure answers instead of its own, changed by a test as it goes. `seen`: every request, in
+// order; `live`: the apps as the writes left them.
+export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeApp[], empty = [] as readonly string[], githubs = [] as readonly FakeGithub[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {}) {
 	const [seen, scripted, live] = [[] as Seen[], new Map<string, Scripted>(), [...apps]];
 	// Each environment's id, and its project and name, so `application.create` can place the app it makes.
 	const places = new Map([...apps.map((app) => [app.project, app.environment]), ...empty.map((name) => [name, "production"])].map(([project = "", name = ""]) => [environmentId(project, name), { project, environment: name }]));
@@ -216,9 +252,19 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 		if (request.method === "GET" && procedure === "project.all") return send(response, 200, form === "documented" ? documentedRecord(live) : projectsRecord(live, empty));
 		if (request.method === "GET" && procedure === "application.one") {
 			if (app === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Application not found", procedure).body);
-			return send(response, 200, applicationRecord(app));
+			return send(response, 200, applicationRecord(app, githubs));
 		}
 		if (request.method === "GET" && procedure === "deployment.all") return send(response, 200, app === undefined ? [] : (app.deployments ?? []).map((deployment, index) => deploymentRecord(app, deployment, index)).toReversed());
+		if (request.method === "GET" && procedure === "github.githubProviders") return send(response, 200, githubs.map(providerRecord));
+		if (request.method === "GET" && procedure.startsWith("github.getGithub")) {
+			const github = githubs.find((each) => each.id === url.searchParams.get("githubId"));
+			if (github === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Github Provider not found", procedure).body);
+			if (procedure === "github.getGithubRepositories") return send(response, 200, github.repositories.map((each) => repositoryRecord(each.owner, each.name)));
+			const repository = github.repositories.find((each) => each.owner === url.searchParams.get("owner") && each.name === url.searchParams.get("repo"));
+			// GitHub answers 404 for a repository the installation does not see; tRPC turns octokit's error into a 500.
+			if (repository === undefined) return send(response, 500, trpcError(500, "INTERNAL_SERVER_ERROR", "Not Found - https://docs.github.com/rest/branches/branches#list-branches", procedure).body);
+			return send(response, 200, repository.branches.map((name) => ({ ...GITHUB.branch, name })));
+		}
 		const required = request.method === "POST" && Object.hasOwn(REQUIRED, procedure) ? REQUIRED[procedure] : undefined;
 		if (required === undefined || sent === undefined) return send(response, 404, { message: "Not found", code: "NOT_FOUND" });
 		// Each write answers when it is done or queued: `deploy` with no body (its procedure returns nothing), `dropDeployment`
@@ -241,6 +287,11 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 		const changed = (more: Partial<FakeApp>) => (live[index] = { ...app, ...more });
 		if (procedure === "application.saveBuildType") changed({ buildType: String(fields.buildType), dockerfile: fields.dockerfile as string, dockerContextPath: fields.dockerContextPath as string | null });
 		if (procedure === "application.saveEnvironment") changed({ env: String(fields.env) });
+		if (procedure === "application.saveGithubProvider") {
+			const github = { githubId: String(fields.githubId), owner: String(fields.owner), repository: String(fields.repository), branch: String(fields.branch), buildPath: String(fields.buildPath) };
+			changed({ ...github, sourceType: "github", status: "idle", triggerType: fields.triggerType as "push", watchPaths: fields.watchPaths as string[], enableSubmodules: fields.enableSubmodules === true });
+		}
+		if (procedure === "application.update" && typeof fields.autoDeploy === "boolean") changed({ autoDeploy: fields.autoDeploy });
 		if (procedure === "domain.create") {
 			const domain = { host: String(fields.host), https: fields.https === true, port: Number(fields.port) };
 			changed({ domains: [...(app.domains ?? []), domain] });

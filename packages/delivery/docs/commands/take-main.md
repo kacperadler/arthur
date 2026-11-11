@@ -7,14 +7,14 @@ Takes main as it is, on the owner's word: `arthur merge` refuses a branch while 
 Only with `--decision <id>`, the owner's recorded decision of kind `merge`, for no ticket and no job, which the orchestration plugin checks (`call("decision.owner", { id, what: "arthur take-main", kind: "merge", use })`, `arthur decision --help`, "What only the owner's decision lets through"); a decision is used once. Record it first, `<his words>` his answer quoted from his own channel message, which names the decision id, never only the id, a sign or one word (`arthur decision --help`, "Answering"):
 
 ```sh
-arthur decision ask --kind merge --question 'Take main as it is at <commit>, with <commits>?'
-arthur decision answer <id> --decided 'take main as it is' '<his words>'
+arthur decision ask --kind merge --question 'Take main as it is at <commit>, with <commits>?' --option 'Take it' --option 'Not yet'
+arthur decision answer <id> --decided 'take main as it is' --picked 1 '<his words>'
 arthur take-main --decision <id>
 ```
 
 Refused, exit 1, nothing written:
 
-- No decision, or one orchestration refuses: `<orchestration's refusal>; nothing taken`. Without `--decision` the refusal names the ask to make, `arthur take-main needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>', his answer recorded with arthur decision answer, then arthur take-main --decision <its id>`.
+- No decision, or one orchestration refuses (an answer that did not pick option 1, its approval, included: AR0677): `<orchestration's refusal>; nothing taken`. Without `--decision` the refusal names the ask to make, `arthur take-main needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --option '<the approval>', his answer recorded with arthur decision answer <its id> --picked 1, then arthur take-main --decision <its id>`.
 - The project's checkout whose own Git config sets a key that may name a program, as `arthur merge` refuses it: `<file> sets <key>, …; nothing taken`.
 - A project not in the list: `no project <name> in the project list`.
 

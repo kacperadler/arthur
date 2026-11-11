@@ -17,6 +17,7 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 	const ticket = asked.ticket === undefined ? undefined : host.board.get(asked.ticket);
 	if (asked.ticket !== undefined && ticket?.project !== project.name) throw new Error(`--ticket ${asked.ticket} is not on the board of project ${project.name}`);
 	const { recommend, options } = asked;
+	if ((asked.kind === "plan" || asked.kind === "merge") && options.length === 0) throw new Error(`a ${asked.kind} question needs --option '<the approval>'`);
 	if (typeof recommend === "number" && !(recommend >= 1 && recommend <= options.length)) throw new Error(`--recommend ${recommend}: no such option; ${options.length} offered (--option)`);
 	const kind = ticketKind(host, project, asked.ticket);
 	let classes: readonly string[] = [];
@@ -32,14 +33,13 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 	return { id: added[0]?.id ?? "", unwritten, ...(added[1]?.record === "answer" ? { policy: added[1] } : {}), classes };
 }
 
-// What an answer lets through that only the owner's message naming its id may record (AR0664), none for any other: a merge flag,
-// `--budget 0` (any budget question), `arthur take-main` (a merge question of no ticket and no job), a class approved.
+// What an answer lets through that only the owner's message naming its id may record (AR0664, AR0677), undefined for any other.
 function impact(ask: Ask, picked: number | undefined): string | undefined {
 	if (ask.class !== undefined) return picked === 1 ? `approves the class ${described(ask.class)}` : undefined;
 	if (ask.kind === "budget") return "lets through --budget 0";
-	if (ask.kind !== "merge") return undefined;
+	if (ask.kind !== "merge") return ask.kind === "plan" ? `lets through arthur ticket status ${ask.ticket ?? "<id>"} planned` : undefined;
 	if ((ask.what ?? []).length > 0) return `lets through ${ask.what?.join(" and ")}`;
-	return ask.ticket === undefined && ask.job === undefined ? "lets through arthur take-main" : undefined;
+	return ask.ticket === undefined && ask.job === undefined ? "lets through arthur take-main" : "lets through arthur merge";
 }
 
 // Records the owner's answer, with the number of his message that holds its words (decision-proof.ts); the record as written,

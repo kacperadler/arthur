@@ -25,8 +25,10 @@ const drift = (got: unknown, shape: unknown, at = ""): string[] => {
 
 test("every route of the fake Dokploy answers with the keys the documentation's example and Dokploy v0.30.10 show, at every depth", async (t) => {
 	const deployments = [{ title: "First", status: "done" as const, createdAt: "2026-10-29T09:00:00.000Z", finishedAt: "2026-10-29T09:02:00.000Z" }, { title: "Second", status: "error" as const, createdAt: "2026-10-30T09:00:00.000Z", errorMessage: "failed" }];
-	const app = { id: "kXx3", name: "Shop", status: "done" as const, project: "Shop", environment: "production", domains: [{ host: "shop.example", https: true }], deployments, mounts: [{ type: "volume" as const, volumeName: "data", mountPath: "/data" }] };
-	const current = await fakeDokploy(t, { apps: [app], empty: ["Archive"] });
+	const source = { githubId: "gh-1", owner: "acme", repository: "web-shop", branch: "main" };
+	const app = { id: "kXx3", name: "Shop", status: "done" as const, project: "Shop", environment: "production", domains: [{ host: "shop.example", https: true }], deployments, mounts: [{ type: "volume" as const, volumeName: "data", mountPath: "/data" }], ...source };
+	const githubs = [{ id: "gh-1", name: "acme", repositories: [{ owner: "acme", name: "web-shop", branches: ["main"] }] }];
+	const current = await fakeDokploy(t, { apps: [app], empty: ["Archive"], githubs });
 	const documented = await fakeDokploy(t, { apps: [app], form: "documented" });
 	const get = async (base: string, path: string, headers: Record<string, string> = { "x-api-key": TOKEN }) => (await fetch(new URL(path, base), { headers })).json();
 	const post = async (path: string, body: FormData | string, headers: Record<string, string> = {}) => (await fetch(new URL(path, current.url), { method: "POST", headers: { "x-api-key": TOKEN, ...headers }, body })).json();
@@ -35,10 +37,13 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 	const form = new FormData();
 	form.set("applicationId", "kXx3");
 	form.set("zip", new Blob(["PK\x05\x06".padEnd(22, "\0")], { type: "application/zip" }), "upload.zip");
+	// An app with a GitHub app answers its record, which the comparison skips when it is null.
+	const one = await get(current.url, "/api/application.one?applicationId=kXx3");
+	assert.equal(one.github?.githubId, "gh-1");
 	const routes: [string, unknown][] = [
 		["project-all", await get(current.url, "/api/project.all")],
 		["project-all-documented", await get(documented.url, "/api/project.all")],
-		["application-one", await get(current.url, "/api/application.one?applicationId=kXx3")],
+		["application-one", one],
 		["deployment-all", await get(current.url, "/api/deployment.all?applicationId=kXx3")],
 		["error", await get(current.url, "/api/application.one?applicationId=gone")],
 		["error-unauthorized", await get(current.url, "/api/project.all", {})],
@@ -52,8 +57,13 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 		["domain-validate-domain", await json("/api/domain.validateDomain", { domain: "shop.example" })],
 		["domain-validate-domain-elsewhere", await json("/api/domain.validateDomain", { domain: "elsewhere.shop.example" })],
 		["domain-validate-domain-unresolved", await json("/api/domain.validateDomain", { domain: "shop.invalid" })],
+		["github-github-providers", await get(current.url, "/api/github.githubProviders")],
+		["github-get-github-repositories", await get(current.url, "/api/github.getGithubRepositories?githubId=gh-1")],
+		["github-get-github-branches", await get(current.url, "/api/github.getGithubBranches?repo=web-shop&owner=acme&githubId=gh-1")],
+		["application-save-github-provider", await json("/api/application.saveGithubProvider", { applicationId: "kXx3", ...source, buildPath: "/", triggerType: "push", watchPaths: [], enableSubmodules: false })],
+		["application-update", await json("/api/application.update", { applicationId: "kXx3", autoDeploy: true })],
 	];
-	assert.deepEqual([routes[6]?.[1], routes[9]?.[1], routes[10]?.[1]], [true, true, true], "dropDeployment and the saves answer true");
+	assert.deepEqual([6, 9, 10, 19, 20].map((index) => routes[index]?.[1]), [true, true, true, true, true], "dropDeployment, the saves and the update answer true");
 	assert.deepEqual(
 		routes.flatMap(([name, got]) => (name in shapes ? drift(got, shapes[name], name) : [`${name} not recorded`])),
 		[],

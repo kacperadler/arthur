@@ -457,22 +457,6 @@ test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an ol
 	assert.deepEqual(owner, [{ ...asked, id: "" }, { ...asked, id: "AC-D9" }, { ...asked, id: OWNER }], "asked only with --unreviewed, of the job's ticket, for this merge");
 });
 
-test("a merge after a PASS goes in only with the owner's merge decision of its ticket: without one, or with one decision.owner refuses, main is unchanged (AR0665)", async (t) => {
-	const { worker, review, merge, head, status, owner } = await load(t);
-	const job = await worker();
-	await review(job.id, "PASS");
-	const [start, was] = [head(), status("AC0001")];
-	const how = `arthur merge ${job.id} needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then arthur merge ${job.id} --decision <its id>`;
-	assert.deepEqual(await merge(job.id), { code: 1, out: "", err: `arthur merge: ${how}; main is unchanged` });
-	assert.deepEqual(await merge(job.id, "--decision", "AC-D9"), { code: 1, out: "", err: "arthur merge: AC-D9 is not in the decision log of project acme; main is unchanged" });
-	assert.deepEqual([head(), status("AC0001")], [start, was]);
-	const merged = await merge(job.id, "--decision", OWNER);
-	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(status("AC0001"), "merged");
-	const asked = { what: `arthur merge ${job.id}`, kind: "merge", ticket: "AC0001", job: job.id, use: `merge ${job.id}` };
-	assert.deepEqual(owner, [{ ...asked, id: "" }, { ...asked, id: "AC-D9" }, { ...asked, id: OWNER }], "asked once a merge, for the merge itself, of the job's ticket");
-});
-
 test("arthur review-needed's no review for the tip is a PASS; for an older tip, or written in the job's own folder, it is none; the merge's prune removes it", async (t) => {
 	const { fake, commit, worker, run, merge } = await load(t);
 	const job = await worker({ "docs.md": "# Docs\n" });

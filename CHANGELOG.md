@@ -7,17 +7,23 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0670 A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar (31286fa2)
+- AR0680 Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it (3c9144dc)
 
 ### Fixed
 
 - AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
 - AR0668 A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes (06f14a26)
+- AR0672 `arthur plugin new` writes a package without the release version, so every new plugin fails `npm test` until it is edited by hand (5c7137c1)
+- AR0677 A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough (01269ca8)
 - AR0678 Report pages draw a double border on the right of the last number tile in a row and under the tiles of the last row (6260e8d7)
 - AR0684 An audio file transcript still proves the owner answer; only his voice notes may (AR-D616) (cd7c1eef)
 
 ### Changed
 
 - AR0548 The coordinator instructions built as text in TypeScript move into Markdown procedures (b2152c78)
+- AR0673 Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise (6c8c041a)
+- AR0676 The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it (5537c9f2)
+- AR0685 Tests: a review on the fable model finds redundant tests and removes them, after the test speed work (c957ad44)
 
 ## 2026-11-09
 

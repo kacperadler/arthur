@@ -1,9 +1,7 @@
-// Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and activity,
-// commit-rules, delivery, develop, discord, docker (its labels; its cleanup and sweep are planned), dokploy, findings, github,
-// herdr, listen, machines, manage, models, nvm, orchestration, projects, resources, schedule, session, stats, telegram, uptime,
-// video, youtrack. Planned, no package yet (spec/roadmap.md builds them): server, signal, slack, whatsapp (later). So a copy of
-// the whole file does not load; it fails on the first planned import (`Cannot find package '@arthur/server'`). Take a plugin
-// from it once its package exists. Illustrative for the planned ones: their option names are proposed, not final.
+// Example arthur.config.ts with every plugin, planned ones included. A plugin is built when `packages/` holds its folder; the
+// others are planned, no package yet (spec/roadmap.md builds them). So a copy of the whole file does not load; it fails on the
+// first planned import (`Cannot find package '@arthur/<name>'`). Take a plugin from it once its package exists. Illustrative for
+// the planned ones: their option names are proposed, not final.
 //
 // Rules:
 // - One file, one list: a plugin is a function call with its options.
@@ -300,9 +298,9 @@ export default defineConfig({
 		// One entry per Dokploy server of the owner, its address literal and its API key in a variable: the unnamed one's in
 		// ARTHUR_DOKPLOY_TOKEN, `client`'s in ARTHUR_DOKPLOY_CLIENT_TOKEN. `url` is https, or http on loopback, a private or a
 		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments,
-		// `upload|deploy` sends an app a file or folder or starts its deploy, and `create|setup|env` creates an app and sets its
-		// build type, domain, volume and env, on the owner's word, the coordinator only; a project's app is its
-		// `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
+		// `upload|deploy` sends an app a file or folder or starts its deploy, `create|setup|env` creates an app and sets its
+		// build type, domain, volume and env, and `source` connects an app to its GitHub repository, on the owner's word, the
+		// coordinator only; a project's app is its `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
 		dokploy({
 			instances: [
 				{ url: "https://dokploy.example.com", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" },

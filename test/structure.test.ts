@@ -25,7 +25,7 @@ const BUDGETS = {
 
 	docker: 275,
 
-	dokploy: 615,
+	dokploy: 690,
 
 	findings: 276,
 

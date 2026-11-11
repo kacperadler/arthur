@@ -251,7 +251,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `resources.free` | resources | machines | The jobs a machine has room for. |
 | `resources.disk` | docker | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home; docker's data root on a machine labelled `tools: docker` (above, "Changes since entry 51"). |
 | `machines.labels` | machines | docker | `(machine)`: that machine's labels, `local`'s with its detected `os` and `arch`, undefined for a name not registered by the machines plugin (above, "Changes since entry 51"). |
-| `schedule.register` | schedule | orchestration, manage | Registers another plugin's schedule entries. |
+| `schedule.register` | schedule | orchestration, manage, docker | Registers another plugin's schedule entries. |
 | `schedule.message` | schedule | develop (`arthur eval`) | `(id, message, procedure text)`: the text the coordinator gets for that action due on time, `[scheduled <id>] <message>` with the procedure's text under a blank line. |
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |

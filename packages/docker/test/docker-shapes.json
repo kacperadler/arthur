@@ -4,6 +4,7 @@
 		"moby-docker-v29.9.2": "https://github.com/moby/moby/tree/docker-v29.9.2: api/types/volume/volume.go (docker volume inspect, a JSON list of Volume, CreatedAt, ClusterVolume, Status and UsageData omitted when empty), api/types/system/info.go (DockerRootDir, ServerVersion, SecurityOptions, Warnings), daemon/info.go (name=rootless in SecurityOptions; the warning of an API on TCP without TLS), client/errors.go (the daemon not reachable; `Error response from daemon: ` before each daemon error), daemon/delete.go (a running container), daemon/network.go and daemon/libnetwork/network.go, error.go (a network with endpoints, each `name:%q id:%q`), daemon/volume/service/errors.go (a volume in use, the containers' IDs), daemon/images/image_delete.go (an image a container uses)",
 		"buildx-v0.38.1": "https://github.com/docker/buildx/tree/v0.38.1: commands/prune.go (--max-used-space; its last line `Total:` and the size; the table of pruned records before it is left out by the fake)",
 		"compose-v2.40.0": "https://github.com/docker/compose/tree/v2.40.0: pkg/compose/build.go (getImageBuildLabels: an image compose builds carries com.docker.compose.project)",
+		"docker-cli-v29.9.2-sweep": "https://github.com/docker/cli/tree/v29.9.2: cli/command/image/inspect.go (--format a template on the image's InspectResponse: .Id the full sha256 ID, whose first 12 hex digits are the ID docker image ls prints; {{json .Config.Labels}} an object, null for none), formatter/image.go (--format '{{.ID}}'); moby api/types/system/info.go (SystemTime, the daemon's clock in RFC 3339 with nanoseconds); buildx commands/prune.go (--filter until=<duration>: records unused that long)",
 		"docker-29.9.2-client": "docker version on this machine: Client: Docker Engine - Community, Version 29.9.2, Git commit a82e528"
 	},
 	"recorded": "2026-11-11",
@@ -15,7 +16,8 @@
 		"volume-inspect": [{ "CreatedAt": null, "Driver": null, "Labels": null, "Mountpoint": null, "Name": null, "Options": null, "Scope": null }],
 		"image-ls": { "Containers": null, "CreatedAt": null, "CreatedSince": null, "Digest": null, "ID": null, "Repository": null, "SharedSize": null, "Size": null, "Tag": null, "UniqueSize": null },
 		"system-df": { "Active": null, "Reclaimable": null, "Size": null, "TotalCount": null, "Type": null },
-		"info": { "DockerRootDir": null, "SecurityOptions": [], "ServerVersion": null, "Warnings": [] },
+		"info": { "DockerRootDir": null, "SecurityOptions": [], "ServerVersion": null, "SystemTime": null, "Warnings": [] },
+		"image-inspect": { "Id": null, "Config": { "Labels": null } },
 		"context-inspect": { "Endpoints": { "docker": { "Host": null } } }
 	},
 	"texts": {

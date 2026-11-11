@@ -7,8 +7,9 @@ import { memoryBytes } from "@arthur/core";
 // real Docker of the machine. `docker` is this file run by node: each argument list appended to `calls` as a JSON line, its
 // answers in the keys and texts docker-shapes.json records from docker/cli, moby and buildx, from `state.json` (`State`), which
 // its removals change; while `down` exists every command that needs the daemon fails with Docker's line and exit 1, and the
-// command `crash` names makes `down` first. `ssh <options> <host> <command>` runs the command here, the fake docker included,
-// or fails as ssh does (255) while `<host>.down` exists.
+// command `crash` names makes `down` first; `<host>.docker-down` does the same on that host alone. Its clock is
+// `info.SystemTime`, which `builder prune --filter until=` reads. `ssh <options> <host> <command>` runs the command here as
+// that host, the fake docker included, or fails as ssh does (255) while `<host>.down` exists.
 
 const { shapes, texts } = JSON.parse(readFileSync(new URL("docker-shapes.json", import.meta.url), "utf8")) as { shapes: Record<string, unknown>; texts: Record<string, string> };
 
@@ -16,12 +17,23 @@ export type Kind = "ps" | "network-ls" | "volume-ls" | "image-ls" | "system-df";
 type Row = Readonly<Record<string, unknown>>;
 // What the daemon holds: `info`'s fields; `host`, the context's endpoint; each listing's rows, and `volume inspect`'s. Beside
 // them what Docker keeps but those rows do not show: an image's labels (`k=v,k=v`) by its ID, the bytes of a container, volume or
-// image by its ID or name, the build cache's bytes; `buildx: false`, the legacy builder's `docker builder prune`, which takes no
-// `--max-used-space`. A `system-df` row given is printed as given, else the sizes are summed.
-export type State = { readonly info: Row; readonly host: string; readonly rows: Readonly<Partial<Record<Kind, readonly Row[]>>>; readonly volumes: readonly Row[]; readonly imageLabels?: Readonly<Record<string, string>>; readonly sizes?: Readonly<Record<string, number>>; readonly cache?: number; readonly buildx?: false; readonly crash?: string };
+// image by its ID or name, the build cache's bytes and when it was last used; `buildx: false`, the legacy builder's `docker
+// builder prune`, which takes no `--max-used-space`. A `system-df` row given is printed as given, else the sizes are summed.
+export type State = {
+	readonly info: Row;
+	readonly host: string;
+	readonly rows: Readonly<Partial<Record<Kind, readonly Row[]>>>;
+	readonly volumes: readonly Row[];
+	readonly imageLabels?: Readonly<Record<string, string>>;
+	readonly sizes?: Readonly<Record<string, number>>;
+	readonly cache?: number;
+	readonly cacheUsedAt?: string;
+	readonly buildx?: false;
+	readonly crash?: string;
+};
 
 export const VERSION = "29.9.2";
-const STATE: State = { info: { DockerRootDir: "/var/lib/docker", SecurityOptions: ["name=seccomp,profile=builtin", "name=cgroupns"], ServerVersion: VERSION, Warnings: null }, host: "unix:///var/run/docker.sock", rows: {}, volumes: [] };
+const STATE: State = { info: { DockerRootDir: "/var/lib/docker", SecurityOptions: ["name=seccomp,profile=builtin", "name=cgroupns"], ServerVersion: VERSION, SystemTime: "2026-01-01T00:00:00.123456789Z", Warnings: null }, host: "unix:///var/run/docker.sock", rows: {}, volumes: [] };
 const fill = (text: string, ...values: string[]) => values.reduce((done, value) => done.replace("%s", value), text);
 // The listings the fake answers, by their command words.
 const LISTS: Readonly<Record<string, Kind>> = { ps: "ps", "container ls": "ps", "network ls": "network-ls", "volume ls": "volume-ls", "image ls": "image-ls", images: "image-ls", "system df": "system-df" };
@@ -42,7 +54,7 @@ export function fakeDocker(folder: string) {
 	writeFileSync(join(folder, "docker"), `#!/bin/sh\nFAKE_DOCKER=${quote(folder)} exec ${quote(process.execPath)} ${quote(fileURLToPath(import.meta.url))} "$@"\n`, { mode: 0o755 });
 	writeFileSync(
 		join(folder, "ssh"),
-		`#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) shift 2;; -*) shift;; *) break;; esac; done\nif [ -e ${quote(folder)}/"$1.down" ]; then echo "ssh: connect to host $1 port 22: Connection refused" >&2; exit 255; fi\nshift\nexec /bin/sh -c "$*"\n`,
+		`#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) shift 2;; -*) shift;; *) break;; esac; done\nif [ -e ${quote(folder)}/"$1.down" ]; then echo "ssh: connect to host $1 port 22: Connection refused" >&2; exit 255; fi\nFAKE_SSH_HOST=$1; export FAKE_SSH_HOST; shift\nexec /bin/sh -c "$*"\n`,
 		{ mode: 0o755 },
 	);
 	const file = (name: string) => join(folder, name);
@@ -55,6 +67,8 @@ export function fakeDocker(folder: string) {
 		now: (): State => JSON.parse(readFileSync(file("state.json"), "utf8")),
 		down: (on: boolean) => (on ? writeFileSync(file("down"), "") : rmSync(file("down"), { force: true })),
 		offline: (host: string) => writeFileSync(file(`${host}.down`), ""),
+		// Docker stopped, or started again, on `host`, a machine reached through the fake ssh.
+		stopped: (host: string, on: boolean) => (on ? writeFileSync(file(`${host}.docker-down`), "") : rmSync(file(`${host}.docker-down`), { force: true })),
 	};
 }
 
@@ -77,11 +91,12 @@ if (import.meta.main) {
 	const kind = LISTS[command] ?? LISTS[words];
 	const [containers, networks, volumes, images] = [state.rows.ps ?? [], state.rows["network-ls"] ?? [], state.rows["volume-ls"] ?? [], state.rows["image-ls"] ?? []];
 	// The objects named after the options, by ID or name; an object's users, the containers that hold it.
-	const named = rest.filter((word, index) => !word.startsWith("-") && !["--timeout", "--max-used-space", "--filter"].includes(rest[index - 1] ?? ""));
+	const named = rest.filter((word, index) => !word.startsWith("-") && !["--timeout", "--max-used-space", "--filter", "--format"].includes(rest[index - 1] ?? ""));
 	const listed = (field: unknown, name: unknown) => String(field).split(",").includes(String(name));
+	const down = existsSync(join(folder, "down")) || existsSync(join(folder, `${process.env.FAKE_SSH_HOST}.docker-down`));
 	if (command === "-v" || command === "--version") say(fill(texts.version ?? "", VERSION, "a82e528"));
 	else if (words === "context inspect") format === "{{.Endpoints.docker.Host}}" ? say(state.host) : fail(`the fake answers context inspect only with --format '{{.Endpoints.docker.Host}}', got ${format}`, 2);
-	else if (existsSync(join(folder, "down")) || (state.crash === words && (writeFileSync(join(folder, "down"), ""), true))) fail(fill(texts.daemon ?? "", state.host));
+	else if (down || (state.crash === words && (writeFileSync(join(folder, "down"), ""), true))) fail(fill(texts.daemon ?? "", state.host));
 	else if (command === "info")
 		say(format.replace(/\{\{"\\n"\}\}/g, "\n").replace(/\{\{(json )?\.(\w+)\}\}/g, (_, json, key) => (json ? JSON.stringify(state.info[key] ?? null) : String(state.info[key] ?? "<no value>"))));
 	else if (words === "system df" && state.rows["system-df"] === undefined) {
@@ -90,15 +105,22 @@ if (import.meta.main) {
 		const types: [string, number, number][] = [["Images", images.length, sum(images, "ID")], ["Containers", containers.length, sum(containers, "ID")], ["Local Volumes", volumes.length, sum(volumes, "Name")], ["Build Cache", 0, state.cache ?? 0]];
 		for (const [type, count, size] of types) say(JSON.stringify(row("system-df", { Type: type, TotalCount: String(count), Active: "0", Size: human(size), Reclaimable: human(size) })));
 	} else if (kind !== undefined) {
-		if (format !== "{{json .}}") fail(`the fake answers ${words} only with --format '{{json .}}', got ${format}`, 2);
+		if (format !== "{{json .}}" && !(kind === "image-ls" && format === "{{.ID}}")) fail(`the fake answers ${words} only with --format '{{json .}}', and image ls with '{{.ID}}' too, got ${format}`, 2);
 		// `--filter label=<key>` or `label=<key>=<value>`, each one to hold, as the daemon filters.
 		const filters = args.flatMap((word, index) => (args[index - 1] === "--filter" && word.startsWith("label=") ? [word.slice(6)] : []));
 		const labels = (each: Row) => String(kind === "image-ls" ? (state.imageLabels?.[String(each.ID)] ?? "") : each.Labels).split(",");
-		for (const each of state.rows[kind] ?? []) if (filters.every((filter) => labels(each).some((label) => label === filter || label.split("=")[0] === filter))) say(JSON.stringify(each));
+		for (const each of state.rows[kind] ?? []) if (filters.every((filter) => labels(each).some((label) => label === filter || label.split("=")[0] === filter))) say(format === "{{.ID}}" ? String(each.ID) : JSON.stringify(each));
 	} else if (words === "volume inspect") say(JSON.stringify(state.volumes.filter((volume) => rest.includes(String(volume.Name))), null, 4));
-	else if (words === "builder prune" && state.buildx === false) fail(fill(texts["legacy-builder-flag"] ?? "", "--max-used-space"), 125);
+	else if (words === "image inspect") {
+		if (format !== "{{.Id}} {{json .Config.Labels}}") fail(`the fake answers image inspect only with --format '{{.Id}} {{json .Config.Labels}}', got ${format}`, 2);
+		const pairs = (text = "") => (text === "" ? null : Object.fromEntries(text.split(",").map((pair) => [pair.split("=")[0], pair.slice(pair.indexOf("=") + 1)])));
+		for (const id of named) say(`sha256:${id.padEnd(64, "0")} ${JSON.stringify(pairs(state.imageLabels?.[id]))}`);
+	} else if (words === "builder prune" && state.buildx === false && rest.includes("--max-used-space")) fail(fill(texts["legacy-builder-flag"] ?? "", "--max-used-space"), 125);
 	else if (words === "builder prune") {
-		const cut = Math.max(0, (state.cache ?? 0) - (memoryBytes(rest[rest.indexOf("--max-used-space") + 1] ?? "", 0) ?? Infinity));
+		// `--filter until=<hours>h` takes the whole cache once it went unused that long by the daemon's clock; `--max-used-space` cuts it to that size.
+		const until = Number.parseFloat(rest.find((word) => word.startsWith("until="))?.slice(6) ?? "");
+		const stale = Date.parse(String(state.info.SystemTime)) - Date.parse(state.cacheUsedAt ?? "") >= until * 3_600_000;
+		const cut = stale ? (state.cache ?? 0) : Math.max(0, (state.cache ?? 0) - (memoryBytes(rest[rest.indexOf("--max-used-space") + 1] ?? "", 0) ?? Infinity));
 		save({}, { cache: (state.cache ?? 0) - cut });
 		say(fill(texts["builder-prune"] ?? "", human(cut)));
 	} else if (words === "container stop") {

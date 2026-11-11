@@ -17,9 +17,9 @@ const at: Check = (value) => (typeof value === "string" && /^([01]\d|2[0-3]):[0-
 
 export const table: OptionTable = {
 	buildCache: { about: "The size Docker's shared build cache is cut to after each job's cleanup and each sweep: bytes with K, M, G or T, 0 for no cap", default: "10G", check: bytes },
-	leftoverHours: { about: "The sweep removes unlabelled leftovers older than this: stopped containers, unused networks, dangling images, unused anonymous volumes, build cache", default: "48", check: hours },
+	leftoverHours: { about: "The sweep removes unlabelled dangling images and unused networks, and the build cache unused, this many hours old or older", default: "48", check: hours },
 	sweep: {
-		about: "The daily sweep, a schedule entry; a machine under keepFree.disk is swept at once all the same",
+		about: "The daily sweep, a schedule entry; a machine under keepFree.disk is swept at once all the same, and arthur docker sweep sweeps by hand",
 		default: "none: no daily sweep",
 		fields: { at: { about: "When it runs, in core.timeZone", check: at } },
 	},

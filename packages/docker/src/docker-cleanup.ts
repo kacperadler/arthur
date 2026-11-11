@@ -1,4 +1,5 @@
-import type { Host, Ran } from "@arthur/core/plugin";
+import type { Host } from "@arthur/core/plugin";
+import { count, json, KINDS, type Row, sections, why } from "./docker-look.ts";
 
 // The docker plugin's `jobs.cleanup` hook (spec/roadmap.md, entry 71): right before a job's worktree goes, on its machine through
 // `host.jobs.run`, what the job made in Docker, by its `arthur.job` label or its compose project's: its containers stopped and
@@ -7,12 +8,9 @@ import type { Host, Ran } from "@arthur/core/plugin";
 
 // The job as the hook reads it.
 type Job = { readonly id: string; readonly project: string; readonly machine: string };
-type Row = Readonly<Record<string, unknown>>;
 
 // Both calls together stay under the 2 minutes the core gives a hook.
 const [LIST_SECONDS, REMOVE_SECONDS] = [30, 85];
-// The object kinds in the order they go: a container holds the others, a network or volume no image.
-const KINDS = ["container", "network", "volume", "image"];
 // docker/go-units' decimal units, as `docker system df` prints sizes.
 const UNITS = ["B", "kB", "MB", "GB", "TB", "PB"];
 
@@ -41,25 +39,14 @@ fi
 rm -rf "$folder"
 echo ":system"; docker system df --format '{{json .}}'`;
 
-const why = (ran: Ran, limit: number) => (ran.code === null ? `timed out after ${limit} s` : `exited ${ran.code}: ${ran.stderr.trim().split("\n")[0]}`);
-// The JSON lines after each `:<kind>` line, by kind.
-function sections(stdout: string): Map<string, Row[]> {
-	const found = new Map<string, Row[]>();
-	let kind = "";
-	for (const line of stdout.split("\n")) {
-		if (line.startsWith(":")) kind = line.slice(1);
-		else if (line.startsWith("{")) found.set(kind, [...(found.get(kind) ?? []), JSON.parse(line)]);
-	}
-	return found;
-}
 // The sum of `docker system df`'s sizes, in bytes; a size it prints as no number counts 0.
-const bytes = (rows: readonly Row[] = []) =>
+export const bytes = (rows: readonly Row[] = []) =>
 	rows.reduce((sum, row) => {
 		const [, size = "0", unit = "B"] = /^([\d.]+)([kMGTP]?B)$/.exec(String(row.Size)) ?? [];
 		return sum + Number(size) * 1000 ** UNITS.indexOf(unit);
 	}, 0);
 // Bytes as docker/go-units prints them: 4 significant digits, decimal units.
-function human(size: number): string {
+export function human(size: number): string {
 	let unit = 0;
 	for (; size >= 1000 && unit < UNITS.length - 1; unit++) size /= 1000;
 	return `${Number(size.toPrecision(4))}${UNITS[unit]}`;
@@ -78,7 +65,7 @@ export function dockerCleanup(host: Host, ours: (job: Job) => boolean, cache: st
 		// Each object once, by the id its kind's `rm` takes, with the name the line gives it.
 		const named = new Map<string, string>();
 		for (const kind of KINDS)
-			for (const row of found.get(kind) ?? []) {
+			for (const row of json(found.get(kind))) {
 				const tag = row.Tag === undefined || row.Tag === "<none>" ? row.ID : `${row.Repository}:${row.Tag}`;
 				named.set(`${kind}:${kind === "volume" ? row.Name : row.ID}`, `${kind} ${kind === "container" ? row.Names : kind === "image" ? tag : row.Name}`);
 			}
@@ -88,18 +75,14 @@ export function dockerCleanup(host: Host, ours: (job: Job) => boolean, cache: st
 		const lines = ran.stdout.split("\n");
 		const removed = words.filter((word) => lines.includes(`removed ${word}`));
 		const kept = words.flatMap((word) => lines.filter((line) => line.startsWith(`kept ${word} `)).map((line) => `kept ${named.get(word)}: ${line.slice(word.length + 6)}`));
-		const counts = KINDS.flatMap((kind) => {
-			const count = removed.filter((word) => word.startsWith(`${kind}:`)).length;
-			return count === 0 ? [] : [`${count} ${kind}${count === 1 ? "" : "s"}`];
-		});
-		const went = counts.length === 0 ? "nothing of the job's in Docker" : `removed ${counts.join(", ")}`;
+		const went = removed.length === 0 ? "nothing of the job's in Docker" : `removed ${count(removed.map((word) => word.slice(0, word.indexOf(":"))))}`;
 		if (ran.code !== 0) {
 			const rest = words.filter((word) => !removed.includes(word)).map((word) => named.get(word));
 			throw new Error(`${ran.code === 5 ? "Docker stopped answering" : `the removal ${why(ran, REMOVE_SECONDS)}`} half-way: ${went}${rest.length === 0 ? "" : `; left for the sweep: ${rest.join(", ")}`}`);
 		}
 		const uncut = lines.find((line) => line.startsWith("uncut "));
 		const cut = cache === "0" ? [] : [uncut === undefined ? `build cache cut to ${cache}` : `build cache not cut: ${uncut.slice(6)}`];
-		const freed = Math.max(0, bytes(found.get("system")) - bytes(sections(ran.stdout).get("system")));
+		const freed = Math.max(0, bytes(json(found.get("system"))) - bytes(json(sections(ran.stdout).get("system"))));
 		return [went, ...kept, ...cut, `${human(freed)} freed`].join("; ");
 	};
 }

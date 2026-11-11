@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0645 Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70) (7dd448d8)
+- AR0646 Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half) (d2435dcf)
 - AR0681 Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL (23a43110)
 
 ### Fixed

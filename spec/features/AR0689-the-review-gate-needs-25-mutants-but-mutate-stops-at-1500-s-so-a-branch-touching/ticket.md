@@ -35,4 +35,5 @@ Out:
 
 ## Decisions
 - 2026-11-11: Approve; the owner: "by recommendation: G13058" (AR-D635)
+- 2026-11-11: AR0689 approved: a plan job picks the smallest fix, then a worker builds it; the owner: "AR-D636 - approve" (AR-D636)
 

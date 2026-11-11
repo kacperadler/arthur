@@ -40,4 +40,5 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0686 approved: plan and worker on the same fable model as AR0685, after AR0685; the owner: "AR-D625: yes" (AR-D625)
+- 2026-11-11: Plan approved by the owner: plan.md at 3b71031b; the owner: "AR-D634 - approve" (AR-D634)
 

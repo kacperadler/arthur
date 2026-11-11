@@ -401,12 +401,12 @@ test("hidden: the home whole, but shown the job's own record, its project's othe
 		if (project !== undefined) writeFileSync(join(record, "project"), project);
 	}
 	const lists = [`+${join(home, "projects", "checkouts")}`, `+${join(home, "projects", "folders")}`];
-	const ofHome = (record: string, project: string, root = "", extensions = "") => hidden(record, { project, root, worktree: "" }, "", extensions).filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
+	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }, "").filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
 	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
 	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
 	// The checks extension reads back the job's checks in its run's end (AR0687): its own folder of delivery's, never another job's.
-	const extension = join("..", "..", "delivery", "src", "checks-extension.ts");
-	assert.deepEqual(ofHome(own, "shop1", "", `${extension}\n`), [home, `+${own}`, `+${sibling}`, ...lists, `+${join(home, "delivery", "2026-10-30-worker-0a0a0001")}`].sort());
+	writeFileSync(join(own, "extensions"), `${join("..", "..", "delivery", "src", "checks-extension.ts")}\n`);
+	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists, `+${join(home, "delivery", "2026-10-30-worker-0a0a0001")}`].sort());
 	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
 });
 

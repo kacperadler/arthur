@@ -63,9 +63,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	const names = ["kind", "model", "thinking", "branch", "base", "timeout", "budget", "resume-on-budget", "idle-minutes"];
 	const [kind = "", model = "", thinking = "", branch = "", base = "", timeout = "", budget = "", resumes = "", idle = ""] = names.map(field);
 	const { project, root, worktree } = place;
-	// `quick`, `memory`, `feature`, `feature-memory`, `verdicts`, `extensions` and `unsandboxed` are missing from a record an older Arthur wrote; without the last a job needs its sandbox.
-	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = "", extensions = "", unsandboxed = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts", "extensions", "unsandboxed"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
-	const secrets = hidden(folder, place, process.env.ARTHUR_GUARDED ?? "", extensions), hide = envFileNames(secrets), bus = eventBus(home, hide, stamper(home, id, () => [])), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
+	const secrets = hidden(folder, place, process.env.ARTHUR_GUARDED ?? ""), hide = envFileNames(secrets), bus = eventBus(home, hide, stamper(home, id, () => [])), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
 	// A move from `from` to `to` (job-state.ts) only: a job a plugin holds stays `blocked` until its run ends, so it never moves here.
 	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.state === from ? [to, ""] : undefined)));
 	// The agent's output: `active` takes its time, an idle job works again, and it turns idle after `idle-minutes` without any.
@@ -76,6 +74,8 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 		quiet();
 		quiet = deadline(Number(idle), () => move("working", "idle"));
 	};
+	// `quick`, `memory`, `feature`, `feature-memory`, `verdicts`, `extensions` and `unsandboxed` are missing from a record an older Arthur wrote; without the last a job needs its sandbox.
+	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = "", extensions = "", unsandboxed = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts", "extensions", "unsandboxed"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session, kept in the record's `session` folder so the prune removes it with the record, with `resume` as its message after `--`, text even when it starts with `-` or `@` (AR0487); the task `@<record>/task` goes before it, as omp includes a file only from there.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),

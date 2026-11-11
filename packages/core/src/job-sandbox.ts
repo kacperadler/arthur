@@ -98,9 +98,9 @@ export function unpruned(id: string, job: { readonly [key in "project" | "root" 
 // `<name> <path>` a line: each other project's checkout and folder, and every project's `.arthur-worktrees`, whole, so a worktree
 // made there later too; but `+<path>`, shown, the job's own worktree. Then (AR0590) its home, whole: the event log, the coordinator's files, every plugin's
 // folder, every record and any entry made later; but shown the job's own record, each other record there now that names its project, the projects plugin's
-// `checkouts` and `folders` (job-place.ts), and its folder of each extension in `extensions` as `writable` names it (AR0687). Never a path that is or holds
-// the job's root, Git folder, install or config, nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's (AR0597).
-export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string, extensions = ""): string[] {
+// `checkouts` and `folders` (job-place.ts), and its folder of each extension the record's `extensions` names, as in `writable` (AR0687). Never a path that is
+// or holds the job's root, Git folder, install or config, nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's (AR0597).
+export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string): string[] {
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
 	const [jobs, home] = [dirname(record), dirname(dirname(record))];
 	const listed = (name: string) => read(join(home, "projects", name)).split("\n").flatMap((line) => (/^\S+ \//.test(line) ? [[line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)]] : []));
@@ -113,8 +113,7 @@ export function hidden(record: string, { project, root, worktree }: Pick<Job, "p
 	const holds = (path: string, places: readonly string[]) => places.some((place) => place === path || place.startsWith(`${path}${sep}`));
 	const unkept = [...new Set(others.map((path) => real(path)))].filter((path) => !holds(path, [...kept, ...own]));
 	const records = readdirSync(jobs).filter((id) => id === basename(record) || (project !== "" && read(join(jobs, id, "project")).trim() === project));
-	const plugins = extensions.split("\n").filter(Boolean).map((path) => join(home, basename(resolve(import.meta.dirname, path, "..", "..")), basename(record)));
-	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders"), ...plugins];
+	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders"), ...read(join(record, "extensions")).split("\n").filter(Boolean).map((path) => join(home, basename(resolve(import.meta.dirname, path, "..", "..")), basename(record)))];
 	const env = guarded.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
 	return [...env, ...unread(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
 }

@@ -6,12 +6,12 @@ import { test } from "node:test";
 import { temporaryFolder } from "@arthur/core/testing";
 
 // AR0589: a plugin with a piece sets up after projects, whatever the config's order, so the host checks its pieces before
-// its setup. Each listed alone before projects here, delivery and machines still refuse a bad piece of theirs. A plugin's own tests
+// its setup. Each listed alone before projects here, delivery, machines and docker still refuse a bad piece of theirs. A plugin's own tests
 // never load another plugin; this one, outside every package, loads them together through the real CLI.
 
 const PACKAGES = join(import.meta.dirname, "..", "packages");
 const CLI = join(PACKAGES, "core", "src", "cli.ts");
-const imports = ["delivery", "machines", "projects"].map((name) => `import { ${name} } from ${JSON.stringify(join(PACKAGES, name, "src", `${name}.ts`))};`).join("\n");
+const imports = ["delivery", "docker", "machines", "projects"].map((name) => `import { ${name} } from ${JSON.stringify(join(PACKAGES, name, "src", `${name}.ts`))};`).join("\n");
 // The config with only `plugin` before projects, so nothing else makes projects set up earlier.
 const config = (plugin: string) => `${imports}
 export default { plugins: [{ name: "orchestration", setup() {} }, ${plugin}({}), projects({ folders: ["projects/shop"] })] };
@@ -29,12 +29,14 @@ function projectsWith(plugin: string, pieces: string): { readonly status: number
 	return { status: run.status, out: run.stdout + run.stderr };
 }
 
-test("delivery and machines, listed before projects, set up after it: a bad piece of either is refused, naming the project and the helper", () => {
+test("delivery, machines and docker, listed before projects, set up after it: a bad piece of each is refused, naming the project and the helper", () => {
 	const delivery = projectsWith("delivery", '{ delivery: { autoMerge: "yes" } }');
 	assert.match(delivery.out, /plugin delivery: setup failed: project shop: delivery\.project\(\.\.\.\): expected \{ autoMerge \}, true or false/, delivery.out);
 	const machines = projectsWith("machines", '{ machines: ["macos"] }');
 	assert.match(machines.out, /plugin machines: setup failed: project shop: machines\.project\(\.\.\.\): requires must be \{ os\?, arch\?, tools\? \}/, machines.out);
-	for (const [plugin, piece] of [["delivery", "{ delivery: { autoMerge: false } }"], ["machines", '{ machines: { os: "linux" } }']] as const) {
+	const docker = projectsWith("docker", "{ docker: true }");
+	assert.match(docker.out, /plugin docker: setup failed: project shop: docker\.project\(\.\.\.\): expected false, the one value it takes/, docker.out);
+	for (const [plugin, piece] of [["delivery", "{ delivery: { autoMerge: false } }"], ["machines", '{ machines: { os: "linux" } }'], ["docker", "{ docker: false }"]] as const) {
 		const fine = projectsWith(plugin, piece);
 		assert.deepEqual([fine.status, /^SH shop\n/.test(fine.out)], [0, true], fine.out);
 	}

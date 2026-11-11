@@ -1,0 +1,26 @@
+{
+	"sources": {
+		"docker-cli-v29.9.2": "https://github.com/docker/cli/tree/v29.9.2: cli/command/formatter/reflect.go (--format '{{json .}}' marshals every exported method of a context without arguments, FullHeader left out), formatter/container.go (docker ps), network/formatter.go (docker network ls), formatter/volume.go (docker volume ls), formatter/image.go (docker image ls), formatter/disk_usage.go (docker system df, one line per Type), system/info.go (docker info --format, a template on the daemon's Info), builder/prune.go (its last line), cli/flags/options.go and container/opts.go, run.go, create.go (the options docker-label.ts skips)",
+		"moby-docker-v29.9.2": "https://github.com/moby/moby/tree/docker-v29.9.2: api/types/volume/volume.go (docker volume inspect, a JSON list of Volume, CreatedAt, ClusterVolume, Status and UsageData omitted when empty), api/types/system/info.go (DockerRootDir, ServerVersion, SecurityOptions, Warnings), daemon/info.go (name=rootless in SecurityOptions; the warning of an API on TCP without TLS), client/errors.go (the daemon not reachable)",
+		"docker-29.9.2-client": "docker version on this machine: Client: Docker Engine - Community, Version 29.9.2, Git commit a82e528"
+	},
+	"recorded": "2026-11-09",
+	"how": "the keys of each answer: a list holds its first item's keys, any other value null; texts verbatim, %s where Docker puts a value",
+	"shapes": {
+		"ps": { "Command": null, "CreatedAt": null, "HealthStatus": null, "ID": null, "Image": null, "Labels": null, "LocalVolumes": null, "Mounts": null, "Names": null, "Networks": null, "Platform": null, "Ports": null, "RunningFor": null, "Size": null, "State": null, "Status": null },
+		"network-ls": { "CreatedAt": null, "Driver": null, "ID": null, "IPv4": null, "IPv6": null, "Internal": null, "Labels": null, "Name": null, "Scope": null },
+		"volume-ls": { "Availability": null, "Driver": null, "Group": null, "Labels": null, "Links": null, "Mountpoint": null, "Name": null, "Scope": null, "Size": null, "Status": null },
+		"volume-inspect": [{ "CreatedAt": null, "Driver": null, "Labels": null, "Mountpoint": null, "Name": null, "Options": null, "Scope": null }],
+		"image-ls": { "Containers": null, "CreatedAt": null, "CreatedSince": null, "Digest": null, "ID": null, "Repository": null, "SharedSize": null, "Size": null, "Tag": null, "UniqueSize": null },
+		"system-df": { "Active": null, "Reclaimable": null, "Size": null, "TotalCount": null, "Type": null },
+		"info": { "DockerRootDir": null, "SecurityOptions": [], "ServerVersion": null, "Warnings": [] },
+		"context-inspect": { "Endpoints": { "docker": { "Host": null } } }
+	},
+	"texts": {
+		"version": "Docker version %s, build %s",
+		"daemon": "Cannot connect to the Docker daemon at %s. Is the docker daemon running?",
+		"builder-prune": "Total reclaimed space: %s",
+		"tcp-warning": "[DEPRECATION NOTICE]: API is accessible on http://%s without encryption.%s\n%s",
+		"rootless": "name=rootless"
+	}
+}

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Host } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
-import { recoverMerge } from "./merge-recovery.ts";
+import { alive, recoverMerge } from "./merge-recovery.ts";
 
 // The merge without the coordinator (AR0576): after a PASS, a `no review` or CI passed on a waiting branch, with `autoMerge` on,
 // `arthur run` starts `arthur merge --auto <job>` (the core's CLI, in the folder it runs in), so the checks on main never hold
@@ -95,13 +95,4 @@ export function passForward(host: Host): PassForward {
 		timer = setInterval(check, POLL_MS).unref();
 	};
 	return { start, stop: () => clearInterval(timer), forward };
-}
-
-// Whether `pid` still runs: a signal 0 it may not receive (EPERM) still names a process; 0, a spawn that failed, names none.
-function alive(pid: number): boolean {
-	try {
-		return pid > 0 && process.kill(pid, 0);
-	} catch (error) {
-		return (error as NodeJS.ErrnoException).code === "EPERM";
-	}
 }

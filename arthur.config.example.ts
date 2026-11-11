@@ -217,8 +217,8 @@ export default defineConfig({
 			compactOn: "schedule", // what compacts it: "schedule" (compactAt), "context" (compactAtPercent) or "both", whichever first
 			compactAtPercent: 80, // with "context" or "both": once a turn ends with the conversation at this % of its context window
 			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
-			freshAt: "23:00", // "HH:MM"; a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) runs
-			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15
+			freshAt: "23:00", // "HH:MM"; a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) and no merge runs
+			freshRetryMinutes: 15, // while a job or a merge runs, try again this often; a positive whole number; default 15
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped
 			restartGuard: true, // once a commit changed the code `arthur run` loaded, refuse every spawn and continue (unless
 			// --ignore-restart) until `arthur run` starts again; `/restart` under the service ends `arthur run` then, which clears it
@@ -299,9 +299,10 @@ export default defineConfig({
 		// ARTHUR_DOKPLOY_TOKEN, `client`'s in ARTHUR_DOKPLOY_CLIENT_TOKEN. `url` is https, or http on loopback, a private or a
 		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments,
 		// `upload|deploy` sends an app a file or folder or starts its deploy, `create|setup|env` creates an app and sets its
-		// build type, domain, volume and env, `source` connects an app to its GitHub repository, and `postgres create` makes
-		// a Postgres beside an app, its URL in the app's env, on the owner's word, the coordinator only; a project's app is its
-		// `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
+		// build type, domain, volume and env, `source` connects an app to its GitHub repository, `postgres create` makes a
+		// Postgres beside an app, its URL in the app's env, and `postgres backup` schedules its backups to an S3 destination,
+		// on the owner's word, the coordinator only; a project's app is its `dokploy.project({ instance?, app })`.
+		// packages/dokploy/docs/dokploy.md.
 		dokploy({
 			instances: [
 				{ url: "https://dokploy.example.com", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" },

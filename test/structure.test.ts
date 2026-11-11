@@ -17,7 +17,7 @@ const BUDGETS = {
 
 	"core/testing": 405,
 
-	delivery: 2246,
+	delivery: 2267,
 
 	develop: 760,
 
@@ -25,7 +25,7 @@ const BUDGETS = {
 
 	docker: 393,
 
-	dokploy: 826,
+	dokploy: 887,
 
 	findings: 276,
 
@@ -51,7 +51,7 @@ const BUDGETS = {
 
 	schedule: 621,
 
-	session: 953,
+	session: 960,
 
 	stats: 200,
 

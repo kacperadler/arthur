@@ -161,6 +161,25 @@ test("a job started while the restart due waits for the handoff: no notice, and 
 	assert.deepEqual([box.restarts, box.notices()], [[false], []]);
 });
 
+test("under the service a merge delivery names holds the restart due as a job does: not asked while it runs, asked once it ends", async (t) => {
+	const arthur = checkout();
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+	service(t, { restart: "always", pid: process.pid });
+	const merges = [{ project: "arthur", job: "2026-10-18-worker-0000000c" }];
+	let looks = 0;
+	box.fake.provide("delivery.merging", () => {
+		looks += 1;
+		return merges;
+	});
+	await box.start();
+	arthur.merge("AR0002");
+	await until("two looks at the merges", () => looks >= 2);
+	assert.deepEqual([box.request(), box.restarts, box.ended], [undefined, [], []], "nothing is asked while the merge runs");
+	merges.pop();
+	await until("arthur run ended", () => box.ended.length === 1);
+	assert.deepEqual(box.restarts, [false]);
+});
+
 test("a restart due that throws in the tick is logged once, tells the owner nothing, and is made once it can be", async (t) => {
 	const arthur = checkout();
 	const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);

@@ -234,7 +234,7 @@ test("arthur take-main records main's HEAD only on the owner's merge decision of
 	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, "");
 });
 
-test("a second merge of the project while the first runs its checks is refused naming the first, main unchanged; the lock goes with any end of the first, a dead holder's too", async (t) => {
+test("a second merge of the project while the first runs its checks is refused naming the first, main unchanged; the lock goes with any end of the first, a dead holder's too; delivery.merging names a merge only while its lock's process lives", async (t) => {
 	const { root, fake, git, worker, review, merge, head } = await load(t);
 	const first = await worker({ broken: "" });
 	const second = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
@@ -242,26 +242,35 @@ test("a second merge of the project while the first runs its checks is refused n
 	await review(first.id, "PASS");
 	await review(second.id, "PASS");
 	// `nvm.path` is asked as the checks on main begin, the first's merge commit HEAD: the second merge starts then.
-	let during: Promise<unknown> | undefined;
+	let [during, seen]: [Promise<unknown>?, unknown?] = [];
 	let armed = false;
 	fake.provide("nvm.path", () => {
-		if (armed && during === undefined) during = Promise.try(() => fake.commands.find((each) => each.name === "merge")?.run({ args: [second.id], project: undefined })).catch((error: Error) => error.message);
+		if (armed && during === undefined) [during, seen] = [Promise.try(() => fake.commands.find((each) => each.name === "merge")?.run({ args: [second.id], project: undefined })).catch((error: Error) => error.message), fake.collect("delivery.merging")];
 		return "";
 	});
+	const merges = () => fake.collect("delivery.merging");
 	const before = head();
 	armed = true;
 	const failed = await merge(first.id, "--decision", OWNER);
 	assert.match(failed.err, /^arthur merge: check failed on main \(npm test\); main reset to /);
 	assert.equal(await during, `a merge of ${first.id} is in progress on acme`);
+	assert.deepEqual([seen, merges()], [[[{ project: "acme", job: first.id }]], [[]]], "named during its checks, in this process; none after its end");
 	assert.equal(head(), before);
 	assert.notEqual(spawnSync("git", ["-C", root, "merge-base", "--is-ancestor", second.tip, "HEAD"]).status, 0, "the second branch is not on main");
 	// A merge of another process (this test's parent stands for it) that has not named its job yet: named by its pid.
 	const lock = join(fake.host.folder, "acme", "merge.lock");
 	writeFileSync(lock, `${process.ppid}`);
+	assert.deepEqual(merges(), [[{ project: "acme", job: "" }]]);
 	assert.equal((await merge(second.id, "--decision", OWNER)).err, `arthur merge: a merge of pid ${process.ppid} is in progress on acme`);
 	assert.equal(head(), before);
+	// A lock naming this process that it does not hold, as an earlier process of its pid leaves one, and one edited by hand name no merge.
+	for (const text of [`${process.pid}`, "x", ""]) {
+		writeFileSync(lock, text);
+		assert.deepEqual(merges(), [[]], text);
+	}
 	// A merge killed while it held the lock left it: its pid is dead, so the next merge takes it over.
 	writeFileSync(lock, `${spawnSync(process.execPath, ["-e", ""]).pid}`);
+	assert.deepEqual(merges(), [[]]);
 	const merged = await merge(second.id, "--decision", OWNER);
 	assert.equal(merged.code, undefined, merged.err);
 	assert.equal(git(root, "rev-parse", "HEAD^^2"), second.tip);

@@ -121,6 +121,26 @@ test("freshUntil equal to freshAt is a single try; earlier than freshAt the wind
 	await until("the restart after midnight", () => across.restarts.length === 1);
 });
 
+test("a merge delivery names holds the fresh start as a job does: a try while it runs asks the coordinator for nothing, and the last one skips the night naming both", async (t) => {
+	const box = await load(t, { freshAt: "23:00", freshRetryMinutes: 15, freshUntil: "23:15" }, "2026-10-18T22:59:00+02:00");
+	let looks = 0;
+	box.fake.provide("delivery.merging", () => {
+		looks += 1;
+		return [{ project: "acme", job: "" }];
+	});
+	const first = box.coordinator({ steps: [{ prompt: true }, { message: "Asked." }, { end: true }, { waitFor: box.gate("never") }] });
+	await first.up();
+	await box.start();
+	box.at("2026-10-18T23:00:00+02:00");
+	// The try itself looks at the merges: one that asked would wait for the handoff, and no look would come before 23:15.
+	await until("a look at the merges", () => looks === 1);
+	assert.deepEqual([first.messages(), box.request(), box.out], [[], undefined, []]);
+	box.job("2026-10-18-worker-0000000a");
+	box.at("2026-10-18T23:15:00+02:00");
+	await until("the skip", () => box.out.length === 1);
+	assert.deepEqual([box.out, box.restarts], [["session: fresh: skipped, 1 job running, 1 merge running at 23:15"], []]);
+});
+
 test("Arthur down at freshAt skips that night, not run late, and a window passed unseen is not tried late", async (t) => {
 	const box = await load(t, { freshAt: "23:00", freshUntil: "03:00" }, "2026-10-18T23:30:00+02:00");
 	await box.start();

@@ -106,6 +106,28 @@ test("a job started while /restart waits for the handoff stops the restart, with
 	assert.deepEqual([box.restarts, box.request(), box.out], [[], undefined, []]);
 });
 
+test("/restart while delivery names a merge running is refused, naming it, as a job is; one that starts while /restart waits for the handoff stops the restart, with a notice", async (t) => {
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00");
+	const merges = [{ project: "acme", job: "2026-10-18-worker-0000000c" }, { project: "shop", job: "" }];
+	box.fake.provide("delivery.merging", () => merges);
+	const first = box.coordinator({ steps: [{ prompt: true }, { waitFor: box.gate("written") }, { message: "Written." }, { end: true }, { waitFor: box.gate("never") }] });
+	await first.up();
+	await box.start();
+	assert.equal(await box.route("/restart"), "error: 2 merges running: acme (0000000c), shop; run /restart again once no merge runs");
+	const job = box.job("2026-10-18-review-0000000a", "review");
+	assert.equal(await box.route("/restart fresh"), "error: 1 job running: 0000000a, 2 merges running: acme (0000000c), shop; run /stopall first");
+	job.end();
+	merges.splice(0);
+	assert.equal(await box.route("/restart"), "restarting: the coordinator writes its handoff first, for at most 120 s; Restarted. follows");
+	await until("the handoff request", () => first.messages().length === 1);
+	merges.push({ project: "acme", job: "2026-10-18-worker-0000000d" });
+	writeFileSync(box.handoff, `${HANDOFF}\n`);
+	box.open("written");
+	await until("the notice", () => box.notices().length === 1);
+	assert.deepEqual(box.notices(), ["restart: not done, 1 merge running: acme (0000000d); run /restart again once no merge runs"]);
+	assert.deepEqual([box.restarts, box.request(), box.out], [[], undefined, []]);
+});
+
 test("a compaction still asked for gives way to /restart", async (t) => {
 	const box = await load(t, { compactAt: ["13:00"], compactWaitSeconds: 600 }, "2026-10-18T12:59:00+02:00");
 	const busy = join(temporaryFolder(), "busy.ts");

@@ -1,13 +1,15 @@
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "@arthur/core/plugin";
+import { dockerCleanup } from "./docker-cleanup.ts";
 import { dockerDoctor } from "./docker-doctor.ts";
 import { checkOptions, checkPiece, type DockerOptions } from "./docker-options.ts";
 import { dockerPrepare } from "./docker-prepare.ts";
 
-// The docker plugin (spec/roadmap.md, entry 70): on each machine whose labels, as the machines plugin gives them
-// (`machines.labels`), hold `tools: docker`, a job's own `docker` script that labels what it creates (docker-prepare.ts), Docker's
-// data root for the resources plugin's disk floor (`resources.disk`), and a doctor line per machine (docker-doctor.ts). docs/docker.md.
+// The docker plugin (spec/roadmap.md, entries 70 and 71): on each machine whose labels, as the machines plugin gives them
+// (`machines.labels`), hold `tools: docker`, a job's own `docker` script that labels what it creates (docker-prepare.ts), what
+// the job made removed right before its worktree goes (docker-cleanup.ts), Docker's data root for the resources plugin's disk
+// floor (`resources.disk`), and a doctor line per machine (docker-doctor.ts). docs/docker.md.
 
 export type { DockerOptions };
 
@@ -17,6 +19,7 @@ const LIMIT_SECONDS = 10;
 const ROOT = `case $(docker context inspect --format '{{.Endpoints.docker.Host}}') in unix://*) exec docker info --format '{{.DockerRootDir}}';; esac`;
 
 type Labels = { readonly os?: unknown; readonly tools?: unknown };
+type Listed = { readonly name: string; readonly pieces?: { readonly docker?: unknown } };
 
 export function docker(options: DockerOptions = {}): Plugin {
 	return {
@@ -37,6 +40,10 @@ export function docker(options: DockerOptions = {}): Plugin {
 				host.events.emit("notice", { text });
 			};
 			host.jobs.prepare(dockerPrepare(host, labelled, once));
+			const [list = []] = host.collect<readonly Listed[]>("projects");
+			// The cleanup's jobs, those the prepare gives a script: of a project that has not set `docker.project(false)`, on a labelled machine.
+			const ours = (job: { readonly project: string; readonly machine: string }) => list.find((project) => project.name === job.project)?.pieces?.docker !== false && labelled(job.machine) !== undefined;
+			host.jobs.cleanup(dockerCleanup(host, ours, String(options.buildCache ?? "10G")));
 			// Asked at every machine check, so a root once read is kept for this process.
 			const roots = new Map<string, string>();
 			host.provide("resources.disk", async (machine: string) => {
@@ -59,5 +66,5 @@ export function docker(options: DockerOptions = {}): Plugin {
 	};
 }
 
-// A project file's piece: `docker.project(false)`, its jobs get no docker script, so what they create is not labelled.
+// A project file's piece: `docker.project(false)`, its jobs get no docker script and no cleanup, so what they create is not labelled.
 docker.project = (off: false) => ({ docker: off });

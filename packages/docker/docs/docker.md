@@ -1,6 +1,6 @@
 # The docker plugin
 
-Roadmap entry 70: what a job creates with Docker is labelled `arthur.job=<id>`, its compose stacks get a project name of their own, and Docker's data root counts for the disk floor of the `resources` plugin. It acts on the machines whose labels hold `tools: docker`, as the `machines` plugin gives them (`machines.labels`, "Provided names" in `docs/plugin-api.md`); without the machines plugin no machine has labels, and the plugin does nothing. The cleanup of a job's resources with its worktree (entry 71) and the sweep of leftovers (entry 72) are not built yet.
+Roadmap entries 70 and 71: what a job creates with Docker is labelled `arthur.job=<id>`, its compose stacks get a project name of their own, all of it is removed right before the job's worktree goes, and Docker's data root counts for the disk floor of the `resources` plugin. It acts on the machines whose labels hold `tools: docker`, as the `machines` plugin gives them (`machines.labels`, "Provided names" in `docs/plugin-api.md`); without the machines plugin no machine has labels, and the plugin does nothing. The sweep of leftovers (entry 72) is not built yet.
 
 ```ts
 plugins: [orchestration({}), machines({ local: { labels: { tools: ["docker"] } } }), projects({ folders: [...] }), docker({ buildCache: "10G", leftoverHours: 48, sweep: { at: "04:00" } })],
@@ -8,7 +8,7 @@ plugins: [orchestration({}), machines({ local: { labels: { tools: ["docker"] } }
 
 ## Options
 
-Each optional; checked at load (and by `arthur config check`). Their cleanup and sweep come with entries 71 and 72; until then they are only checked.
+Each optional; checked at load (and by `arthur config check`). `buildCache` is used by each job's cleanup ("At each prune"); `leftoverHours` and `sweep` come with the sweep (entry 72), and until then are only checked.
 
 - `buildCache`: the size Docker's shared build cache is cut to after each job's cleanup and each sweep: bytes with K, M, G or T (`"10G"`), or `0` for no cap. Default `"10G"`.
 - `leftoverHours`: the sweep removes unlabelled leftovers older than this many hours (stopped containers, unused networks, dangling images, unused anonymous volumes, build cache); a number, 1 or more. Default 48.
@@ -18,7 +18,7 @@ Refused at load, naming the option: `leftoverHours` below 1 or not a number (`le
 
 ## A project's piece
 
-`docker.project(false)` in a project's `project.config.ts` leaves its jobs without a docker script and without `COMPOSE_PROJECT_NAME`, so what they create is not labelled. `false` is the one value it takes; any other refuses the load, naming the project: `docker.project(...): expected false, the one value it takes (its jobs then get no docker script), got true`.
+`docker.project(false)` in a project's `project.config.ts` leaves its jobs without a docker script and without `COMPOSE_PROJECT_NAME`, so what they create is not labelled, and without the cleanup at each prune. `false` is the one value it takes; any other refuses the load, naming the project: `docker.project(...): expected false, the one value it takes (its jobs then get no docker script), got true`.
 
 ## At each spawn
 
@@ -40,9 +40,35 @@ Refused, the spawn ending with `plugin docker: prepare failed: <reason>; the job
 
 - Docker's own options before the command stay where they are: `docker --log-level debug run img` runs `docker --log-level debug run --label arthur.job=<id> img`. A leading `--` ends those options and Docker runs the command after it, so `docker -- run img` is labelled too.
 - Every word that sets the `arthur.job` key is dropped, wherever it stands, before or after the image and before or after any `--`, so a job cannot label for another: `--label=arthur.job=X`, `-l=arthur.job=X`, `-larthur.job=X`, `--label` or `-l` followed by `arthur.job=X` (both words go; a group such as `-dl` keeps `-d`), and a bare `arthur.job=X` word. The script does not guess which word is an option's value: a literal `--label` or `--` given as one (`build --build-arg -- --label=arthur.job=x`, `volume create --label -- --label=arthur.job=x v`) shields nothing. A label with another key is kept, and so is every other word, the container's command and arguments after the image included. A `--label-file` stays, and Docker gives `--label` the last word over it.
-- Unlabelled, and left to the sweep: `docker` called by its absolute path, Docker's API called from a library, and a compose stack under a `-p` of the job's own.
+- Unlabelled, and left to the sweep: `docker` called by its absolute path, Docker's API called from a library, and a compose stack under a `-p` of the job's own. The cleanup ("At each prune") does not find them.
 
 A sandboxed job (Linux with Landlock, `arthur spawn --help`, "The sandbox"), whose sandbox hides Arthur's home, is shown its own script folder, `<home>/docker/jobs/<id>`, and no other job's nor the rest of the plugin's folder, so its shell runs the script (AR-D597). Such a job does not reach Docker's daemon: its sandbox opens no Unix socket but a datagram one, so the labelled command fails there as any `docker` command would.
+
+## At each prune
+
+Right before a job's worktree goes, wherever the removal comes from (`arthur prune`, the merge, a ticket set to dropped, manage's daily prune; `arthur prune --help`), the plugin's `jobs.cleanup` hook removes what the job made in Docker, for a job on a machine labelled `tools: docker` whose project has not set `docker.project(false)`. It runs on the job's machine through `host.jobs.run` (over SSH on another one), in two `sh -c` calls, the first cut after 30 s and the second after 85 s, so both end within the core's 2 minutes per hook:
+
+1. `command -v docker`, then `docker info`. No `docker` there: nothing to clean, and no line.
+2. What the job made, by its label `arthur.job=<id>` or its compose project's, `com.docker.compose.project=arthur-<the last 8 hex digits of its id>` (compose labels the images it builds with it too): `docker container ls --all`, `network ls`, `volume ls` and `image ls`, each with `--filter label=...`; and `docker system df`.
+3. Its containers stopped together, each with a 10-second grace (`docker container stop --timeout 10`), then each removed with its anonymous volumes (`docker container rm --volumes`); then each of its networks, volumes and images (`docker <kind> rm`). An image with neither label (a pulled base, a shared or another job's image) is never listed, so never removed. What Docker refuses while `docker info` still answers is kept and named with Docker's first line: a network another job's container is attached to, a volume it mounts, an image it runs. It goes at a later prune of the job once unused, or with the sweep.
+4. Docker's shared build cache cut to `buildCache` (`docker builder prune --force --max-used-space <buildCache>`, which buildx gives `docker builder`); not with `buildCache: 0`. A refusal is named in the line, the rest done: `build cache not cut: unknown flag: --max-used-space` from the legacy builder, without buildx.
+5. The job's script folder, `<Arthur's home there>/docker/jobs/<id>/`, removed; then `docker system df` again.
+
+The job's line in the prune's output gets one part, `docker: <what went>; <each one kept>; <the cache>; <space> freed`:
+
+```
+2026-11-11-worker-0a1b2c3d: docker: removed 2 containers, 1 network, 1 volume, 1 image; kept volume cache: Error response from daemon: remove cache: volume is in use - [c0000000000c]; build cache cut to 10G; 2.65GB freed; worktree <path> removed; branch arthur/2026-11-11-worker-0a1b2c3d deleted; record deleted
+```
+
+`nothing of the job's in Docker` in place of what went: a job that made nothing, or a later prune of the same job, where only the cut of the cache runs. The space freed is the sum of `docker system df`'s sizes before less the sum after, in Docker's units, so what other jobs on the machine add or remove meanwhile counts in it; never below `0B`.
+
+The hook gives up with one core `notice`, `prune of job <id> on machine <machine>: docker's cleanup gave up: <reason>; the prune went on without it`, and the worktree goes all the same (on another machine, unless that machine does not answer: then the worktree stays too, and the next prune tries both):
+
+- `Docker does not answer: <Docker's line>; what the job made there is left for the sweep`: `docker info` failed, Docker not running. Nothing is touched.
+- `listing what the job made exited <code>: <its first line>` or `timed out after 30 s`, then `; what the job made there is left for the sweep`: ssh failing (exit 255) included.
+- `Docker stopped answering half-way: <what went>; left for the sweep: <each one not removed>`, or `the removal timed out after 85 s half-way: ...` or `the removal exited <code>: <its first line> half-way: ...`: what went stays gone.
+
+A label `arthur.keep` matters to the sweep only: the cleanup removes a job's own resource whatever its other labels.
 
 ## The disk floor
 

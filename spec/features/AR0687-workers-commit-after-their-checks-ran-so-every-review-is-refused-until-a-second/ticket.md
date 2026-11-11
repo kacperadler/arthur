@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-11-10: AR0687 approved; built after the current feature work; the owner: "R-D628: 1" (AR-D628)
+- 2026-11-11: Merge AR0687; the owner: "AR-D646 1, AR-D644 1" (AR-D644)

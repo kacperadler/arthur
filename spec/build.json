@@ -5203,9 +5203,9 @@
   {
     "id": "AR0646",
     "title": "Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0646-docker-w3-a-job-s-containers-networks-volumes-and-images-go-with-its-worktree/ticket.md",
-    "updated": "2026-11-06T08:22:36.839Z",
+    "updated": "2026-11-11T13:30:22.496Z",
     "after": [
       "AR0645"
     ]
@@ -5502,9 +5502,9 @@
   {
     "id": "AR0681",
     "title": "Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0681-dokploy-t4b-arthur-dokploy-postgres-create-makes-a-postgres-beside-an-app-and/ticket.md",
-    "updated": "2026-11-11T03:26:16.023Z",
+    "updated": "2026-11-11T12:07:37.942Z",
     "after": [
       "AR0680"
     ]
@@ -5553,9 +5553,9 @@
   {
     "id": "AR0687",
     "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
-    "updated": "2026-11-11T07:08:11.230Z"
+    "updated": "2026-11-11T13:01:18.415Z"
   },
   {
     "id": "AR0688",
@@ -5567,9 +5567,9 @@
   {
     "id": "AR0689",
     "title": "The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
-    "updated": "2026-11-11T07:09:56.477Z"
+    "updated": "2026-11-11T12:54:22.412Z"
   },
   {
     "id": "AR0690",
@@ -5581,8 +5581,8 @@
   {
     "id": "AR0691",
     "title": "An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0691-an-automatic-restart-kills-a-running-merge-of-arthur-code-which-is-rolled-back/ticket.md",
-    "updated": "2026-11-11T07:25:36.286Z"
+    "updated": "2026-11-11T09:06:55.131Z"
   }
 ]

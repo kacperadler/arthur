@@ -96,10 +96,10 @@ export function unpruned(id: string, job: { readonly [key in "project" | "root" 
 // What the agent of the job whose record is `record` may not read: the env file `guarded` names and `unread` (AR0508, AR0513), from no record (AR0512). Then
 // (AR0593), of the projects the projects plugin keeps in `<home>/projects/checkouts` and `folders`, which no job writes, `<name> <path>` a line: each other
 // project's checkout and folder, and every project's `.arthur-worktrees`, whole (one made later too); but `+<path>`, shown, the job's own worktree. Then
-// (AR0590) its home, whole: the event log, the coordinator's files, every plugin's folder (its own folder of an extension too, which it still writes), every
-// record and any entry made later; but shown the job's own record, each other record there now that names its project, the projects plugin's `checkouts` and
-// `folders` (job-place.ts), and, once made, its docker script folder `docker/jobs/<id>` (AR-D597). Never a path that is or holds the job's root, Git folder,
-// install or config, nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
+// (AR0590) its home, whole: the event log, the coordinator's files, every plugin's folder, every record and any entry made later; but shown the job's own
+// record, each other record there now that names its project, the projects plugin's `checkouts` and `folders` (job-place.ts), its folder of each extension
+// the record's `extensions` names, as in `writable` (AR0687), and, once made, its docker script folder `docker/jobs/<id>` (AR-D597). Never a path that is or
+// holds the job's root, Git folder, install or config, nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's (AR0597).
 export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string): string[] {
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
 	const [jobs, home] = [dirname(record), dirname(dirname(record))];
@@ -113,8 +113,7 @@ export function hidden(record: string, { project, root, worktree }: Pick<Job, "p
 	const holds = (path: string, places: readonly string[]) => places.some((place) => place === path || place.startsWith(`${path}${sep}`));
 	const unkept = [...new Set(others.map((path) => real(path)))].filter((path) => !holds(path, [...kept, ...own]));
 	const records = readdirSync(jobs).filter((id) => id === basename(record) || (project !== "" && read(join(jobs, id, "project")).trim() === project));
-	const docker = join(home, "docker", "jobs", basename(record));
-	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders"), ...[docker].filter(existsSync)];
+	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders"), ...[join(home, "docker", "jobs", basename(record))].filter(existsSync), ...read(join(record, "extensions")).split("\n").filter(Boolean).map((path) => join(home, basename(resolve(import.meta.dirname, path, "../..")), basename(record)))];
 	const env = guarded.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
 	return [...env, ...unread(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
 }

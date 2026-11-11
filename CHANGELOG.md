@@ -7,11 +7,15 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0645 Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70) (7dd448d8)
+- AR0646 Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half) (d2435dcf)
+- AR0681 Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL (23a43110)
 
 ### Fixed
 
 - AR0679 The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603) (b76c2640)
+- AR0687 Workers commit after their checks ran, so every review is refused until a second run on the tip (2b7199c3)
 - AR0688 A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read (64195f9c)
+- AR0689 The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed (98cae6c0)
 
 ## 2026-11-10
 

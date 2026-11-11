@@ -5502,9 +5502,9 @@
   {
     "id": "AR0681",
     "title": "Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0681-dokploy-t4b-arthur-dokploy-postgres-create-makes-a-postgres-beside-an-app-and/ticket.md",
-    "updated": "2026-11-11T11:25:11.436Z",
+    "updated": "2026-11-11T12:07:37.942Z",
     "after": [
       "AR0680"
     ]

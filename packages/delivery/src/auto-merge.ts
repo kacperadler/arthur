@@ -2,20 +2,23 @@ import { spawnSync } from "node:child_process";
 import { matchesGlob } from "node:path";
 import type { Host, JobRecord } from "@arthur/core/plugin";
 import { type CiRun, startWait } from "./ci-wait.ts";
+import { FEATURE } from "./review-command.ts";
 import { noReview, reviewsOf } from "./review-records.ts";
 
 // `arthur merge --auto` (spec/roadmap.md, entry 59): the merge without the owner, only for a project whose piece,
 // `delivery.project({ autoMerge: true })` in its project file, turns it on, a
-// PASS (or `no review` and no other review of it) on the tip itself, no held path in the branch, and CI passed on it as `github.ci` answers; never with `--no-ci`, which
+// PASS (or `no review` and no other review of it) on the tip itself, no held path in the branch but a role, criteria or vision file its ticket's Scope names
+// (AR0693), and CI passed on it as `github.ci` answers; never with `--no-ci`, which
 // only the owner's decision lifts (AR0503). CI not passed yet leaves a wait (ci-wait.ts). A plain merge asks CI too (AR0362). docs/commands/merge.md.
 
 // A project's piece: whether a branch with a PASS review and green CI merges on its own.
 export type DeliveryPiece = { readonly autoMerge: boolean };
 export const autoMergePiece = (value: unknown): string | undefined =>
 	typeof value === "object" && value !== null && Object.keys(value).join() === "autoMerge" && typeof (value as DeliveryPiece).autoMerge === "boolean" ? undefined : "expected { autoMerge }, true or false";
-type Entry = { readonly name: string; readonly prompts?: { readonly rolesDir?: string }; readonly pieces?: { readonly delivery?: DeliveryPiece } };
-// The project's role overrides when its `prompts` names none, as the core reads them.
+type Entry = { readonly name: string; readonly prompts?: { readonly rolesDir?: string; readonly criteriaDir?: string }; readonly pieces?: { readonly delivery?: DeliveryPiece } };
+// The project's role overrides and criteria files when its `prompts` names none, as the core reads them.
 const ROLES_DIR = ".agents/arthur/roles";
+const CRITERIA_DIR = ".agents/arthur/criteria";
 // The project as the list gives it, with what delivery reads that `host.board.projects()` leaves out.
 export const entryOf = (host: Host, project: string) => host.collect<readonly Entry[]>("projects")[0]?.find((each) => each.name === project);
 // No hook or fsmonitor the main checkout's config names runs, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
@@ -36,18 +39,34 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 		const why = onTip !== undefined ? `its newest review, ${onTip[0].id}, says FAIL` : ofTip !== undefined ? `its review ${ofTip[0].id} has no verdict` : pass !== undefined ? `the last PASS, ${pass.id}, is on an older commit, ${pass.commit.slice(0, 7)}` : "no review of it says PASS";
 		return `--auto merges only with a PASS on the tip: ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review the tip: arthur review ${job.id}`;
 	}
+	const roles = ["**/roles/**", `${entry?.prompts?.rolesDir ?? ROLES_DIR}/**`];
+	const vision = host.jobs.vision(job.project).path;
 	const rules: readonly (readonly [string, readonly string[]])[] = [
-		["a role", ["**/roles/**", `${entry?.prompts?.rolesDir ?? ROLES_DIR}/**`]],
-		["the vision", [host.jobs.vision(job.project).path]],
+		["a role", roles],
+		["the vision", [vision]],
 		["CI", [".github/workflows/**"]],
 		["package.json", ["**/package.json"]],
 	];
+	// A role, criteria or vision file the approved ticket's Scope names is the owner's word on it (AR0693): only a `*.md`, so
+	// no package.json, lockfile or code under a `roles/` or `criteria/` folder goes in that way.
+	const prompts = [...roles, vision, "**/criteria/**", `${entry?.prompts?.criteriaDir ?? CRITERIA_DIR}/**`];
+	const named = scoped(root, before, job);
 	// Both names of a renamed file count.
 	for (const path of git(root, "diff", "--no-renames", "--name-only", `${before}...${tip}`).split("\n").filter(Boolean)) {
+		if (path.endsWith(".md") && named.has(path) && prompts.some((glob) => matchesGlob(path, glob))) continue;
 		const rule = rules.find(([, globs]) => globs.some((glob) => matchesGlob(path, glob)))?.[0] ?? (held(path) ? "the always-review list" : undefined);
 		if (rule !== undefined) return `--auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`;
 	}
 	return ciRefusal(host, merge, true);
+}
+
+// The paths `job`'s ticket names in backticks in its `## Scope` before `Out:`, in the ticket.md main holds at `before`: the
+// branch's own copy of it, which it may have changed, never counts.
+function scoped(root: string, before: string, job: JobRecord): ReadonlySet<string> {
+	const folder = job.tickets.flatMap((path) => FEATURE.exec(path)?.[1] ?? [])[0];
+	const text = folder === undefined ? "" : git(root, "show", `${before}:${folder}/ticket.md`);
+	const scope = text.split(/^## Scope[ \t]*$/m)[1]?.split(/^## /m)[0]?.split(/^Out:/m)[0] ?? "";
+	return new Set([...scope.matchAll(/`([^`\n]+)`/g)].map((match) => match[1] ?? ""));
 }
 
 // Why CI keeps `tip` out, "" when it may go in: for `--auto` (`auto`) CI passed on the tip itself, `run.sha` the `tip` read here

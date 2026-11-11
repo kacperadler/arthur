@@ -736,7 +736,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 ### 59. Auto-merge after PASS and green CI
 
 - Package: delivery.
-- Delivers: `arthur merge --auto`: merges only with a PASS on the tip, CI passed (asked of github through `call`), the project's `autoMerge` on, and no held path (roles, vision, CI, `package.json`, the always-review list); `--no-ci` on the owner's word.
+- Delivers: `arthur merge --auto`: merges only with a PASS on the tip, CI passed (asked of github through `call`), the project's `autoMerge` on, and no held path (roles, vision, CI, `package.json`, the always-review list), a role, criteria or vision file the ticket's Scope names excepted (AR0693); `--no-ci` on the owner's word.
 - Done means: refused, each naming the rule: a PASS on an older commit, CI pending or failed, a held path, `autoMerge: false`, github disabled without `--no-ci`. Edge cases: CI passed on the tip after a new commit; a held path renamed. When CI ends while the branch waits, the coordinator is woken with the verdict once per run end, also across a restart; a CI run that hangs is cancelled after 30 minutes.
 - Depends on: 54, 57.
 - Size: half a day.

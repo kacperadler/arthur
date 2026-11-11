@@ -5422,7 +5422,7 @@
     "title": "Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first",
     "status": "in-progress",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
-    "updated": "2026-11-11T19:46:57.242Z"
+    "updated": "2026-11-11T21:21:20.313Z"
   },
   {
     "id": "AR0672",
@@ -5543,9 +5543,9 @@
   {
     "id": "AR0686",
     "title": "Code: a review on the fable model finds redundant comments and removes them",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
-    "updated": "2026-11-10T12:42:13.369Z",
+    "updated": "2026-11-11T19:48:01.757Z",
     "after": [
       "AR0685"
     ]
@@ -5588,8 +5588,52 @@
   {
     "id": "AR0692",
     "title": "herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0692-herdr-start-up-test-fails-under-load-its-20-s-wait-for-the-start-up-pass-times/ticket.md",
-    "updated": "2026-11-11T18:52:59.917Z"
+    "updated": "2026-11-11T21:49:01.819Z"
+  },
+  {
+    "id": "AR0693",
+    "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
+    "status": "in-progress",
+    "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
+    "updated": "2026-11-11T20:24:40.107Z"
+  },
+  {
+    "id": "AR0694",
+    "title": "A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision",
+    "status": "planned",
+    "path": "spec/features/AR0694-a-plan-yes-ticket-goes-straight-to-its-planner-the-plan-question-is-the-owner-s/ticket.md",
+    "updated": "2026-11-11T20:24:13.244Z"
+  },
+  {
+    "id": "AR0695",
+    "title": "The coordinator checks a finding's or audit's ticket against autopilot before asking the owner",
+    "status": "planned",
+    "path": "spec/features/AR0695-the-coordinator-checks-a-finding-s-or-audit-s-ticket-against-autopilot-before/ticket.md",
+    "updated": "2026-11-11T20:24:15.444Z",
+    "after": [
+      "AR0694"
+    ]
+  },
+  {
+    "id": "AR0696",
+    "title": "The review gate needs min(100, all) mutants, not min(25, all)",
+    "status": "planned",
+    "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
+    "updated": "2026-11-11T20:24:17.954Z",
+    "after": [
+      "AR0671"
+    ]
+  },
+  {
+    "id": "AR0697",
+    "title": "The test kit stops every process a test left in its folder when a test file exits",
+    "status": "planned",
+    "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
+    "updated": "2026-11-11T20:24:20.604Z",
+    "after": [
+      "AR0671"
+    ]
   }
 ]

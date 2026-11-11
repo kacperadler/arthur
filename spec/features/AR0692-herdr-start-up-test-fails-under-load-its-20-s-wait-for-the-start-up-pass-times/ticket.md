@@ -42,3 +42,4 @@ Out:
 ## Decisions
 
 - 2026-11-11: Source: F2 of AR0647
+- 2026-11-11: AR0692 approved; the owner: "AR-D648 - 1" (AR-D648)

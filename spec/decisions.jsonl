@@ -1313,3 +1313,6 @@
 {"record":"answer","id":"AR-D652","time":"2026-11-11T21:24:16+01:00","decided":"AR0696 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
 {"record":"answer","id":"AR-D653","time":"2026-11-11T21:24:19+01:00","decided":"AR0697 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
 {"record":"ask","id":"AR-D654","time":"2026-11-11T22:47:14+01:00","project":"arthur","kind":"budget","question":"How far may tonight's queue run while the owner sleeps?","options":["Until Claude 7 Day usage reaches 25%","Stop now"]}
+{"record":"close","id":"AR-D654","time":"2026-11-11T22:47:23+01:00","reason":"asked as the wrong kind; recorded as a question instead"}
+{"record":"ask","id":"AR-D655","time":"2026-11-11T22:47:24+01:00","project":"arthur","kind":"question","question":"How far may tonight's queue run while the owner sleeps?","options":["Until Claude 7 Day usage reaches 25%","Stop now"]}
+{"record":"answer","id":"AR-D655","time":"2026-11-11T22:47:25+01:00","decided":"Work tonight queue until Claude 7 Day usage reaches 25%","picked":1,"words":"ok i have to go to sleep so work till 25% usage","message":14240}

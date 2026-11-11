@@ -5213,9 +5213,9 @@
   {
     "id": "AR0647",
     "title": "Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0647-docker-w4-the-daily-sweep-of-docker-leftovers-arthur-docker-and-arthur-docker/ticket.md",
-    "updated": "2026-11-06T08:22:38.959Z",
+    "updated": "2026-11-11T15:44:56.971Z",
     "after": [
       "AR0646"
     ]
@@ -5422,7 +5422,7 @@
     "title": "Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first",
     "status": "in-progress",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
-    "updated": "2026-11-10T17:53:31.197Z"
+    "updated": "2026-11-11T17:33:26.529Z"
   },
   {
     "id": "AR0672",
@@ -5512,9 +5512,9 @@
   {
     "id": "AR0682",
     "title": "Dokploy T4c: arthur dokploy postgres backup schedules backups of a Postgres to an S3 destination",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0682-dokploy-t4c-arthur-dokploy-postgres-backup-schedules-backups-of-a-postgres-to-an/ticket.md",
-    "updated": "2026-11-10T07:36:31.740Z",
+    "updated": "2026-11-11T17:12:10.058Z",
     "after": [
       "AR0681"
     ]

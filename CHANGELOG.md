@@ -21,6 +21,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0671 Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first (68ff7073)
 - AR0692 herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches (eca9687c)
 
 ## 2026-11-10

@@ -38,7 +38,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `test/report-check.test.ts` ("a page 30 001 px tall is shot whole")
 - What: 17 s in the full run here; it starts Chrome for 21 slices. No timeout is waited out, so this ticket's way (a short limit) does not apply (plan.md, Open questions).
 - Suggestion: a planning ticket on tests slow from work, with the others plan.md names (job-gate, dokploy upload, --auto held paths).
-- Status: open
+- Status: deferred (client summary)
 
 ## F5. Two session tests run 3 to 4 s, mostly from the agents they start
 
@@ -47,4 +47,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/session/test/compaction.test.ts` ("a handoff write that fails withdraws the compaction"), `packages/session/test/start-notice.test.ts` ("no LLM access")
 - What: 3.9 s and 3.1 s alone with the session's tick at 100 ms (`node --import @arthur/core/testing --test "packages/session/test/**/*.test.ts"`): the first starts a fake coordinator for each of its 4 cases, each case also waiting the handoff extension's settle time of 4 ticks (400 ms here, about 1.6 s in all); the second starts a fake agent for each of its 9 cases.
 - Suggestion: with the tests slow from work of F4's planning ticket; one test per case would rename tests, which this ticket rules out.
-- Status: open
+- Status: deferred (client summary)

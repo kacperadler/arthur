@@ -5213,9 +5213,9 @@
   {
     "id": "AR0647",
     "title": "Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0647-docker-w4-the-daily-sweep-of-docker-leftovers-arthur-docker-and-arthur-docker/ticket.md",
-    "updated": "2026-11-11T23:07:01.376Z",
+    "updated": "2026-11-11T23:49:54.177Z",
     "after": [
       "AR0646"
     ]
@@ -5597,7 +5597,7 @@
     "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
     "status": "in-progress",
     "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
-    "updated": "2026-11-11T22:49:10.505Z"
+    "updated": "2026-11-11T23:51:12.799Z"
   },
   {
     "id": "AR0694",

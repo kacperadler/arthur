@@ -5553,9 +5553,9 @@
   {
     "id": "AR0687",
     "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
-    "updated": "2026-11-11T07:08:11.230Z"
+    "updated": "2026-11-11T09:06:56.554Z"
   },
   {
     "id": "AR0688",
@@ -5581,8 +5581,8 @@
   {
     "id": "AR0691",
     "title": "An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0691-an-automatic-restart-kills-a-running-merge-of-arthur-code-which-is-rolled-back/ticket.md",
-    "updated": "2026-11-11T07:25:36.286Z"
+    "updated": "2026-11-11T09:06:55.131Z"
   }
 ]

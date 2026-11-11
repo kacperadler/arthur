@@ -34,3 +34,4 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0682 approved; the owner: "AR-D614 - yes" (AR-D614)
+- 2026-11-11: Merge AR0682 once CI is green; the owner: "AR-D647 - merge" (AR-D647)

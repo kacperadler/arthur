@@ -1299,3 +1299,4 @@
 {"record":"answer","id":"AR-D644","time":"2026-11-11T13:47:34+01:00","decided":"Merge AR0687","picked":1,"words":"AR-D646 1, AR-D644 1","message":13627}
 {"record":"close","id":"AR-D645","time":"2026-11-11T14:01:29+01:00","reason":"AR0689 merged: mutate resumes a time-cut run, so the gate is reached by running it again"}
 {"record":"ask","id":"AR-D647","time":"2026-11-11T18:42:03+01:00","project":"arthur","kind":"merge","question":"Merge AR0682? arthur dokploy postgres backup schedules backups of a Dokploy Postgres to an S3 destination (review PASS). It needs your word because it adds one line naming the new command to the coordinator role and to the vision.","options":["Merge it","Not yet"],"ticket":"AR0682"}
+{"record":"answer","id":"AR-D647","time":"2026-11-11T19:31:38+01:00","decided":"Merge AR0682 once CI is green","picked":1,"words":"AR-D647 - merge","message":13943}

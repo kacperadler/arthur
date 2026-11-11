@@ -24,6 +24,8 @@ const [OLD, YOUNG] = ["2026-01-01 01:00:00 +0100 CET", "2026-01-01 00:01:00.5 +0
 const GONE = "2026-01-01-worker-99999999";
 const DOWN = "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?";
 const ROOT = temporaryFolder();
+// A whole sweep runs some 25 fake docker processes, each a node start, which a loaded machine can stretch past until's 20 s.
+const SWEEP = { deadlineMs: 120_000 };
 
 // What Docker holds: of job GONE, whose record no longer exists, and of its compose project `arthur-77777777`; of job `live`,
 // which has a record; the owner's own; dangling images and unused networks, old and young; and `arthur.keep`.
@@ -252,7 +254,7 @@ test("disk-low sweeps that machine in arthur run, and the notice says it is stil
 	host.emit("disk-low", { machine: "far", path: ROOT, free: 5, floor: 1e18 });
 	assert.equal(fake.calls().length, from, "before the start, or on a machine without the label, docker is not asked");
 	host.emit("disk-low", { machine: "local", path: ROOT, free: 5, floor: 1e18 });
-	const [notice = ""] = await until("the disk-low sweep's notice", () => (notices().length > 0 ? notices() : undefined));
+	const [notice = ""] = await until("the disk-low sweep's notice", () => (notices().length > 0 ? notices() : undefined), SWEEP);
 	assert.match(notice, /^docker: the sweep \(disk-low on local\):\n- local: removed 2 containers, 2 networks, 1 volume, 3 images; .*; build cache cut to 10G; 15\.03GB reclaimed; [\d.]+ GB free on (\S+); still under the floor: [\d.]+ GB free on \1, floor 931322574\.6 GB$/);
 	assert.match((await arthur(t, host, "sweep", "--machine", "local")).out, /; still under the floor: [\d.]+ GB free on .*, floor 931322574\.6 GB$/, "the floor kept for the sweep by hand");
 	host.emit("disk-low", { machine: "local", path: ROOT, free: 5, floor: 1 });
@@ -299,7 +301,7 @@ test("a disk-low during the daily sweep waits for it: never two sweeps of one ma
 	assert.deepEqual(order, ["start 0"], "the second waits");
 	release();
 	await daily;
-	await until("the disk-low's sweep", () => (order.length === 8 ? true : undefined));
+	await until("the disk-low's sweep", () => (order.length === 8 ? true : undefined), SWEEP);
 	assert.deepEqual(order, ["start 0", "end 0", "start 1", "end 1", "start 2", "end 2", "start 3", "end 3"]);
 });
 

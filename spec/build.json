@@ -5543,9 +5543,9 @@
   {
     "id": "AR0686",
     "title": "Code: a review on the fable model finds redundant comments and removes them",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
-    "updated": "2026-11-10T12:42:13.369Z",
+    "updated": "2026-11-11T19:48:01.757Z",
     "after": [
       "AR0685"
     ]
@@ -5588,8 +5588,8 @@
   {
     "id": "AR0692",
     "title": "herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0692-herdr-start-up-test-fails-under-load-its-20-s-wait-for-the-start-up-pass-times/ticket.md",
-    "updated": "2026-11-11T18:52:59.917Z"
+    "updated": "2026-11-11T20:00:50.806Z"
   }
 ]

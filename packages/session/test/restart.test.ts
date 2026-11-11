@@ -226,6 +226,26 @@ test("freshUntil equal to freshAt is a single try; earlier than freshAt the wind
 	await until("the restart after midnight", () => across.restarts.length === 1);
 });
 
+test("a merge delivery names holds the fresh start as a job does: a try while it runs asks the coordinator for nothing, and the last one skips the night naming both", async (t) => {
+	const box = await load(t, { freshAt: "23:00", freshRetryMinutes: 15, freshUntil: "23:15" }, "2026-10-18T22:59:00+02:00");
+	let looks = 0;
+	box.fake.provide("delivery.merging", () => {
+		looks += 1;
+		return [{ project: "acme", job: "" }];
+	});
+	const first = box.coordinator({ steps: [{ prompt: true }, { message: "Asked." }, { end: true }, { waitFor: box.gate("never") }] });
+	await first.up();
+	await box.start();
+	box.at("2026-10-18T23:00:00+02:00");
+	// The try itself looks at the merges: one that asked would wait for the handoff, and no look would come before 23:15.
+	await until("a look at the merges", () => looks === 1);
+	assert.deepEqual([first.messages(), box.request(), box.out], [[], undefined, []]);
+	box.job("2026-10-18-worker-0000000a");
+	box.at("2026-10-18T23:15:00+02:00");
+	await until("the skip", () => box.out.length === 1);
+	assert.deepEqual([box.out, box.restarts], [["session: fresh: skipped, 1 job running, 1 merge running at 23:15"], []]);
+});
+
 test("Arthur down at freshAt skips that night, not run late, and a window passed unseen is not tried late", async (t) => {
 	const box = await load(t, { freshAt: "23:00", freshUntil: "03:00" }, "2026-10-18T23:30:00+02:00");
 	await box.start();
@@ -401,6 +421,28 @@ test("a job started while /restart waits for the handoff stops the restart, with
 	box.open("written");
 	await until("the notice", () => box.notices().length === 1);
 	assert.deepEqual(box.notices(), ["restart: not done, 1 job running: 0000000b; run /stopall first"]);
+	assert.deepEqual([box.restarts, box.request(), box.out], [[], undefined, []]);
+});
+
+test("/restart while delivery names a merge running is refused, naming it, as a job is; one that starts while /restart waits for the handoff stops the restart, with a notice", async (t) => {
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00");
+	const merges = [{ project: "acme", job: "2026-10-18-worker-0000000c" }, { project: "shop", job: "" }];
+	box.fake.provide("delivery.merging", () => merges);
+	const first = box.coordinator({ steps: [{ prompt: true }, { waitFor: box.gate("written") }, { message: "Written." }, { end: true }, { waitFor: box.gate("never") }] });
+	await first.up();
+	await box.start();
+	assert.equal(await box.route("/restart"), "error: 2 merges running: acme (0000000c), shop; run /restart again once no merge runs");
+	const job = box.job("2026-10-18-review-0000000a", "review");
+	assert.equal(await box.route("/restart fresh"), "error: 1 job running: 0000000a, 2 merges running: acme (0000000c), shop; run /stopall first");
+	job.end();
+	merges.splice(0);
+	assert.equal(await box.route("/restart"), "restarting: the coordinator writes its handoff first, for at most 120 s; Restarted. follows");
+	await until("the handoff request", () => first.messages().length === 1);
+	merges.push({ project: "acme", job: "2026-10-18-worker-0000000d" });
+	writeFileSync(box.handoff, `${HANDOFF}\n`);
+	box.open("written");
+	await until("the notice", () => box.notices().length === 1);
+	assert.deepEqual(box.notices(), ["restart: not done, 1 merge running: acme (0000000d); run /restart again once no merge runs"]);
 	assert.deepEqual([box.restarts, box.request(), box.out], [[], undefined, []]);
 });
 
@@ -622,6 +664,25 @@ test("a job started while the restart due waits for the handoff: no notice, and 
 	box.open("two");
 	await until("arthur run ended", () => box.ended.length === 1);
 	assert.deepEqual([box.restarts, box.notices()], [[false], []]);
+});
+
+test("under the service a merge delivery names holds the restart due as a job does: not asked while it runs, asked once it ends", async (t) => {
+	const arthur = checkout();
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+	service(t, { restart: "always", pid: process.pid });
+	const merges = [{ project: "arthur", job: "2026-10-18-worker-0000000c" }];
+	let looks = 0;
+	box.fake.provide("delivery.merging", () => {
+		looks += 1;
+		return merges;
+	});
+	await box.start();
+	arthur.merge("AR0002");
+	await until("two looks at the merges", () => looks >= 2);
+	assert.deepEqual([box.request(), box.restarts, box.ended], [undefined, [], []], "nothing is asked while the merge runs");
+	merges.pop();
+	await until("arthur run ended", () => box.ended.length === 1);
+	assert.deepEqual(box.restarts, [false]);
 });
 
 test("a restart due that throws in the tick is logged once, tells the owner nothing, and is made once it can be", async (t) => {

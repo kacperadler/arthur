@@ -29,7 +29,7 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 	const app = { id: "kXx3", name: "Shop", status: "done" as const, project: "Shop", environment: "production", domains: [{ host: "shop.example", https: true }], deployments, mounts: [{ type: "volume" as const, volumeName: "data", mountPath: "/data" }], ...source };
 	const githubs = [{ id: "gh-1", name: "acme", repositories: [{ owner: "acme", name: "web-shop", branches: ["main"] }] }];
 	const databases = [{ id: "pg-1", name: "db", project: "Shop", environment: "production", appName: "shop-db-x1y2z3", status: "idle" as const, backups: [{ id: "bk-1", schedule: "0 3 * * *", destination: "s3-main", keep: 7, enabled: true }] }];
-	const current = await fakeDokploy(t, { apps: [app], empty: ["Archive"], githubs, databases });
+	const current = await fakeDokploy(t, { apps: [app], empty: ["Archive"], githubs, databases, destinations: ["s3-main"] });
 	const documented = await fakeDokploy(t, { apps: [app], form: "documented" });
 	const get = async (base: string, path: string, headers: Record<string, string> = { "x-api-key": TOKEN }) => (await fetch(new URL(path, base), { headers })).json();
 	const post = async (path: string, body: FormData | string, headers: Record<string, string> = {}) => (await fetch(new URL(path, current.url), { method: "POST", headers: { "x-api-key": TOKEN, ...headers }, body })).json();
@@ -67,6 +67,7 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 		["postgres-one", await get(current.url, "/api/postgres.one?postgresId=pg-1")],
 		["postgres-deploy", await json("/api/postgres.deploy", { postgresId: "pg-1" })],
 		["postgres-create", await json("/api/postgres.create", { name: "new", environmentId: "env-shop-production", dockerImage: "postgres:18", databaseName: "postgres", databaseUser: "postgres", databasePassword: "a1b2" })],
+		["destination-all", await get(current.url, "/api/destination.all")],
 		["error-input", await json("/api/postgres.create", { name: "new", environmentId: "env-shop-production", databaseName: "postgres", databaseUser: "postgres", databasePassword: "pa$$ word" })],
 	];
 	assert.deepEqual([6, 9, 10, 19, 20].map((index) => routes[index]?.[1]), [true, true, true, true, true], "dropDeployment, the saves and the update answer true");

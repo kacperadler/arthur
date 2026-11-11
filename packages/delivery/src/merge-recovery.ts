@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { checkConfig } from "@arthur/core/git-config";
-import { takeLock } from "@arthur/core/lock";
+import { holds, takeLock } from "@arthur/core/lock";
 import type { Host } from "@arthur/core/plugin";
 import { lastMerge } from "./take-main.ts";
 
@@ -43,5 +43,32 @@ export function recoverMerge(host: Host, project: string): { readonly job: strin
 	} finally {
 		rmSync(join(own, "merging"), { force: true });
 		lock.release();
+	}
+}
+
+// The merges in a run now, which hold session's restart (AR0691): each project whose `merge.lock` names a live process, with the
+// job its `merging` names, "" before the merge wrote it. A lock its process left holds nothing; the next merge or `arthur run` takes it over.
+export function merging(host: Host): { readonly project: string; readonly job: string }[] {
+	return host.board.projects().flatMap(({ name: project }) => {
+		const read = (file: string) => {
+			// A file gone between two looks, as at a merge's end, names no merge.
+			try {
+				return readFileSync(join(host.folder, project, file), "utf8").trim();
+			} catch {
+				return "";
+			}
+		};
+		const pid = Number(read("merge.lock").split(" ")[0]);
+		// A lock naming this process is one it holds only by core's own count: an earlier process of its pid may have left it.
+		return (pid === process.pid ? holds(join(host.folder, project, "merge.lock")) : alive(pid)) ? [{ project, job: read("merging") }] : [];
+	});
+}
+
+// Whether `pid` still runs: a signal 0 it may not receive (EPERM) still names a process; 0, a spawn that failed, names none.
+export function alive(pid: number): boolean {
+	try {
+		return pid > 0 && process.kill(pid, 0);
+	} catch (error) {
+		return (error as NodeJS.ErrnoException).code === "EPERM";
 	}
 }

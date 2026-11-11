@@ -9,7 +9,7 @@ import { byRecommendation } from "./silent.ts";
 // A question asked, answered or closed in the decision log (decision-log.ts): docs/commands/decision.md.
 
 // Records a question; its id. One approved class matching it answers it by policy in the same write, else the owner's grant by
-// its recommendation, that answer returned; two or more classes leave it to the owner, `classes` naming them.
+// its recommendation, that answer returned; two or more classes leave it to the owner, `classes` naming them. Never a plan question (AR-D603).
 export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "id" | "time" | "project">, lock = withLock): { readonly id: string; readonly unwritten?: string; readonly policy?: Answer; readonly classes: readonly string[] } {
 	const question = asked.question.trim();
 	if (question === "") throw new Error("an empty question: --question <what the owner decides>");

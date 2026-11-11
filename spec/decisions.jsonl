@@ -1307,3 +1307,8 @@
 {"record":"ask","id":"AR-D651","time":"2026-11-11T21:23:21+01:00","project":"arthur","kind":"plan","question":"Approve AR0695: a finding's or audit's bug/cleanup ticket that meets the autopilot criteria is pre-approved by me instead of asked?","options":["Approve","Not yet"],"ticket":"AR0695"}
 {"record":"ask","id":"AR-D652","time":"2026-11-11T21:23:22+01:00","project":"arthur","kind":"plan","question":"Approve AR0696: the review gate needs 100 mutants run, not 25, after the faster tests?","options":["Approve","Not yet"],"ticket":"AR0696"}
 {"record":"ask","id":"AR-D653","time":"2026-11-11T21:23:24+01:00","project":"arthur","kind":"plan","question":"Approve AR0697: the test kit kills processes a test left in its own temp folder?","options":["Approve","Not yet"],"ticket":"AR0697"}
+{"record":"answer","id":"AR-D649","time":"2026-11-11T21:24:10+01:00","decided":"AR0693 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
+{"record":"answer","id":"AR-D650","time":"2026-11-11T21:24:12+01:00","decided":"AR0694 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
+{"record":"answer","id":"AR-D651","time":"2026-11-11T21:24:14+01:00","decided":"AR0695 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
+{"record":"answer","id":"AR-D652","time":"2026-11-11T21:24:16+01:00","decided":"AR0696 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
+{"record":"answer","id":"AR-D653","time":"2026-11-11T21:24:19+01:00","decided":"AR0697 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}

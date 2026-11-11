@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-11-11: Source: retro spec/retro/2026-11-11.md
+- 2026-11-11: AR0696 approved; the owner: "AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1" (AR-D652)

@@ -1,6 +1,6 @@
-import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { temporaryFolder } from "@arthur/core/testing";
 
 // A fake `herdr` 0.9.3 (AR0670): `fakeHerdr` writes an executable `herdr` into a new folder for `PATH`; run, this file plays it,
 // `node fake-herdr.ts <folder> <herdr's arguments>`. It keeps its workspaces, tabs and panes in `state.json` of the folder, logs
@@ -19,8 +19,12 @@ export function pathWithoutHerdr(path = process.env.PATH ?? ""): string {
 }
 
 export function fakeHerdr(mode: Mode = "up") {
-	const folder = temporaryFolder();
-	writeFileSync(join(folder, "herdr"), `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(import.meta.filename)} ${JSON.stringify(folder)} "$@"\n`, { mode: 0o755 });
+	// A played call starts as fast as a bare node, so a start-up pass of a dozen calls ends in time under load (AR0692): no
+	// `@arthur/core/testing` (its load and its exit's `systemctl` and `find` calls), its folder made in the kit's TMPDIR, which
+	// the kit removes at exit; and this file's types stripped once, kept in Node's compile cache in the folder.
+	const folder = mkdtempSync(join(tmpdir(), "herdr-"));
+	const node = `NODE_COMPILE_CACHE=${JSON.stringify(join(folder, "cache"))} exec ${JSON.stringify(process.execPath)}`;
+	writeFileSync(join(folder, "herdr"), `#!/bin/sh\n${node} ${JSON.stringify(import.meta.filename)} ${JSON.stringify(folder)} "$@"\n`, { mode: 0o755 });
 	save(folder, { next: 1, workspaces: [], tabs: [], panes: [] });
 	writeFileSync(join(folder, "mode"), mode);
 	const lines = (file: string) => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1) : []);

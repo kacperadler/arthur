@@ -50,6 +50,7 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 		}),
 	];
 	assert.equal(docker("image", "ls", "--format", "{{.ID}}").stdout, "0a1b2c3d4e5f\n", "the IDs image inspect takes");
+	assert.match(docker("info", "--format", "{{.SystemTime}}").stdout, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{9}Z\n$/, "Docker's clock, RFC 3339 with nanoseconds");
 	// `system df` summed from the sizes the fake keeps, when no row of it is given.
 	fake.state({ sizes: {}, cache: 1500 });
 	const summed = lines("system", "df");
@@ -67,5 +68,5 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 	assert.deepEqual([down.status, down.stderr], [1, "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\n"]);
 	assert.equal(docker("context", "inspect", "--format", "{{.Endpoints.docker.Host}}").status, 0, "the context needs no daemon");
 	assert.equal(docker("--version").status, 0, "nor does the version");
-	assert.equal(fake.calls().length, 23, "each call noted");
+	assert.equal(fake.calls().length, 24, "each call noted");
 });

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { fileURLToPath } from "node:url";
 import type { Host } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { docker } from "../src/docker.ts";
@@ -227,6 +228,18 @@ test("sweep.at registers a daily entry, refused at load without the schedule plu
 	await assert.rejects(load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" } }, false), {
 		message: "sweep.at needs the schedule plugin, which runs the daily sweep; add schedule() to the config's plugins, or leave sweep out",
 	});
+});
+
+test("a config that lists the schedule plugin after docker loads: docker's setup runs after schedule's, so sweep.at finds it", () => {
+	const folder = temporaryFolder();
+	execFileSync("git", ["init", "--quiet", folder]);
+	const plugin = JSON.stringify(fileURLToPath(new URL("../src/docker.ts", import.meta.url)));
+	const schedule = `{ name: "schedule", setup(host) { host.provide("schedule.register", () => undefined); } }`;
+	writeFileSync(join(folder, "arthur.config.ts"), `import { docker } from ${plugin};\nexport default { plugins: [{ name: "orchestration", setup() {} }, docker({ sweep: { at: "04:00" } }), ${schedule}] };\n`);
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_JOB: "" };
+	const run = spawnSync(process.execPath, [fileURLToPath(import.meta.resolve("@arthur/core/cli")), "docker", "--help"], { cwd: folder, encoding: "utf8", env });
+	assert.equal(run.status, 0, run.stderr);
+	assert.match(run.stdout, /^# arthur docker\n/);
 });
 
 test("disk-low sweeps that machine in arthur run, and the notice says it is still under its floor; another machine's, or before the start, nothing", async (t) => {

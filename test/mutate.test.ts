@@ -134,6 +134,8 @@ test("a run the deadline cut goes on where it stopped on the same commit and --m
 
 	// --max is part of the key: a capped run goes on at its cap and keeps its count, so the gate still refuses it.
 	assert.equal(cut("--max", "2").stdout, `${survivor}mutate: 1 mutants, 0 caught, 1 survived; 1 not run (time); 14 not run (--max 2)\n`);
+	// One mutant left is saved too.
+	assert.equal(late(root, [0, 1_500_000], "--max", "2").stdout, `${survivor}mutate: 1 mutants, 0 caught, 1 survived; 1 not run (time); 14 not run (--max 2)\n`);
 	const capped = mutate(root, "--max", "2");
 	assert.deepEqual([capped.stdout, capped.status], [`${survivor}mutate: 2 mutants, 1 caught, 1 survived; 14 not run (--max 2)\n`, 1]);
 	cut();

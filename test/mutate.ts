@@ -96,11 +96,11 @@ if (late > 0) {
 // What a run the deadline cut saved at `path`: how many mutants it tried and its `survived:` lines, when it ran on `key`'s
 // commit, base and --max and the file holds them in shape (at most `size` tried, no more survivors than tried); else none.
 function resume(path: string, key: { readonly head: string; readonly base: string; readonly max: number }, size: number): { readonly tried: number; readonly survivors: readonly string[] } {
-	let saved: { readonly head: string; readonly base: string; readonly max: number; readonly tried: number; readonly survivors: readonly string[] } | null;
+	let saved: { readonly head: string; readonly base: string; readonly max: number; readonly tried: number; readonly survivors: readonly string[] } | null | undefined;
 	try {
 		saved = JSON.parse(readFileSync(path, "utf8"));
 	} catch {
-		return { tried: 0, survivors: [] };
+		// No file, or no JSON in it: `saved` stays undefined, and the run starts over.
 	}
 	return saved?.head === key.head &&
 		saved.base === key.base &&

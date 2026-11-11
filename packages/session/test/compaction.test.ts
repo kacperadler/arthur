@@ -15,7 +15,7 @@ test("at a compactAt slot, or a report at compactAtPercent, the coordinator writ
 			steps: [{ prompt: true }, { waitFor: gate("written") }, { message: "Handoff written." }, { end: true }, { prompt: true }, { message: "Going on." }, { end: true }, { waitFor: gate("release") }],
 		}));
 		await box.start();
-		await sleep(1200);
+		await sleep(250);
 		assert.equal(box.request(), undefined, "nothing before the slot or the report");
 		trigger.fire(box);
 		await until("the handoff request", () => agent.messages().length === 1);
@@ -72,7 +72,7 @@ test("an empty handoff is not read back; a compaction that fails says so and rea
 		await until("the outcome", () => box.out.length === 1);
 		assert.deepEqual(box.out, [line]);
 		assert.equal(agent.compactions().length, run.compactError === undefined ? 1 : 0);
-		await sleep(700);
+		await sleep(250);
 		assert.equal(agent.messages().length, 1, "nothing read back");
 	}
 });

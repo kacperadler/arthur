@@ -96,7 +96,7 @@ test("under the service, a restart due is asked by arthur run itself once no job
 	const job = box.job("2026-10-18-worker-0000000a");
 	await box.start();
 	arthur.merge("AR0002");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.request(), first.messages()], [undefined, []], "nothing is asked while a job runs");
 	job.end();
 	await until("the restart due asked", () => box.request()?.slot === "due");
@@ -110,7 +110,7 @@ test("under the service, a restart due is asked by arthur run itself once no job
 	await until("arthur run ended", () => box.ended.length === 1);
 	assert.deepEqual(box.out, ["session: restart: done; the coordinator restarts, which starts by reading the handoff; arthur run ends, and its service starts it again on the new code"]);
 	// `arthur run` stops after its SIGTERM, not at once: no second restart is asked meanwhile.
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.restarts, box.ended, box.request(), box.notices()], [[false], [1], undefined, []]);
 	box.stop();
 	await box.start();
@@ -128,7 +128,7 @@ test("a restart due is not asked while a request is pending, by an arthur run th
 		const compaction = { then: "compact", slot: "13:00", asked: Date.now(), waitSeconds: 600 };
 		if (pending) writeFileSync(join(box.folder, "request.json"), JSON.stringify(compaction));
 		if (merged) arthur.merge("AR0002");
-		await sleep(1200);
+		await sleep(250);
 		assert.deepEqual([box.request(), box.restarts, box.ended], [pending ? compaction : undefined, [], []]);
 		if (!pending) continue;
 		// Once the compaction is over, the restart due is asked.
@@ -151,7 +151,7 @@ test("a job started while the restart due waits for the handoff: no notice, and 
 	const job = box.job("2026-10-18-worker-0000000b");
 	box.open("one");
 	await until("the request dropped", () => box.request() === undefined);
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.request(), box.restarts, box.notices(), first.messages().length], [undefined, [], [], 1]);
 	job.end();
 	await until("the second handoff request", () => first.messages().length === 2);
@@ -170,7 +170,7 @@ test("a restart due that throws in the tick is logged once, tells the owner noth
 	await box.start();
 	arthur.merge("AR0002");
 	await until("the error", () => box.err.length > 0);
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.err, box.restarts, box.notices()], [[`session: restart failed: EISDIR: illegal operation on a directory, open '${blocked}'`], [], []]);
 	rmdirSync(blocked);
 	await until("arthur run ended", () => box.ended.length === 1);

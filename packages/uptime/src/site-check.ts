@@ -17,8 +17,8 @@ const REFUSED = new Error("a private address the config does not name");
 const guarded: LookupFunction = (name, options, done) => lookup(name, options, (error, address, family) => done(error ?? ((typeof address === "string" ? [{ address, family }] : address).some((each) => PRIVATE.check(each.address, `ipv${each.family}` as "ipv4" | "ipv6")) ? REFUSED : null), address, family));
 const get = (at: URL, signal: AbortSignal) => new Promise<IncomingMessage>((resolve, reject) => void (at.protocol === "https:" ? secure : plain)(at, { signal, agent: false, lookup: guarded, headers: { "user-agent": "arthur-uptime" } }, resolve).on("error", reject)).then((answer) => new Response([204, 205, 304].includes(answer.statusCode ?? 0) ? answer.resume() && null : (answer as unknown as ReadableStream), { status: answer.statusCode, headers: answer.headers as HeadersInit }));
 
-export async function checkSite(url: string, expect: number | string | undefined, limitSeconds: number): Promise<Check> {
-	const [signal, named] = [AbortSignal.timeout(limitSeconds * 1000), new URL(url).host];
+export async function checkSite(url: string, expect: number | string | undefined, limitSeconds: number, second = 1000): Promise<Check> {
+	const [signal, named] = [AbortSignal.timeout(limitSeconds * second), new URL(url).host];
 	let [at, response]: [URL, Response?] = [new URL(url)];
 	try {
 		for (let hops = 0; ; hops++) {
@@ -45,8 +45,8 @@ export async function checkSite(url: string, expect: number | string | undefined
 }
 
 // One probe outside the projects (AR0620): any HTTP answer, a redirect or an error status too, proves this machine reaches the network.
-export const probe = (url: string, limitSeconds: number): Promise<boolean> =>
-	fetch(url, { signal: AbortSignal.timeout(limitSeconds * 1000), redirect: "manual", headers: { "user-agent": "arthur-uptime" } }).then(async (response) => (await response.body?.cancel(), true), () => false);
+export const probe = (url: string, limitSeconds: number, second = 1000): Promise<boolean> =>
+	fetch(url, { signal: AbortSignal.timeout(limitSeconds * second), redirect: "manual", headers: { "user-agent": "arthur-uptime" } }).then(async (response) => (await response.body?.cancel(), true), () => false);
 
 function failure(error: unknown, limitSeconds: number, late: boolean): string {
 	if (late) return `no answer within ${limitSeconds} s`;

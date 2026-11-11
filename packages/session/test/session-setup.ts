@@ -15,12 +15,13 @@ export const HANDOFF = "Work in progress: AR0143, its worker runs.\nNext: review
 const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);
 
 // The plugin on a fake host in Warsaw at `now`, started as `arthur run` starts it, its printed lines caught; stopped at the end.
+// Its tick, and its handoff extension's, is 100 ms, not 500: a test's 250 ms sleep is two of them.
 export async function load(t: TestContext, options: SessionOptions, now: string) {
 	const [out, err] = [[] as string[], [] as string[]];
 	t.mock.method(console, "log", (text: string) => void out.push(text));
 	t.mock.method(console, "error", (text: string) => void err.push(text));
 	const fake = fakeHost({ name: "session", options, timeZone: "Europe/Warsaw", now: new Date(now) });
-	const plugin = session(options);
+	const plugin = session(options, 100);
 	await fake.setup(plugin);
 	t.after(() => plugin.stop?.());
 	const [file, use] = [join(fake.host.folder, "request.json"), join(fake.host.folder, "context-use")];

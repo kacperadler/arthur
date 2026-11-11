@@ -13,7 +13,7 @@ test("at freshAt with no job running the coordinator writes its handoff, the con
 	const first = box.coordinator({ steps: [{ prompt: true }, { waitFor: box.gate("written") }, { message: "Handoff written." }, { end: true }, { waitFor: box.gate("never") }] });
 	await first.up();
 	await box.start();
-	await sleep(1200);
+	await sleep(250);
 	assert.equal(box.request(), undefined, "nothing before freshAt");
 	box.at("2026-10-18T23:00:00+02:00");
 	await until("the handoff request", () => first.messages().length === 1);
@@ -31,7 +31,7 @@ test("at freshAt with no job running the coordinator writes its handoff, the con
 	assert.deepEqual(second.messages(), [{ content: read(box.handoff), options: { attribution: "agent" }, step: -1 }], "its first turn reads the handoff");
 	await until("the notice", () => box.notices().length === 1);
 	assert.deepEqual(box.notices(), ["Restarted. (fresh session)"]);
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.restarts, box.notices().length, box.err], [[true], 1, []], "once");
 });
 
@@ -40,10 +40,10 @@ test("while a job of any kind runs the fresh start tries again every freshRetryM
 	const review = box.job("2026-10-18-review-0000000a", "review");
 	await box.start();
 	box.at("2026-10-18T23:00:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	review.end();
 	box.at("2026-10-18T23:14:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.restarts, box.request()], [[], undefined], "the review ran at 23:00; the next try is 23:15");
 	box.at("2026-10-18T23:15:00+02:00");
 	await until("the restart", () => box.restarts.length === 1);
@@ -58,7 +58,7 @@ test("while a job runs a try asks the coordinator for nothing", async (t) => {
 	box.job("2026-10-18-audit-0000000a", "audit");
 	await box.start();
 	box.at("2026-10-18T23:00:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([first.messages(), box.request(), box.restarts], [[], undefined, []]);
 });
 
@@ -68,11 +68,11 @@ test("a job that ends just before freshUntil: the try at freshUntil, off the ret
 	await box.start();
 	for (const time of ["2026-10-18T23:00", "2026-10-18T23:15", "2026-10-18T23:45", "2026-10-19T00:00"]) {
 		box.at(`${time}:00+02:00`);
-		await sleep(1200);
+		await sleep(250);
 	}
 	job.end();
 	box.at("2026-10-19T00:09:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual(box.restarts, []);
 	box.at("2026-10-19T00:10:00+02:00");
 	await until("the restart", () => box.restarts.length === 1);
@@ -86,14 +86,14 @@ test("a job running at freshUntil skips that night with one line; no fresh start
 	await box.start();
 	for (const time of ["2026-10-18T23:00", "2026-10-19T00:00", "2026-10-19T01:00", "2026-10-19T02:00", "2026-10-19T03:00"]) {
 		box.at(`${time}:00+02:00`);
-		await sleep(1200);
+		await sleep(250);
 	}
 	assert.deepEqual(box.out, ["session: fresh: skipped, 2 jobs running at 03:00"]);
 	box.job("2026-10-18-plan-0000000b", "plan").end();
 	job.end();
 	for (const time of ["2026-10-19T03:30", "2026-10-19T12:00", "2026-10-19T22:59"]) {
 		box.at(`${time}:00+02:00`);
-		await sleep(1200);
+		await sleep(250);
 	}
 	assert.deepEqual(box.restarts, [], "outside the window");
 	box.at("2026-10-19T23:00:00+02:00");
@@ -109,13 +109,13 @@ test("freshUntil equal to freshAt is a single try; earlier than freshAt the wind
 	assert.deepEqual(single.out, ["session: fresh: skipped, 1 job running at 23:00"]);
 	job.end();
 	single.at("2026-10-18T23:15:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual(single.restarts, []);
 	const across = await load(t, { freshAt: "23:30", freshRetryMinutes: 30, freshUntil: "00:30" }, "2026-10-18T23:00:00+02:00");
 	const late = across.job("2026-10-18-worker-0000000c");
 	await across.start();
 	across.at("2026-10-18T23:30:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	late.end();
 	across.at("2026-10-19T00:00:00+02:00");
 	await until("the restart after midnight", () => across.restarts.length === 1);
@@ -125,11 +125,11 @@ test("Arthur down at freshAt skips that night, not run late, and a window passed
 	const box = await load(t, { freshAt: "23:00", freshUntil: "03:00" }, "2026-10-18T23:30:00+02:00");
 	await box.start();
 	box.at("2026-10-18T23:45:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual(box.restarts, [], "started inside the window: tonight's freshAt passed");
 	// The clock jumps over the next night's window, as after a machine that slept.
 	box.at("2026-10-20T04:00:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.restarts, box.out], [[], []]);
 	box.at("2026-10-20T23:00:00+02:00");
 	await until("the restart", () => box.restarts.length === 1);
@@ -147,7 +147,7 @@ test("a job started during the wait for the handoff: no restart, the wait goes o
 	writeFileSync(box.handoff, "The first handoff.\n");
 	box.open("one");
 	await until("the request settled", () => box.request() === undefined);
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.restarts, box.out], [[], []], "a job runs: no restart, and no line");
 	job.end();
 	box.at("2026-10-18T23:15:00+02:00");
@@ -208,7 +208,7 @@ test("a fresh try whose request cannot be written is told once, and made at the 
 	t.after(() => chmodSync(box.folder, 0o755));
 	box.at("2026-10-18T23:00:00+02:00");
 	await until("the error", () => box.err.length > 0);
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.err, box.restarts], [[`session: restart failed: EACCES: permission denied, open '${join(box.folder, `request.json.${process.pid}`)}'`], []]);
 	chmodSync(box.folder, 0o755);
 	await until("the restart", () => box.restarts.length === 1);

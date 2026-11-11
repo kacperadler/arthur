@@ -103,10 +103,10 @@ test("a slot missed while Arthur was down is skipped, not run late, and a reques
 	writeFileSync(box.file, JSON.stringify({ then: "compact", slot: "08:00", asked: Date.now(), waitSeconds: 60 }));
 	await box.start();
 	assert.equal(box.request(), undefined);
-	await sleep(1200);
+	await sleep(250);
 	assert.equal(box.request(), undefined, "13:00 passed before the start");
 	box.at("2026-10-19T12:59:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.equal(box.request(), undefined);
 	box.at("2026-10-19T13:00:00+02:00");
 	await until("the next day's request", () => box.request()?.slot === "13:00");
@@ -119,17 +119,17 @@ test("two slots close together never queue two compactions", async (t) => {
 	await until("the request", () => box.request() !== undefined);
 	const first = box.request();
 	box.at("2026-10-18T13:01:00+02:00");
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual(box.request(), first, "13:01 while 13:00's still runs: no second");
 	// The 13:00 compaction done; 13:01 was not kept for later, and 13:02 passing together with later times asks once.
 	rmSync(box.file);
-	await sleep(1200);
+	await sleep(250);
 	assert.equal(box.request(), undefined);
 	box.at("2026-10-18T18:00:00+02:00");
 	await until("one request", () => box.request() !== undefined);
 	assert.equal(box.request()?.slot, "13:02");
 	rmSync(box.file);
-	await sleep(1200);
+	await sleep(250);
 	assert.equal(box.request(), undefined, "the next slot is tomorrow's 13:00");
 });
 
@@ -137,7 +137,7 @@ test("daylight saving days: 02:30 in the spring gap comes at 03:00, and in the a
 	const spring = await load(t, { compactAt: ["02:30"], compactWaitSeconds: 600 }, "2026-03-29T00:00:00Z");
 	await spring.start();
 	spring.at("2026-03-29T00:59:00Z"); // 01:59 CET
-	await sleep(1200);
+	await sleep(250);
 	assert.equal(spring.request(), undefined);
 	spring.at("2026-03-29T01:00:00Z"); // 03:00 CEST, the first minute after the jump
 	await until("the spring request", () => spring.request()?.slot === "02:30");
@@ -147,7 +147,7 @@ test("daylight saving days: 02:30 in the spring gap comes at 03:00, and in the a
 	await until("the autumn request", () => autumn.request() !== undefined);
 	rmSync(autumn.file);
 	autumn.at("2026-10-25T01:30:00Z"); // 02:30 CET, the repeat
-	await sleep(1200);
+	await sleep(250);
 	assert.equal(autumn.request(), undefined, "the repeat does not compact again");
 	autumn.at("2026-10-26T01:30:00Z"); // the next day's 02:30 CET
 	await until("the next day's request", () => autumn.request() !== undefined);
@@ -174,7 +174,7 @@ test("a file that is not a request, in a folder it cannot be removed from, is na
 	t.after(() => chmodSync(dirname(box.file), 0o755));
 	writeFileSync(box.file, "{ torn");
 	await until("the errors", () => box.err.length >= 2);
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual(box.err.map((line) => line.split(": EACCES")[0]), ["session: compaction failed", "session: restart failed"]);
 	chmodSync(dirname(box.file), 0o755);
 	await until("the file dropped", () => !existsSync(box.file));
@@ -186,11 +186,11 @@ test("in arthur run a tick that throws in an unwritable session folder is told o
 	const [beats, sessionFolder] = [join(folder, "beats.txt"), join(folder, ".arthur", "session")];
 	// No slot and no fresh start within the test: freshAt two hours ago is next tried in about 22 hours.
 	const freshAt = new Date(Date.now() - 2 * 3600_000).toISOString().slice(11, 16);
-	const beat = `{ name: "beat", setup() {}, start() { timer = setInterval(() => appendFileSync(${JSON.stringify(beats)}, "beat\\n"), 100); }, stop() { clearInterval(timer); } }`;
+	const beat = `{ name: "beat", setup() {}, start() { timer = setInterval(() => appendFileSync(${JSON.stringify(beats)}, "beat\\n"), 20); }, stop() { clearInterval(timer); } }`;
 	const options = JSON.stringify({ compactAt: [], freshAt, restartGuard: false, probeLlm: false });
 	writeFileSync(
 		join(folder, "arthur.config.ts"),
-		`import { appendFileSync } from "node:fs";\nimport { session } from ${JSON.stringify(plugin)};\nlet timer;\nexport default { core: { timeZone: "UTC" }, plugins: [{ name: "orchestration", setup() {} }, session(${options}), ${beat}] };\n`,
+		`import { appendFileSync } from "node:fs";\nimport { session } from ${JSON.stringify(plugin)};\nlet timer;\nexport default { core: { timeZone: "UTC" }, plugins: [{ name: "orchestration", setup() {} }, session(${options}, 100), ${beat}] };\n`,
 	);
 	const run = spawn(process.execPath, [cli, "run"], { cwd: folder, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	const [out, err] = [[] as string[], [] as string[]];
@@ -216,7 +216,7 @@ test("in arthur run a tick that throws in an unwritable session folder is told o
 	writeFileSync(request, JSON.stringify({ then: "compact", slot: "13:00", asked: Date.now(), waitSeconds: 60, line: "compact: done; the handoff is empty, so nothing is read back" }));
 	const told = () => err.join("").split("\n").filter((line) => line.startsWith("session: "));
 	await until("each tick's error", () => told().length >= 3 || run.exitCode !== null);
-	// Five ticks of 500 ms more, counted on the event loop the session's ticks run on; then each error is still told once.
+	// Five ticks of 100 ms more, counted on the event loop the session's ticks run on; then each error is still told once.
 	const after = count();
 	await until("five more ticks", () => count() >= after + 25 || run.exitCode !== null);
 	assert.equal(run.exitCode, null, err.join(""));

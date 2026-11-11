@@ -17,10 +17,11 @@ type ExtensionApi = {
 	sendUserMessage(content: string, options: { readonly attribution: "agent" }): void;
 };
 
-const TICK_MS = 500;
+// The session plugin's tick, `ARTHUR_SESSION_TICK_MS` (session.ts), 500 ms.
+const TICK_MS = Number(process.env.ARTHUR_SESSION_TICK_MS) || 500;
 // Idle with nothing pending this long is idle with nothing queued: longer than the inbox takes to hand over what it queued
 // (1 s without a new message, and its 500 ms tick).
-const SETTLE_MS = 2000;
+const SETTLE_MS = 4 * TICK_MS;
 // A request handed over with no turn started while omp idles this long failed, as the inbox counts one.
 const QUIET_MS = 30_000;
 const ARTHUR = "This message comes from Arthur, not the owner; your reply goes to the owner only if one of their messages joins this turn.";

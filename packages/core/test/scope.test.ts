@@ -431,8 +431,11 @@ test("a test's memory sample reaches the wrapper only under node's test runner; 
 	const gate = join(temporaryFolder(), "gate");
 	t.after(() => writeFileSync(gate, ""));
 	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
-	const saved = { ...process.env };
-	t.after(() => void (process.env = saved));
+	const context = process.env.NODE_TEST_CONTEXT;
+	t.after(() => {
+		for (const name of ["ARTHUR_TEST_MEMORY_SAMPLE_MS", "ARTHUR_OTHER"]) delete process.env[name];
+		if (context !== undefined) process.env.NODE_TEST_CONTEXT = context;
+	});
 	Object.assign(process.env, { ARTHUR_TEST_MEMORY_SAMPLE_MS: "500", ARTHUR_OTHER: "set" });
 	// The names of the `ARTHUR_` variables the wrapper started with.
 	const started = async () => {

@@ -24,13 +24,14 @@ const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? r
 // The plugin on a fake host in Warsaw at `now`, started as `arthur run` starts it, its printed lines caught; the test provides
 // orchestration's `coordinator.restart`, which notes `fresh` and ends every coordinator started, as killing its session does.
 // No LLM probe, and `notices` leaves out the start notice (start-notice.test.ts). `code` is what its restart guard watches;
-// `ended` notes each SIGTERM `arthur run` sends itself, with how many coordinator restarts were asked before it.
+// `ended` notes each SIGTERM `arthur run` sends itself, with how many coordinator restarts were asked before it. Its tick, and its
+// handoff extension's, is 100 ms, not 500: a test's 250 ms sleep is two of them.
 export async function load(t: TestContext, options: SessionOptions, now: string, code: readonly string[] = []) {
 	const [out, err] = [[] as string[], [] as string[]];
 	t.mock.method(console, "log", (text: string) => void out.push(text));
 	t.mock.method(console, "error", (text: string) => void err.push(text));
 	const fake = fakeHost({ name: "session", options: { compactAt: [], ...options }, timeZone: "Europe/Warsaw", now: new Date(now), code });
-	const plugin = session({ probeLlm: false, ...options });
+	const plugin = session({ probeLlm: false, ...options }, 100);
 	await fake.setup(plugin);
 	const [restarts, agents, gates, ended] = [[] as boolean[], [] as ChildProcess[], temporaryFolder(), [] as number[]];
 	const kill = process.kill.bind(process);

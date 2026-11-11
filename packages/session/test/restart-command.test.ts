@@ -21,7 +21,7 @@ test("/restart with one job running is refused, naming it; usage; nothing is ask
 	assert.equal(await run?.({ args: ["now"], project: undefined }), 2);
 	assert.equal(await run?.({ args: [], project: undefined }), 1);
 	assert.deepEqual(box.err, ["usage: arthur restart [fresh]", "usage: arthur restart [fresh]", "error: 1 job running: 0000000a; run /stopall first"]);
-	await sleep(1200);
+	await sleep(250);
 	assert.deepEqual([box.request(), box.restarts], [undefined, []]);
 });
 
@@ -33,7 +33,7 @@ test("/restart and /restart fresh with no coordinator running ask for no handoff
 		assert.equal(await box.route(`/restart${text}`), `no coordinator is running, so no handoff is asked; its next start ${next}`);
 		assert.deepEqual([box.restarts, box.request()], [[fresh], undefined]);
 		writeFileSync(join(box.folder, "after-restart.md"), "  \n");
-		await sleep(1200);
+		await sleep(250);
 		assert.deepEqual(box.notices(), []);
 		await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }).up();
 		await until("the notice", () => box.notices().length === 1);

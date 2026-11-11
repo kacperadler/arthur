@@ -324,24 +324,46 @@ test("a 401 is said once, not every poll, for every project of the instance; onc
 	assert.deepEqual(box.errors, []);
 });
 
-test("a rate limit stops the instance's requests until the time GitHub says: x-ratelimit-reset, then retry-after, then a run list answered with no request left", async (t) => {
+test("a rate limit stops the instance's requests until the time GitHub says: x-ratelimit-reset, then retry-after, then a run list answered with no request left", { timeout: 60_000 }, async (t) => {
 	const api = await fakeGithub(t);
-	const shop = repository();
+	const [shop, tool] = [repository(), repository("git@github.com:someone/tool.git")];
 	api.runs["acme/shop/ci.yml"] = [];
+	api.runs["someone/tool/ci.yml"] = [];
+	// Fake Date: GitHub's times pass at once, as the test moves the clock; the polls keep their real 200 ms timer.
+	t.mock.timers.enable({ apis: ["Date"], now: Date.now() });
+	const at = (ms: number) => t.mock.timers.tick(ms - Date.now());
 	const reset = Math.ceil(Date.now() / 1000) + 3;
 	const limited = { message: "API rate limit exceeded for user ID 1.", documentation_url: "https://docs.github.com/rest/overview/rate-limits-for-the-rest-api", status: "403" };
-	api.next.push({ status: 403, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(reset) }, body: limited });
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl));
-	await until("the request after the reset", () => api.count(PATH) >= 2);
-	assert.ok((api.seen[1]?.at ?? 0) >= reset * 1000, "no request before x-ratelimit-reset");
+	api.next.push({ path: PATH, status: 403, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(reset) }, body: limited });
+	// Another instance's project, never limited: two of its polls are two of shop's that asked nothing.
+	const instances = [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }, { name: "someone", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN", apiUrl: api.apiUrl }];
+	const projects = [shop, tool].map((each, index) => ({ name: ["shop", "tool"][index] ?? "", path: each.path, prefix: ["SH", "TO"][index] ?? "", pieces: github.project({ workflow: "ci.yml" }) }));
+	const box = await started(t, projects, { instances, poll: { everySeconds: 0.2 } }, { ARTHUR_GITHUB_TOKEN: TOKEN, ARTHUR_GITHUB_ACME_TOKEN: ACME_TOKEN });
+	const TOOL = "/repos/someone/tool/actions/workflows/ci.yml/runs";
+	const polls = async (what: string) => {
+		const from = api.count(TOOL);
+		await until(what, () => api.count(TOOL) >= from + 2);
+	};
+	await until("the limited request", () => api.count(PATH) === 1);
+	at(reset * 1000 - 1);
+	await polls("two polls 1 ms before x-ratelimit-reset");
+	assert.equal(api.count(PATH), 1, "no request before x-ratelimit-reset");
+	api.next.push({ path: PATH, status: 429, headers: { "retry-after": "2" }, body: { message: "You have exceeded a secondary rate limit.", documentation_url: DOCS, status: "429" } });
+	at(reset * 1000);
+	await until("the request at x-ratelimit-reset", () => api.count(PATH) === 2);
 	// After the 429, a run list answered with the last request of the hour spent: the next one waits for its reset too.
-	const later = Math.ceil(Date.now() / 1000) + 6;
-	api.next.push({ status: 429, headers: { "retry-after": "2" }, body: { message: "You have exceeded a secondary rate limit.", documentation_url: DOCS, status: "429" } });
-	api.next.push({ status: 200, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(later) }, body: { total_count: 0, workflow_runs: [] } });
-	await until("the request after the reset of the run list", () => api.count(PATH) >= 5);
-	const [limitedAt, resumed] = [api.seen[2]?.at ?? 0, api.seen[3]?.at ?? 0];
-	assert.ok(resumed - limitedAt >= 2000, `${resumed - limitedAt} ms between the 429 and the next request`);
-	assert.ok((api.seen[4]?.at ?? 0) >= later * 1000, "no request before the run list's x-ratelimit-reset");
+	const later = reset + 6;
+	api.next.push({ path: PATH, status: 200, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(later) }, body: { total_count: 0, workflow_runs: [] } });
+	at(reset * 1000 + 1999);
+	await polls("two polls 1 ms before retry-after's 2 s");
+	assert.equal(api.count(PATH), 2, "no request before retry-after");
+	at(reset * 1000 + 2000);
+	await until("the request after retry-after", () => api.count(PATH) === 3);
+	at(later * 1000 - 1);
+	await polls("two polls 1 ms before the run list's x-ratelimit-reset");
+	assert.equal(api.count(PATH), 3, "no request before the run list's x-ratelimit-reset");
+	at(later * 1000);
+	await until("the request at the run list's x-ratelimit-reset", () => api.count(PATH) === 4);
 	assert.deepEqual(box.notices(), [], "a rate limit is no notice");
 	assert.equal(box.errors.length, 2);
 	assert.match(box.errors[0] ?? "", /^github: instance \(unnamed\): 403, rate limited: API rate limit exceeded for user ID 1\.; no request until /);

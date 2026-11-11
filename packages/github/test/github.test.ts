@@ -351,6 +351,8 @@ test("a rate limit stops the instance's requests until the time GitHub says: x-r
 	api.next.push({ path: PATH, status: 429, headers: { "retry-after": "2" }, body: { message: "You have exceeded a secondary rate limit.", documentation_url: DOCS, status: "429" } });
 	at(reset * 1000);
 	await until("the request at x-ratelimit-reset", () => api.count(PATH) === 2);
+	// retry-after counts from when the plugin reads the 429, so the clock moves only once it did: each poll asks shop, then tool.
+	await polls("two polls of tool after the 429");
 	// After the 429, a run list answered with the last request of the hour spent: the next one waits for its reset too.
 	const later = reset + 6;
 	api.next.push({ path: PATH, status: 200, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(later) }, body: { total_count: 0, workflow_runs: [] } });

@@ -19,8 +19,8 @@ type ExtensionApi = {
 
 // The session plugin's tick, `ARTHUR_SESSION_TICK_MS` (session.ts), 500 ms.
 const TICK_MS = Number(process.env.ARTHUR_SESSION_TICK_MS) || 500;
-// Idle with nothing pending this long is idle with nothing queued: longer than the inbox takes to hand over what it queued
-// (1 s without a new message, and its 500 ms tick).
+// Idle with nothing pending for 4 ticks, 2 s, is idle with nothing queued: longer than the inbox takes to hand over what it queued
+// (1 s without a new message, and its 500 ms tick). A test's shorter tick has no inbox to wait for.
 const SETTLE_MS = 4 * TICK_MS;
 // A request handed over with no turn started while omp idles this long failed, as the inbox counts one.
 const QUIET_MS = 30_000;

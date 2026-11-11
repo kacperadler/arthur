@@ -5485,9 +5485,9 @@
   {
     "id": "AR0679",
     "title": "The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0679-the-go-with-my-recommendation-grant-and-approved-policies-still-answer-plan/ticket.md",
-    "updated": "2026-11-11T00:51:23.212Z",
+    "updated": "2026-11-11T01:18:05.261Z",
     "after": [
       "AR0677"
     ]

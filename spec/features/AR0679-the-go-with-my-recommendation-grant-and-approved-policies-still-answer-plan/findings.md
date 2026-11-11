@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/decision-class.ts:17` (`propose`)
 - What: since AR0679 no class answers a `plan` question (`byPolicy` in `decision-classes.ts`), yet `arthur decision class propose --kind plan ...` is accepted and asks the owner to "Pre-approve a class: plan questions naming ...", which he may approve believing it will answer plan questions. Reproduce: the test "an approved class never answers a plan question" in `packages/orchestration/test/decisions.test.ts` proposes and approves one with exit 0.
 - Suggestion: `propose` refuses `--kind plan` as it refuses `--kind class` (`--kind plan: plan questions always go to the owner (AR-D603)`), with its line under "Refused" in `docs/commands/decision.md`; classes of kind plan already in a log stay as recorded.
-- Status: open
+- Status: deferred (client summary)

@@ -4,8 +4,8 @@ import { fakeHost } from "@arthur/core/testing";
 import { dokploy } from "../src/dokploy.ts";
 import { type FakeApp, type FakePostgres, fakeDokploy, SECRETS, type Seen, type Sent, TOKEN, trpcError } from "./fake-dokploy.ts";
 
-// `arthur dokploy postgres create|status` (AR0681) on the fake host, against a fake Dokploy answering as v0.30.10.
-// docs/commands/dokploy.md.
+// `arthur dokploy postgres create|status|backup` (AR0681, AR0682) on the fake host, against a fake Dokploy answering as
+// v0.30.10. docs/commands/dokploy.md.
 
 const NOTHING = "nothing was asked of Dokploy";
 const CHANGED = "nothing was changed";
@@ -34,7 +34,7 @@ type Ran = { readonly code?: number | void; readonly refused?: string; readonly 
 
 // The fake and `run`, which runs `arthur dokploy` for the project `shop`.
 async function load(t: TestContext, timeoutSeconds?: number) {
-	const main = await fakeDokploy(t, { apps: [WEB, REMOTE, TAKEN, STAGED, DETACHED, SWARM, SWARMED], databases: [KEPT, IDLE] });
+	const main = await fakeDokploy(t, { apps: [WEB, REMOTE, TAKEN, STAGED, DETACHED, SWARM, SWARMED], databases: [KEPT, IDLE], destinations: ["s3-main", "s3-cold"] });
 	const plugin = dokploy({ instances: [{ url: main.url, tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }], ...(timeoutSeconds === undefined ? {} : { timeoutSeconds }) });
 	const fake = fakeHost({ name: "dokploy", options: plugin.options, env: { ARTHUR_DOKPLOY_TOKEN: TOKEN } });
 	fake.provide("projects", () => [{ name: "shop", pieces: dokploy.project({ app: WEB.id }) }]);
@@ -240,14 +240,102 @@ test("postgres status prints the database, its volume and each backup, never its
 	assert.match((await run("postgres", "status", KEPT.id)).out, /\nno volume\nno backups$/);
 });
 
-test("postgres without create <app> <name> or status <postgres>, or with a flag status does not take, prints the usage line and exits 2", async (t) => {
+test("postgres without create <app> <name>, status <postgres> or backup <postgres> with its two flags, or with a flag its call does not take, prints the usage line and exits 2", async (t) => {
 	const { main, run } = await load(t);
 	const wrong = [["postgres"], ["postgres", "create", WEB.id], ["postgres", "status"], ["postgres", "status", KEPT.id, "--version", "16"], ["postgres", "status", KEPT.id, "--env", "A"]];
 	const more = [["postgres", "drop", KEPT.id], ["postgres", "create", WEB.id, "db", "extra"], ["postgres", "create", WEB.id, "db", "--env"], ["postgres", "create", WEB.id, "db", "--repo", "a/b"], ["status", "--version", "16"]];
-	for (const args of [...wrong, ...more]) {
+	const [to, at] = [["--destination", "s3-main"], ["--schedule", "0 3 * * *"]];
+	const backup = [["postgres", "backup", KEPT.id], ["postgres", "backup", KEPT.id, ...to], ["postgres", "backup", KEPT.id, ...at], ["postgres", "backup", ...to, ...at], ["postgres", "backup", KEPT.id, "extra", ...to, ...at]];
+	const flags = [["postgres", "backup", KEPT.id, ...to, ...at, "--env", "A"], ["postgres", "backup", KEPT.id, ...to, ...at, "--keep", "-1"], ["postgres", "backup", KEPT.id, ...to, ...to, ...at], ["postgres", "backup", KEPT.id, "--destination", "", ...at]];
+	const others = [["postgres", "create", WEB.id, "db", ...to], ["postgres", "create", WEB.id, "db", "--keep", "7"], ["postgres", "status", KEPT.id, "--keep", "7"], ["postgres", "status", KEPT.id, ...at], ["create", "x", "--dokploy-project", "Shop", ...at]];
+	for (const args of [...wrong, ...more, ...backup, ...flags, ...others]) {
 		const said = await run(...args);
 		assert.equal(said.code, 2, args.join(" "));
-		assert.match(said.err, /^usage: arthur dokploy .*\|postgres create <app> <name> \[--version <n>\] \[--env <NAME>\]\|postgres status <postgres>, /);
+		const usage = /^usage: arthur dokploy .*\|postgres create <app> <name> \[--version <n>\] \[--env <NAME>\]\|postgres status <postgres>\|postgres backup <postgres> --destination <name> --schedule <cron> \[--keep <n>\], /;
+		assert.match(said.err, usage);
 	}
 	assert.deepEqual(main.seen, []);
+});
+
+test("postgres backup schedules the database's backups to the destination of that name, enabled, and prints the one Dokploy lists; run again, it sends nothing", async (t) => {
+	const { main, run } = await load(t);
+	const done = await run("postgres", "backup", IDLE.id, "--destination", "s3-main", "--schedule", "0 3 * * *", "--keep", "7");
+	const added = "Postgres cache (pgIdle03) on instance (unnamed): added backup bk3: 0 3 * * * to s3-main, keeps the latest 7, enabled; to see it: arthur dokploy postgres status pgIdle03 --project shop";
+	assert.deepEqual(done, { code: 0, out: added, err: "" });
+	assert.deepEqual(calls(main.seen), ["GET postgres.one", "GET destination.all", "POST backup.create", "GET postgres.one"]);
+	assert.deepEqual([main.seen[0]?.query, main.seen[3]?.query], [{ postgresId: IDLE.id }, { postgresId: IDLE.id }]);
+	const body = { postgresId: IDLE.id, destinationId: "dst-s3-main", schedule: "0 3 * * *", keepLatestCount: 7, enabled: true, prefix: "/", database: "shopdb", databaseType: "postgres", backupType: "database" };
+	assert.deepEqual(posts(main.seen), [["backup.create", body]]);
+	assert.deepEqual(leaks(done.out + done.err), []);
+	// The leak check holds only if SECRETS has the S3 keys the destinations' answer carries.
+	const answered = (await (await fetch(`${main.url}/api/destination.all`, { headers: { "x-api-key": TOKEN } })).json()) as { accessKey: string; secretAccessKey: string }[];
+	assert.deepEqual(answered.flatMap((each) => [each.accessKey, each.secretAccessKey]).filter((key) => !SECRETS.includes(key)), []);
+	main.seen.length = 0;
+	const again = await run("postgres", "backup", IDLE.id, "--destination", "s3-main", "--schedule", "0 3 * * *", "--keep", "7");
+	assert.deepEqual(again, { code: 0, out: "Postgres cache (pgIdle03) on instance (unnamed): backup bk3: 0 3 * * * to s3-main, keeps the latest 7, enabled: already set; nothing was sent", err: "" });
+	assert.deepEqual(calls(main.seen), ["GET postgres.one", "GET destination.all"]);
+	assert.match((await run("postgres", "status", IDLE.id)).out, /\nbackup bk3: 0 3 \* \* \* to s3-main, keeps the latest 7, enabled$/);
+	// Without --keep Dokploy keeps every backup; the same schedule to another destination, or another schedule, is another backup.
+	main.seen.length = 0;
+	const all = await run("postgres", "backup", KEPT.id, "--destination", "s3-cold", "--schedule", "0 3 * * *");
+	assert.equal(all.out, "Postgres db (pgKept02) on instance (unnamed): added backup bk4: 0 3 * * * to s3-cold, keeps all, enabled; to see it: arthur dokploy postgres status pgKept02 --project shop");
+	assert.deepEqual(posts(main.seen), [["backup.create", { postgresId: KEPT.id, destinationId: "dst-s3-cold", schedule: "0 3 * * *", enabled: true, prefix: "/", database: "postgres", databaseType: "postgres", backupType: "database" }]]);
+	const other = await run("postgres", "backup", KEPT.id, "--destination", "s3-main", "--schedule", "*/30 1-5 * JAN,jul MON-FRI", "--keep", "9999");
+	assert.match(other.out, /: added backup bk5: \*\/30 1-5 \* JAN,jul MON-FRI to s3-main, keeps the latest 9999, enabled; /);
+	assert.equal((await run("postgres", "backup", KEPT.id, "--destination", "s3-main", "--schedule", "0 0 1 * 0", "--keep", "1")).code, 0);
+	assert.deepEqual(main.postgres.find((db) => db.id === KEPT.id)?.backups?.map((each) => each.id), ["bk1", "bk2", "bk4", "bk5", "bk6"]);
+});
+
+test("postgres backup refuses an id, a --schedule or a --keep it would not take before any request", async (t) => {
+	const { main, run } = await load(t);
+	const backup = (id: string, schedule: string, keep = "7") => run("postgres", "backup", id, "--destination", "s3-main", "--schedule", schedule, "--keep", keep);
+	for (const given of ["pg/1", "pg 1", "a".repeat(65)]) assert.equal((await backup(given, "0 3 * * *")).refused, `the Postgres is not a Dokploy id: 1 to 64 letters, digits, _ and -; ${NOTHING}`);
+	const cron = (given: string) => `--schedule ${given} is not a cron schedule of five fields, minute, hour, day of month, month and day of week, as "0 3 * * *"; ${NOTHING}`;
+	for (const given of ["0 3 * *", "0 0 3 * * *", "0  3 * * *", " 0 3 * * *", "0 3 * * * ", "0 3 * * *;", "0 3 * * $(x)", "@daily", "0\t3 * * *"]) assert.equal((await backup(IDLE.id, given)).refused, cron(given.replace("\t", "")));
+	const keep = (given: string) => `--keep ${given} is not how many backups to keep: 1 to 9999; ${NOTHING}`;
+	for (const given of ["0", "10000", "07", "1.5", "x", "1e3", " 7"]) assert.equal((await backup(IDLE.id, "0 3 * * *", given)).refused, keep(given));
+	assert.deepEqual(main.seen, []);
+	const elsewhere = await run("postgres", "backup", IDLE.id, "--destination", "s3-main", "--schedule", "0 3 * * *", "--instance", "acme");
+	assert.equal(elsewhere.refused, `--instance acme is not an instance of dokploy; its instances: (unnamed); ${NOTHING}`);
+});
+
+test("postgres backup refuses after its reads and before any write: an unknown or doubled destination, one without an id, and a backup of that destination and schedule set another way", async (t) => {
+	const { main, run } = await load(t);
+	const backup = (id: string, destination: string, schedule: string, ...more: string[]) => run("postgres", "backup", id, "--destination", destination, "--schedule", schedule, ...more);
+	const unknown = await backup(IDLE.id, "s3-gone", "0 3 * * *");
+	assert.equal(unknown.refused, `instance (unnamed) has no destination s3-gone; its destinations: s3-main, s3-cold (Dokploy's panel, Settings, Destinations); ${CHANGED}`);
+	main.scripted.set("destination.all", { status: 200, body: [] });
+	assert.equal((await backup(IDLE.id, "s3-main", "0 3 * * *")).refused, `instance (unnamed) has no destination s3-main; its destinations: none (Dokploy's panel, Settings, Destinations); ${CHANGED}`);
+	const record = { destinationId: "dst-a", name: "s3-main", accessKey: "AKIAS3CR3TACCESSKEY7", secretAccessKey: "s3cr3tSecretAccessKey/wJalrXUtnFEMI" };
+	main.scripted.set("destination.all", { status: 200, body: [record, { ...record, destinationId: "dst-b" }] });
+	assert.equal((await backup(IDLE.id, "s3-main", "0 3 * * *")).refused, `instance (unnamed) has 2 destinations named s3-main: rename one in Dokploy's panel; ${CHANGED}`);
+	for (const destinationId of [undefined, ""]) {
+		main.scripted.set("destination.all", { status: 200, body: [{ ...record, destinationId }] });
+		assert.equal((await backup(IDLE.id, "s3-main", "0 3 * * *")).refused, `instance (unnamed): destination s3-main has no Dokploy id; ${CHANGED}`);
+	}
+	main.scripted.delete("destination.all");
+	const set = (backup: string) => `Postgres db (pgKept02) on instance (unnamed) already has ${backup}: change it in Dokploy's panel; ${CHANGED}`;
+	assert.equal((await backup(KEPT.id, "s3-main", "0 3 * * *", "--keep", "8")).refused, set("backup bk1: 0 3 * * * to s3-main, keeps the latest 7, enabled"));
+	assert.equal((await backup(KEPT.id, "s3-main", "0 3 * * *")).refused, set("backup bk1: 0 3 * * * to s3-main, keeps the latest 7, enabled"));
+	assert.equal((await backup(KEPT.id, "s3-cold", "0 * * * *")).refused, set("backup bk2: 0 * * * * to s3-cold, keeps all, disabled"));
+	assert.equal((await backup(KEPT.id, "s3-cold", "0 * * * *", "--keep", "7")).refused, set("backup bk2: 0 * * * * to s3-cold, keeps all, disabled"));
+	for (const databaseName of [undefined, ""]) {
+		main.scripted.set("postgres.one", { status: 200, body: { postgresId: KEPT.id, name: "db", databaseName, backups: [] } });
+		assert.equal((await backup(KEPT.id, "s3-main", "0 3 * * *")).refused, `instance (unnamed): Postgres ${KEPT.id}: Dokploy's answer lacks its database; ${CHANGED}`);
+	}
+	main.scripted.delete("postgres.one");
+	assert.equal((await backup("pgGone", "s3-main", "0 3 * * *")).refused, "instance (unnamed): 404: Postgres pgGone not found");
+	assert.deepEqual(posts(main.seen), []);
+	assert.deepEqual(leaks(String(unknown.refused) + unknown.out + unknown.err), []);
+});
+
+test("postgres backup names Dokploy's refusal of the backup, and a backup Dokploy took but does not list", async (t) => {
+	const { main, run } = await load(t);
+	const backup = () => run("postgres", "backup", IDLE.id, "--destination", "s3-main", "--schedule", "0 3 * * *", "--keep", "7");
+	main.scripted.set("backup.create", trpcError(400, "BAD_REQUEST", "Server is inactive", "backup.create"));
+	assert.equal((await backup()).refused, `instance (unnamed): 400 for a backup of Postgres ${IDLE.id}: Server is inactive`);
+	main.scripted.set("backup.create", { empty: 200 });
+	const lost = await backup();
+	assert.equal(lost.refused, `instance (unnamed): Dokploy took the backup of Postgres ${IDLE.id} but does not list it; to see it: arthur dokploy postgres status ${IDLE.id} --project shop`);
+	assert.deepEqual(calls(main.seen).slice(-2), ["POST backup.create", "GET postgres.one"]);
 });

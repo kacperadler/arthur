@@ -116,7 +116,8 @@ async function sweepOne(host: Host, machine: string, settings: Settings, dryRun:
 	return { line: `${machine}: ${parts.join("; ")}`, would: [], failed: false, reclaimed: removed.length > 0 || freed > 0, under };
 }
 
-// Sweeps each of `machines` in turn, each after any sweep there before it ends, across processes too; a throw costs its machine only.
+// Sweeps each of `machines` in turn, each after any sweep there before it ends, across processes too; a throw in a machine's
+// sweep costs that machine only, a lock still held after WAIT_MS rejects the whole call (findings.md, F3).
 export async function sweep(host: Host, machines: readonly string[], settings: Settings, dryRun = false): Promise<Swept[]> {
 	const swept: Swept[] = [];
 	for (const machine of machines) {

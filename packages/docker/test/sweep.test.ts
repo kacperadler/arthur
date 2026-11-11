@@ -42,6 +42,7 @@ function world(live: string): Partial<State> {
 				row("ps", { ID: "c05", Names: "live-db", State: "exited", Labels: `com.docker.compose.project=arthur-${live.slice(-8)}` }),
 				row("ps", { ID: "c06", Names: "mysql", State: "exited", Labels: "", Mounts: "mysql_data", Networks: "owner_net", CreatedAt: OLD }),
 				row("ps", { ID: "c07", Names: "kept-web", State: "exited", Labels: `${gone},${keep}` }),
+				row("ps", { ID: "c08", Names: "old-paused", State: "paused", Labels: gone }),
 			],
 			"network-ls": [
 				row("network-ls", { ID: "n01", Name: "old_net", Labels: gone }),
@@ -174,7 +175,7 @@ test("--dry-run lists what a real run removes and why, removing nothing; the run
 	assert.deepEqual(
 		[names("ps"), names("network-ls"), names("volume-ls"), names("image-ls")],
 		[
-			["old-run", "live-web", "live-db", "mysql", "kept-web"],
+			["old-run", "live-web", "live-db", "mysql", "kept-web", "old-paused"],
 			["run_net", "young_net", "owner_net", "bridge", "keep_net", "live_net"],
 			["stray_anon", "mysql_data", "keep_data", "live_data"],
 			["<none>:<none>:a00000000004", "<none>:<none>:a00000000005", "<none>:<none>:a00000000006", "postgres:16:a00000000007"],
@@ -198,10 +199,10 @@ test("arthur docker: Docker's usage and what each job labelled on each machine, 
 		out: [
 			`local: Docker's data root ${ROOT}`,
 			"  Images: 7 (0 active), 1.3GB, 1.3GB reclaimable",
-			"  Containers: 7 (0 active), 150MB, 150MB reclaimable",
+			"  Containers: 8 (0 active), 150MB, 150MB reclaimable",
 			"  Local Volumes: 6 (0 active), 1.2GB, 1.2GB reclaimable",
 			"  Build Cache: 0 (0 active), 12.88GB, 12.88GB reclaimable",
-			`  ${GONE} (no longer exists, so the sweep removes them): 3 containers, 2 networks, 2 volumes, 1 image`,
+			`  ${GONE} (no longer exists, so the sweep removes them): 4 containers, 2 networks, 2 volumes, 1 image`,
 			"  arthur-77777777 (no longer exists, so the sweep removes them): 1 container, 1 image",
 			`  ${live}: 2 containers, 1 network, 1 volume, 1 image`,
 			"gpu: offline: ssh: connect to host gpu port 22: Connection refused",
@@ -230,6 +231,26 @@ test("sweep.at registers a daily entry, refused at load without the schedule plu
 	await assert.rejects(load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" } }, false), {
 		message: "sweep.at needs the schedule plugin, which runs the daily sweep; add schedule() to the config's plugins, or leave sweep out",
 	});
+});
+
+test("a sweep that removes nothing still sends its notice when a machine failed, one stays under its floor, or the build cache alone gave space back", async () => {
+	// Nothing to remove, the cache used just now: only a failure or a floor can make the notice.
+	const bare: Partial<State> = { info: { DockerRootDir: ROOT, SecurityOptions: [], ServerVersion: "29.9.2", SystemTime: NOW, Warnings: null }, rows: {}, cache: 0 };
+	fake.state(bare);
+	fake.offline("gpu");
+	const offline = await load({ gpu: { tools: ["docker"] } }, { sweep: { at: "04:00" } });
+	await offline.entries[0]?.run();
+	assert.deepEqual(offline.notices(), ["docker: the sweep (daily):\n- gpu: offline: ssh: connect to host gpu port 22: Connection refused; not swept"]);
+	const low = await load({ local: { tools: ["docker"] } });
+	await low.plugin.start?.();
+	low.host.emit("disk-low", { machine: "local", path: ROOT, free: 5, floor: 1e18 });
+	const [floor = ""] = await until("the floor's notice", () => (low.notices().length > 0 ? low.notices() : undefined), SWEEP);
+	assert.match(floor, /^docker: the sweep \(disk-low on local\):\n- local: nothing to remove; build cache cut to 10G; 0B reclaimed; [\d.]+ GB free on \S+; still under the floor: [\d.]+ GB free on \S+, floor 931322574\.6 GB$/);
+	// The cache unused for 48 h, 2 GB of it: the sweep's only gain.
+	fake.state({ ...bare, cache: 2e9, cacheUsedAt: "2026-01-01T00:00:00Z" });
+	const cache = await load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" } });
+	await cache.entries[0]?.run();
+	assert.deepEqual(cache.notices().map(steady), [`docker: the sweep (daily):\n- local: nothing to remove; build cache cut to 10G; 2GB reclaimed; <n> GB free on ${ROOT}`]);
 });
 
 test("a config that lists the schedule plugin after docker loads: docker's setup runs after schedule's, so sweep.at finds it", () => {

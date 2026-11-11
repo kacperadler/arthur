@@ -45,10 +45,15 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 		["info", JSON.parse(`{${["DockerRootDir", "SecurityOptions", "ServerVersion", "Warnings"].map((key) => `"${key}": ${docker("info", "--format", `{{json .${key}}}`).stdout.trim()}`).join(", ")}}`)],
 		["context-inspect", { Endpoints: { docker: { Host: docker("context", "inspect", "--format", "{{.Endpoints.docker.Host}}").stdout.trim() } } }],
 	];
+	// `system df` summed from the sizes the fake keeps, when no row of it is given.
+	fake.state({ sizes: {}, cache: 1500 });
+	const summed = lines("system", "df");
+	answers.push(...summed.map((each): [string, unknown] => ["system-df", each]));
+	assert.deepEqual(summed.map((each) => [each.Type, each.Size]), [["Images", "0B"], ["Containers", "0B"], ["Local Volumes", "0B"], ["Build Cache", "1.5kB"]]);
 	assert.deepEqual(answers.flatMap(([name, got]) => drift(got, shapes[name], name)), []);
 	assert.equal((answers[7]?.[1] as unknown[]).length, 1, "volume inspect answers the volume named");
 	assert.equal(docker("--version").stdout, `Docker version ${VERSION}, build a82e528\n`);
-	assert.equal(docker("builder", "prune", "--force").stdout, "Total reclaimed space: 0B\n");
+	assert.equal(docker("builder", "prune", "--force", "--max-used-space", "10G").stdout, "Total:\t0B\n");
 	assert.equal(docker("info", "--format", '{{.DockerRootDir}}{{"\\n"}}{{.ServerVersion}}').stdout, `/var/lib/docker\n${VERSION}\n`);
 	assert.equal(texts.daemon, "Cannot connect to the Docker daemon at %s. Is the docker daemon running?");
 	fake.down(true);
@@ -56,5 +61,5 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 	assert.deepEqual([down.status, down.stderr], [1, "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\n"]);
 	assert.equal(docker("context", "inspect", "--format", "{{.Endpoints.docker.Host}}").status, 0, "the context needs no daemon");
 	assert.equal(docker("--version").status, 0, "nor does the version");
-	assert.equal(fake.calls().length, 19, "each call noted");
+	assert.equal(fake.calls().length, 20, "each call noted");
 });

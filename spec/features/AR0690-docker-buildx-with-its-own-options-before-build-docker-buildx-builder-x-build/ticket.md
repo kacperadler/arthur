@@ -34,3 +34,4 @@ Out:
 - Other commands that build without being on the list (`builder build`, `buildx b`, `commit`, `image import`): the existing F2 of AR0645.
 
 ## Decisions
+- 2026-11-11: AR0690 approved; the owner: "AR-D638 - approve" (AR-D638)

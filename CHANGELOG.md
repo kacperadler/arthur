@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-11
 
+### Added
+
+- AR0645 Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70) (7dd448d8)
+
 ### Fixed
 
 - AR0679 The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603) (b76c2640)

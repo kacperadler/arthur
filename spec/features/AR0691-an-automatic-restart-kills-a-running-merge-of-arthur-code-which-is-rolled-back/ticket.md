@@ -37,3 +37,4 @@ Out:
 - Making a merge survive a restart: the rollback of AR0629 stays.
 
 ## Decisions
+- 2026-11-11: AR0691 approved: a running merge holds the restart; the owner: "AR-D639 - approve" (AR-D639)

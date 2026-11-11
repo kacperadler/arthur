@@ -40,4 +40,6 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0686 approved: plan and worker on the same fable model as AR0685, after AR0685; the owner: "AR-D625: yes" (AR-D625)
+- 2026-11-11: Plan approved by the owner: plan.md at 3b71031b; the owner: "AR-D634 - approve" (AR-D634)
+- 2026-11-11: The AR0686 worker runs on Opus (claude-opus-5-5); the comment review on Fable is done; the owner: "AR0686 -> did you do the review already? if yes then use opus" (AR-D641)
 

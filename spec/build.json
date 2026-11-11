@@ -5588,9 +5588,9 @@
   {
     "id": "AR0692",
     "title": "herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0692-herdr-start-up-test-fails-under-load-its-20-s-wait-for-the-start-up-pass-times/ticket.md",
-    "updated": "2026-11-11T20:01:11.808Z"
+    "updated": "2026-11-11T21:49:01.819Z"
   },
   {
     "id": "AR0693",

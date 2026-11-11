@@ -19,6 +19,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0689 The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed (98cae6c0)
 - AR0691 An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish (11010107)
 
+### Changed
+
+- AR0692 herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches (eca9687c)
+
 ## 2026-11-10
 
 ### Added

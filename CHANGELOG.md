@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-11
+
+### Fixed
+
+- AR0688 A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read (64195f9c)
+
 ## 2026-11-10
 
 ### Added

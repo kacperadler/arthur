@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-10T14:58:45.184Z",
+    "updated": "2026-11-11T00:53:45.008Z",
     "after": [
       "AR0644"
     ]
@@ -5560,9 +5560,9 @@
   {
     "id": "AR0688",
     "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
-    "updated": "2026-11-11T00:53:33.615Z"
+    "updated": "2026-11-11T01:12:08.909Z"
   },
   {
     "id": "AR0689",

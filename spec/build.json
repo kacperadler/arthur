@@ -5581,9 +5581,9 @@
   {
     "id": "AR0691",
     "title": "An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0691-an-automatic-restart-kills-a-running-merge-of-arthur-code-which-is-rolled-back/ticket.md",
-    "updated": "2026-11-11T17:54:33.181Z"
+    "updated": "2026-11-11T19:02:04.984Z"
   },
   {
     "id": "AR0692",

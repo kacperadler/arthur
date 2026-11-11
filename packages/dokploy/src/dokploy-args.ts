@@ -2,13 +2,27 @@
 // command answers with the usage line and exit code 2. docs/commands/dokploy.md.
 
 export const USAGE = "usage: arthur dokploy apps|app [<app>]|status [<app>]|upload [<app>] <file or folder> [--replace-source]|deploy [<app>]|create <name> --dokploy-project <name> [--environment <name>]|setup <app> [--dockerfile <path>] [--context <path>] [--domain <host> --port <n>] [--volume <name>:<path>]|env <app> names|env <app> set <NAME> <value>|source <app> --repo <owner>/<name> --branch <branch> [--build-path <path>] [--github <name>] [--replace-source]|postgres create <app> <name> [--version <n>] [--env <NAME>]|postgres status <postgres>, each [--instance <name>]; --project <name> for another project than the main one";
-// The words a verb takes after it, at least and at most, and its flags besides `--instance`: `upload` its path and the app.
-const TAKES: Readonly<Record<string, readonly [number, number, readonly string[]]>> = {
-	...{ apps: [0, 0, []], app: [0, 1, []], status: [0, 1, []], upload: [1, 2, ["--replace-source"]], deploy: [0, 1, []], env: [2, 4, []] },
-	...{ create: [1, 1, ["--dokploy-project", "--environment"]], setup: [1, 1, ["--dockerfile", "--context", "--domain", "--port", "--volume"]] },
-	...{ source: [1, 1, ["--repo", "--branch", "--build-path", "--github", "--replace-source"]], postgres: [2, 3, ["--version", "--env"]] },
+// Whether the words after a verb and its flags make a call of it.
+type Fits = (rest: readonly string[], one: (flag: string) => string | undefined, flags: readonly string[]) => boolean;
+// Each verb's flags besides `--instance`, and its call: `upload` takes its path and the app; `env` `names`, or `set` with a name
+// and a value, which alone may be empty or start with `-`; `setup` at least one of its flags, `--domain` and `--port` together.
+const VERBS: Readonly<Record<string, readonly [readonly string[], Fits]>> = {
+	...{ apps: [[], (rest) => rest.length === 0], app: [[], (rest) => rest.length < 2], status: [[], (rest) => rest.length < 2], deploy: [[], (rest) => rest.length < 2] },
+	upload: [["--replace-source"], (rest) => rest.length === 1 || rest.length === 2],
+	env: [[], (rest) => (rest[1] === "names" && rest.length === 2) || (rest[1] === "set" && rest.length === 4)],
+	create: [["--dokploy-project", "--environment"], (rest, one) => rest.length === 1 && one("--dokploy-project") !== undefined],
+	setup: [
+		["--dockerfile", "--context", "--domain", "--port", "--volume"],
+		(rest, one, flags) => rest.length === 1 && flags.some((flag) => flag !== "--instance") && (one("--domain") === undefined) === (one("--port") === undefined),
+	],
+	source: [["--repo", "--branch", "--build-path", "--github", "--replace-source"], (rest, one) => rest.length === 1 && one("--repo") !== undefined && one("--branch") !== undefined],
+	// `create <app> <name>`, or `status <postgres>` without create's flags.
+	postgres: [
+		["--version", "--env"],
+		(rest, one) => (rest[0] === "create" && rest.length === 3) || (rest[0] === "status" && rest.length === 2 && one("--version") === undefined && one("--env") === undefined),
+	],
 };
-const FLAGS = ["--instance", "--replace-source", "--dokploy-project", "--environment", "--dockerfile", "--context", "--domain", "--port", "--volume", "--repo", "--branch", "--build-path", "--github", "--version", "--env"];
+const FLAGS = ["--instance", ...new Set(Object.values(VERBS).flatMap(([flags]) => flags))];
 
 export type Parsed = { readonly verb: string; readonly rest: readonly string[]; readonly one: (flag: string) => string | undefined };
 
@@ -20,17 +34,11 @@ export function parseArgs(args: readonly string[]): Parsed | undefined {
 		else flags.set(arg, [...(flags.get(arg) ?? []), arg === "--replace-source" ? "on" : (args[++index] ?? "")]);
 	}
 	const [verb = "", ...rest] = words;
-	// An unknown verb takes at least one word and at most none, so any call of it is wrong.
-	const [least, most, allowed] = (Object.hasOwn(TAKES, verb) ? TAKES[verb] : undefined) ?? [1, 0, []];
+	const taken = Object.hasOwn(VERBS, verb) ? VERBS[verb] : undefined;
+	if (taken === undefined) return undefined;
+	const [allowed, fits] = taken;
 	const one = (flag: string) => flags.get(flag)?.[0];
-	// `env` takes `names`, or `set` with a name and a value, which alone may be empty or start with `-`; `setup` at least one of
-	// its flags, `--domain` and `--port` together; `postgres` `create <app> <name>`, or `status <postgres>` without create's flags.
-	const setup = [...flags.keys()].some((flag) => flag !== "--instance") && (one("--domain") === undefined) === (one("--port") === undefined);
-	const postgres = (rest[0] === "create" && rest.length === 3) || (rest[0] === "status" && rest.length === 2 && one("--version") === undefined && one("--env") === undefined);
-	const shapes: Readonly<Record<string, boolean>> = { env: (rest[1] === "names" && rest.length === 2) || (rest[1] === "set" && rest.length === 4), setup, postgres };
-	const lacks = (verb === "create" && one("--dokploy-project") === undefined) || (verb === "source" && (one("--repo") === undefined || one("--branch") === undefined));
-	const wrong = rest.length < least || rest.length > most || shapes[verb] === false || lacks;
 	const checked = [...(verb === "env" ? rest.slice(0, 3) : rest), ...[...flags.values()].flat()];
-	if (wrong || [...flags].some(([flag, values]) => values.length > 1 || (flag !== "--instance" && !allowed.includes(flag))) || checked.some((word) => word === "" || word.startsWith("-"))) return undefined;
+	if (!fits(rest, one, [...flags.keys()]) || [...flags].some(([flag, values]) => values.length > 1 || (flag !== "--instance" && !allowed.includes(flag))) || checked.some((word) => word === "" || word.startsWith("-"))) return undefined;
 	return { verb, rest, one };
 }

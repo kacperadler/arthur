@@ -9,11 +9,9 @@ import { call, field, type Instance, NOTHING, text } from "./dokploy-api.ts";
 const textOf = (value: unknown): string => (typeof value === "string" ? value : "");
 // Every variable but `name`, as a dotenv parser reads them (Dokploy reads the env with dotenv).
 const others = (env: string, name: string) => Object.fromEntries(Object.entries(parseEnv(env)).filter(([key]) => key !== name));
-// A variable's name, as `env set` and `postgres create --env` take it.
-export const VARIABLE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export async function envCommand(instance: Instance, id: string, [action, name = "", value = ""]: readonly string[], next: (then: string) => string): Promise<number> {
-	if (action === "set" && !VARIABLE.test(name)) throw new Error(`${text(name)} is not a variable name: a letter or _, then letters, digits and _; ${NOTHING}`);
+	if (action === "set" && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`${text(name)} is not a variable name: a letter or _, then letters, digits and _; ${NOTHING}`);
 	const item = await call(instance, "application.one", { applicationId: id }, `app ${id}`);
 	if (action === "set") return setVariable(instance, item, id, name, value, [], next);
 	const heading = `${text(field(item, "name"))} (${id}) on instance ${instance.label}`;

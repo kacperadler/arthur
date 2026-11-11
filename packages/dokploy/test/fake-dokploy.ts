@@ -46,25 +46,12 @@ export type FakeApp = {
 	readonly detachDokployNetwork?: boolean;
 	readonly networkSwarm?: readonly { readonly Target: string }[];
 };
-// A Postgres of Dokploy in an app's project and environment; left out: user and database `postgres`, image `postgres:18`, the
-// password `pgS3cr3tKeptPassw0rd`, no server and no backup.
-export type FakePostgres = {
-	readonly id: string;
-	readonly name: string;
-	readonly project: string;
-	readonly environment: string;
-	readonly appName: string;
-	readonly status: "idle" | "running" | "done" | "error";
-	readonly password?: string;
-	readonly user?: string;
-	readonly database?: string;
-	readonly image?: string;
-	readonly serverId?: string;
-	readonly backups?: readonly { readonly id: string; readonly schedule: string; readonly destination: string; readonly keep: number | null; readonly enabled: boolean | null }[];
-};
 // A GitHub app of Dokploy (Settings, Git providers): its id, its name, and the repositories its installation sees, each with
 // its branches.
 export type FakeGithub = { readonly id: string; readonly name: string; readonly repositories: readonly { readonly owner: string; readonly name: string; readonly branches: readonly string[] }[] };
+// A Postgres of Dokploy in an app's project and environment; left out: user and database `postgres`, image `postgres:18`, the
+// password `pgS3cr3tKeptPassw0rd`, no server and no backup.
+export type FakePostgres = { readonly id: string; readonly name: string; readonly project: string; readonly environment: string; readonly appName: string; readonly status: "idle" | "running" | "done" | "error"; readonly password?: string; readonly user?: string; readonly database?: string; readonly image?: string; readonly serverId?: string; readonly backups?: readonly { readonly id: string; readonly schedule: string; readonly destination: string; readonly keep: number | null; readonly enabled: boolean | null }[] };
 // What a procedure answers in place of its own: a status and body, one made from the request's body, a redirect to `location`,
 // no answer at all, text that is not JSON, or no body at all under the status `empty`.
 export type Scripted = { readonly status: number; readonly body: unknown } | ((sent: Sent | undefined) => { readonly status: number; readonly body: unknown }) | { readonly redirect: string } | { readonly empty: number } | "hang" | "not-json";

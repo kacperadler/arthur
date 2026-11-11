@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { parseEnv } from "node:util";
 import { call, field, ID, type Instance, NOTHING, text } from "./dokploy-api.ts";
-import { setVariable, VARIABLE } from "./dokploy-env.ts";
+import { setVariable } from "./dokploy-env.ts";
 
 // `arthur dokploy postgres create|status` (AR0681): a Postgres beside an app, in its environment and on its server, its
 // internal URL written into the app's env and never printed, then deployed; and what Dokploy holds of it, never its
@@ -25,7 +25,8 @@ function urlOf(record: unknown, what: string): { readonly url: string; readonly 
 // there; `<NAME>` (default DATABASE_URL) set to its URL in the app's env; a deploy of a database new or still idle.
 export async function createPostgres(instance: Instance, id: string, name: string, { version = "18", env = "DATABASE_URL" }: Database, next: (then: string, target: string) => string): Promise<number> {
 	if (!/^[1-9][0-9]?$/.test(version)) throw new Error(`--version ${text(version)} is not a Postgres major version: 1 to 99; ${NOTHING}`);
-	if (!VARIABLE.test(env)) throw new Error(`--env ${text(env)} is not a variable name: a letter or _, then letters, digits and _; ${NOTHING}`);
+	// The rule env set holds a variable's name to.
+	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(env)) throw new Error(`--env ${text(env)} is not a variable name: a letter or _, then letters, digits and _; ${NOTHING}`);
 	const item = await call(instance, "application.one", { applicationId: id }, `app ${id}`);
 	const heading = `${text(field(item, "name"))} (${id}) on instance ${instance.label}`;
 	const nothing = "nothing was changed";

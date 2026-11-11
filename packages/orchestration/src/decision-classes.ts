@@ -41,10 +41,10 @@ export function classProblem(each: Readonly<Record<string, unknown>>, asked: Rea
 	return Number.isInteger(agreed) && Number.isInteger(scored) ? undefined : "a class without its agreement rate";
 }
 
-// The answer by policy to a question just asked, when one approved class matches it; `classes` every class that matches.
+// The answer by policy to a question just asked when one approved class matches it, none to a plan question (AR-D603); `classes` every class that matches.
 export function byPolicy(entries: readonly Entry[], ask: Ask, ticketKind: string | undefined): { readonly answers: readonly Answer[]; readonly classes: readonly string[] } {
 	const named = new Set(words(ask.question));
-	const matched = classStates(entries).filter((each) => each.state === "approved" && each.class.kind === ask.kind && words(each.class.match).every((word) => named.has(word)) && (each.class.ticketKind === undefined || each.class.ticketKind === ticketKind));
+	const matched = ask.kind === "plan" ? [] : classStates(entries).filter((each) => each.state === "approved" && each.class.kind === ask.kind && words(each.class.match).every((word) => named.has(word)) && (each.class.ticketKind === undefined || each.class.ticketKind === ticketKind));
 	const [one] = matched;
 	const answers = matched.length === 1 && one !== undefined ? [{ record: "answer", id: ask.id, time: ask.time, decided: one.class.decided, words: `by policy: ${one.ask.id}` } satisfies Answer] : [];
 	return { answers, classes: matched.map((each) => each.ask.id) };

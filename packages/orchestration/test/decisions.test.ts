@@ -992,6 +992,18 @@ test("a question two approved classes match goes to the owner naming both; a cla
 	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Orchestration needs more?", "--ticket", "AC0001"), [0, "AC-D9\nAC-D9 answered by policy (AC-D5): Raise the line budget; act on it as on the owner's answer, and say so in your reply"]);
 });
 
+// AR-D603: plan questions always go to the owner; an approved class of their kind answers none.
+test("an approved class never answers a plan question: it stays open for the owner, naming no class", async (t) => {
+	const { decision, log } = await setup(t);
+	const plan = (ticket: string) => decision("ask", "--kind", "plan", "--question", `Approve the plan of ${ticket}?`, "--option", "Approve", "--option", "Plan again", "--ticket", ticket);
+	assert.deepEqual(await plan("AC0001"), [0, "AC-D1"]);
+	assert.equal((await decision("answer", "AC-D1", "--decided", "Approve", "--picked", "1", "AC-D1 yes"))[0], 0);
+	assert.equal((await decision("class", "propose", "--kind", "plan", "--match", "approve plan", "--decided", "Approve", "--backed-by", "AC-D1"))[0], 0);
+	assert.equal((await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve plans", "AC-D2 yes"))[0], 0);
+	assert.deepEqual(await plan("AC0002"), [0, "AC-D3"]);
+	assert.equal(log()?.at(-1)?.record, "ask", "no answer by policy");
+});
+
 // AC-D1, a job's question the owner answered "Drop the table", backs AC-D2, the class of job questions naming "drop table"
 // he approved; the next one is AC-D3.
 async function dropClass(decision: (...args: string[]) => Promise<Ran>, blocked: (id: string, question: string) => unknown) {

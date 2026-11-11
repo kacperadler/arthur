@@ -5512,9 +5512,9 @@
   {
     "id": "AR0682",
     "title": "Dokploy T4c: arthur dokploy postgres backup schedules backups of a Postgres to an S3 destination",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0682-dokploy-t4c-arthur-dokploy-postgres-backup-schedules-backups-of-a-postgres-to-an/ticket.md",
-    "updated": "2026-11-11T17:12:10.058Z",
+    "updated": "2026-11-11T17:41:54.352Z",
     "after": [
       "AR0681"
     ]

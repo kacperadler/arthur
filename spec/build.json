@@ -5422,7 +5422,7 @@
     "title": "Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first",
     "status": "in-progress",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
-    "updated": "2026-11-11T19:46:57.242Z"
+    "updated": "2026-11-11T21:21:20.313Z"
   },
   {
     "id": "AR0672",
@@ -5588,16 +5588,16 @@
   {
     "id": "AR0692",
     "title": "herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0692-herdr-start-up-test-fails-under-load-its-20-s-wait-for-the-start-up-pass-times/ticket.md",
-    "updated": "2026-11-11T20:01:11.808Z"
+    "updated": "2026-11-11T21:49:01.819Z"
   },
   {
     "id": "AR0693",
     "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
-    "updated": "2026-11-11T20:24:11.269Z"
+    "updated": "2026-11-11T20:24:40.107Z"
   },
   {
     "id": "AR0694",

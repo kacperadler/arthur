@@ -20,4 +20,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-label.ts:8` (`CREATES`)
 - What: roadmap 70 lists `run`, `create`, `build`, `buildx build`, `container run`, `container create`, `image build`, `network create` and `volume create`, and the rewrite labels exactly those. `docker builder build` and `docker buildx b` (aliases of build), and `docker commit`, `docker container commit` and `docker image import` make images without `arthur.job`; per roadmap 72 the sweep never removes a tagged image no job built, so such an image stays.
 - Suggestion: add the build aliases to `CREATES`; `commit` takes `--change "LABEL arthur.job=<id>"` and `import` `--change` too, so label them that way; a test row each. Roadmap 70's list widens, which is the owner's call.
-- Status: open
+- Status: deferred (client summary)
+
+## F3. buildx's own options before `build` hide the command, so no label is added and a foreign one stays
+
+- Kind: fix
+- Found by: 2026-11-11-review-b040a112 (review), 2026-11-11
+- Where: `packages/docker/src/docker-label.ts:45`
+- What: `labelled(["buildx","--builder","x","build","--label","arthur.job=other","."], "mine")` returns the arguments unchanged. Docker 29.9.2 on this machine runs that spelling as `buildx build`: `docker buildx --builder default build --help` and `docker buildx --debug build --help` both print `Usage:  docker buildx build`. `buildx build` is on roadmap 70's list. F2 covers other commands (`builder build`, `buildx b`, `commit`, `image import`), not this spelling. Calling `docker` by its absolute path already gets past the label, as documented, so this is a hole in what gets labelled, not a new way around a security boundary.
+- Status: deferred (client summary)

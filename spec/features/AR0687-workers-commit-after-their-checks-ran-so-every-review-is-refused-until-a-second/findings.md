@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/test/checks.test.ts:287`, `packages/delivery/src/checks-extension.ts:49`
 - What: AR0656's run-end reminder never fired in a sandboxed job from its merge (2026-11-09) to this branch: its `session_stop` handler read `<home>/delivery/<id>/checks`, which the AR0590 sandbox let the agent write but not read, so it threw `EACCES` and omp dropped the answer. The only trace is a line `Extension error (.../checks-extension.ts): EACCES: permission denied, open '.../checks'` in the job's `log` (seen in the logs of jobs 2026-11-09-worker-69fae305, 2026-11-10-worker-042e7671, 2026-11-10-worker-4b7cab02); no session of those jobs holds a checks reminder, only processes reminders. The extension's own tests call its handlers in the test process, outside any sandbox, so they passed. This branch makes the folder readable and pins that read in `test/job-home.test.ts`; nothing yet catches the next extension that reads or writes something its sandbox refuses.
 - Suggestion: a test that loads each extension a plugin registers in a real job's sandbox (as `test/job-home.test.ts` spawns one) and plays its handlers, or the wrapper naming an `Extension error` line of the agent's output in the job's wake. Out: the reminders' wording.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. the folders `hidden()` shows come from the record's `extensions` file, which the job's sandbox lets it write
+
+- Kind: fix
+- Found by: 2026-11-11-review-63ff71ea (review), 2026-11-11
+- Where: `packages/core/src/job-sandbox.ts:116`
+- What: A job that edits that file before a continue could read `<home>/<any folder>/<id>`. `writable()` already gave write access to the same paths from the same file, so this adds read access only. It still goes against AR0597's rule not to trust what the record says.
+- Status: deferred (client summary)

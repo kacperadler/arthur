@@ -5553,9 +5553,9 @@
   {
     "id": "AR0687",
     "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
-    "updated": "2026-11-11T10:14:47.339Z"
+    "updated": "2026-11-11T13:01:18.415Z"
   },
   {
     "id": "AR0688",

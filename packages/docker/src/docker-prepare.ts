@@ -5,8 +5,6 @@ import type { Host, Prepare } from "@arthur/core/plugin";
 // piece is `docker.project(false)`, the job's `docker` script, written on that machine through `host.jobs.run`, first on its PATH,
 // and its own compose project name. docs/docker.md, "At each spawn".
 
-type Listed = { readonly name: string; readonly pieces?: { readonly docker?: unknown } };
-
 // One call on the job's machine.
 const LIMIT_SECONDS = 30;
 // What the script runs: this file's text goes to the machine on the call's stdin.
@@ -22,12 +20,11 @@ mkdir -p "$1" && cat > "$1/docker-label.ts.new" && mv "$1/docker-label.ts.new" "
 printf "#!/bin/sh\\nexec '%s' '%s' '%s' '%s' \\"\\$@\\"\\n" "$node" "$1/docker-label.ts" "$docker" "$2" > "$1/docker.new" &&
 chmod 755 "$1/docker.new" && mv "$1/docker.new" "$1/docker" && printf '%s\\n' "$PATH"`;
 
-// `docker(machine)`: whether the machine has the label; `once(key, text)`: a notice said once per key.
-export function dockerPrepare(host: Host, docker: (machine: string) => unknown, once: (key: string, text: string) => void): Prepare {
+// `ours(job)`: whether the job's machine is labelled and its project lets it be; `once(key, text)`: a notice said once per key.
+export function dockerPrepare(host: Host, ours: (job: { readonly project: string; readonly machine: string }) => boolean, once: (key: string, text: string) => void): Prepare {
 	const label = readFileSync(LABEL, "utf8");
-	const [list = []] = host.collect<readonly Listed[]>("projects");
 	return async (job, env) => {
-		if (list.find((project) => project.name === job.project)?.pieces?.docker === false || docker(job.machine) === undefined) return undefined;
+		if (!ours(job)) return undefined;
 		const folder = `${host.jobs.home(job.machine)}/docker/jobs/${job.id}`;
 		const ran = await host.jobs.run(job.machine, ["sh", "-c", WRITE, "docker", folder, job.id], LIMIT_SECONDS, label);
 		if (ran.code === 3) return once(`no-docker ${job.machine}`, `docker: machine ${job.machine} is labelled tools: docker, but command -v finds no docker there; its jobs get no docker script, so what they create is not labelled`);

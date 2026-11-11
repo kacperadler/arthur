@@ -67,7 +67,7 @@ flowchart TD
         machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
         resources[resources<br/>caps per job and feature<br/>free CPU, memory, disk]
         models[models<br/>providers, fallback chain<br/>arthur usage]
-        docker[docker<br/>labels, the disk floor's data root<br/>cleanup and sweep planned]
+        docker[docker<br/>labels, the disk floor's data root<br/>cleanup with the worktree<br/>sweep planned]
         uptime[uptime<br/>client sites over HTTP<br/>down and up notices<br/>the coordinator's site-down runbook]
         machines ~~~ resources ~~~ models ~~~ docker ~~~ uptime
       end

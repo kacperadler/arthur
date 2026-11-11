@@ -75,9 +75,8 @@ export function writable(record: string, job: Pick<Job, "root" | "worktree">, ex
 	return [job.worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...folders];
 }
 
-// For each extension a plugin registered (`extensions`, the record's, paths from the core's `src/`) `<home>/<its package's folder>/<id>`, where it records what the agent did.
-const plugins = (record: string, extensions: string): string[] =>
-	extensions.split("\n").filter(Boolean).map((path) => join(dirname(dirname(record)), basename(dirname(dirname(resolve(import.meta.dirname, path)))), basename(record)));
+// For each extension a plugin registered (`extensions`, the record's, paths from `src/`), `<home>/<its package>/<id>`, where it records what the agent did.
+const plugins = (record: string, extensions: string): string[] => extensions.split("\n").filter(Boolean).map((path) => join(dirname(dirname(record)), basename(resolve(import.meta.dirname, path, "..", "..")), basename(record)));
 
 // Why `job`, as the record its job writes names it, is not its spawn's place (AR0597), undefined when it is: `root`, its project's checkout
 // now, `.arthur-worktrees/<id>` beside it, which Git added to that repository (`worktrees/<id>`, only `git worktree add` makes; a job writes its own).
@@ -101,8 +100,8 @@ export function unpruned(id: string, job: { readonly [key in "project" | "root" 
 // made there later too; but `+<path>`, shown, the job's own worktree. Then (AR0590) its home, whole: the event log, the
 // coordinator's files, every plugin's folder, every record and any entry made later; but shown the job's own record, each other
 // record there now that names its project, the projects plugin's `checkouts` and `folders` (job-place.ts), and its own folder of
-// each extension in `extensions`, which the extension reads back in the agent (AR0687). Never a path that is or holds the job's
-// root, Git folder, install or config, nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
+// each extension in `extensions`, which the extension reads back in the agent (AR0687). Never a path that is or holds the job's root,
+// Git folder, install or config, nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
 export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string, extensions = ""): string[] {
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
 	const [jobs, home] = [dirname(record), dirname(dirname(record))];

@@ -17,7 +17,7 @@ const BUDGETS = {
 
 	"core/testing": 405,
 
-	delivery: 2246,
+	delivery: 2267,
 
 	develop: 760,
 
@@ -51,7 +51,7 @@ const BUDGETS = {
 
 	schedule: 621,
 
-	session: 953,
+	session: 958,
 
 	stats: 200,
 

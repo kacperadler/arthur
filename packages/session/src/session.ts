@@ -12,7 +12,7 @@ import { startNotice, turnFailures } from "./start-notice.ts";
 
 // The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, or once
 // a turn ends with it at `compactAtPercent` of its context window (`compactOn`), new at
-// `freshAt` once no job runs, restarted on `/restart`, each after a handoff the coordinator writes and the next conversation
+// `freshAt` once no job and no merge runs, restarted on `/restart`, each after a handoff the coordinator writes and the next conversation
 // reads first. `arthur run` asks for each in `<home>/session/request.json` and acts on its outcome (restart.ts for restarts);
 // the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part; the restart guard
 // (restart-guard.ts) holds spawns once a commit changed the code `arthur run` loaded; at each start the model is probed and

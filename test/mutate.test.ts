@@ -104,6 +104,68 @@ test("at the deadline no mutant starts, and the summary counts those left as not
 	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
 });
 
+test("a run the deadline cut goes on where it stopped on the same commit and --max, its summary counting every call; else starts over", () => {
+	// first.ts has no test, so its one hunk's revert, the run's first mutant, survives; the second is caught.
+	const root = repo();
+	writeFileSync(join(root, "first.ts"), "export const one = 1;\n");
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "first");
+	const progress = join(root, git(root, "rev-parse", "--git-path", "mutate-resume.json"));
+	const survivor = "survived: first.ts:1: hunk reverted to the base\n";
+	const none = "mutate: 0 mutants, 0 caught, 0 survived; 16 not run (time)\n";
+	const cut = (...args: string[]) => late(root, [0, 1_499_999, 1_500_000], ...args);
+	const clean = () => {
+		assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
+		assert.equal(readFileSync(join(root, "packages/a/src/limit.ts"), "utf8"), LIMIT);
+	};
+	const first = cut();
+	assert.deepEqual([first.stdout, first.stderr, first.status], [`${survivor}mutate: 1 mutants, 0 caught, 1 survived; 15 not run (time)\n`, "", 1]);
+	// A call the deadline cuts before any mutant keeps the total.
+	const idle = late(root, [0, 1_500_000]);
+	assert.deepEqual([idle.stdout, idle.stderr, idle.status], [`${survivor}mutate: 1 mutants, 0 caught, 1 survived; 15 not run (time)\n`, "", 1]);
+	const rest = mutate(root);
+	const whole = mutate(root);
+	assert.match(rest.stdout, /^survived: first\.ts:1: hunk reverted to the base\n(survived: .*\n)*mutate: 16 mutants, \d+ caught, \d+ survived\n$/);
+	assert.deepEqual([rest.stdout, rest.stderr, rest.status], [whole.stdout, whole.stderr, whole.status]);
+	clean();
+	// A run that finished leaves nothing to resume.
+	assert.equal(existsSync(progress), false);
+	assert.equal(late(root, [0, 1_500_000]).stdout, none);
+
+	// --max is part of the key: a capped run goes on at its cap and keeps its count, so the gate still refuses it.
+	assert.equal(cut("--max", "2").stdout, `${survivor}mutate: 1 mutants, 0 caught, 1 survived; 1 not run (time); 14 not run (--max 2)\n`);
+	const capped = mutate(root, "--max", "2");
+	assert.deepEqual([capped.stdout, capped.status], [`${survivor}mutate: 2 mutants, 1 caught, 1 survived; 14 not run (--max 2)\n`, 1]);
+	cut();
+	assert.equal(late(root, [0, 1_500_000], "--max", "2").stdout, "mutate: 0 mutants, 0 caught, 0 survived; 2 not run (time); 14 not run (--max 2)\n");
+	clean();
+
+	// A new commit starts over.
+	cut();
+	git(root, "commit", "--quiet", "--allow-empty", "-m", "empty");
+	assert.equal(late(root, [0, 1_500_000]).stdout, none);
+	cut();
+	const key = JSON.parse(readFileSync(progress, "utf8"));
+	// At the limit: every mutant tried is what a finished run counts, and nothing is left to save.
+	writeFileSync(progress, JSON.stringify({ ...key, tried: 16 }));
+	assert.equal(late(root, [0, 1_500_000]).stdout, `${survivor}mutate: 16 mutants, 15 caught, 1 survived\n`);
+	assert.equal(existsSync(progress), false);
+	// A broken or hand-edited file, or another key's, starts over.
+	const other = { head: ["0".repeat(40)], base: ["0".repeat(40)], max: [2], tried: [17, -1, 1.5, "1"], survivors: ["x", [1], [survivor.trim(), survivor.trim()]] };
+	const rows = [
+		"{",
+		"null",
+		"5",
+		...Object.entries(other).flatMap(([field, values]) => values.map((value) => JSON.stringify({ ...key, [field]: value }))),
+	];
+	for (const row of rows) {
+		writeFileSync(progress, row);
+		const run = late(root, [0, 1_500_000]);
+		assert.deepEqual([run.stdout, run.stderr, run.status], [none, "", 0], row);
+	}
+	clean();
+});
+
 test("a mutant whose tests the deadline cuts is not run, not caught; its file is back and its tests stopped", async () => {
 	const blocks = `${HEAD}test("blocks", async () => {\n\twriteFileSync(new URL("../../../blocked.pid", import.meta.url), String(process.pid));\n\tawait new Promise(() => setInterval(() => {}, 1000));\n});\n`;
 	const root = repo({ ...TESTS, "packages/a/test/limit.test.ts": blocks });

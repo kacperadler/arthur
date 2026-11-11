@@ -1312,3 +1312,4 @@
 {"record":"answer","id":"AR-D651","time":"2026-11-11T21:24:14+01:00","decided":"AR0695 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
 {"record":"answer","id":"AR-D652","time":"2026-11-11T21:24:16+01:00","decided":"AR0696 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
 {"record":"answer","id":"AR-D653","time":"2026-11-11T21:24:19+01:00","decided":"AR0697 approved","picked":1,"words":"AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1","message":14144}
+{"record":"ask","id":"AR-D654","time":"2026-11-11T22:47:14+01:00","project":"arthur","kind":"budget","question":"How far may tonight's queue run while the owner sleeps?","options":["Until Claude 7 Day usage reaches 25%","Stop now"]}

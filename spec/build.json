@@ -5567,9 +5567,9 @@
   {
     "id": "AR0689",
     "title": "The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
-    "updated": "2026-11-11T09:09:20.704Z"
+    "updated": "2026-11-11T10:44:28.338Z"
   },
   {
     "id": "AR0690",

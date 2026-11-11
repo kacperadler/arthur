@@ -282,6 +282,11 @@ test("a merge, a merge flag, a plan, --budget 0 and take-main need the owner's m
 	ownerSaid(folder, 7, `${no} - not yet`);
 	assert.equal((await answer(no, `${no} - not yet`))[0], 0);
 	assert.equal(notices().at(-1), `Recorded as your decision ${no} (merge of AC0001, lets through arthur merge): Go; picked: option 1, "Not yet"; your words: "${no} - not yet"; your message: "${no} - not yet"`);
+	// The option picked is named by its own number, not the first or the last offered: option 2 of three.
+	const middle = (await run("decision", ["ask", "--kind", "plan", "--ticket", "AC0002", "--question", "Plan?", "--option", "Approve", "--option", "Plan it again", "--option", "Drop it"]))[1];
+	ownerSaid(folder, 8, `${middle} - plan it again`);
+	assert.equal((await run("decision", ["answer", middle, "--decided", "Plan the ticket again", "--picked", "2", `${middle} - plan it again`]))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${middle} (plan of AC0002, lets through arthur ticket status AC0002 planned): Plan the ticket again; picked: option 2, "Plan it again"; your words: "${middle} - plan it again"; your message: "${middle} - plan it again"`);
 });
 
 // AR0668: a fragment of his "no" (its id, a dash, the word) once proved a "yes"; the notice now shows the message it came from.

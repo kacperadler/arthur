@@ -115,7 +115,7 @@ test("coordinator.silent holds every notice while on, but the one of a job block
 	const { run, silent } = await setup(t);
 	const ordinary = { text: "the coordinator's last 3 turns ended without a reply" };
 	const blocked = { text: "AR1 asks: may I?", blocked: "2026-10-19-worker-00000001" };
-	const recorded = { text: "Recorded as your decision AR-D1 (budget, lets through --budget 0): Go; your words: \"AR-D1 yes\"", decision: "AR-D1" };
+	const recorded = { text: "Recorded as your decision AR-D1 (budget, lets through --budget 0): Go; picked: option 1, \"Go\"; your words: \"AR-D1 yes\"", decision: "AR-D1" };
 	assert.deepEqual([silent(ordinary), silent(blocked), silent(recorded)], [false, false, false], "off: nothing is held");
 	await run("on", WORK);
 	assert.deepEqual([silent(ordinary), silent(blocked), silent(recorded), silent(undefined), silent({ text: "x", decision: 1 })], [true, false, false, true, true]);

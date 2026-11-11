@@ -40,7 +40,8 @@ export async function setVariable(instance: Instance, item: unknown, id: string,
 	// saveEnvironment takes the build args, build secrets and createEnvFile too: they go back as the app has them.
 	const [args, secrets] = [textOf(field(item, "buildArgs")), textOf(field(item, "buildSecrets"))];
 	const createEnvFile = field(item, "createEnvFile") !== false;
-	const hidden = [value, after, args, secrets, ...hide, ...[after, args, secrets].flatMap((each) => Object.values(parseEnv(each)))].filter((each): each is string => (each ?? "") !== "").toSorted((a, b) => b.length - a.length);
+	// The value sent is a value of `after`, as checked above.
+	const hidden = [after, args, secrets, ...hide, ...[after, args, secrets].flatMap((each) => Object.values(parseEnv(each)))].filter((each): each is string => (each ?? "") !== "").toSorted((a, b) => b.length - a.length);
 	await call(instance, "application.saveEnvironment", {}, `the env of app ${id}`, { applicationId: id, env: after, buildArgs: args, buildSecrets: secrets, createEnvFile }, hidden);
 	console.log(`${heading}: ${name} ${replaced > 0 ? `replaced, on ${replaced} line${replaced > 1 ? "s" : ""}` : "added"}; every other line kept; a deploy applies it: ${next("deploy")}`);
 	return 0;

@@ -33,10 +33,9 @@ export async function dokployCommand(servers: readonly Instance[], projects: rea
 	// The call that shows how a write goes on, picking the app the way this one did.
 	const next = (then: string, app: string | undefined) => ["arthur dokploy", then, app, named && `--instance ${named}`, name && `--project ${name}`].filter(Boolean).join(" ");
 	if (verb === "create") return createApp(pick(servers, projects, name, asked), rest[0] ?? "", one("--dokploy-project") ?? "", one("--environment"), (id) => next("setup", id));
-	if (verb === "postgres" && rest[0] === "status") return postgresStatus(pick(servers, projects, name, asked), rest[1] ?? "");
 	if (verb === "postgres") {
-		const [instance, id] = target(servers, projects, name, asked, rest[1]);
-		return createPostgres(instance, id, rest[2] ?? "", { version: one("--version"), env: one("--env") }, next);
+		if (rest[0] === "status") return postgresStatus(pick(servers, projects, name, asked), rest[1] ?? "");
+		return createPostgres(...target(servers, projects, name, asked, rest[1]), rest[2] ?? "", { version: one("--version"), env: one("--env") }, next);
 	}
 	const app = verb === "upload" ? rest.slice(0, -1)[0] : rest[0];
 	const [instance, id] = target(servers, projects, name, asked, app);

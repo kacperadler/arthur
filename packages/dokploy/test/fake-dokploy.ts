@@ -157,7 +157,7 @@ function applicationRecord(app: FakeApp, githubs: readonly FakeGithub[] = []) {
 		...{ dockerImage: null, registryUrl: null, customGitUrl: null, customGitBranch: null, customGitBuildPath: null, customGitSSHKeyId: null, enableSubmodules: app.enableSubmodules ?? false },
 		...{ dockerfile: app.dockerfile ?? null },
 		...{ dockerContextPath: app.dockerContextPath ?? null, dockerBuildStage: null, dropBuildPath: app.dropBuildPath ?? null, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null },
-		...{ rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null, networkSwarm: app.networkSwarm ?? null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, applicationStatus: app.status },
+		...{ rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null, networkSwarm: null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, applicationStatus: app.status },
 		...{ buildType: app.buildType ?? "nixpacks", railpackVersion: "0.2.2", herokuVersion: "24", publishDirectory: null, isStaticSpa: null, createEnvFile: true, createdAt: `${DAY}T08:00:00.000Z`, registryId: null },
 		...{ rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment), githubId: app.githubId ?? null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: app.serverId ?? null },
 		...{ buildServerId: null },
@@ -169,6 +169,8 @@ function applicationRecord(app: FakeApp, githubs: readonly FakeGithub[] = []) {
 		...{ redirects: [], security: [], ports: [], gitlab: null, github: github === undefined ? null : githubRecord(github), bitbucket: null, gitea: null, server: null, previewDeployments: [] },
 		...{ registry: null, buildRegistry: null, rollbackRegistry: null },
 		...{ hasGitProviderAccess: true, unauthorizedProvider: null },
+		// The swarm networks the app was given in the panel, which take the place of dokploy-network.
+		...(app.networkSwarm === undefined ? {} : { networkSwarm: app.networkSwarm }),
 	};
 }
 
@@ -313,14 +315,14 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 			if (repository === undefined) return send(response, 500, trpcError(500, "INTERNAL_SERVER_ERROR", "Not Found - https://docs.github.com/rest/branches/branches#list-branches", procedure).body);
 			return send(response, 200, repository.branches.map((name) => ({ ...GITHUB.branch, name })));
 		}
-		if (request.method === "GET" && procedure === "environment.one") {
+		if (procedure === "environment.one") {
 			const place = places.get(url.searchParams.get("environmentId") ?? "");
 			if (place === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Environment not found", procedure).body);
 			return send(response, 200, environmentOne(place, live, postgres));
 		}
 		const database = postgres.findIndex((each) => each.id === (sent?.fields.postgresId ?? url.searchParams.get("postgresId")));
 		const db = postgres[database];
-		if (request.method === "GET" && procedure === "postgres.one") return db === undefined ? send(response, 404, trpcError(404, "NOT_FOUND", "Postgres not found", procedure).body) : send(response, 200, postgresOne(db));
+		if (procedure === "postgres.one") return db === undefined ? send(response, 404, trpcError(404, "NOT_FOUND", "Postgres not found", procedure).body) : send(response, 200, postgresOne(db));
 		const required = request.method === "POST" && Object.hasOwn(REQUIRED, procedure) ? REQUIRED[procedure] : undefined;
 		if (required === undefined || sent === undefined) return send(response, 404, { message: "Not found", code: "NOT_FOUND" });
 		// Each write answers when it is done or queued: `deploy` with no body (its procedure returns nothing), `dropDeployment`

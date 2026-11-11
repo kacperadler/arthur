@@ -186,6 +186,8 @@ test("wrong usage prints the usage line and exits 2, asking nothing", async (t) 
 	wrong.push(["create"], ["create", "--dokploy-project", "Shop"], ["create", "Web"], ["create", "Web", "x", "--dokploy-project", "Shop"], ["create", "Web", "--dokploy-project", "-x"], ["create", "Web", "--dokploy-project", "Shop", "--dokploy-project", "Shop"]);
 	wrong.push(["setup"], ["setup", "kXx3"], ["setup", "kXx3", "--instance", "client"], ["setup", "kXx3", "--domain", "a.example"], ["setup", "kXx3", "--port", "80"], ["setup", "kXx3", "--volume", "a:/a", "--volume", "b:/b"], ["setup", "kXx3", "--environment", "x"], ["setup", "--context", "."]);
 	wrong.push(["env", "kXx3"], ["env", "kXx3", "names", "x"], ["env", "kXx3", "set", "A"], ["env", "kXx3", "set", "A", "1", "2"], ["env", "kXx3", "get", "A"], ["env", "-x", "names"], ["env", "kXx3", "set", "-A", "1"], ["app", "--dockerfile", "Dockerfile"], ["deploy", "--dokploy-project", "Shop"], ["upload", "dist", "--volume", "a:/a"]);
+	// AR0681: env with another word where names or set goes, as many words as either takes.
+	wrong.push(["env", "kXx3", "get"], ["env", "kXx3", "get", "A", "1"]);
 	for (const args of wrong) assert.deepEqual(await run(undefined, ...args), { code: 2, out: "", err: USAGE }, args.join(" "));
 	assert.deepEqual([main.seen, client.seen], [[], []]);
 });

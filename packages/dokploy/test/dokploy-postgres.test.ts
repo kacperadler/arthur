@@ -110,8 +110,10 @@ test("postgres create takes the app's server, --version and --env, and a new pas
 	main.seen.length = 0;
 	assert.equal((await run("postgres", "create", WEB.id, "third", "--version", "1", "--env", "_X9")).code, 0);
 	assert.equal(posts(main.seen)[0]?.[1]?.dockerImage, "postgres:1");
-	// A name may start with a lowercase letter, as env set takes it.
-	assert.equal((await run("postgres", "create", WEB.id, "fourth", "--env", "shop_db")).code, 0);
+	// A name may start with a lowercase letter, as env set takes it; a version may hold a 0.
+	main.seen.length = 0;
+	assert.equal((await run("postgres", "create", WEB.id, "fourth", "--version", "10", "--env", "shop_db")).code, 0);
+	assert.equal(posts(main.seen)[0]?.[1]?.dockerImage, "postgres:10");
 	assert.match(String(main.live.find((app) => app.id === WEB.id)?.env), /\nshop_db=postgresql:\/\/postgres:[0-9a-f]{64}@/);
 });
 
@@ -184,6 +186,12 @@ test("postgres create refuses an app, a database or a database record Dokploy an
 		assert.equal(await create(STAGED.id), `instance (unnamed): Postgres ${KEPT.id}: Dokploy's answer lacks its user, password, host or database`);
 	}
 	assert.deepEqual(posts(main.seen), []);
+	main.scripted.delete("postgres.one");
+	// An environment Dokploy does not find: at its read, or, when that read answers, at the create.
+	main.scripted.set("application.one", { status: 200, body: { applicationId: WEB.id, name: "Web", environmentId: "env-gone" } });
+	assert.equal(await create(), `instance (unnamed): 404: the environment of app ${WEB.id} not found`);
+	main.scripted.set("environment.one", { status: 200, body: { postgres: [] } });
+	assert.equal(await create(), `instance (unnamed): 404: a Postgres beside app ${WEB.id} not found`);
 });
 
 test("postgres create writes the env before the deploy, so a deploy that gives no answer in time leaves the app connected and names postgres status", async (t) => {
@@ -202,10 +210,11 @@ test("postgres create never shows the password or the URL in Dokploy's error tex
 	const created = await run("postgres", "create", WEB.id, "db");
 	assert.equal(created.refused, `instance (unnamed): 400 for a Postgres beside app ${WEB.id}: Failed query: insert into "postgres" params: db,postgres,[hidden],postgres:18`);
 	main.scripted.delete("postgres.create");
-	// A database error quotes the query's parameters: here the whole env sent.
-	main.scripted.set("application.saveEnvironment", (sent: Sent | undefined) => trpcError(500, "INTERNAL_SERVER_ERROR", `failed: ${String(sent?.fields.env)}`, "application.saveEnvironment"));
+	// A database error quotes the query's parameters: here the whole env sent, the build args, and the password alone.
+	const quoted = (sent: Sent | undefined) => `${String(sent?.fields.env)} | ${String(sent?.fields.buildArgs)} | ${/:([0-9a-f]{64})@/.exec(String(sent?.fields.env))?.[1]}`;
+	main.scripted.set("application.saveEnvironment", (sent: Sent | undefined) => trpcError(500, "INTERNAL_SERVER_ERROR", `failed: ${quoted(sent)}`, "application.saveEnvironment"));
 	const saved = await run("postgres", "create", WEB.id, "db");
-	assert.equal(saved.refused, `instance (unnamed): 500 for the env of app ${WEB.id}: failed: [hidden]`);
+	assert.equal(saved.refused, `instance (unnamed): 500 for the env of app ${WEB.id}: failed: [hidden] | [hidden] | [hidden]`);
 	const password = sentPassword(main.seen.toReversed());
 	assert.deepEqual(leaks(String(saved.refused) + saved.out, password), []);
 	main.scripted.delete("application.saveEnvironment");

@@ -61,7 +61,8 @@ async function load(t: TestContext, timeoutSeconds?: number) {
 const calls = (seen: readonly Seen[]) => seen.map(({ method, path }) => `${method} ${path.replace("/api/", "")}`);
 const posts = (seen: readonly Seen[]) => seen.filter(({ method }) => method === "POST").map(({ path, sent }) => [path.replace("/api/", ""), sent?.fields] as const);
 const sentPassword = (seen: readonly Seen[]) => String(seen.find(({ path }) => path === "/api/postgres.create")?.sent?.fields.databasePassword);
-const leaks = (printed: string, ...more: string[]) => [...SECRETS, ...more].filter((secret) => printed.includes(secret));
+// What was printed of the values that must never be: the fake's secrets, its Postgres's own password, and `more`.
+const leaks = (printed: string, ...more: string[]) => [...SECRETS, "pgS3cr3tKeptPassw0rd", ...more].filter((secret) => printed.includes(secret));
 
 test("postgres create makes a Postgres in the app's environment, writes its internal URL into the app's env, then deploys it; run again, it writes nothing", async (t) => {
 	const { main, run } = await load(t);
@@ -161,6 +162,27 @@ test("postgres create refuses after its reads and before any write: an app that 
 	assert.equal((await run("postgres", "create", SWARMED.id, "db2")).code, 0, "its own networks hold dokploy-network");
 });
 
+test("postgres create refuses an app, a database or a database record Dokploy answers without what it needs, before any write", async (t) => {
+	const { main, run } = await load(t);
+	const create = async (app = WEB.id) => (await run("postgres", "create", app, "db")).refused;
+	for (const body of [{ applicationId: WEB.id, name: "Web" }, { applicationId: WEB.id, name: "Web", environmentId: "env 1" }]) {
+		main.scripted.set("application.one", { status: 200, body });
+		assert.equal(await create(), `instance (unnamed): app ${WEB.id} has no Dokploy environment id; ${CHANGED}`);
+	}
+	main.scripted.delete("application.one");
+	for (const postgres of [[{ name: "db" }], [{ name: "db", postgresId: "pg 1" }]]) {
+		main.scripted.set("environment.one", { status: 200, body: { postgres } });
+		assert.equal(await create(), `instance (unnamed): Postgres db has no Dokploy id; ${CHANGED}`);
+	}
+	main.scripted.delete("environment.one");
+	const record = { postgresId: KEPT.id, name: "db", appName: KEPT.appName, databaseUser: "postgres", databasePassword: "pgS3cr3tKeptPassw0rd", databaseName: "postgres" };
+	for (const lacking of ["databaseUser", "databasePassword", "appName", "databaseName"]) {
+		main.scripted.set("postgres.one", { status: 200, body: { ...record, [lacking]: lacking === "appName" ? "" : undefined } });
+		assert.equal(await create(STAGED.id), `instance (unnamed): Postgres ${KEPT.id}: Dokploy's answer lacks its user, password, host or database`);
+	}
+	assert.deepEqual(posts(main.seen), []);
+});
+
 test("postgres create writes the env before the deploy, so a deploy that gives no answer in time leaves the app connected and names postgres status", async (t) => {
 	const { main, run } = await load(t, 0.3);
 	main.scripted.set("postgres.deploy", "hang");
@@ -191,13 +213,19 @@ test("postgres create never shows the password or the URL in Dokploy's error tex
 });
 
 test("postgres status prints the database, its volume and each backup, never its password; an unknown id is Dokploy's 404", async (t) => {
-	const { run } = await load(t);
+	const { main, run } = await load(t);
 	const status = await run("postgres", "status", KEPT.id);
 	const lines = ["Postgres db (pgKept02) on instance (unnamed): done", "image postgres:18, internal host shop-db-x1y2z3:5432, database postgres, user postgres", "volume shop-db-x1y2z3-data at /var/lib/postgresql/18/docker"];
 	const backups = ["backup bk1: 0 3 * * * to s3-main, keeps the latest 7, enabled", "backup bk2: 0 * * * * to s3-cold, keeps all, disabled"];
 	assert.deepEqual(status, { code: 0, out: [...lines, ...backups].join("\n"), err: "" });
 	assert.deepEqual(leaks(status.out), []);
 	assert.equal((await run("postgres", "status", "pgGone")).refused, "instance (unnamed): 404: Postgres pgGone not found");
+	// A bind mount names its host path; a database without any mount says so.
+	const bind = { type: "bind", hostPath: "/srv/pg", volumeName: null, filePath: null, mountPath: "/var/lib/postgresql/data" };
+	main.scripted.set("postgres.one", { status: 200, body: { name: "db", applicationStatus: "done", mounts: [bind], backups: [] } });
+	assert.match((await run("postgres", "status", KEPT.id)).out, /\nbind \/srv\/pg at \/var\/lib\/postgresql\/data\nno backups$/);
+	main.scripted.set("postgres.one", { status: 200, body: { name: "db", applicationStatus: "done", mounts: [], backups: [] } });
+	assert.match((await run("postgres", "status", KEPT.id)).out, /\nno volume\nno backups$/);
 });
 
 test("postgres without create <app> <name> or status <postgres>, or with a flag status does not take, prints the usage line and exits 2", async (t) => {

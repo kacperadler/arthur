@@ -12,8 +12,8 @@ import { crc32, inflateRawSync } from "node:zlib";
 export const TOKEN = "kdQ7uZ3sA0pT1mN2vB4xC6yD8eF9gH0iJ1kL2mN3oP4qR5sT6uV7wX8yZ9aB0cD1e";
 
 // Values Dokploy answers that `arthur dokploy` must never print: an app's env, build args and secrets, its git refresh token
-// and registry password, a project's and an environment's env, the documentation's database passwords, and a Postgres's own.
-export const SECRETS = ["DATABASE_URL=postgres://shop:s3cr3t-db@db/shop", "NPM_TOKEN=npm_s3cr3tBuildArg", "SENTRY_AUTH=s3cr3tBuildSecret", "PREVIEW_KEY=s3cr3tPreview", "ghr_s3cr3tRefresh", "s3cr3t-registry", "PROJECT_KEY=s3cr3tProject", "ENVIRONMENT_KEY=s3cr3tEnvironment", "h13BzO6y3KYSHaQg", "mM1b7JeoPA7jArxj", "Yvb8gqClfomjcue8", "pgS3cr3tKeptPassw0rd"];
+// and registry password, a project's and an environment's env, and the documentation's database passwords.
+export const SECRETS = ["DATABASE_URL=postgres://shop:s3cr3t-db@db/shop", "NPM_TOKEN=npm_s3cr3tBuildArg", "SENTRY_AUTH=s3cr3tBuildSecret", "PREVIEW_KEY=s3cr3tPreview", "ghr_s3cr3tRefresh", "s3cr3t-registry", "PROJECT_KEY=s3cr3tProject", "ENVIRONMENT_KEY=s3cr3tEnvironment", "h13BzO6y3KYSHaQg", "mM1b7JeoPA7jArxj", "Yvb8gqClfomjcue8"];
 
 export type FakeDeployment = { readonly title: string; readonly status: "running" | "done" | "error" | "cancelled"; readonly createdAt: string; readonly finishedAt?: string; readonly errorMessage?: string };
 // An app; the keys after `dropBuildPath` are what the setup and source writes change, each left out as Dokploy's default or the

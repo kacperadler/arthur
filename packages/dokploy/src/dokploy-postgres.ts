@@ -16,7 +16,7 @@ const listed = (value: unknown): unknown[] => (Array.isArray(value) ? value : []
 // `postgres.one`'s answer; the user and password percent-encoded, which leaves the generated hex password as it is.
 function urlOf(record: unknown, what: string): { readonly url: string; readonly password: string } {
 	const [user, password, host, database] = ["databaseUser", "databasePassword", "appName", "databaseName"].map((key) => field(record, key));
-	if (![user, password, host, database].every((each) => typeof each === "string" && each !== "")) throw new Error(`the answer for ${what} lacks its user, password, host or database`);
+	if (![user, password, host, database].every((each) => typeof each === "string" && each !== "")) throw new Error(`${what}: Dokploy's answer lacks its user, password, host or database`);
 	const url = `postgresql://${encodeURIComponent(String(user))}:${encodeURIComponent(String(password))}@${String(host)}:5432/${String(database)}`;
 	return { url, password: String(password) };
 }
@@ -42,7 +42,7 @@ export async function createPostgres(instance: Instance, id: string, name: strin
 	const record = found === undefined ? undefined : await call(instance, "postgres.one", { postgresId: String(foundId) }, `Postgres ${text(foundId)}`);
 	const had = parseEnv(typeof field(item, "env") === "string" ? String(field(item, "env")) : "")[env];
 	// A database not made yet has no URL: any value the app has for the name is another one, and the owner's.
-	if (had !== undefined && (record === undefined || had !== urlOf(record, `Postgres ${text(foundId)}`).url)) throw new Error(`${heading} already sets ${env} to another value: give --env <NAME> for another name; ${nothing}`);
+	if (had !== undefined && (record === undefined || had !== urlOf(record, `instance ${instance.label}: Postgres ${text(foundId)}`).url)) throw new Error(`${heading} already sets ${env} to another value: give --env <NAME> for another name; ${nothing}`);
 	const generated = randomBytes(32).toString("hex");
 	const server = field(item, "serverId");
 	const body = { name, environmentId, ...(typeof server === "string" ? { serverId: server } : {}), dockerImage: `postgres:${version}`, databaseName: "postgres", databaseUser: "postgres", databasePassword: generated };
@@ -50,7 +50,7 @@ export async function createPostgres(instance: Instance, id: string, name: strin
 	const postgresId = text(field(made, "postgresId"));
 	const where = `Postgres ${text(name)} (${postgresId}) beside ${heading}, internal host ${text(field(made, "appName"))}:5432`;
 	console.log(record === undefined ? `created ${where}, image postgres:${version}` : `${where}: already there`);
-	const { url, password } = urlOf(made, `Postgres ${postgresId}`);
+	const { url, password } = urlOf(made, `instance ${instance.label}: Postgres ${postgresId}`);
 	// The env first: a deploy that outlasts the timeout still leaves the app connected.
 	await setVariable(instance, item, id, env, url, [password], (then) => next(then, id));
 	const status = next("postgres status", postgresId);

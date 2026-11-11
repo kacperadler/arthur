@@ -5502,9 +5502,9 @@
   {
     "id": "AR0681",
     "title": "Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0681-dokploy-t4b-arthur-dokploy-postgres-create-makes-a-postgres-beside-an-app-and/ticket.md",
-    "updated": "2026-11-10T07:36:30.393Z",
+    "updated": "2026-11-11T00:51:34.458Z",
     "after": [
       "AR0680"
     ]
@@ -5560,9 +5560,9 @@
   {
     "id": "AR0688",
     "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
-    "updated": "2026-11-11T00:30:33.083Z"
+    "updated": "2026-11-11T00:53:33.615Z"
   },
   {
     "id": "AR0689",

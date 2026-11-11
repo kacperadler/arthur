@@ -175,6 +175,18 @@ test("buildCache 0 cuts no cache; a builder without --max-used-space is named in
 	);
 });
 
+test("the space freed counts what other jobs add meanwhile, and is never below 0B", async () => {
+	fake.state(made(ID));
+	let calls = 0;
+	// Another job pulls 5 GB on the machine while the removal runs.
+	const busy: Host["jobs"]["run"] = async (machine, argv, limit, input) => {
+		if (calls++ === 1) fake.state({ ...fake.now(), sizes: { ...fake.now().sizes, bbbb0000000b: 5.5e9 } });
+		return loaded.host.host.jobs.run(machine, argv, limit, input);
+	};
+	const loaded = await load({ local: { tools: ["docker"] } }, { buildCache: 0 }, undefined, busy);
+	assert.equal(await loaded.hook(), `removed 2 containers, 1 network, 1 volume, 1 image; ${KEPT.join("; ")}; 0B freed`);
+});
+
 test("each call has its limit, both under the core's 2 minutes: the listing cut after 30 s, the removal after 85 s, naming what went", async () => {
 	const limits: (number | undefined)[] = [];
 	const hung: Host["jobs"]["run"] = async (_machine, _argv, limit) => (limits.push(limit), { code: null, stdout: "", stderr: `timed out after ${limit} s\n` });

@@ -21,3 +21,21 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: the session row says "a fresh start at 23:00 once no job runs"; since AR0691 a running merge holds it too. The vision is the owner's, so the worker left it.
 - Suggestion: the owner adds "and no merge" to that row, or leaves it as the summary it is.
 - Status: open
+
+## F3. `delivery.merging` ignores the boot id in `merge.lock`
+
+- Kind: fix
+- Found by: 2026-11-11-review-92a4b55f (review), 2026-11-11
+- Where: `packages/delivery/src/merge-recovery.ts:61-63`
+- What: `merging()` reads only the pid of `merge.lock`, while core's lock (`packages/core/src/lock.ts`, `holder`) also counts a lock an earlier boot wrote as dead. After a reboot, a lock whose pid now names another live process counts as a running merge, which holds a restart, until `arthur run`'s start takes the lock over (`passForward.start` → `recoverMerge`). Inside `arthur run` that is before its first 500 ms look; `arthur restart` run before `arthur run` starts is refused for that while.
+- Suggestion: have core's `@arthur/core/lock` export whether a live process holds a lock (its own `holder` and `alive`), and use it in `merging()` instead of a second reading of the file.
+- Status: open
+
+## F4. A session test run once left a fake agent running
+
+- Kind: test
+- Found by: 2026-11-11-review-92a4b55f (review), 2026-11-11
+- Where: `packages/session/test/`
+- What: after one run of the session tests, a fake agent (`fake-agent.ts … -e …/handoff-extension.ts`) still ran about 50 minutes later under `/tmp/arthur-test-Y4i1vJ`; the reviewer stopped it, and which test started it is not known. The worker's runs afterwards (`pgrep -af fake-agent.ts` after a test that timed out) left none.
+- Suggestion: have the core's test kit end, at exit, every fake agent a test started, as it ends the tmux servers a test left; then name the test whose `t.after` missed it.
+- Status: open

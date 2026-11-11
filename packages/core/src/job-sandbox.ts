@@ -66,16 +66,18 @@ except OSError as error: sys.exit(f"{argv[0]}: {error.strerror}")
 // Where the agent of the job whose record is `record` may write: its worktree and record, the Git folders a commit on its branch
 // writes (`worktrees/<id>` and the objects, refs and logs of the repository of its `root`, never found from the worktree's `.git`,
 // which the agent writes; not its config or hooks), the temporary folder, `/dev` (`/dev/null`, a terminal), omp's own state (`~/.omp`,
-// its sessions and logins), and for each extension a plugin registered (`extensions`, the record's, paths from the core's `src/`)
-// `<home>/<its package's folder>/<id>`, made here, where it records what the agent did. `job` is the wrapper's, never the record's (AR0597).
+// its sessions and logins), and `plugins`, made here. `job` is the wrapper's, never the record's (AR0597).
 export function writable(record: string, job: Pick<Job, "root" | "worktree">, extensions: string): string[] {
 	const common = gitCommon(job.root);
 	const repository = common === "" ? [] : [join(common, "worktrees", basename(record)), ...["objects", "refs", "logs"].map((name) => join(common, name))];
-	const home = dirname(dirname(record));
-	const plugins = extensions.split("\n").filter(Boolean).map((path) => join(home, basename(dirname(dirname(resolve(import.meta.dirname, path)))), basename(record)));
-	for (const folder of plugins) mkdirSync(folder, { recursive: true });
-	return [job.worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...plugins];
+	const folders = plugins(record, extensions);
+	for (const folder of folders) mkdirSync(folder, { recursive: true });
+	return [job.worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...folders];
 }
+
+// For each extension a plugin registered (`extensions`, the record's, paths from the core's `src/`) `<home>/<its package's folder>/<id>`, where it records what the agent did.
+const plugins = (record: string, extensions: string): string[] =>
+	extensions.split("\n").filter(Boolean).map((path) => join(dirname(dirname(record)), basename(dirname(dirname(resolve(import.meta.dirname, path)))), basename(record)));
 
 // Why `job`, as the record its job writes names it, is not its spawn's place (AR0597), undefined when it is: `root`, its project's checkout
 // now, `.arthur-worktrees/<id>` beside it, which Git added to that repository (`worktrees/<id>`, only `git worktree add` makes; a job writes its own).
@@ -97,11 +99,11 @@ export function unpruned(id: string, job: { readonly [key in "project" | "root" 
 // Then (AR0593), of the projects the projects plugin keeps in `<home>/projects/checkouts` and `folders`, which no job writes,
 // `<name> <path>` a line: each other project's checkout and folder, and every project's `.arthur-worktrees`, whole, so a worktree
 // made there later too; but `+<path>`, shown, the job's own worktree. Then (AR0590) its home, whole: the event log, the
-// coordinator's files, every plugin's folder (its own folder of an extension too, which it still writes), every record and any
-// entry made later; but shown the job's own record, each other record there now that names its project, and the projects
-// plugin's `checkouts` and `folders` (job-place.ts). Never a path that is or holds the job's root, Git folder, install or config,
-// nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
-export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string): string[] {
+// coordinator's files, every plugin's folder, every record and any entry made later; but shown the job's own record, each other
+// record there now that names its project, the projects plugin's `checkouts` and `folders` (job-place.ts), and its own folder of
+// each extension in `extensions`, which the extension reads back in the agent (AR0687). Never a path that is or holds the job's
+// root, Git folder, install or config, nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
+export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">, guarded: string, extensions = ""): string[] {
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
 	const [jobs, home] = [dirname(record), dirname(dirname(record))];
 	const listed = (name: string) => read(join(home, "projects", name)).split("\n").flatMap((line) => (/^\S+ \//.test(line) ? [[line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)]] : []));
@@ -114,7 +116,7 @@ export function hidden(record: string, { project, root, worktree }: Pick<Job, "p
 	const holds = (path: string, places: readonly string[]) => places.some((place) => place === path || place.startsWith(`${path}${sep}`));
 	const unkept = [...new Set(others.map((path) => real(path)))].filter((path) => !holds(path, [...kept, ...own]));
 	const records = readdirSync(jobs).filter((id) => id === basename(record) || (project !== "" && read(join(jobs, id, "project")).trim() === project));
-	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders")];
+	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders"), ...plugins(record, extensions)];
 	const env = guarded.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
 	return [...env, ...unread(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
 }

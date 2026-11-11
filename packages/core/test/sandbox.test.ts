@@ -391,7 +391,7 @@ test("the hidden credentials take $XDG_CONFIG_HOME's git/credentials and gh and 
 	assert.equal(existsSync(xdg) || existsSync(gh), false, "none of them exists");
 });
 
-test("hidden: the home whole, but shown the job's own record, its project's other records and the projects plugin's lists; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590)", () => {
+test("hidden: the home whole, but shown the job's own record, its project's other records, the projects plugin's lists and its own folder of each extension; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590, AR0687)", () => {
 	const home = realpathSync(temporaryFolder());
 	const [own = "", sibling = "", theirs = "", none = "", unnamed = ""] = ["0a0a0001", "0a0a0002", "0b0b0001", "0c0c0001", "0c0c0002"].map((hex) => join(home, "jobs", `2026-10-30-worker-${hex}`));
 	// The job's own record names shop2, as its agent may have rewritten it: the project the wrapper was given counts (AR0597).
@@ -401,9 +401,12 @@ test("hidden: the home whole, but shown the job's own record, its project's othe
 		if (project !== undefined) writeFileSync(join(record, "project"), project);
 	}
 	const lists = [`+${join(home, "projects", "checkouts")}`, `+${join(home, "projects", "folders")}`];
-	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }, "").filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
+	const ofHome = (record: string, project: string, root = "", extensions = "") => hidden(record, { project, root, worktree: "" }, "", extensions).filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
 	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
 	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
+	// The checks extension reads back the job's checks in its run's end (AR0687): its own folder of delivery's, never another job's.
+	const extension = join("..", "..", "delivery", "src", "checks-extension.ts");
+	assert.deepEqual(ofHome(own, "shop1", "", `${extension}\n`), [home, `+${own}`, `+${sibling}`, ...lists, `+${join(home, "delivery", "2026-10-30-worker-0a0a0001")}`].sort());
 	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
 });
 

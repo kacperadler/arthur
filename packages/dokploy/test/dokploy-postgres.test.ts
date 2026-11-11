@@ -110,6 +110,9 @@ test("postgres create takes the app's server, --version and --env, and a new pas
 	main.seen.length = 0;
 	assert.equal((await run("postgres", "create", WEB.id, "third", "--version", "1", "--env", "_X9")).code, 0);
 	assert.equal(posts(main.seen)[0]?.[1]?.dockerImage, "postgres:1");
+	// A name may start with a lowercase letter, as env set takes it.
+	assert.equal((await run("postgres", "create", WEB.id, "fourth", "--env", "shop_db")).code, 0);
+	assert.match(String(main.live.find((app) => app.id === WEB.id)?.env), /\nshop_db=postgresql:\/\/postgres:[0-9a-f]{64}@/);
 });
 
 test("postgres create finds a database of that name in the app's environment, writes its URL from postgres.one, and deploys it only while idle", async (t) => {

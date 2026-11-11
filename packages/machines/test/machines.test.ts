@@ -412,6 +412,18 @@ test("without a list only local is there, and the doctor has no line", async () 
 	assert.deepEqual(calls(), []);
 });
 
+test("machines.labels gives each machine's labels by name, local's with its detected os and arch; none for a name not listed", async () => {
+	const os = platform === "darwin" ? "macos" : platform;
+	const { fake } = await load({ local: { labels: { tools: ["docker"] } }, list: [MAC, { ...BUILD, labels: undefined }] });
+	const labels = (name: unknown) => fake.collect("machines.labels", name);
+	assert.deepEqual(labels("local"), [{ os, arch, tools: ["docker"] }]);
+	assert.deepEqual(labels("mac"), [MAC.labels]);
+	assert.deepEqual(labels("build"), [{}], "a machine listed without labels has none");
+	for (const name of ["gpu", "", undefined]) assert.deepEqual(labels(name), [undefined], String(name));
+	assert.deepEqual((await load({})).fake.collect("machines.labels", "local"), [{ os, arch }], "local without tools labels");
+	assert.deepEqual(calls(), [], "no machine is asked");
+});
+
 test("local's tools labels are checked with command -v on the PATH of arthur run, its line first, in a listed machine's shape", async () => {
 	machine("build-box");
 	const here = `${platform === "darwin" ? "macos" : platform} ${arch}, arthur ${arthurVersion()}`;

@@ -9,7 +9,7 @@ import { byRecommendation } from "./silent.ts";
 // A question asked, answered or closed in the decision log (decision-log.ts): docs/commands/decision.md.
 
 // Records a question; its id. One approved class matching it answers it by policy in the same write, else the owner's grant by
-// its recommendation, that answer returned; two or more classes leave it to the owner, `classes` naming them.
+// its recommendation, that answer returned; two or more classes leave it to the owner, `classes` naming them. Never a plan question (AR-D603).
 export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "id" | "time" | "project">, lock = withLock): { readonly id: string; readonly unwritten?: string; readonly policy?: Answer; readonly classes: readonly string[] } {
 	const question = asked.question.trim();
 	if (question === "") throw new Error("an empty question: --question <what the owner decides>");
@@ -17,6 +17,7 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 	const ticket = asked.ticket === undefined ? undefined : host.board.get(asked.ticket);
 	if (asked.ticket !== undefined && ticket?.project !== project.name) throw new Error(`--ticket ${asked.ticket} is not on the board of project ${project.name}`);
 	const { recommend, options } = asked;
+	if ((asked.kind === "plan" || asked.kind === "merge") && options.length === 0) throw new Error(`a ${asked.kind} question needs --option '<the approval>'`);
 	if (typeof recommend === "number" && !(recommend >= 1 && recommend <= options.length)) throw new Error(`--recommend ${recommend}: no such option; ${options.length} offered (--option)`);
 	const kind = ticketKind(host, project, asked.ticket);
 	let classes: readonly string[] = [];
@@ -32,18 +33,17 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 	return { id: added[0]?.id ?? "", unwritten, ...(added[1]?.record === "answer" ? { policy: added[1] } : {}), classes };
 }
 
-// What an answer lets through that only the owner's message naming its id may record (AR0664), none for any other: a merge flag,
-// `--budget 0` (any budget question), `arthur take-main` (a merge question of no ticket and no job), a class approved.
+// What an answer lets through that only the owner's message naming its id may record (AR0664, AR0677), undefined for any other.
 function impact(ask: Ask, picked: number | undefined): string | undefined {
 	if (ask.class !== undefined) return picked === 1 ? `approves the class ${described(ask.class)}` : undefined;
 	if (ask.kind === "budget") return "lets through --budget 0";
-	if (ask.kind !== "merge") return undefined;
+	if (ask.kind !== "merge") return ask.kind === "plan" ? `lets through arthur ticket status ${ask.ticket ?? "<id>"} planned` : undefined;
 	if ((ask.what ?? []).length > 0) return `lets through ${ask.what?.join(" and ")}`;
-	return ask.ticket === undefined && ask.job === undefined ? "lets through arthur take-main" : undefined;
+	return ask.ticket === undefined && ask.job === undefined ? "lets through arthur take-main" : "lets through arthur merge";
 }
 
 // Records the owner's answer, with the number of his message that holds its words (decision-proof.ts); the record as written,
-// with its question. A high-impact one sends him a notice, built without the model, of what was recorded and his whole message.
+// with its question. A high-impact one sends him a notice, built without the model, of what was recorded, the option picked (AR0688) and his whole message.
 export function answer(host: Host, project: Project, id: string, given: { readonly decided?: string; readonly picked?: string; readonly words: string }): { readonly answer: Answer; readonly ask: Ask; readonly unwritten?: string } {
 	if (given.words.trim() === "") throw new Error(`an empty answer: the owner's words, as he wrote or said them, after the flags`);
 	if (/^by policy\b/i.test(given.words.trim())) throw new Error("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words");
@@ -63,7 +63,7 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 	// His whole message in code points, so a character of two UTF-16 units is never cut in half.
 	const whole = [...redact(proved.text.trim(), host.secrets)];
 	const message = `${whole.slice(0, 400).join("")}${whole.length > 400 ? " … (cut)" : ""}`;
-	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; your words: "${record.words}"; your message: "${message}"`, decision: id });
+	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; picked: ${picked === undefined ? "none" : `option ${picked}, "${found.options[picked - 1]}"`}; your words: "${record.words}"; your message: "${message}"`, decision: id });
 	return { answer: record, ask: found, unwritten };
 }
 

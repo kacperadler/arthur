@@ -75,7 +75,7 @@ Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job
 
 The channels, `telegram` and `discord`, come in step 13, and other machines for jobs with the `machines` plugin of step 11.
 
-A project that runs on a Dokploy server of yours can add `dokploy`: `arthur dokploy apps|app|status` reads each server's projects, applications and deployments, `arthur dokploy upload|deploy` sends an application a file or folder or starts its deploy, and `arthur dokploy create|setup|env` creates an application and sets its build type, domain, volume and environment, when you ask, for the coordinator, never in a job. Each server is an entry of `instances`, its address in the config and its API key in a variable the env file of step 6 holds (`ARTHUR_DOKPLOY_TOKEN`, or `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one), and the project's application is its `dokploy.project({ instance?, app })`, as `packages/dokploy/docs/dokploy.md` says; it needs `projects`. Then `arthur config check` lists that variable too.
+A project that runs on a Dokploy server of yours can add `dokploy`: `arthur dokploy apps|app|status` reads each server's projects, applications and deployments, `arthur dokploy upload|deploy` sends an application a file or folder or starts its deploy, `arthur dokploy create|setup|env` creates an application and sets its build type, domain, volume and environment, `arthur dokploy source` connects an application to its GitHub repository so a push deploys it (a GitHub app in the Dokploy panel, set up once), and `arthur dokploy postgres create` makes a Postgres beside an application with its URL in the application's env, when you ask, for the coordinator, never in a job. Each server is an entry of `instances`, its address in the config and its API key in a variable the env file of step 6 holds (`ARTHUR_DOKPLOY_TOKEN`, or `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one), and the project's application is its `dokploy.project({ instance?, app })`, as `packages/dokploy/docs/dokploy.md` says; it needs `projects`. Then `arthur config check` lists that variable too.
 
 ```ts
 import { defineConfig } from "@arthur/core";
@@ -115,7 +115,7 @@ import { projects } from "@arthur/projects";
 export default [projects.project({ prefix: "SH", path: "/home/<user>/shop" }), github.project({ workflow: "ci.yml" })];
 ```
 
-Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/docker'`). Take a plugin from it once its roadmap entry is merged.
+Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/server'`). Take a plugin from it once its roadmap entry is merged.
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 

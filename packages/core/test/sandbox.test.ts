@@ -391,7 +391,7 @@ test("the hidden credentials take $XDG_CONFIG_HOME's git/credentials and gh and 
 	assert.equal(existsSync(xdg) || existsSync(gh), false, "none of them exists");
 });
 
-test("hidden: the home whole, but shown the job's own record, its project's other records and the projects plugin's lists; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590)", () => {
+test("hidden: the home whole, but shown the job's own record, its project's other records, the projects plugin's lists and its own folder of each extension; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590, AR0687)", () => {
 	const home = realpathSync(temporaryFolder());
 	const [own = "", sibling = "", theirs = "", none = "", unnamed = ""] = ["0a0a0001", "0a0a0002", "0b0b0001", "0c0c0001", "0c0c0002"].map((hex) => join(home, "jobs", `2026-10-30-worker-${hex}`));
 	// The job's own record names shop2, as its agent may have rewritten it: the project the wrapper was given counts (AR0597).
@@ -404,6 +404,9 @@ test("hidden: the home whole, but shown the job's own record, its project's othe
 	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }, "").filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
 	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
 	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
+	// The checks extension reads back the job's checks in its run's end (AR0687): its own folder of delivery's, never another job's.
+	writeFileSync(join(own, "extensions"), `${join("..", "..", "delivery", "src", "checks-extension.ts")}\n`);
+	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists, `+${join(home, "delivery", "2026-10-30-worker-0a0a0001")}`].sort());
 	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
 });
 
@@ -850,13 +853,18 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 	mkdirSync(join(home, "projects"), { recursive: true });
 	writeFileSync(join(home, "projects", "checkouts"), `shop1 ${shop1}\nshop2 ${shop2}\narthur ${arthur}\n`);
 	writeFileSync(join(home, "projects", "folders"), [`shop1 ${join(arthur, "projects", "shop1")}`, `shop2 ${join(arthur, "projects", "shop2")}`, `twin ${shop1}`, `git ${join(folder, "shop1.git")}`, `jobs ${join(home, "jobs")}`, `install ${install}`, ""].join("\n"));
+	// The docker plugin's folder as its prepare leaves it: each job's script, and its own file of machines told (AR-D597).
+	const own = `${home}/docker/jobs/$(basename "$ARTHUR_JOB")/docker`;
 	const reads = {
+		"another job's docker script": join(home, "docker", "jobs", "2026-10-30-worker-5b0b2000", "docker"),
+		"the docker plugin's folder": join(home, "docker", "told"),
 		"shop2's checkout": join(shop2, "README.md"),
 		"shop2's folder": join(arthur, "projects", "shop2", "project.config.ts"),
 		"a shop2 job's worktree": join(theirs, "README.md"),
 		"another shop1 job's worktree": join(sibling, "README.md"),
 		"a shop2 job's worktree made during its install": join(later, "README.md"),
 		"the env file": join(arthur, "env"),
+		"its docker script": own,
 		"its worktree": "README.md",
 		"its root": join(shop1, "README.md"),
 		"its Git folder": join(folder, "shop1.git", "HEAD"),
@@ -869,20 +877,30 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 	const lines = Object.entries(reads).map(([name, path]) => `if cat "${path}" >/dev/null 2>"$ARTHUR_JOB/err"; then echo "${name} read"; elif grep -q 'Permission denied' "$ARTHUR_JOB/err"; then echo "${name} denied"; else echo "${name} failed"; fi`);
 	const commit = "echo x > new.txt && git add new.txt && git -c user.name=test -c user.email=test@example.com -c commit.gpgsign=false commit --quiet -m sandboxed && echo 'a commit made'";
 	const agent = join(folder, "agent");
-	writeFileSync(agent, `#!/bin/sh\n{\n${lines.join("\n")}\n${commit}\n} > "$ARTHUR_JOB/reads" 2>&1\n`, { mode: 0o755 });
+	writeFileSync(agent, `#!/bin/sh\n{\n${lines.join("\n")}\nbash -c '"$1" run img' bash "${own}"\n${commit}\n} > "$ARTHUR_JOB/reads" 2>&1\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-30T08:00:00Z"));
 	const list = [{ name: "shop1", path: shop1, prefix: "SA" }, { name: "shop2", path: shop2, prefix: "SB" }];
 	const jobs = jobRunner(home, arthur, join(arthur, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), (name) => (name === "projects" ? [list] : []));
 	// An install that waits for the gate: the worktree made meanwhile is made after the hidden list was read, before the agent's sandbox.
 	const gate = join(folder, "gate");
-	jobs.prepare("test", () => ({ ARTHUR_INSTALL: `while [ ! -e '${gate}' ]; do sleep 0.05; done` }));
+	const script = (id: string) => {
+		mkdirSync(join(home, "docker", "jobs", id), { recursive: true });
+		writeFileSync(join(home, "docker", "jobs", id, "docker"), `#!/bin/sh\necho "the docker script of ${id} ran: $*"\n`, { mode: 0o755 });
+	};
+	jobs.prepare("test", (job) => {
+		script(job.id);
+		script("2026-10-30-worker-5b0b2000");
+		writeFileSync(join(home, "docker", "told"), "no-docker gpu\n");
+		return { ARTHUR_INSTALL: `while [ ! -e '${gate}' ]; do sleep 0.05; done` };
+	});
 	const job = await jobs.spawn({ task: "Read.", project: "shop1" });
 	await until("the install's sandbox", () => existsSync(join(home, "jobs", job.id, "log")) && readFileSync(join(home, "jobs", job.id, "log"), "utf8").includes("] sandbox: the install "));
 	git(shop2, "worktree", "add", "--quiet", "--detach", later);
 	writeFileSync(gate, "");
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
 	assert.deepEqual(readFileSync(join(home, "jobs", job.id, "reads"), "utf8").trim().split("\n"), [
-		...Object.keys(reads).map((name, at) => `${name} ${at < 6 ? "denied" : "read"}`),
+		...Object.keys(reads).map((name, at) => `${name} ${at < 8 ? "denied" : "read"}`),
+		`the docker script of ${job.id} ran: run img`,
 		"a commit made",
 	]);
 	assert.equal(git(shop1, "log", "--format=%s", "-1", `arthur/${job.id}`), "sandboxed");

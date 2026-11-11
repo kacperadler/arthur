@@ -55,10 +55,10 @@ function target(checkout: string, root: string | undefined, home: string): [stri
 	return [worktree, existsSync(root) && realpathSync(root) === realpathSync(worktree) ? undefined : `--root ${root} is not this job's worktree ${worktree}`];
 }
 
-// The lockfile with the package as a workspace, as npm writes it, so `npm ci` installs the checkout as it is.
-function locked(text: string, name: string): string {
-	const lock = JSON.parse(text);
-	const packages = { ...lock.packages, [`node_modules/@arthur/${name}`]: { resolved: `packages/${name}`, link: true }, [`packages/${name}`]: { name: `@arthur/${name}`, license: "Apache-2.0" } };
+// The lockfile with the package as a workspace, as npm writes it from its package.json in `files`, so `npm ci` installs the checkout as it is.
+function locked(text: string, name: string, files: Readonly<Record<string, string>>): string {
+	const [lock, own] = [JSON.parse(text), JSON.parse(files["package.json"] ?? "{}")];
+	const packages = { ...lock.packages, [`node_modules/@arthur/${name}`]: { resolved: `packages/${name}`, link: true }, [`packages/${name}`]: { name: own.name, version: own.version, license: own.license } };
 	lock.packages = Object.fromEntries(Object.entries(packages).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 	return `${JSON.stringify(lock, null, 2)}\n`;
 }
@@ -77,15 +77,15 @@ function pluginNew(checkout: string, args: readonly string[], home: string): num
 		return 2;
 	}
 	const fn = name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
-	const files = pluginFiles(name, fn);
 	const [root, misplaced] = target(checkout, at, home);
+	const files = pluginFiles(name, fn, existsSync(join(root, "package.json")) ? JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version : "");
 	const refused = misplaced ?? refusal(root, name, budget, fn, files);
 	if (refused !== undefined) {
 		console.error(`refused: ${refused}; nothing was written`);
 		return 1;
 	}
 	const [lockPath, structurePath, folder] = [join(root, "package-lock.json"), join(root, STRUCTURE), join(root, "packages", name)];
-	const [lock, structure] = [locked(readFileSync(lockPath, "utf8"), name), readFileSync(structurePath, "utf8")];
+	const [lock, structure] = [locked(readFileSync(lockPath, "utf8"), name, files), readFileSync(structurePath, "utf8")];
 	// The package appears whole: written in a hidden folder beside, then renamed.
 	const draft = join(root, "packages", `.${name}.${process.pid}`);
 	for (const [path, text] of Object.entries(files)) {

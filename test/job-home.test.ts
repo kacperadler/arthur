@@ -8,8 +8,9 @@ import { fakeGithub } from "../packages/github/test/fake-github.ts";
 
 // AR0590: a job of shop1, spawned by the real CLI with every plugin that registers an in-job command, in its real sandbox, reads
 // nothing of shop2 in the shared home (its record, the event log, a plugin's state, a record spawned after it started), while its
-// own record, shop1's records and the projects plugin's lists stay readable and `arthur jobs`, `board`, `findings` and `ci` answer
-// for shop1. A plugin's own tests never load another plugin; this one, outside every package, loads them together.
+// own record, shop1's records, the projects plugin's lists and its own checks in delivery's folder, which the checks extension reads
+// back as its run ends (AR0687), stay readable and `arthur jobs`, `board`, `findings` and `ci` answer for shop1. A plugin's own tests
+// never load another plugin; this one, outside every package, loads them together.
 
 const PACKAGES = join(import.meta.dirname, "..", "packages");
 const CLI = join(PACKAGES, "core", "src", "cli.ts");
@@ -27,7 +28,7 @@ function write(folder: string, files: Readonly<Record<string, string>>): void {
 // A record as a spawn writes it, of `project`, its task naming what only that project's job knows.
 const record = (project: string) => ({ kind: "worker", project, state: "ended", reason: "finished", task: `${project}'s task: the owner's plan for ${project}\n` });
 
-test("a job of shop1 gets Permission denied on shop2's record, the event log, plugin state and a later record; its own commands answer for shop1 (AR0590)", async (t) => {
+test("a job of shop1 gets Permission denied on shop2's record, the event log, plugin state and a later record; it reads its own checks; its own commands answer for shop1 (AR0590, AR0687)", async (t) => {
 	const api = await fakeGithub(t);
 	const folder = temporaryFolder();
 	const [arthur, home, gate] = [join(folder, "arthur"), join(folder, "arthur", ".arthur"), join(folder, "gate")];
@@ -55,8 +56,10 @@ test("a job of shop1 gets Permission denied on shop2's record, the event log, pl
 		"its record": "$ARTHUR_JOB/task",
 		"a shop1 record": join(home, "jobs", SHOP1, "task"),
 		"the projects plugin's checkouts": join(home, "projects", "checkouts"),
+		"its checks in delivery's folder": `${join(home, "delivery")}/$(basename "$ARTHUR_JOB")/checks`,
 	};
-	const lines = Object.entries(reads).map(([name, path]) => `if cat "${path}" >/dev/null 2>"$ARTHUR_JOB/err"; then echo "${name} read"; elif grep -q 'Permission denied' "$ARTHUR_JOB/err"; then echo "${name} denied"; else echo "${name} failed"; fi`);
+	const own = `echo "check pass 0123456 clean" >> "${reads["its checks in delivery's folder"]}"`;
+	const lines = [own, ...Object.entries(reads).map(([name, path]) => `if cat "${path}" >/dev/null 2>"$ARTHUR_JOB/err"; then echo "${name} read"; elif grep -q 'Permission denied' "$ARTHUR_JOB/err"; then echo "${name} denied"; else echo "${name} failed"; fi`)];
 	const commands = ["jobs", "board", "findings SA0001", "ci main"].map((command) => `echo "== ${command}"; node '${CLI}' ${command}`);
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\nwhile [ ! -e '${gate}' ]; do sleep 0.05; done\ncd '${arthur}'\nexport ARTHUR_GITHUB_TOKEN=t ARTHUR_YOUTRACK_URL=http://127.0.0.1:9 ARTHUR_YOUTRACK_TOKEN=t\n{\n${[...lines, ...commands].join("\n")}\n} > "$ARTHUR_JOB/out" 2>&1\n`, { mode: 0o755 });

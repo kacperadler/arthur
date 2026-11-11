@@ -104,7 +104,7 @@ const SET_UP = [
 const SETUP_ARGS = ["setup", FRESH.id, "--dockerfile", "docker/Web.Dockerfile", "--context", "apps/web", "--domain", "fresh.shop.example", "--port", "8080", "--volume", "uploads:/app/uploads"];
 
 test("setup sets the build type, adds the domain on https with Let's Encrypt and the volume; run again, it leaves each as it is", async (t) => {
-	const { main, run } = await load(t);
+	const { main, client, run } = await load(t);
 	assert.deepEqual(await run("shop", ...SETUP_ARGS), { code: 0, out: SET_UP.join("\n"), err: "" });
 	assert.deepEqual(posts(main.seen), [
 		["domain.validateDomain", { domain: "fresh.shop.example" }],
@@ -123,6 +123,10 @@ test("setup sets the build type, adds the domain on https with Let's Encrypt and
 	// Only a dockerfile build with the same file and context is already set: nixpacks with Dokploy's default file is switched.
 	assert.equal((await run("shop", "setup", ENVED.id, "--dockerfile", "Dockerfile", "--context", "apps/web")).out.split("\n")[1], "build type: dockerfile Dockerfile, context apps/web: set");
 	assert.deepEqual(posts(main.seen).at(-1)?.[0], "application.saveBuildType");
+	// --instance beside a flag of setup is no flag of setup's own, and setup takes one app, no more.
+	assert.equal((await run(undefined, "setup", CLIENT_SITE.id, "--context", "site", "--instance", "client")).code, 0);
+	assert.deepEqual(posts(client.seen).at(-1)?.[0], "application.saveBuildType");
+	assert.deepEqual(await run("shop", "setup", FRESH.id, "extra", "--context", "site"), { code: 2, out: "", err: (await run("shop")).err });
 });
 
 test("setup warns of a domain Dokploy finds not pointing at the server, and still adds it", async (t) => {

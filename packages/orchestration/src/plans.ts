@@ -70,8 +70,8 @@ function unapproved(where: Project | undefined, task: string, tickets: readonly 
 }
 
 // Why a worker may not start yet on a ticket with Plan lines (`marks`) under its Goal, if it may not; any but `- Plan: yes` first (AR0608).
-// The approval of this plan.md counts only as its decision in the log: a plan question of this ticket whose later answer is the
-// owner's own, naming his message (AR0664), and approves the same commit (AR0665), so a line written by hand does not.
+// The approval of this plan.md counts only as its decision in the log: a plan question of this ticket whose later answer is the owner's own, naming his
+// message (AR0664), picks option 1, its approval (AR0688), and approves the same commit (AR0665), so a line written by hand does not.
 function unplanned(where: Project, folder: string, id: string, lines: readonly string[], planned: ReadonlySet<string>, marks: string[]): string | undefined {
 	for (const line of marks) if (line.trimEnd() !== "- Plan: yes") return `${id}: its Goal line "${line.trim()}" is not "- Plan: yes", the one accepted form`;
 	const plan = `${folder}/plan.md`;
@@ -82,12 +82,12 @@ function unplanned(where: Project, folder: string, id: string, lines: readonly s
 		return `${id}: its plan.md at HEAD is not one the owner approved: no "- YYYY-MM-DD: Plan approved by the owner: plan.md at <commit>" under its Decisions names a commit with this plan.md`;
 	const log = decisions(readLog(where));
 	const proved = approvals.some(([, commit, decision]) => {
-		const found = log.find((each) => each.ask.id === decision);
+		const found = log.find((each) => each.ask.id === decision && each.answers.at(-1)?.picked === 1);
 		const answer = found?.answers.at(-1);
 		return found?.ask.kind === "plan" && found.ask.ticket === id && answer?.message !== undefined && DECIDED.exec(answer.decided)?.[1] === commit;
 	});
 	if (!proved)
-		return `${id}: the approval of its plan.md (${approvals.map(([, , decision]) => decision ?? "no decision id").join(", ")}) is no plan decision of ${id} in the decision log that the owner answered in his own message, approving that commit; ask him: arthur decision ask --kind plan --ticket ${id}`;
+		return `${id}: the approval of its plan.md (${approvals.map(([, , decision]) => decision ?? "no decision id").join(", ")}) is no plan decision of ${id} in the decision log that the owner answered in his own message, picking option 1 and approving that commit; ask him: arthur decision ask --kind plan --ticket ${id}`;
 	return planned.has(plan) ? undefined : `${id}: the task needs the line Plan: ${plan}, so the worker follows the approved plan`;
 }
 

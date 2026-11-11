@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { constants } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
@@ -8,7 +8,8 @@ import { basename, dirname, join, resolve } from "node:path";
 // file and runs its tests: its same-name test, then the tests that import it, then the rest of its package's `test/`, each
 // only while the last passed. A mutant all of them pass survives and is named; a caught one is not. The file's bytes, kept in
 // memory, are written back after each mutant, at exit and on SIGINT, SIGTERM or SIGHUP; a tree with an uncommitted change to a
-// tracked file is refused, so `git checkout -- .` undoes even a SIGKILL. Exit 0 with no survivor, 1 with one, 2 when refused.
+// tracked file is refused, so `git checkout -- .` undoes even a SIGKILL. A run its deadline cut goes on where it stopped when
+// run again on the same commit and --max, and its summary counts every call. Exit 0 with no survivor, 1 with one, 2 when refused.
 
 type Mutant = { readonly file: string; readonly line: number; readonly what: string; readonly text: string };
 // A test run of one mutant that lasts longer is killed, its process group with it, and counts as caught: a mutant that hangs;
@@ -63,21 +64,55 @@ const mutants = interleave(
 	),
 );
 const run = mutants.slice(0, max);
+// A run the deadline cut saves how far it got in the worktree's own Git folder, out of the tree, and the next run on the same
+// commit, base and --max goes on from there, its survivors named again, so the summary counts every call (AR0689).
+const head = git(root, "rev-parse", "HEAD").trim();
+const progress = resolve(root, git(root, "rev-parse", "--git-path", "mutate-resume.json").trim());
+const resumed = resume(progress, { head, base, max }, run.length);
+const survivors = [...resumed.survivors];
+for (const line of survivors) console.log(line);
 // The checks extension gives the call 1800 s (AR0569) and omp kills it there, summary and all (AR0599 F1): no mutant starts
-// past 1500 s, and one whose tests the deadline cuts (killed answers undefined) is not run, not caught.
+// past 1500 s, and one whose tests the deadline cuts (killed answers undefined) is not run, not caught, and left to the next run.
 const deadline = Date.now() + 1_500_000;
-let [survived, tried] = [0, 0];
-for (const mutant of run) {
+let tried = resumed.tried;
+for (const mutant of run.slice(tried)) {
 	const caught = Date.now() < deadline ? await killed(mutant, deadline) : undefined;
 	if (caught === undefined) break;
 	tried++;
 	if (caught) continue;
-	survived++;
-	console.log(`survived: ${mutant.file}:${mutant.line}: ${mutant.what}`);
+	const line = `survived: ${mutant.file}:${mutant.line}: ${mutant.what}`;
+	survivors.push(line);
+	console.log(line);
 }
 const late = run.length - tried;
+const survived = survivors.length;
 console.log(`mutate: ${tried} mutants, ${tried - survived} caught, ${survived} survived${late > 0 ? `; ${late} not run (time)` : ""}${mutants.length > max ? `; ${mutants.length - max} not run (--max ${max})` : ""}`);
 process.exitCode = survived > 0 ? 1 : 0;
+if (late > 0) {
+	writeFileSync(`${progress}.tmp`, `${JSON.stringify({ head, base, max, tried, survivors })}\n`);
+	renameSync(`${progress}.tmp`, progress);
+} else rmSync(progress, { force: true });
+
+// What a run the deadline cut saved at `path`: how many mutants it tried and its `survived:` lines, when it ran on `key`'s
+// commit, base and --max and the file holds them in shape (at most `size` tried, no more survivors than tried); else none.
+function resume(path: string, key: { readonly head: string; readonly base: string; readonly max: number }, size: number): { readonly tried: number; readonly survivors: readonly string[] } {
+	let saved: { readonly head: string; readonly base: string; readonly max: number; readonly tried: number; readonly survivors: readonly string[] } | null | undefined;
+	try {
+		saved = JSON.parse(readFileSync(path, "utf8"));
+	} catch {
+		// No file, or no JSON in it: `saved` stays undefined, and the run starts over.
+	}
+	return saved?.head === key.head &&
+		saved.base === key.base &&
+		saved.max === key.max &&
+		Number.isInteger(saved.tried) &&
+		Array.isArray(saved.survivors) &&
+		saved.survivors.every((line) => typeof line === "string") &&
+		saved.survivors.length <= saved.tried &&
+		saved.tried <= size
+		? saved
+		: { tried: 0, survivors: [] };
+}
 
 // The first item of each list, then the second of each, and on until every list is spent; no list is a length of -Infinity, 0.
 function interleave<T>(lists: readonly (readonly T[])[]): T[] {

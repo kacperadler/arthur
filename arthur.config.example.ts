@@ -1,9 +1,7 @@
-// Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and activity,
-// commit-rules, delivery, develop, discord, dokploy, findings, github, herdr, listen, machines, manage, models, nvm, orchestration, projects,
-// resources, schedule, session, stats, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
-// docker (first); server, signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first
-// planned import (`Cannot find package '@arthur/docker'`). Take a plugin from it once its package exists. Illustrative for the planned
-// ones: their option names are proposed, not final.
+// Example arthur.config.ts with every plugin, planned ones included. A plugin is built when `packages/` holds its folder; the
+// others are planned, no package yet (spec/roadmap.md builds them). So a copy of the whole file does not load; it fails on the
+// first planned import (`Cannot find package '@arthur/<name>'`). Take a plugin from it once its package exists. Illustrative for
+// the planned ones: their option names are proposed, not final.
 //
 // Rules:
 // - One file, one list: a plugin is a function call with its options.
@@ -300,8 +298,9 @@ export default defineConfig({
 		// One entry per Dokploy server of the owner, its address literal and its API key in a variable: the unnamed one's in
 		// ARTHUR_DOKPLOY_TOKEN, `client`'s in ARTHUR_DOKPLOY_CLIENT_TOKEN. `url` is https, or http on loopback, a private or a
 		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments,
-		// `upload|deploy` sends an app a file or folder or starts its deploy, and `create|setup|env` creates an app and sets its
-		// build type, domain, volume and env, on the owner's word, the coordinator only; a project's app is its
+		// `upload|deploy` sends an app a file or folder or starts its deploy, `create|setup|env` creates an app and sets its
+		// build type, domain, volume and env, `source` connects an app to its GitHub repository, and `postgres create` makes
+		// a Postgres beside an app, its URL in the app's env, on the owner's word, the coordinator only; a project's app is its
 		// `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
 		dokploy({
 			instances: [
@@ -406,10 +405,12 @@ export default defineConfig({
 			},
 		}),
 
-		// Docker on every machine labelled `tools: docker`. What a job creates (containers, networks, volumes, images it builds) is
-		// labelled `arthur.job=<id>`, and compose stacks get the job's project name; all of it is removed on the job's machine
-		// when its worktree is removed (prune, merge, a dropped ticket). Pulled and shared images stay. A failed cleanup never
-		// keeps the worktree: it is a notice, and the sweep retries. Anything labelled `arthur.keep` is never touched.
+		// Docker on every machine labelled `tools: docker` (the machines plugin's labels). What a job creates (containers,
+		// networks, volumes, images it builds) is labelled `arthur.job=<id>`, compose stacks get the job's project name, and
+		// Docker's data root counts for `keepFree.disk`. All of it is removed on the job's machine right before its worktree
+		// goes (prune, merge, a dropped ticket); pulled and shared images stay, and so does what another job's container uses;
+		// a failed cleanup never keeps the worktree: it is a notice. Planned (roadmap 72): the sweep retries what is left, and
+		// never touches anything labelled `arthur.keep`.
 		docker({
 			buildCache: "10G", // after each cleanup and sweep, Docker's shared build cache is cut to this size; 0 = no cap
 			leftoverHours: 48, // the sweep removes unlabelled stopped containers, unused networks, dangling images, unused
@@ -485,8 +486,8 @@ export default defineConfig({
 // Every other piece is its plugin's, checked by it at load: its tracker (`instance` names an instance of the youtrack plugin;
 // without it, the unnamed one), its CI workflow, its commit rules, auto-merge, the machine labels its jobs need (a ticket's
 // own `"requires"` in its JSON block replaces them), its sites, its Dokploy app (`instance` names an instance of the dokploy
-// plugin; without it, the unnamed one), what a merge makes of its findings; planned, `docker.project(false)`
-// to leave its jobs' Docker resources unlabelled and uncleaned (default: on while the docker plugin is), and
+// plugin; without it, the unnamed one), what a merge makes of its findings, `docker.project(false)` to leave its jobs'
+// Docker resources unlabelled and uncleaned (default: labelled, and removed with the worktree, while the docker plugin is), and
 // `orchestration.project({ chat })`, the place of a channel (a Telegram topic, a Discord or Slack channel) where the project's
 // own agent talks with you; without it the coordinator handles the project. One repository may be several projects, each
 // checkout its own folder. Each file imports the helpers it uses: `import { projects } from "@arthur/projects";`.
@@ -530,7 +531,7 @@ export default defineConfig({
 //		github.project({ workflow: "ci.yml" }),
 //		commitRules.project({ file: "commit-rules.md" }), // projects/acme-site/commit-rules.md, read as plain words
 //		findings.project("summary"),
-//		docker.project(false), // planned: its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
+//		docker.project(false), // its jobs get no docker script, so their containers are not labelled nor removed with the worktree (the sweep is planned)
 //	];
 //
 // projects/acme-ios/project.config.ts

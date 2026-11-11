@@ -281,8 +281,8 @@ test("a call the bash tool moved to the background, and a job without a record, 
 const BRANCH = "arthur/2026-01-01-worker-00000001";
 const ASK = "Commit your work, then run npm run check && npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.";
 const PASSING = bash("npm run check && npm test && npm run mutate", `${SUMMARY(3, 0)}${MUTATED(0)}`);
-// What each `session_stop` answer names as missing, from the reminder's `<why>: <what is missing>. Commit your work`; none, undefined.
-const missing = (answers: readonly unknown[]) => answers.map((answer) => /: ([^:]*)\. Commit your work/.exec((answer as { additionalContext?: string } | undefined)?.additionalContext ?? "")?.[1]);
+// What each `session_stop` answer names as missing, from the reminder's `<why>: <what is missing>. [Your checks ran ...] Commit your work`; none, undefined.
+const missing = (answers: readonly unknown[]) => answers.map((answer) => /: ([^:]*?)\. (?:Your checks ran|Commit your work)/.exec((answer as { additionalContext?: string } | undefined)?.additionalContext ?? "")?.[1]);
 
 test("a worker's run that ends before check, test and mutate passed on its clean committed tip goes on once, told what is missing", (t) => {
 	const { stop, job, git } = load(t, ALL);
@@ -310,7 +310,10 @@ test("a worker's run that ends before check, test and mutate passed on its clean
 	later.run(PASSING);
 	const checked = later.git("rev-parse", "HEAD").slice(0, 7);
 	later.git("commit", "--quiet", "--allow-empty", "-m", "docs");
-	assert.deepEqual(missing(later.stop()), [`check ran on ${checked}, not the tip, test ran on ${checked}, not the tip, mutate ran on ${checked}, not the tip`], "a commit after the checks");
+	const now = later.git("rev-parse", "HEAD").slice(0, 7);
+	const gaps = `check ran on ${checked}, not the tip, test ran on ${checked}, not the tip, mutate ran on ${checked}, not the tip`;
+	const moved = `Your checks ran on ${checked}, and your tip is now ${now}: any commit after them needs them run again.`;
+	assert.deepEqual(later.stop(), [{ continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${BRANCH} at ${now}${why.slice(why.indexOf(" is reviewed"))}: ${gaps}. ${moved} ${ASK}` }], "a commit after the checks (AR0687)");
 });
 
 test("a run whose tip has its checks passed clean, a job of another kind or on another machine, and a worktree outside Git, are not told", (t) => {

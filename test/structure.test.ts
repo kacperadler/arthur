@@ -13,17 +13,19 @@ const BUDGETS = {
 
 	"commit-rules": 184,
 
-	core: 7531,
+	core: 7532,
 
 	"core/testing": 405,
 
-	delivery: 2243,
+	delivery: 2246,
 
 	develop: 760,
 
 	discord: 977,
 
-	dokploy: 615,
+	docker: 393,
+
+	dokploy: 826,
 
 	findings: 276,
 
@@ -33,7 +35,7 @@ const BUDGETS = {
 
 	listen: 262,
 
-	machines: 535,
+	machines: 538,
 
 	manage: 1535,
 

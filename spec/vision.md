@@ -33,7 +33,7 @@ The `orchestration` plugin is the coordinator: one interactive `omp` in its own 
 | Option | Does |
 | --- | --- |
 | `maxAgents` | The most jobs running at once, across all projects and machines together. Enforced, not only a rule in the prompt. With `resources` on it is the upper bound: fewer start when the machines' free resources say so. |
-| `coordinator`, `roles` | Model and thinking level of the coordinator, of each project agent (`roles.project`) and of each role (worker, reviewer, planner, auditor, retro, onboarding), and the quick model; the coordinator's tmux session and restart timing. |
+| `coordinator`, `roles` | Model and thinking level of the coordinator, of each project agent (`roles.project`) and of each role (worker, reviewer, planner, plan-reviewer, auditor, retro, pyramid, onboarding), and the quick model; the coordinator's tmux session and restart timing. |
 | `plan` | The budget of a plan for a large ticket (planner role, plan review). |
 | `autopilot` | The budget of a pre-approved job and its cap. |
 | `morningReport` | When the morning report is sent; registers a schedule entry. |
@@ -74,7 +74,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | findings (named) | first | The `findings.md` format, and what happens to a merged ticket's open findings, per project: a planning ticket each, one per merged ticket, or a summary for the client; `/findings`. |
 | commit-rules (named) | first | Each project's commit format, set by a regex, a plain-words rule, or a path to a Markdown file that describes it. Below. |
 | youtrack (named) | first | One entry per server; reads and writes issues, comments, articles, work items. |
-| dokploy (named) | first | One entry per Dokploy server of the owner, its address in the config (https, or http on a private or Tailscale address) and its API key in a variable, never in a chat; a project names its server and application in its piece. `arthur dokploy` reads projects, applications and deployments, and uploads a file or folder or starts a deploy only on the owner's word; the coordinator only, never a job. Setup: `packages/dokploy/docs/dokploy.md`. |
+| dokploy (named) | first | One entry per Dokploy server of the owner, its address in the config (https, or http on a private or Tailscale address) and its API key in a variable, never in a chat; a project names its server and application in its piece. `arthur dokploy` reads projects, applications and deployments, and uploads a file or folder, starts a deploy, or creates an app and sets its build type, domain, volume and env (`create`, `setup`, `env`) only on the owner's word; the coordinator only, never a job. Setup: `packages/dokploy/docs/dokploy.md`. |
 | telegram (named) | first | A channel: receive, send text, send media. Follows the coordinator's silent mode (`/silent`, roadmap 47): while it is on, sends only the end of the work the owner delegated, its stop condition met, a decision, and the answer to his own message. |
 | discord (named) | first | A channel, through Discord's gateway: an outbound WebSocket, no Interactions Endpoint URL. One private server: a main channel for the coordinator and one channel per project; the bot answers only the owner. The channel the owner uses (decision 21). |
 | listen (named) | first | Local transcription with whisper.cpp: claims every `voice` and `audio` part from any channel, on the CPU, nothing sent to the cloud; `listen.transcribe` and `arthur transcribe` give any file's transcript with the time of each segment. |
@@ -84,6 +84,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | github (derived) | first | Polls CI runs and pull requests, wakes the coordinator. |
 | manage (named: managing Arthur) | first | The audit, the retro, health, prune. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |
 | stats (named) | first | The tokens, cost at list price and time of every job and of the coordinator, per role, ticket, project, model and day. `arthur stats`, `/stats` and the morning report's Spend; manage's merged-ticket report as `arthur stats tickets`; each Claude usage window beside what each role spent in its span, an estimate marked `≈`. Roadmap 108 to 112. |
+| activity (named) | first | Who did what: one file per day, each line naming its actor (a user on a channel or the terminal, the coordinator, a job, a plugin, Arthur) and the messages it acted on; text cut at 300 characters and days kept 90 by default, forwarded words and media paths left out, never committed. `arthur log` and `/log` read it. Roadmap 99 to 101. |
 | herdr (named) | first | Each job a tab in herdr on this server, running `arthur jobs --follow`, its state in herdr's sidebar; a tab for `arthur attach`; nothing listens. Roadmap 115. |
 | develop (named: developing Arthur) | first | A command that creates a plugin, evals of the coordinator's turns. |
 | docker (named) | first | Labels the Docker resources a job creates with its id and removes them with its worktree, on every machine; keeps the build cache under a cap; a daily sweep of leftovers. Below. |

@@ -41,3 +41,4 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0677 approved; the owner: "AR-D604 - approve" (AR-D604)
+- 2026-11-10: Merge AR0677; the owner: "AR-D626: merge" (AR-D626)

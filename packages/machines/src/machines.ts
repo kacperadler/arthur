@@ -6,10 +6,11 @@ import { checkOptions, type Labels, type MachineEntry, type MachinesOptions } fr
 import { labelsProblem, labelsText, placement } from "./machine-place.ts";
 
 // The machines plugin (spec/roadmap.md, entries 30 and 31): the machines of the `list` option, each registered with the core's
-// job runner; `local`'s labels; each machine checked at start and every `check.everySeconds` (machine-check.ts), its changes
-// emitted as `machine-online` and `machine-offline`, each round handed to `collect("machines.round")` as it begins, whose
-// answers name the paths each check's df reads; each job placed by labels (machine-place.ts); `arthur machines` and
-// `/machines`; a doctor requirement per machine, `local` only with tools labels; a project's piece, the labels its jobs need.
+// job runner; `local`'s labels, and each machine's as `machines.labels`; each machine checked at start and every
+// `check.everySeconds` (machine-check.ts), its changes emitted as `machine-online` and `machine-offline`, each round handed to
+// `collect("machines.round")` as it begins, whose answers name the paths each check's df reads; each job placed by labels
+// (machine-place.ts); `arthur machines` and `/machines`; a doctor requirement per machine, `local` only with tools labels; a
+// project's piece, the labels its jobs need.
 // docs/commands/machines.md.
 
 export type { MachineEntry, MachinesOptions };
@@ -129,6 +130,8 @@ export function machines(options: MachinesOptions = {}): Plugin {
 			});
 			const seats = [{ name: "local", labels: localLabels, maxJobs: local.maxJobs }, ...list.map(({ name, labels = {}, maxJobs }) => ({ name, labels, maxJobs }))];
 			host.provide("jobs.place", placement(host, seats, checked));
+			// A machine's labels by its name, `local`'s with its detected `os` and `arch`; undefined for a name not listed.
+			host.provide("machines.labels", (name: string) => seats.find((seat) => seat.name === name)?.labels);
 			const overview = async () => {
 				const reports = await checked();
 				const jobs = host.jobs.list().filter((job) => job.state !== "ended");

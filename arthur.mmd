@@ -1,6 +1,5 @@
-%% What Arthur is built from, and what of it is built: the state of main on 2026-11-06.
+%% What Arthur is built from, and what of it is built.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29, 65, 96 and 97 of 23-29, 65, 96 and 97; projects has entries 41, 42 and 103 of 41-42 and 103; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 and 69 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entries 98 and 114 of 98 and 114; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 to 64 of 60-64; develop has entries 66 to 68 of 66-68; findings has entry 83 of 83; listen has entry 81 of 81; video has entry 102 of 102; discord has entries 89 and 90 of 89-90; dokploy has entry 113 of 113 (AR0588's reads and AR0603's upload and deploy); stats has entry 109 of 109-112; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -68,7 +67,7 @@ flowchart TD
         machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
         resources[resources<br/>caps per job and feature<br/>free CPU, memory, disk]
         models[models<br/>providers, fallback chain<br/>arthur usage]
-        docker[docker<br/>labels, cleanup, sweep]
+        docker[docker<br/>labels, the disk floor's data root<br/>cleanup with the worktree<br/>sweep planned]
         uptime[uptime<br/>client sites over HTTP<br/>down and up notices<br/>the coordinator's site-down runbook]
         machines ~~~ resources ~~~ models ~~~ docker ~~~ uptime
       end
@@ -83,7 +82,8 @@ flowchart TD
         manage[manage<br/>arthur health, /health, arthur stats, the daily prune<br/>the audit, the retro, arthur retro-due, /retro<br/>arthur repeats, /repeats]
         develop[develop<br/>arthur plugin new, arthur eval<br/>and its scenarios]
         stats[stats<br/>the tokens, cost and time of each job run<br/>and coordinator turn; its views planned]
-        manage ~~~ develop ~~~ stats
+        activity[activity<br/>who did what, one file per day<br/>its actor and the messages acted on<br/>arthur log, /log planned]
+        manage ~~~ develop ~~~ stats ~~~ activity
       end
     end
 
@@ -116,7 +116,7 @@ flowchart TD
     dk[(Dokploy servers)]
   end
 
-  subgraph LEGEND["Legend: state of main on 2026-11-06"]
+  subgraph LEGEND["Legend"]
     direction LR
     lbuilt[green: built<br/>merged, in packages/]
     lpartial[light green: partly built<br/>N of M entries merged]
@@ -150,10 +150,137 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings,resources,manage,orchestration,develop,listen,video,discord,dokploy built;
-  class lpartial,stats partial;
-  class lplanned,agents,docker,signal,slack,whatsapp,server,apps,knowledge,company planned;
-  class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites,dk outside;
+  %% One class line per node, in name order, a blank line after each: branches that change two nodes merge without a conflict, as do two that each add one when an existing node sorts between theirs.
+  class activity partial;
+
+  class agents planned;
+
+  class api built;
+
+  class apps planned;
+
+  class board built;
+
+  class clock built;
+
+  class commands built;
+
+  class commit built;
+
+  class company planned;
+
+  class dc outside;
+
+  class delivery built;
+
+  class develop built;
+
+  class discord built;
+
+  class dk outside;
+
+  class docker partial;
+
+  class dockerd outside;
+
+  class dokploy built;
+
+  class events built;
+
+  class files built;
+
+  class findings built;
+
+  class gh outside;
+
+  class github built;
+
+  class guards built;
+
+  class host built;
+
+  class human outside;
+
+  class kit built;
+
+  class knowledge planned;
+
+  class lbuilt built;
+
+  class listen built;
+
+  class loader built;
+
+  class loutside outside;
+
+  class lpartial partial;
+
+  class lplanned planned;
+
+  class machines built;
+
+  class manage built;
+
+  class models built;
+
+  class nvm built;
+
+  class omp outside;
+
+  class options built;
+
+  class orchestration built;
+
+  class parts built;
+
+  class projects built;
+
+  class prompts built;
+
+  class providers outside;
+
+  class remote outside;
+
+  class repos outside;
+
+  class resources built;
+
+  class run built;
+
+  class runner built;
+
+  class schedule built;
+
+  class server planned;
+
+  class session built;
+
+  class signal planned;
+
+  class sites outside;
+
+  class sl outside;
+
+  class slack planned;
+
+  class stats partial;
+
+  class telegram built;
+
+  class terminal built;
+
+  class tg outside;
+
+  class uptime built;
+
+  class video built;
+
+  class whatsapp planned;
+
+  class youtrack built;
+
+  class yt outside;
+
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999
   style CORE fill:#f2fbf2,stroke:#2d7a2d

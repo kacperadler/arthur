@@ -5203,9 +5203,9 @@
   {
     "id": "AR0646",
     "title": "Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0646-docker-w3-a-job-s-containers-networks-volumes-and-images-go-with-its-worktree/ticket.md",
-    "updated": "2026-11-11T11:25:35.624Z",
+    "updated": "2026-11-11T12:48:22.763Z",
     "after": [
       "AR0645"
     ]
@@ -5567,9 +5567,9 @@
   {
     "id": "AR0689",
     "title": "The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
-    "updated": "2026-11-11T10:44:28.338Z"
+    "updated": "2026-11-11T12:54:22.412Z"
   },
   {
     "id": "AR0690",

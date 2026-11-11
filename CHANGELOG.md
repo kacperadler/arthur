@@ -13,6 +13,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0679 The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603) (b76c2640)
 - AR0688 A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read (64195f9c)
+- AR0689 The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed (98cae6c0)
 
 ## 2026-11-10
 

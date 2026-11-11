@@ -215,14 +215,16 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0009 merged\nMerge AC0009: T AC0009");
 });
 
-test("--auto merges a role, criteria or vision file main's ticket names in its Scope before Out:; refuses one named nowhere, only under Out:, after the Scope or in the branch's own ticket, and a named workflow (a non-ASCII one too), package.json, lockfile, code file or other held *.md", async (t) => {
+test("--auto merges a role, criteria or vision file main's ticket names in its Scope before Out:; refuses one named nowhere, in a comment, only under Out: (indented too), after the Scope or in the branch's own ticket, and a named workflow (a non-ASCII one too), package.json, lockfile, code file or other held *.md", async (t) => {
 	const { worker, review, merge, answers, git, root } = await load(t);
 	const ticket = (n: number, text: string) => writeFileSync(join(root, `spec/features/AC000${n}-t/ticket.md`), `# AC000${n} - T\n\n\`\`\`json\n{ "id": "AC000${n}" }\n\`\`\`\n\n${text}`);
 	const prompts = [".agents/arthur/roles/worker.md", ".agents/arthur/criteria/review.md", "packages/shop/roles/coordinator.md", "packages/shop/criteria/review.md", "spec/vision.md"];
 	ticket(1, `## Scope\n\nIn:\n${prompts.map((path) => `- \`${path}\`: the new rules.\n`).join("")}\nOut:\n- the code\n\n## Decisions\n`);
-	ticket(2, "## Scope\n\nIn:\n- `.agents/arthur/criteria/review.md`\n");
-	const others = ["`.github/workflows/ci.yml`", "`.github/workflows/ż.yml`", "`packages/shop/package.json`", "`packages/shop/pnpm-lock.yaml`", "`packages/shop/roles/auto.ts`", "`.agents/skills/deploy.md`"].join(", ");
-	for (const n of [3, 4, 5, 6]) ticket(n, `## Scope\n\nIn:\n- ${others}\n`);
+	// A comment the rendered ticket hides names nothing, an unclosed one to the end of the file.
+	ticket(2, "## Scope\n\nIn:\n- `.agents/arthur/criteria/review.md`\n<!-- `.agents/arthur/roles/worker.md` -->\n- the code <!-- `spec/vision.md`\n");
+	const others = ["`.github/workflows/ci.yml`", "`.github/workflows/ż.yml`", "`packages/shop/package.json`", "`packages/shop/pnpm-lock.yaml`", "`.agents/skills/deploy.md`"].join(", ");
+	for (const n of [3, 4, 5]) ticket(n, `## Scope\n\nIn:\n- ${others}\n`);
+	ticket(6, "## Scope\n\nIn:\n- `packages/shop/roles/auto.ts`\n\n  Out:\n- `spec/vision.md`\n");
 	ticket(7, "## Scope\n\nIn:\n- the code\n\nOut:\n- `spec/vision.md`\n");
 	ticket(9, "## Scope\n\nIn:\n- the code\n\n## Decisions\n\n- `spec/vision.md` may change\n");
 	git(root, "add", "--all");
@@ -236,9 +238,12 @@ test("--auto merges a role, criteria or vision file main's ticket names in its S
 		[7, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
 		[8, { ".agents/arthur/roles/worker.md": "Use tabs.\n", "spec/features/AC0008-t/ticket.md": "# AC0008 - T\n\n## Scope\n\nIn:\n- `.agents/arthur/roles/worker.md`\n" }, ".agents/arthur/roles/worker.md", "a role"],
 		[9, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
-		// Tickets 3 and 4 again: a held *.md that is no role, criteria or vision file, and a workflow git would quote without -z.
+		// Again: a held *.md that is no role, criteria or vision file, a workflow git would quote without -z, a path under an
+		// indented Out:, one in an unclosed comment.
 		[3, { ".agents/skills/deploy.md": "# Deploy\n" }, ".agents/skills/deploy.md", "the always-review list"],
 		[4, { ".github/workflows/ż.yml": "on: push\n" }, ".github/workflows/ż.yml", "CI"],
+		[6, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
+		[2, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
 	];
 	for (const [n, changes, path, rule] of cases) {
 		const job = await worker(n, changes);

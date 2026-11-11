@@ -48,9 +48,9 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 	// A role, criteria or vision `*.md` main's ticket names in its Scope is the owner's word on it (AR0693); no package.json, lockfile or code goes in so.
 	const prompts = [...roles, vision, "**/criteria/**", `${entry?.prompts?.criteriaDir ?? CRITERIA_DIR}/**`];
 	const folder = job.tickets.flatMap((path) => FEATURE.exec(path)?.[1] ?? [])[0];
-	// Main's ticket, never the branch's copy, which it may have changed: the paths in backticks in its `## Scope` before `Out:`.
-	const scope = (folder ? git(root, "show", `${before}:${folder}/ticket.md`) : "").split(/^## Scope[ \t]*$/m)[1]?.split(/^## /m)[0]?.split(/^Out:/m)[0];
-	const named = new Set([...(scope ?? "").matchAll(/`([^`\n]+)`/g)].map((match) => match[1]));
+	// Main's ticket, not the branch's copy, read as autopilot.ts reads it: no `<!-- -->` (hidden when rendered; unclosed: to the end), before a trimmed `Out:`.
+	const text = (folder ? git(root, "show", `${before}:${folder}/ticket.md`) : "").replace(/<!--[\s\S]*?(?:-->|$)/g, "");
+	const named = new Set([...(text.split(/^## Scope[ \t]*$/m)[1]?.split(/^(?:## |\s*Out:)/m)[0] ?? "").matchAll(/`([^`\n]+)`/g)].map((match) => match[1]));
 	// Both names of a renamed file count; `-z` gives each name as it is, never quoted, so a non-ASCII one still meets its glob.
 	for (const path of git(root, "diff", "--no-renames", "--name-only", "-z", `${before}...${tip}`).split("\0").filter(Boolean)) {
 		if (path.endsWith(".md") && named.has(path) && prompts.some((glob) => matchesGlob(path, glob))) continue;

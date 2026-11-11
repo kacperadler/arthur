@@ -5577,5 +5577,12 @@
     "status": "planning",
     "path": "spec/features/AR0690-docker-buildx-with-its-own-options-before-build-docker-buildx-builder-x-build/ticket.md",
     "updated": "2026-11-11T07:03:46.522Z"
+  },
+  {
+    "id": "AR0691",
+    "title": "An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish",
+    "status": "planning",
+    "path": "spec/features/AR0691-an-automatic-restart-kills-a-running-merge-of-arthur-code-which-is-rolled-back/ticket.md",
+    "updated": "2026-11-11T07:06:35.442Z"
   }
 ]

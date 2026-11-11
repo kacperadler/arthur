@@ -5203,9 +5203,9 @@
   {
     "id": "AR0646",
     "title": "Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0646-docker-w3-a-job-s-containers-networks-volumes-and-images-go-with-its-worktree/ticket.md",
-    "updated": "2026-11-06T08:22:36.839Z",
+    "updated": "2026-11-11T11:25:35.624Z",
     "after": [
       "AR0645"
     ]

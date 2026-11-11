@@ -34,7 +34,7 @@ export type FakePull = {
 	comments?: FakeComment[];
 };
 export type FakeComment = { readonly id: number; readonly user: string; readonly body: string; readonly created?: string };
-export type Reply = { readonly status: number; readonly headers?: Readonly<Record<string, string>>; readonly body: unknown };
+export type Reply = { readonly status: number; readonly headers?: Readonly<Record<string, string>>; readonly body: unknown; readonly path?: string };
 
 export const DOCS = "https://docs.github.com/rest";
 const RATE = { "x-ratelimit-limit": "5000", "x-ratelimit-used": "1", "x-ratelimit-resource": "core" };
@@ -116,7 +116,7 @@ const shapedReview = (full: string, number: number, { id, user: login, state, bo
 
 // `runs[<owner>/<repo>/<workflow>]` newest first; `jobs[<run id>]` the jobs of its attempt, each with its log; `pulls[<owner>/<repo>]`
 // its pull requests, listed in that order by `state` (`open`, GitHub's default, `closed` or `all`), each with its reviews and
-// comments, every list paged by `per_page` (GitHub's default 30) and `page`; `next` replies once each, before anything else;
+// comments, every list paged by `per_page` (GitHub's default 30) and `page`; `next` replies once each, before anything else, one with a `path` only to a request it starts;
 // `always` replies to every request while set, `post` to every POST; `clock` is GitHub's clock less this machine's, in ms, as
 // its `date` header says it (null: no `date`); `slow` the ms an answer waits after its request, its body taken at the request.
 // A pull request created takes the next number, a comment the next id, each by octocat; `issues[<owner>/<repo>]` and
@@ -200,7 +200,8 @@ export async function fakeGithub(t: TestContext) {
 		};
 		const log = /^\/blob\/logs\/(\d+)$/.exec(path)?.[1];
 		if (log !== undefined) return void response.writeHead(200, { "content-type": "text/plain" }).end(Object.values(jobs).flat().find((each) => String(each.id) === log)?.log ?? "");
-		const reply = next.shift() ?? state.always ?? found() ?? { status: 404, body: { message: "Not Found", documentation_url: DOCS, status: "404" } };
+		const queued = next.findIndex((each) => each.path === undefined || path.startsWith(each.path));
+		const reply = (queued === -1 ? undefined : next.splice(queued, 1)[0]) ?? state.always ?? found() ?? { status: 404, body: { message: "Not Found", documentation_url: DOCS, status: "404" } };
 		const answer = () => {
 			response.sendDate = false;
 			const date = state.clock === null ? {} : { date: new Date(Date.now() + (state.clock ?? 0)).toUTCString() };

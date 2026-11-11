@@ -13,7 +13,7 @@ const BUDGETS = {
 
 	"commit-rules": 184,
 
-	core: 7529,
+	core: 7532,
 
 	"core/testing": 405,
 
@@ -21,7 +21,7 @@ const BUDGETS = {
 
 	develop: 760,
 
-	discord: 976,
+	discord: 977,
 
 	docker: 393,
 
@@ -51,7 +51,7 @@ const BUDGETS = {
 
 	schedule: 621,
 
-	session: 958,
+	session: 960,
 
 	stats: 200,
 
@@ -81,15 +81,23 @@ const FIXED_WAITS = {
 
 	"packages/orchestration/test/coordinator.test.ts": 5,
 
-	"packages/orchestration/test/inbox.test.ts": 3,
+	"packages/orchestration/test/hand-over.test.ts": 1,
+
+	"packages/orchestration/test/inbox.test.ts": 2,
 
 	"packages/orchestration/test/job-states.test.ts": 1,
 
 	"packages/resources/test/feature-caps.test.ts": 1,
 
-	"packages/session/test/restart.test.ts": 25,
+	"packages/session/test/compaction.test.ts": 2,
 
-	"packages/session/test/session.test.ts": 10,
+	"packages/session/test/restart-command.test.ts": 2,
+
+	"packages/session/test/restart.test.ts": 18,
+
+	"packages/session/test/service.test.ts": 5,
+
+	"packages/session/test/session.test.ts": 8,
 
 	"packages/session/test/start-notice.test.ts": 1,
 

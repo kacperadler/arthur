@@ -19,8 +19,6 @@ export type { UptimeOptions };
 export const BOILERPLATE = fileURLToPath(new URL("../roles/coordinator/site-down.md", import.meta.url));
 // A check is cut after this many seconds, or after the site's everySeconds when shorter, so two checks of a site never overlap.
 const LIMIT_SECONDS = 10;
-// How often the sites due for a check are looked for.
-const TICK_MS = 1000;
 // Failed checks in a row that make a site down.
 const FAILS = 2;
 
@@ -38,7 +36,8 @@ function runbook(site: Site): string {
 	return `the runbook ${BOILERPLATE} (the project's own, ${file}, is missing, not a regular file, or reached through a symlink)`;
 }
 
-export function uptime(options: UptimeOptions = {}): Plugin {
+// `second`: the ms of one second, its sites looked for once a second, shorter in a test only.
+export function uptime(options: UptimeOptions = {}, second = 1000): Plugin {
 	let [running, busy] = [false, false];
 	let timer: NodeJS.Timeout | undefined;
 	let [begin, round] = [() => {}, async () => {}];
@@ -52,7 +51,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 		setup(host) {
 			const listed = host.collect<readonly { readonly name: string; readonly folder: string; readonly pieces?: { readonly uptime?: Piece } }[]>("projects").flat();
 			const sites: Site[] = listed.flatMap(({ name: project, folder, pieces }) =>
-				(pieces?.uptime?.sites ?? []).map(({ url, expect, everySeconds = EVERY_SECONDS }) => ({ project, folder, runbook: pieces?.uptime?.runbook, url, expect, every: everySeconds * 1000, next: 0, fails: 0, reason: "" })),
+				(pieces?.uptime?.sites ?? []).map(({ url, expect, everySeconds = EVERY_SECONDS }) => ({ project, folder, runbook: pieces?.uptime?.runbook, url, expect, every: everySeconds * second, next: 0, fails: 0, reason: "" })),
 			);
 			const key = (site: Site) => `${site.project} ${site.url}`;
 			const probes = options.probes ?? PROBES;
@@ -76,12 +75,12 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 			};
 			const checkAll = (list: readonly Site[]) => {
 				for (const site of list) site.next = Date.now() + site.every;
-				return Promise.all(list.map((site) => checkSite(site.url, site.expect, Math.min(LIMIT_SECONDS, site.every / 1000))));
+				return Promise.all(list.map((site) => checkSite(site.url, site.expect, Math.min(LIMIT_SECONDS, site.every / second), second)));
 			};
 			// Whether a site not down yet fails its FAILS-th check in a row without an answer: the moment offline is told apart.
 			const reaching = (checked: readonly Site[], checks: readonly Check[]) =>
 				checked.some((site, at) => site.down === undefined && site.fails + 1 >= FAILS && failed(checks[at] as Check)?.answered === false);
-			const answered = async () => (await Promise.all(probes.map((url) => probe(url, LIMIT_SECONDS)))).includes(true);
+			const answered = async () => (await Promise.all(probes.map((url) => probe(url, LIMIT_SECONDS, second)))).includes(true);
 			const apply = (checked: readonly Site[], checks: readonly Check[]) => {
 				const at = host.clock.now();
 				checked.forEach((site, index) => {
@@ -105,7 +104,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 				save();
 			};
 			round = async () => {
-				const due = sites.filter((site) => site.next - Date.now() < TICK_MS / 2);
+				const due = sites.filter((site) => site.next - Date.now() < second / 2);
 				if (due.length === 0) return;
 				// While this machine is offline no site is asked: at each site's interval only the probes are, until one answers.
 				if (offline !== undefined) {
@@ -146,7 +145,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 				void round().finally(() => (busy = false));
 			};
 			look();
-			timer = setInterval(look, TICK_MS);
+			timer = setInterval(look, second);
 		},
 		stop() { running = false; clearInterval(timer); },
 	};

@@ -6,7 +6,7 @@ import { type TestContext, test } from "node:test";
 import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 
-// AR0665: who `arthur merge` asks for the owner's decision, held without its checks on main (merge.test.ts holds those).
+// AR0665: who `arthur merge` asks for the owner's decision, held without its checks on main (merge-steps.test.ts holds those).
 const PATH = process.env.PATH ?? "";
 const TICKET = "spec/features/AC0001-shop/ticket.md";
 const USAGE = "usage: arthur merge <job> (--auto | [--unreviewed] [--no-ci] --decision <id>)";

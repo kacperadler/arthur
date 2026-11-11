@@ -106,9 +106,9 @@ function host(sites: Sites, more: { readonly now?: Date; readonly quietHours?: {
 }
 
 // The plugin set up on `fake` with `options` and started; stopped at the end. Its checks run on real timers against a real
-// server: the timeout cut by `fetch` and the server's own time are what is tested.
-async function started(t: TestContext, sites: Sites, fake: FakeHost = host(sites), options: UptimeOptions = {}) {
-	const plugin = uptime(options);
+// server: the timeout cut by `fetch` and the server's own time are what is tested. `second` is the plugin's, 1000 ms unless given.
+async function started(t: TestContext, sites: Sites, fake: FakeHost = host(sites), options: UptimeOptions = {}, second?: number) {
+	const plugin = uptime(options, second);
 	await fake.setup(plugin);
 	await plugin.start?.();
 	t.after(() => plugin.stop?.());
@@ -342,7 +342,7 @@ test("each failure has its reason: a wrong status, the text missing, connection 
 
 test("this machine offline: no notice and no site down, one log line; no site requested, only the probes, a restart too; a probe answering resumes the checks silently", async (t) => {
 	// Both answer once, then a never answers and b's server is gone. b is due only every minute: it is asked again as a goes
-	// down, so both fail at once, and the probes with them.
+	// down, so both fail at once, and the probes with them. A second of the plugin's is 100 ms here.
 	const logs = t.mock.method(console, "log", () => {});
 	const said = () => logs.mock.calls.map((call) => String(call.arguments[0])).filter((line) => line.startsWith("uptime:"));
 	const [site, other] = [await server(t), await server(t)];
@@ -351,7 +351,7 @@ test("this machine offline: no notice and no site down, one log line; no site re
 	const [a, b] = [site.url("/a"), other.url("/b")];
 	const sites = { acme: [{ url: a, everySeconds: 1 }], beta: [{ url: b }] };
 	network.up = false;
-	const { fake, plugin, notices, events, woken } = await started(t, sites);
+	const { fake, plugin, notices, events, woken } = await started(t, sites, undefined, {}, 100);
 	await until("the first checks", () => site.seen("/a") === 1 && other.seen("/b") === 1);
 	site.answers["/a"] = hang;
 	other.close();
@@ -363,7 +363,7 @@ test("this machine offline: no notice and no site down, one log line; no site re
 	await until("the probes asked twice more", () => network.asked.length >= asked + 4);
 	assert.equal(site.seen("/a"), checks, "no site requested while offline");
 	await plugin.stop?.();
-	const restarted = await started(t, sites, fake);
+	const restarted = await started(t, sites, fake, {}, 100);
 	[checks, asked] = [site.seen("/a"), network.asked.length];
 	await until("the probes asked twice after the restart", () => network.asked.length >= asked + 4);
 	assert.equal(site.seen("/a"), checks, "no site requested after a restart while offline");
@@ -432,13 +432,14 @@ test("a probe with no answer is cut after 10 s, and none answering is this machi
 	site.answers["/"] = hang;
 	network.hang = true;
 	const logs = t.mock.method(console, "log", () => {});
-	const { notices } = await started(t, { acme: [{ url: site.url("/"), everySeconds: 1 }] }, undefined, { probes: ["https://probe.example/"] });
+	// A second of the plugin's is 200 ms here: its 10 s are 2000 ms.
+	const { notices } = await started(t, { acme: [{ url: site.url("/"), everySeconds: 1 }] }, undefined, { probes: ["https://probe.example/"] }, 200);
 	await until("the offline log line", () => logs.mock.callCount() === 1);
 	assert.match(String(logs.mock.calls[0]?.arguments[0]), /^uptime: none of the 1 sites answers, nor https:\/\/probe\.example\/, so this machine looks offline/);
 	assert.deepEqual(notices(), []);
-	// Within a timer's few ms early or late, never 10 ms short of the 10 s.
+	// Within a timer's few ms early or late, never 5 ms short of the 2000 ms, nor 100 ms past them.
 	assert.equal(network.cuts.length, 1);
-	assert.ok((network.cuts[0] ?? 0) >= 9_995 && (network.cuts[0] ?? 0) < 10_500, `cut after ${network.cuts[0]} ms`);
+	assert.ok((network.cuts[0] ?? 0) >= 1_995 && (network.cuts[0] ?? 0) < 2_100, `cut after ${network.cuts[0]} ms`);
 });
 
 test("one site with no answer while another answers is down, not offline", async (t) => {

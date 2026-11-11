@@ -5553,9 +5553,9 @@
   {
     "id": "AR0687",
     "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
-    "updated": "2026-11-11T09:06:56.554Z"
+    "updated": "2026-11-11T09:30:58.944Z"
   },
   {
     "id": "AR0688",
@@ -5567,9 +5567,9 @@
   {
     "id": "AR0689",
     "title": "The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
-    "updated": "2026-11-11T07:09:56.477Z"
+    "updated": "2026-11-11T09:09:20.704Z"
   },
   {
     "id": "AR0690",

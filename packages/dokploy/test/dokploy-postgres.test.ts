@@ -267,6 +267,9 @@ test("postgres backup schedules the database's backups to the destination of tha
 	const body = { postgresId: IDLE.id, destinationId: "dst-s3-main", schedule: "0 3 * * *", keepLatestCount: 7, enabled: true, prefix: "/", database: "shopdb", databaseType: "postgres", backupType: "database" };
 	assert.deepEqual(posts(main.seen), [["backup.create", body]]);
 	assert.deepEqual(leaks(done.out + done.err), []);
+	// The leak check holds only if SECRETS has the S3 keys the destinations' answer carries.
+	const answered = (await (await fetch(`${main.url}/api/destination.all`, { headers: { "x-api-key": TOKEN } })).json()) as { accessKey: string; secretAccessKey: string }[];
+	assert.deepEqual(answered.flatMap((each) => [each.accessKey, each.secretAccessKey]).filter((key) => !SECRETS.includes(key)), []);
 	main.seen.length = 0;
 	const again = await run("postgres", "backup", IDLE.id, "--destination", "s3-main", "--schedule", "0 3 * * *", "--keep", "7");
 	assert.deepEqual(again, { code: 0, out: "Postgres cache (pgIdle03) on instance (unnamed): backup bk3: 0 3 * * * to s3-main, keeps the latest 7, enabled: already set; nothing was sent", err: "" });

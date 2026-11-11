@@ -39,10 +39,10 @@ export function docker(options: DockerOptions = {}): Plugin {
 				appendFileSync(told, `${key}\n`);
 				host.events.emit("notice", { text });
 			};
+			host.jobs.prepare(dockerPrepare(host, labelled, once));
 			const [list = []] = host.collect<readonly Listed[]>("projects");
-			// A job of a project that has not set `docker.project(false)`, on a labelled machine.
+			// The cleanup's jobs, those the prepare gives a script: of a project that has not set `docker.project(false)`, on a labelled machine.
 			const ours = (job: { readonly project: string; readonly machine: string }) => list.find((project) => project.name === job.project)?.pieces?.docker !== false && labelled(job.machine) !== undefined;
-			host.jobs.prepare(dockerPrepare(host, ours, once));
 			host.jobs.cleanup(dockerCleanup(host, ours, String(options.buildCache ?? "10G")));
 			// Asked at every machine check, so a root once read is kept for this process.
 			const roots = new Map<string, string>();

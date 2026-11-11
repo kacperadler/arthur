@@ -16,19 +16,9 @@ export type Kind = "ps" | "network-ls" | "volume-ls" | "image-ls" | "system-df";
 type Row = Readonly<Record<string, unknown>>;
 // What the daemon holds: `info`'s fields; `host`, the context's endpoint; each listing's rows, and `volume inspect`'s. Beside
 // them what Docker keeps but those rows do not show: an image's labels (`k=v,k=v`) by its ID, the bytes of a container, volume or
-// image by its ID or name, the build cache's bytes. A `system-df` row given is printed as given, else the sizes are summed.
-export type State = {
-	readonly info: Row;
-	readonly host: string;
-	readonly rows: Readonly<Partial<Record<Kind, readonly Row[]>>>;
-	readonly volumes: readonly Row[];
-	readonly imageLabels?: Readonly<Record<string, string>>;
-	readonly sizes?: Readonly<Record<string, number>>;
-	readonly cache?: number;
-	// false: no buildx, so `docker builder prune` is the legacy builder's, which takes no `--max-used-space`.
-	readonly buildx?: false;
-	readonly crash?: string;
-};
+// image by its ID or name, the build cache's bytes; `buildx: false`, the legacy builder's `docker builder prune`, which takes no
+// `--max-used-space`. A `system-df` row given is printed as given, else the sizes are summed.
+export type State = { readonly info: Row; readonly host: string; readonly rows: Readonly<Partial<Record<Kind, readonly Row[]>>>; readonly volumes: readonly Row[]; readonly imageLabels?: Readonly<Record<string, string>>; readonly sizes?: Readonly<Record<string, number>>; readonly cache?: number; readonly buildx?: false; readonly crash?: string };
 
 export const VERSION = "29.9.2";
 const STATE: State = { info: { DockerRootDir: "/var/lib/docker", SecurityOptions: ["name=seccomp,profile=builtin", "name=cgroupns"], ServerVersion: VERSION, Warnings: null }, host: "unix:///var/run/docker.sock", rows: {}, volumes: [] };

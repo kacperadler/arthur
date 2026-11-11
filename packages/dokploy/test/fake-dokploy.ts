@@ -42,13 +42,19 @@ export type FakeApp = {
 	readonly autoDeploy?: boolean | null;
 	readonly watchPaths?: readonly string[] | null;
 	readonly enableSubmodules?: boolean;
+	readonly serverId?: string;
+	readonly detachDokployNetwork?: boolean;
+	readonly networkSwarm?: readonly { readonly Target: string }[];
 };
 // A GitHub app of Dokploy (Settings, Git providers): its id, its name, and the repositories its installation sees, each with
 // its branches.
 export type FakeGithub = { readonly id: string; readonly name: string; readonly repositories: readonly { readonly owner: string; readonly name: string; readonly branches: readonly string[] }[] };
-// What a procedure answers in place of its own: a status and body, a redirect to `location`, no answer at all, text that is not
-// JSON, or no body at all under the status `empty`.
-export type Scripted = { readonly status: number; readonly body: unknown } | { readonly redirect: string } | { readonly empty: number } | "hang" | "not-json";
+// A Postgres of Dokploy in an app's project and environment; left out: user and database `postgres`, image `postgres:18`, the
+// password `pgS3cr3tKeptPassw0rd`, no server and no backup.
+export type FakePostgres = { readonly id: string; readonly name: string; readonly project: string; readonly environment: string; readonly appName: string; readonly status: "idle" | "running" | "done" | "error"; readonly password?: string; readonly user?: string; readonly database?: string; readonly image?: string; readonly serverId?: string; readonly backups?: readonly { readonly id: string; readonly schedule: string; readonly destination: string; readonly keep: number | null; readonly enabled: boolean | null }[] };
+// What a procedure answers in place of its own: a status and body, one made from the request's body, a redirect to `location`,
+// no answer at all, text that is not JSON, or no body at all under the status `empty`.
+export type Scripted = { readonly status: number; readonly body: unknown } | ((sent: Sent | undefined) => { readonly status: number; readonly body: unknown }) | { readonly redirect: string } | { readonly empty: number } | "hang" | "not-json";
 // A request's body as Dokploy's REST handler reads it: JSON only under exactly `application/json` (co-body), a form under
 // `multipart/form-data` (Request.formData), else nothing; `fields` its JSON keys or form fields, `files` a form's files.
 export type Sent = { readonly fields: Readonly<Record<string, unknown>>; readonly files: Readonly<Record<string, { readonly name: string; readonly type: string; readonly bytes: Buffer }>> };
@@ -79,6 +85,44 @@ const mountRecord = (app: FakeApp, mount: NonNullable<FakeApp["mounts"]>[number]
 	...{ mountId: `mnt-${app.id}-${index}`, type: mount.type, hostPath: null, volumeName: mount.volumeName ?? null, filePath: null, content: null, serviceType: "application", mountPath: mount.mountPath },
 	...{ applicationId: app.id, composeId: null, libsqlId: null, mariadbId: null, mongoId: null, mysqlId: null, postgresId: null, redisId: null },
 });
+
+// A Postgres as `postgres.create` answers it: every column of the postgres table, its password included.
+const postgresRecord = (db: FakePostgres) => ({
+	...{ postgresId: db.id, name: db.name, appName: db.appName, databaseName: db.database ?? "postgres", databaseUser: db.user ?? "postgres", databasePassword: db.password ?? "pgS3cr3tKeptPassw0rd" },
+	...{ description: null, dockerImage: db.image ?? "postgres:18", command: null, args: null, env: null, memoryReservation: null, externalPort: null, memoryLimit: null, cpuReservation: null, cpuLimit: null },
+	...{ applicationStatus: db.status, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null, rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null },
+	...{ networkSwarm: null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, createdAt: `${DAY}T08:00:00.000Z`, environmentId: environmentId(db.project, db.environment) },
+	...{ serverId: db.serverId ?? null, networkIds: [], detachDokployNetwork: false },
+});
+// Where Postgres keeps its data (getMountPath at v0.30.10): from version 18 under its version's folder.
+const dataPath = (image: string) => ((version) => (version >= 18 ? `/var/lib/postgresql/${version}/docker` : "/var/lib/postgresql/data"))(Number(/postgres:(\d+)/.exec(image)?.[1] ?? 0));
+// `postgres.one` (findPostgresById): the record, its environment with its project, the data volume `postgres.create` mounts,
+// no server, and its backups, each with its destination minus its keys and its deployments.
+function postgresOne(db: FakePostgres) {
+	const record = postgresRecord(db);
+	const mount = { mountId: `mnt-${db.id}`, type: "volume", hostPath: null, volumeName: `${db.appName}-data`, filePath: null, content: null, serviceType: "postgres", mountPath: dataPath(record.dockerImage) };
+	const owners = { applicationId: null, composeId: null, libsqlId: null, mariadbId: null, mongoId: null, mysqlId: null, postgresId: db.id, redisId: null };
+	const backups = (db.backups ?? []).map((backup) => ({
+		...{ backupId: backup.id, appName: `backup-${backup.id}`, schedule: backup.schedule, enabled: backup.enabled, database: record.databaseName, prefix: "/", serviceName: null },
+		...{ destinationId: `dst-${backup.destination}`, keepLatestCount: backup.keep, includeEncryptionKey: true, backupType: "database", databaseType: "postgres", composeId: null, postgresId: db.id },
+		...{ mariadbId: null, mysqlId: null, mongoId: null, libsqlId: null, userId: "user-1", metadata: null, deployments: [] },
+		destination: {
+			...{ destinationId: `dst-${backup.destination}`, name: backup.destination, provider: "AWS", bucket: "acme-backups", region: "eu-central-1", endpoint: "https://s3.eu-central-1.amazonaws.com" },
+			...{ additionalFlags: [], organizationId: "org-1", createdAt: `${DAY}T08:00:00.000Z` },
+		},
+	}));
+	const environment = { ...environmentRecord(db.project, db.environment), project: projectRecord(db.project) };
+	return { ...record, environment, mounts: [{ ...mount, ...owners }], server: null, backups };
+}
+// `environment.one` (findEnvironmentById) as an owner reads it: the environment's columns, its services' few columns and its
+// project; the services of other kinds none.
+function environmentOne(place: { readonly project: string; readonly environment: string }, apps: readonly FakeApp[], databases: readonly FakePostgres[]) {
+	const here = (each: { readonly project: string; readonly environment: string }) => each.project === place.project && each.environment === place.environment;
+	const { createdAt: _, ...columns } = environmentRecord(place.project, place.environment);
+	const applications = apps.filter(here).map((app) => ({ name: app.name, applicationId: app.id, createdAt: `${DAY}T08:00:00.000Z`, applicationStatus: app.status, description: null, serverId: app.serverId ?? null, icon: null, server: null }));
+	const postgres = databases.filter(here).map((db) => ({ postgresId: db.id, name: db.name, description: null, createdAt: `${DAY}T08:00:00.000Z`, applicationStatus: db.status, serverId: db.serverId ?? null, server: null }));
+	return { ...columns, applications, mariadb: [], mongo: [], mysql: [], postgres, redis: [], compose: [], libsql: [], project: projectRecord(place.project) };
+}
 
 // GitHub's own repository and branch, as docs.github.com's examples show them (github-examples.json), named as the fake's.
 const GITHUB = JSON.parse(readFileSync(new URL("github-examples.json", import.meta.url), "utf8")) as { repository: { owner: object }; branch: object };
@@ -115,9 +159,9 @@ function applicationRecord(app: FakeApp, githubs: readonly FakeGithub[] = []) {
 		...{ dockerContextPath: app.dockerContextPath ?? null, dockerBuildStage: null, dropBuildPath: app.dropBuildPath ?? null, healthCheckSwarm: null, restartPolicySwarm: null, placementSwarm: null, updateConfigSwarm: null },
 		...{ rollbackConfigSwarm: null, modeSwarm: null, labelsSwarm: null, networkSwarm: null, stopGracePeriodSwarm: null, endpointSpecSwarm: null, ulimitsSwarm: null, replicas: 1, applicationStatus: app.status },
 		...{ buildType: app.buildType ?? "nixpacks", railpackVersion: "0.2.2", herokuVersion: "24", publishDirectory: null, isStaticSpa: null, createEnvFile: true, createdAt: `${DAY}T08:00:00.000Z`, registryId: null },
-		...{ rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment), githubId: app.githubId ?? null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: null },
+		...{ rollbackRegistryId: null, environmentId: environmentId(app.project, app.environment), githubId: app.githubId ?? null, gitlabId: null, giteaId: null, bitbucketId: null, serverId: app.serverId ?? null },
 		...{ buildServerId: null },
-		...{ buildRegistryId: null, networkIds: [], detachDokployNetwork: false },
+		...{ buildRegistryId: null, networkIds: [], detachDokployNetwork: app.detachDokployNetwork ?? false },
 		environment: { ...environmentRecord(app.project, app.environment), project: projectRecord(app.project) },
 		domains: (app.domains ?? []).map((domain, index) => domainRecord(app, domain, index)),
 		deployments: (app.deployments ?? []).map((deployment, index) => deploymentRecord(app, deployment, index)),
@@ -125,6 +169,8 @@ function applicationRecord(app: FakeApp, githubs: readonly FakeGithub[] = []) {
 		...{ redirects: [], security: [], ports: [], gitlab: null, github: github === undefined ? null : githubRecord(github), bitbucket: null, gitea: null, server: null, previewDeployments: [] },
 		...{ registry: null, buildRegistry: null, rollbackRegistry: null },
 		...{ hasGitProviderAccess: true, unauthorizedProvider: null },
+		// The swarm networks the app was given in the panel, which take the place of dokploy-network.
+		...(app.networkSwarm === undefined ? {} : { networkSwarm: app.networkSwarm }),
 	};
 }
 
@@ -155,15 +201,16 @@ function documentedRecord(apps: readonly FakeApp[]) {
 
 // tRPC's error as Dokploy's REST handler sends it (@dokploy/trpc-openapi): its shape, with Dokploy's errorFormatter's `zodError`.
 export const trpcError = (status: number, code: string, message: string, path: string) => ({ status, body: { message, code, data: { code, httpStatus: status, path, zodError: null } } });
-// The same for input zod refuses: `issues`, and errorFormatter's flattened `zodError`, naming each field.
-const inputError = (path: string, fields: readonly string[]) => {
+// The same for input zod refuses: `issues`, and errorFormatter's flattened `zodError`, naming each field and what zod said of it.
+const inputError = (path: string, fields: readonly string[], message = "Required") => {
 	const { body } = trpcError(400, "BAD_REQUEST", "Input validation failed", path);
-	const fieldErrors = Object.fromEntries(fields.map((each) => [each, ["Required"]]));
-	return { ...body, data: { ...body.data, zodError: { formErrors: [], fieldErrors } }, issues: fields.map((each) => ({ code: "invalid_type", expected: "string", received: "undefined", path: [each], message: "Required" })) };
+	const fieldErrors = Object.fromEntries(fields.map((each) => [each, [message]]));
+	return { ...body, data: { ...body.data, zodError: { formErrors: [], fieldErrors } }, issues: fields.map((each) => ({ code: "invalid_type", expected: "string", received: "undefined", path: [each], message })) };
 };
 
 // What each write's input requires (apiCreateApplication, apiSaveBuildType, apiSaveEnvironmentVariables, apiCreateDomain,
-// apiCreateMount, apiSaveGithubProvider, apiUpdateApplication at v0.30.10); `applicationId` or `serviceId` names the app it changes.
+// apiCreateMount, apiSaveGithubProvider, apiUpdateApplication, apiCreatePostgres, apiDeployPostgres at v0.30.10); `applicationId`
+// or `serviceId` names the app it changes.
 const REQUIRED: Readonly<Record<string, readonly string[]>> = {
 	"application.deploy": ["applicationId"],
 	"application.dropDeployment": ["applicationId", "zip"],
@@ -175,6 +222,8 @@ const REQUIRED: Readonly<Record<string, readonly string[]>> = {
 	"domain.validateDomain": ["domain"],
 	"application.saveGithubProvider": ["applicationId", "repository", "owner", "buildPath", "githubId", "branch", "triggerType"],
 	"application.update": ["applicationId"],
+	"postgres.create": ["name", "databaseName", "databaseUser", "databasePassword", "environmentId"],
+	"postgres.deploy": ["postgresId"],
 };
 // What `domain.validateDomain` answers (validateDomain at v0.30.10): a host under `.invalid` does not resolve, one starting
 // `elsewhere.` resolves to another server, any other to this one.
@@ -224,13 +273,13 @@ export function readZip(zip: Buffer): { readonly name: string; readonly method: 
 	return entries;
 }
 
-// The fake, with `apps` on it, `empty` projects without any, and `githubs`, its GitHub apps; `form` the `project.all` it
-// answers; `scripted` what a procedure answers instead of its own, changed by a test as it goes. `seen`: every request, in
-// order; `live`: the apps as the writes left them.
-export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeApp[], empty = [] as readonly string[], githubs = [] as readonly FakeGithub[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {}) {
-	const [seen, scripted, live] = [[] as Seen[], new Map<string, Scripted>(), [...apps]];
-	// Each environment's id, and its project and name, so `application.create` can place the app it makes.
-	const places = new Map([...apps.map((app) => [app.project, app.environment]), ...empty.map((name) => [name, "production"])].map(([project = "", name = ""]) => [environmentId(project, name), { project, environment: name }]));
+// The fake, with `apps` on it, `empty` projects without any, `githubs`, its GitHub apps, and `databases`, its Postgres; `form`
+// the `project.all` it answers; `scripted` what a procedure answers instead of its own, changed by a test as it goes. `seen`:
+// every request, in order; `live` and `postgres`: the apps and the databases as the writes left them.
+export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeApp[], empty = [] as readonly string[], githubs = [] as readonly FakeGithub[], databases = [] as readonly FakePostgres[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {}) {
+	const [seen, scripted, live, postgres] = [[] as Seen[], new Map<string, Scripted>(), [...apps], [...databases]];
+	// Each environment's id, and its project and name, so `application.create` and `postgres.create` can place what they make.
+	const places = new Map([...[...apps, ...databases].map((each) => [each.project, each.environment]), ...empty.map((name) => [name, "production"])].map(([project = "", name = ""]) => [environmentId(project, name), { project, environment: name }]));
 	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
 	const fake = createServer(async (request: IncomingMessage, response: ServerResponse) => {
 		const url = new URL(request.url ?? "/", "http://localhost");
@@ -242,6 +291,7 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 		const procedure = url.pathname.replace(/^.*\/api\//, "");
 		const script = scripted.get(procedure);
 		if (script === "hang") return;
+		if (typeof script === "function") return ((answer) => send(response, answer.status, answer.body))(script(sent));
 		if (script === "not-json") return response.writeHead(200, { "Content-Type": "text/html" }).end("<!DOCTYPE html><title>Dokploy</title>");
 		if (script !== undefined && typeof script === "object" && "empty" in script) return response.writeHead(script.empty).end();
 		if (script !== undefined && "redirect" in script) return response.writeHead(302, { Location: script.redirect }).end();
@@ -265,6 +315,14 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 			if (repository === undefined) return send(response, 500, trpcError(500, "INTERNAL_SERVER_ERROR", "Not Found - https://docs.github.com/rest/branches/branches#list-branches", procedure).body);
 			return send(response, 200, repository.branches.map((name) => ({ ...GITHUB.branch, name })));
 		}
+		if (procedure === "environment.one") {
+			const place = places.get(url.searchParams.get("environmentId") ?? "");
+			if (place === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Environment not found", procedure).body);
+			return send(response, 200, environmentOne(place, live, postgres));
+		}
+		const database = postgres.findIndex((each) => each.id === (sent?.fields.postgresId ?? url.searchParams.get("postgresId")));
+		const db = postgres[database];
+		if (procedure === "postgres.one") return db === undefined ? send(response, 404, trpcError(404, "NOT_FOUND", "Postgres not found", procedure).body) : send(response, 200, postgresOne(db));
 		const required = request.method === "POST" && Object.hasOwn(REQUIRED, procedure) ? REQUIRED[procedure] : undefined;
 		if (required === undefined || sent === undefined) return send(response, 404, { message: "Not found", code: "NOT_FOUND" });
 		// Each write answers when it is done or queued: `deploy` with no body (its procedure returns nothing), `dropDeployment`
@@ -280,6 +338,25 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 			const made: FakeApp = { id: `kXx3new${live.length}`, name: String(fields.name), status: "idle", ...place, sourceType: "github", dockerfile: "Dockerfile", env: null };
 			live.push(made);
 			return send(response, 200, Object.fromEntries(Object.entries(applicationRecord(made)).filter(([key]) => !RELATED.includes(key))));
+		}
+		if (procedure === "postgres.create") {
+			const place = places.get(String(fields.environmentId));
+			if (place === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Environment not found", procedure).body);
+			// apiCreatePostgres holds the password to DATABASE_PASSWORD_REGEX (schema/utils.ts).
+			const message = "Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility";
+			if (!/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/.test(String(fields.databasePassword))) return send(response, 400, inputError(procedure, ["databasePassword"], message));
+			// buildAppName("postgres") without an appName: generateAppName's hacker words and a nanoid of 6.
+			const appName = `postgres-parse-online-pixel-${`k7m2q${postgres.length + 1}`.slice(-6)}`;
+			const [server, image] = [typeof fields.serverId === "string" ? { serverId: fields.serverId } : {}, typeof fields.dockerImage === "string" ? fields.dockerImage : "postgres:18"];
+			const made: FakePostgres = { id: `pgNew${postgres.length}`, name: String(fields.name), ...place, appName, status: "idle", password: String(fields.databasePassword), user: String(fields.databaseUser), database: String(fields.databaseName), image, ...server };
+			postgres.push(made);
+			return send(response, 200, postgresRecord(made));
+		}
+		if (procedure === "postgres.deploy") {
+			if (db === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Postgres not found", procedure).body);
+			// deployPostgres answers the record it read before the deploy, then marks it done.
+			postgres[database] = { ...db, status: "done" };
+			return send(response, 200, postgresOne(db));
 		}
 		if (app === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Application not found", procedure).body);
 		if (procedure === "application.deploy") return response.writeHead(200, { "Content-Type": "application/json" }).end();
@@ -310,5 +387,5 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 		fake.closeAllConnections();
 		fake.close();
 	});
-	return { url: `http://127.0.0.1:${(fake.address() as AddressInfo).port}`, seen, scripted, live };
+	return { url: `http://127.0.0.1:${(fake.address() as AddressInfo).port}`, seen, scripted, live, postgres };
 }

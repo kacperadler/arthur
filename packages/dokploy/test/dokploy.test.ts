@@ -16,7 +16,7 @@ import { type FakeDeployment, fakeDokploy, readZip, SECRETS, type Seen, TOKEN, t
 // v0.30.10, `client` as the documentation's example. docs/commands/dokploy.md.
 
 const CLIENT_TOKEN = "cl1entT0kenN3verPr1ntedcl1entT0kenN3verPr1ntedcl1entT0kenN3verPr1nt";
-const USAGE = "usage: arthur dokploy apps|app [<app>]|status [<app>]|upload [<app>] <file or folder> [--replace-source]|deploy [<app>]|create <name> --dokploy-project <name> [--environment <name>]|setup <app> [--dockerfile <path>] [--context <path>] [--domain <host> --port <n>] [--volume <name>:<path>]|env <app> names|env <app> set <NAME> <value>|source <app> --repo <owner>/<name> --branch <branch> [--build-path <path>] [--github <name>] [--replace-source], each [--instance <name>]; --project <name> for another project than the main one";
+const USAGE = "usage: arthur dokploy apps|app [<app>]|status [<app>]|upload [<app>] <file or folder> [--replace-source]|deploy [<app>]|create <name> --dokploy-project <name> [--environment <name>]|setup <app> [--dockerfile <path>] [--context <path>] [--domain <host> --port <n>] [--volume <name>:<path>]|env <app> names|env <app> set <NAME> <value>|source <app> --repo <owner>/<name> --branch <branch> [--build-path <path>] [--github <name>] [--replace-source]|postgres create <app> <name> [--version <n>] [--env <NAME>]|postgres status <postgres>, each [--instance <name>]; --project <name> for another project than the main one";
 const NOTHING = "nothing was asked of Dokploy";
 const ENV = { ARTHUR_DOKPLOY_TOKEN: TOKEN, ARTHUR_DOKPLOY_CLIENT_TOKEN: CLIENT_TOKEN };
 
@@ -186,6 +186,8 @@ test("wrong usage prints the usage line and exits 2, asking nothing", async (t) 
 	wrong.push(["create"], ["create", "--dokploy-project", "Shop"], ["create", "Web"], ["create", "Web", "x", "--dokploy-project", "Shop"], ["create", "Web", "--dokploy-project", "-x"], ["create", "Web", "--dokploy-project", "Shop", "--dokploy-project", "Shop"]);
 	wrong.push(["setup"], ["setup", "kXx3"], ["setup", "kXx3", "--instance", "client"], ["setup", "kXx3", "--domain", "a.example"], ["setup", "kXx3", "--port", "80"], ["setup", "kXx3", "--volume", "a:/a", "--volume", "b:/b"], ["setup", "kXx3", "--environment", "x"], ["setup", "--context", "."]);
 	wrong.push(["env", "kXx3"], ["env", "kXx3", "names", "x"], ["env", "kXx3", "set", "A"], ["env", "kXx3", "set", "A", "1", "2"], ["env", "kXx3", "get", "A"], ["env", "-x", "names"], ["env", "kXx3", "set", "-A", "1"], ["app", "--dockerfile", "Dockerfile"], ["deploy", "--dokploy-project", "Shop"], ["upload", "dist", "--volume", "a:/a"]);
+	// AR0681: env with another word where names or set goes, as many words as either takes.
+	wrong.push(["env", "kXx3", "get"], ["env", "kXx3", "get", "A", "1"]);
 	for (const args of wrong) assert.deepEqual(await run(undefined, ...args), { code: 2, out: "", err: USAGE }, args.join(" "));
 	assert.deepEqual([main.seen, client.seen], [[], []]);
 });

@@ -5,7 +5,7 @@ import { checkOptions } from "./dokploy-options.ts";
 
 // The dokploy plugin (AR0588): the owner's Dokploy servers as instances, each project's `dokploy.project({ instance?, app })`
 // picking one and its application; `arthur dokploy` reads them, and uploads or deploys (AR0603), creates and sets up an app
-// (AR0654) and connects it to its GitHub repository (AR0680) on the owner's word:
+// (AR0654), connects it to its GitHub repository (AR0680) and makes a Postgres beside it (AR0681) on the owner's word:
 // docs/commands/dokploy.md. The coordinator only: the command runs in no job. It needs the project list: `projects` first.
 
 export type InstanceOptions = { readonly name?: string; readonly url: string; readonly tokenEnv: string };

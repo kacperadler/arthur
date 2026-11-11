@@ -78,6 +78,18 @@ test("every route of the fake Dokploy answers with the keys the documentation's 
 	);
 });
 
+// tRPC's error body names the status it went with (data.httpStatus), as the HTTP status of the answer.
+test("each Postgres route's not-found answers 404 and says 404 in its body", async (t) => {
+	const current = await fakeDokploy(t);
+	const ask = async (path: string, body?: unknown) => {
+		const response = await fetch(new URL(path, current.url), { method: body === undefined ? "GET" : "POST", headers: { "x-api-key": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+		return [response.status, (await response.json()).data.httpStatus];
+	};
+	const create = { name: "db", environmentId: "env-gone", databaseName: "postgres", databaseUser: "postgres", databasePassword: "a1b2" };
+	const answers = [await ask("/api/environment.one?environmentId=env-gone"), await ask("/api/postgres.one?postgresId=pg-gone"), await ask("/api/postgres.create", create), await ask("/api/postgres.deploy", { postgresId: "pg-gone" })];
+	assert.deepEqual(answers, [[404, 404], [404, 404], [404, 404], [404, 404]]);
+});
+
 test("the comparison names a key the fake leaves out, one it adds, a list or object answered as something else, at any depth and in any item, and takes null for any shape", () => {
 	const shape = { id: null, environment: { name: null }, domains: [{ host: null }], github: { owner: null } };
 	assert.deepEqual(drift({ id: 1, environment: { name: "a" }, domains: [{ host: "x" }], github: null }, shape), []);

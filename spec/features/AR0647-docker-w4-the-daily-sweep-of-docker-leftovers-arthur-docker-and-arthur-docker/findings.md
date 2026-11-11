@@ -26,7 +26,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: fix
 - Found by: 2026-11-11-review-7ad0a87d (review), 2026-11-11
-- Where: `packages/docker/src/docker-sweep.ts:124`
+- Where: `packages/docker/src/docker-sweep.ts:123`
 - What: `sweep` takes each machine's lock with `queueLock(..., WAIT_MS)` outside the `try` that turns a machine's failure into its line, so a lock another process holds past 12 minutes rejects the whole call: the daily sweep stops before the other machines and sends no notice. The comment above `sweep` says so.
 - Suggestion: take the lock inside the `try`, so a wait that runs out is that machine's line (`<machine>: the sweep failed: <lock path>: held by pid <pid> for over 720 s`), and pass `WAIT_MS` in so a test can hold the lock for a moment instead of 12 minutes.
 - Status: open

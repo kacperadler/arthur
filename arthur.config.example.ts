@@ -299,8 +299,9 @@ export default defineConfig({
 		// ARTHUR_DOKPLOY_TOKEN, `client`'s in ARTHUR_DOKPLOY_CLIENT_TOKEN. `url` is https, or http on loopback, a private or a
 		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments,
 		// `upload|deploy` sends an app a file or folder or starts its deploy, `create|setup|env` creates an app and sets its
-		// build type, domain, volume and env, and `source` connects an app to its GitHub repository, on the owner's word, the
-		// coordinator only; a project's app is its `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
+		// build type, domain, volume and env, `source` connects an app to its GitHub repository, and `postgres create` makes
+		// a Postgres beside an app, its URL in the app's env, on the owner's word, the coordinator only; a project's app is its
+		// `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
 		dokploy({
 			instances: [
 				{ url: "https://dokploy.example.com", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" },

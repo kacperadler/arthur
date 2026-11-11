@@ -1,59 +1,43 @@
 import { call, field, ID, type Instance, NOTHING, text } from "./dokploy-api.ts";
+import { parseArgs, USAGE } from "./dokploy-args.ts";
 import { envCommand } from "./dokploy-env.ts";
+import { createPostgres, postgresStatus } from "./dokploy-postgres.ts";
 import { createApp, setupApp } from "./dokploy-setup.ts";
 import { sourceApp } from "./dokploy-source.ts";
 import { zipOf } from "./dokploy-zip.ts";
 
-// `arthur dokploy apps|app|status|upload|deploy|create|setup|env|source` (AR0588, AR0603, AR0654, AR0680): the projects, applications and
-// deployments of the owner's Dokploy servers, on the instance a call names or a project's `dokploy.project(...)` picks, and an
-// upload, a deploy, a new app, its setup and its source on the owner's word: docs/commands/dokploy.md. Every refusal of the call's words
-// comes before the first request, so a refused call asks Dokploy nothing.
+// `arthur dokploy apps|app|status|upload|deploy|create|setup|env|source|postgres` (AR0588, AR0603, AR0654, AR0680, AR0681): the
+// projects, applications and deployments of the owner's Dokploy servers, on the instance a call names or a project's
+// `dokploy.project(...)` picks, and an upload, a deploy, a new app, its setup, its source and a Postgres beside it on the owner's
+// word: docs/commands/dokploy.md. Every refusal of the call's words comes before the first request, so a refused call asks Dokploy nothing.
 
 // A project of the list, and what its `dokploy.project(...)` names: the instance and the application's id.
 export type Deployed = { readonly name: string; readonly app: { readonly instance: Instance; readonly id: string } | undefined };
 
-const USAGE = "usage: arthur dokploy apps|app [<app>]|status [<app>]|upload [<app>] <file or folder> [--replace-source]|deploy [<app>]|create <name> --dokploy-project <name> [--environment <name>]|setup <app> [--dockerfile <path>] [--context <path>] [--domain <host> --port <n>] [--volume <name>:<path>]|env <app> names|env <app> set <NAME> <value>|source <app> --repo <owner>/<name> --branch <branch> [--build-path <path>] [--github <name>] [--replace-source], each [--instance <name>]; --project <name> for another project than the main one";
-// The words a verb takes after it, at least and at most, and its flags besides `--instance`: `upload` its path and the app.
-const TAKES: Readonly<Record<string, readonly [number, number, readonly string[]]>> = {
-	...{ apps: [0, 0, []], app: [0, 1, []], status: [0, 1, []], upload: [1, 2, ["--replace-source"]], deploy: [0, 1, []], env: [2, 4, []] },
-	...{ create: [1, 1, ["--dokploy-project", "--environment"]], setup: [1, 1, ["--dockerfile", "--context", "--domain", "--port", "--volume"]] },
-	source: [1, 1, ["--repo", "--branch", "--build-path", "--github", "--replace-source"]],
-};
-const FLAGS = ["--instance", "--replace-source", "--dokploy-project", "--environment", "--dockerfile", "--context", "--domain", "--port", "--volume", "--repo", "--branch", "--build-path", "--github"];
 // How many deployments `status` shows, the newest first.
 const SHOWN = 5;
 
 // Writes its output; a refusal throws, wrong usage is exit code 2.
 export async function dokployCommand(servers: readonly Instance[], projects: readonly Deployed[], args: readonly string[], name: string | undefined): Promise<number> {
-	const [words, flags] = [[] as string[], new Map<string, string[]>()];
-	for (let index = 0; index < args.length; index++) {
-		const arg = args[index] ?? "";
-		if (!FLAGS.includes(arg)) words.push(arg);
-		else flags.set(arg, [...(flags.get(arg) ?? []), arg === "--replace-source" ? "on" : (args[++index] ?? "")]);
-	}
-	const [verb = "", ...rest] = words;
-	// An unknown verb takes at least one word and at most none, so any call of it is wrong.
-	const [least, most, allowed] = (Object.hasOwn(TAKES, verb) ? TAKES[verb] : undefined) ?? [1, 0, []];
-	const one = (flag: string) => flags.get(flag)?.[0];
-	// `env` takes `names`, or `set` with a name and a value, which alone may be empty or start with `-`; `setup` at least one of
-	// its flags, `--domain` and `--port` together.
-	const setup = [...flags.keys()].some((flag) => flag !== "--instance") && (one("--domain") === undefined) === (one("--port") === undefined);
-	const shape = verb === "env" ? (rest[1] === "names" && rest.length === 2) || (rest[1] === "set" && rest.length === 4) : verb !== "setup" || setup;
-	const lacks = (verb === "create" && one("--dokploy-project") === undefined) || (verb === "source" && (one("--repo") === undefined || one("--branch") === undefined));
-	const wrong = rest.length < least || rest.length > most || !shape || lacks;
-	const checked = [...(verb === "env" ? rest.slice(0, 3) : rest), ...[...flags.values()].flat()];
-	if (wrong || [...flags].some(([flag, values]) => values.length > 1 || (flag !== "--instance" && !allowed.includes(flag))) || checked.some((word) => word === "" || word.startsWith("-"))) {
+	const parsed = parseArgs(args);
+	if (parsed === undefined) {
 		console.error(USAGE);
 		return 2;
 	}
-	const named = flags.get("--instance") ?? [];
+	const { verb, rest, one } = parsed;
+	const named = one("--instance");
 	const names = servers.map((each) => each.label).join(", ");
-	const asked = named[0] === undefined ? undefined : servers.find((each) => each.name === named[0]);
-	if (named[0] !== undefined && asked === undefined) throw new Error(`--instance ${text(named[0])} is not an instance of dokploy; its instances: ${names}; ${NOTHING}`);
+	const asked = named === undefined ? undefined : servers.find((each) => each.name === named);
+	if (named !== undefined && asked === undefined) throw new Error(`--instance ${text(named)} is not an instance of dokploy; its instances: ${names}; ${NOTHING}`);
 	if (verb === "apps") return apps(asked === undefined ? servers : [asked]);
 	// The call that shows how a write goes on, picking the app the way this one did.
-	const next = (then: string, app: string | undefined) => ["arthur dokploy", then, app, named[0] && `--instance ${named[0]}`, name && `--project ${name}`].filter(Boolean).join(" ");
+	const next = (then: string, app: string | undefined) => ["arthur dokploy", then, app, named && `--instance ${named}`, name && `--project ${name}`].filter(Boolean).join(" ");
 	if (verb === "create") return createApp(pick(servers, projects, name, asked), rest[0] ?? "", one("--dokploy-project") ?? "", one("--environment"), (id) => next("setup", id));
+	if (verb === "postgres" && rest[0] === "status") return postgresStatus(pick(servers, projects, name, asked), rest[1] ?? "");
+	if (verb === "postgres") {
+		const [instance, id] = target(servers, projects, name, asked, rest[1]);
+		return createPostgres(instance, id, rest[2] ?? "", { version: one("--version"), env: one("--env") }, next);
+	}
 	const app = verb === "upload" ? rest.slice(0, -1)[0] : rest[0];
 	const [instance, id] = target(servers, projects, name, asked, app);
 	const follow = (then: string) => next(then, app);

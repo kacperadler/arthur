@@ -1,15 +1,16 @@
 import { call, field, ID, type Instance, NOTHING, text } from "./dokploy-api.ts";
 import { parseArgs, USAGE } from "./dokploy-args.ts";
 import { envCommand } from "./dokploy-env.ts";
-import { createPostgres, postgresStatus } from "./dokploy-postgres.ts";
+import { backupPostgres, createPostgres, postgresStatus } from "./dokploy-postgres.ts";
 import { createApp, setupApp } from "./dokploy-setup.ts";
 import { sourceApp } from "./dokploy-source.ts";
 import { zipOf } from "./dokploy-zip.ts";
 
-// `arthur dokploy apps|app|status|upload|deploy|create|setup|env|source|postgres` (AR0588, AR0603, AR0654, AR0680, AR0681): the
-// projects, applications and deployments of the owner's Dokploy servers, on the instance a call names or a project's
-// `dokploy.project(...)` picks, and an upload, a deploy, a new app, its setup, its source and a Postgres beside it on the owner's
-// word: docs/commands/dokploy.md. Every refusal of the call's words comes before the first request, so a refused call asks Dokploy nothing.
+// `arthur dokploy apps|app|status|upload|deploy|create|setup|env|source|postgres` (AR0588, AR0603, AR0654, AR0680, AR0681,
+// AR0682): the projects, applications and deployments of the owner's Dokploy servers, on the instance a call names or a project's
+// `dokploy.project(...)` picks, and an upload, a deploy, a new app, its setup, its source and a Postgres beside it, with its
+// backups, on the owner's word: docs/commands/dokploy.md. Every refusal of the call's words comes before the first request, so a
+// refused call asks Dokploy nothing.
 
 // A project of the list, and what its `dokploy.project(...)` names: the instance and the application's id.
 export type Deployed = { readonly name: string; readonly app: { readonly instance: Instance; readonly id: string } | undefined };
@@ -35,6 +36,8 @@ export async function dokployCommand(servers: readonly Instance[], projects: rea
 	if (verb === "create") return createApp(pick(servers, projects, name, asked), rest[0] ?? "", one("--dokploy-project") ?? "", one("--environment"), (id) => next("setup", id));
 	if (verb === "postgres") {
 		if (rest[0] === "status") return postgresStatus(pick(servers, projects, name, asked), rest[1] ?? "");
+		const backup = { destination: one("--destination") ?? "", schedule: one("--schedule") ?? "", keep: one("--keep") };
+		if (rest[0] === "backup") return backupPostgres(pick(servers, projects, name, asked), rest[1] ?? "", backup, next);
 		return createPostgres(...target(servers, projects, name, asked, rest[1]), rest[2] ?? "", { version: one("--version"), env: one("--env") }, next);
 	}
 	const app = verb === "upload" ? rest.slice(0, -1)[0] : rest[0];

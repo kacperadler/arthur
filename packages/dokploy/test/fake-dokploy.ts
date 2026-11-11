@@ -12,8 +12,12 @@ import { crc32, inflateRawSync } from "node:zlib";
 export const TOKEN = "kdQ7uZ3sA0pT1mN2vB4xC6yD8eF9gH0iJ1kL2mN3oP4qR5sT6uV7wX8yZ9aB0cD1e";
 
 // Values Dokploy answers that `arthur dokploy` must never print: an app's env, build args and secrets, its git refresh token
-// and registry password, a project's and an environment's env, and the documentation's database passwords.
-export const SECRETS = ["DATABASE_URL=postgres://shop:s3cr3t-db@db/shop", "NPM_TOKEN=npm_s3cr3tBuildArg", "SENTRY_AUTH=s3cr3tBuildSecret", "PREVIEW_KEY=s3cr3tPreview", "ghr_s3cr3tRefresh", "s3cr3t-registry", "PROJECT_KEY=s3cr3tProject", "ENVIRONMENT_KEY=s3cr3tEnvironment", "h13BzO6y3KYSHaQg", "mM1b7JeoPA7jArxj", "Yvb8gqClfomjcue8"];
+// and registry password, a project's and an environment's env, the documentation's database passwords, and a destination's
+// S3 keys.
+export const SECRETS = [
+	...["DATABASE_URL=postgres://shop:s3cr3t-db@db/shop", "NPM_TOKEN=npm_s3cr3tBuildArg", "SENTRY_AUTH=s3cr3tBuildSecret", "PREVIEW_KEY=s3cr3tPreview", "ghr_s3cr3tRefresh", "s3cr3t-registry"],
+	...["PROJECT_KEY=s3cr3tProject", "ENVIRONMENT_KEY=s3cr3tEnvironment", "h13BzO6y3KYSHaQg", "mM1b7JeoPA7jArxj", "Yvb8gqClfomjcue8", "AKIAS3CR3TACCESSKEY7", "s3cr3tSecretAccessKey/wJalrXUtnFEMI"],
+];
 
 export type FakeDeployment = { readonly title: string; readonly status: "running" | "done" | "error" | "cancelled"; readonly createdAt: string; readonly finishedAt?: string; readonly errorMessage?: string };
 // An app; the keys after `dropBuildPath` are what the setup and source writes change, each left out as Dokploy's default or the
@@ -96,6 +100,11 @@ const postgresRecord = (db: FakePostgres) => ({
 });
 // Where Postgres keeps its data (getMountPath at v0.30.10): from version 18 under its version's folder.
 const dataPath = (image: string) => ((version) => (version >= 18 ? `/var/lib/postgresql/${version}/docker` : "/var/lib/postgresql/data"))(Number(/postgres:(\d+)/.exec(image)?.[1] ?? 0));
+// A destination as `destination.all` answers it: every column of the destination table, its S3 keys included.
+const destinationRecord = (name: string) => ({
+	...{ destinationId: `dst-${name}`, name, provider: "AWS", accessKey: "AKIAS3CR3TACCESSKEY7", secretAccessKey: "s3cr3tSecretAccessKey/wJalrXUtnFEMI", bucket: "acme-backups" },
+	...{ region: "eu-central-1", endpoint: "https://s3.eu-central-1.amazonaws.com", additionalFlags: [], organizationId: "org-1", createdAt: `${DAY}T08:00:00.000Z` },
+});
 // `postgres.one` (findPostgresById): the record, its environment with its project, the data volume `postgres.create` mounts,
 // no server, and its backups, each with its destination minus its keys and its deployments.
 function postgresOne(db: FakePostgres) {
@@ -106,10 +115,7 @@ function postgresOne(db: FakePostgres) {
 		...{ backupId: backup.id, appName: `backup-${backup.id}`, schedule: backup.schedule, enabled: backup.enabled, database: record.databaseName, prefix: "/", serviceName: null },
 		...{ destinationId: `dst-${backup.destination}`, keepLatestCount: backup.keep, includeEncryptionKey: true, backupType: "database", databaseType: "postgres", composeId: null, postgresId: db.id },
 		...{ mariadbId: null, mysqlId: null, mongoId: null, libsqlId: null, userId: "user-1", metadata: null, deployments: [] },
-		destination: {
-			...{ destinationId: `dst-${backup.destination}`, name: backup.destination, provider: "AWS", bucket: "acme-backups", region: "eu-central-1", endpoint: "https://s3.eu-central-1.amazonaws.com" },
-			...{ additionalFlags: [], organizationId: "org-1", createdAt: `${DAY}T08:00:00.000Z` },
-		},
+		destination: (({ accessKey: _, secretAccessKey: __, ...rest }) => rest)(destinationRecord(backup.destination)),
 	}));
 	const environment = { ...environmentRecord(db.project, db.environment), project: projectRecord(db.project) };
 	return { ...record, environment, mounts: [{ ...mount, ...owners }], server: null, backups };
@@ -209,8 +215,8 @@ const inputError = (path: string, fields: readonly string[], message = "Required
 };
 
 // What each write's input requires (apiCreateApplication, apiSaveBuildType, apiSaveEnvironmentVariables, apiCreateDomain,
-// apiCreateMount, apiSaveGithubProvider, apiUpdateApplication, apiCreatePostgres, apiDeployPostgres at v0.30.10); `applicationId`
-// or `serviceId` names the app it changes.
+// apiCreateMount, apiSaveGithubProvider, apiUpdateApplication, apiCreatePostgres, apiDeployPostgres, apiCreateBackup at
+// v0.30.10); `applicationId` or `serviceId` names the app it changes.
 const REQUIRED: Readonly<Record<string, readonly string[]>> = {
 	"application.deploy": ["applicationId"],
 	"application.dropDeployment": ["applicationId", "zip"],
@@ -224,6 +230,7 @@ const REQUIRED: Readonly<Record<string, readonly string[]>> = {
 	"application.update": ["applicationId"],
 	"postgres.create": ["name", "databaseName", "databaseUser", "databasePassword", "environmentId"],
 	"postgres.deploy": ["postgresId"],
+	"backup.create": ["schedule", "prefix", "destinationId", "database", "databaseType"],
 };
 // What `domain.validateDomain` answers (validateDomain at v0.30.10): a host under `.invalid` does not resolve, one starting
 // `elsewhere.` resolves to another server, any other to this one.
@@ -273,10 +280,14 @@ export function readZip(zip: Buffer): { readonly name: string; readonly method: 
 	return entries;
 }
 
-// The fake, with `apps` on it, `empty` projects without any, `githubs`, its GitHub apps, and `databases`, its Postgres; `form`
-// the `project.all` it answers; `scripted` what a procedure answers instead of its own, changed by a test as it goes. `seen`:
-// every request, in order; `live` and `postgres`: the apps and the databases as the writes left them.
-export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeApp[], empty = [] as readonly string[], githubs = [] as readonly FakeGithub[], databases = [] as readonly FakePostgres[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {}) {
+// The fake, with `apps` on it, `empty` projects without any, `githubs`, its GitHub apps, `databases`, its Postgres, and
+// `destinations`, the names of its S3 destinations; `form` the `project.all` it answers; `scripted` what a procedure answers
+// instead of its own, changed by a test as it goes. `seen`: every request, in order; `live` and `postgres`: the apps and the
+// databases as the writes left them.
+export async function fakeDokploy(
+	t: TestContext,
+	{ apps = [] as readonly FakeApp[], empty = [] as readonly string[], githubs = [] as readonly FakeGithub[], databases = [] as readonly FakePostgres[], destinations = [] as readonly string[], form = "v0.30.10" as "v0.30.10" | "documented", token = TOKEN } = {},
+) {
 	const [seen, scripted, live, postgres] = [[] as Seen[], new Map<string, Scripted>(), [...apps], [...databases]];
 	// Each environment's id, and its project and name, so `application.create` and `postgres.create` can place what they make.
 	const places = new Map([...[...apps, ...databases].map((each) => [each.project, each.environment]), ...empty.map((name) => [name, "production"])].map(([project = "", name = ""]) => [environmentId(project, name), { project, environment: name }]));
@@ -320,6 +331,7 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 			if (place === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Environment not found", procedure).body);
 			return send(response, 200, environmentOne(place, live, postgres));
 		}
+		if (request.method === "GET" && procedure === "destination.all") return send(response, 200, destinations.map(destinationRecord));
 		const database = postgres.findIndex((each) => each.id === (sent?.fields.postgresId ?? url.searchParams.get("postgresId")));
 		const db = postgres[database];
 		if (procedure === "postgres.one") return db === undefined ? send(response, 404, trpcError(404, "NOT_FOUND", "Postgres not found", procedure).body) : send(response, 200, postgresOne(db));
@@ -357,6 +369,15 @@ export async function fakeDokploy(t: TestContext, { apps = [] as readonly FakeAp
 			// deployPostgres answers the record it read before the deploy, then marks it done.
 			postgres[database] = { ...db, status: "done" };
 			return send(response, 200, postgresOne(db));
+		}
+		if (procedure === "backup.create") {
+			const destination = destinations.find((name) => `dst-${name}` === fields.destinationId);
+			// createBackup's insert fails on an id that names no row, and the router answers any failure as BAD_REQUEST with its message.
+			if (db === undefined || destination === undefined) return send(response, 400, trpcError(400, "BAD_REQUEST", 'insert or update on table "backup" violates foreign key constraint', procedure).body);
+			const backup = { id: `bk${postgres.flatMap((each) => each.backups ?? []).length + 1}`, schedule: String(fields.schedule), destination };
+			postgres[database] = { ...db, backups: [...(db.backups ?? []), { ...backup, keep: typeof fields.keepLatestCount === "number" ? fields.keepLatestCount : null, enabled: typeof fields.enabled === "boolean" ? fields.enabled : null }] };
+			// It returns nothing, so its 200 has no body, as `application.deploy`'s.
+			return response.writeHead(200, { "Content-Type": "application/json" }).end();
 		}
 		if (app === undefined) return send(response, 404, trpcError(404, "NOT_FOUND", "Application not found", procedure).body);
 		if (procedure === "application.deploy") return response.writeHead(200, { "Content-Type": "application/json" }).end();

@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-10T14:58:45.184Z",
+    "updated": "2026-11-11T07:13:36.864Z",
     "after": [
       "AR0644"
     ]
@@ -5485,9 +5485,9 @@
   {
     "id": "AR0679",
     "title": "The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0679-the-go-with-my-recommendation-grant-and-approved-policies-still-answer-plan/ticket.md",
-    "updated": "2026-11-11T00:51:23.212Z",
+    "updated": "2026-11-11T01:18:05.261Z",
     "after": [
       "AR0677"
     ]
@@ -5502,9 +5502,9 @@
   {
     "id": "AR0681",
     "title": "Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0681-dokploy-t4b-arthur-dokploy-postgres-create-makes-a-postgres-beside-an-app-and/ticket.md",
-    "updated": "2026-11-10T07:36:30.393Z",
+    "updated": "2026-11-11T03:26:16.023Z",
     "after": [
       "AR0680"
     ]
@@ -5553,22 +5553,36 @@
   {
     "id": "AR0687",
     "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
-    "updated": "2026-11-10T19:04:32.949Z"
+    "updated": "2026-11-11T10:14:47.339Z"
   },
   {
     "id": "AR0688",
     "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
-    "updated": "2026-11-11T00:30:33.083Z"
+    "updated": "2026-11-11T01:12:08.909Z"
   },
   {
     "id": "AR0689",
     "title": "The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed",
-    "status": "planning",
+    "status": "done",
     "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
-    "updated": "2026-11-10T23:52:58.464Z"
+    "updated": "2026-11-11T10:44:28.338Z"
+  },
+  {
+    "id": "AR0690",
+    "title": "docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays",
+    "status": "planned",
+    "path": "spec/features/AR0690-docker-buildx-with-its-own-options-before-build-docker-buildx-builder-x-build/ticket.md",
+    "updated": "2026-11-11T07:09:57.565Z"
+  },
+  {
+    "id": "AR0691",
+    "title": "An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish",
+    "status": "in-progress",
+    "path": "spec/features/AR0691-an-automatic-restart-kills-a-running-merge-of-arthur-code-which-is-rolled-back/ticket.md",
+    "updated": "2026-11-11T09:06:55.131Z"
   }
 ]

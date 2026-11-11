@@ -34,7 +34,7 @@ Can still go in arthur.config.ts
   session (off): the coordinator's conversation: compacted by day, fresh each night, restarts, the restart guard and the LLM probe
     compactAt  When the coordinator's conversation is compacted, once it is idle; [] for never; default ["08:00", "13:00", "18:00"]
     ...
-  docker (not in the config): labels and removes the Docker resources of each job
+  docker (not in the config): Docker on machines labelled tools: docker: what a job creates is labelled arthur.job=<id>, its compose stacks get its own project name, and Docker's data root counts for keepFree.disk
     ...
 
 Next

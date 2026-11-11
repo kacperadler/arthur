@@ -134,6 +134,7 @@ Each decided in the ticket that made it.
 - AR0649 (AR0480's approved plan, ticket 2, roadmap 108; the owner approved it on 2026-11-06, AR-D523): `JobRecord.usage`, the record's new `usage` file, which the wrapper writes after each message beside `cost`: per `<provider>/<model>`, `{ messages, input, output, cacheRead, cacheWrite, cost }`, summed over every run of the job, `{}` when the file is missing or not a JSON object (`arthur spawn --help`, `arthur jobs --help`). A sweep copies it from another machine with the run's other files. The test kit's fake agent takes `usage` (its tokens) and `model` on a message step. No host member changed.
 - AR0640 (roadmap 104, the owner's approved AR0128 plan, AR-D514): the export `arthurVersion()`, what `arthur version` prints, `<release> <hash>`, beside `coreVersion()`, the hash alone; the machines plugin names both whole lines in a refusal and compares the hash. A plugin's `package.json` may name the core releases it was built for, `peerDependencies["@arthur/core"]`, which the host reads at load from the package folder around its `module`: a core outside it is one `arthur doctor` line, `core plugin <name>`, that does not stop the start (`arthur doctor --help`). No host member changed.
 - AR0644 (AR0604's approved plan, W1; the owner on 2026-11-06, AR-D520): `jobs.cleanup(fn)`, a plugin's hook the core runs inside the prune right before a job's worktree goes, so what the plugin made for the job (the docker plugin's resources, roadmap 71) goes with it; `jobs.keep` stays, asked after the worktree and branch go, which is too late for a job whose branch is kept and cannot be awaited. `jobs.prune(ids)` now returns a promise, since a hook may run commands over SSH that the prune awaits; its refusals reject. Delivery's merge and drop and manage's daily prune await it.
+- AR0645 (AR0604's approved plan, W2, Not available directly 2, Option 1; the owner on 2026-11-06, AR-D520): the provided name `machines.labels`, by machines, `(machine)` to that machine's labels, which no member gave a plugin: `host.jobs.machines()` names machines only, and `local`'s `tools` live in the machines plugin's options. The docker plugin asks it for `tools: docker`, so without the machines plugin it acts on no machine. No host member changed.
 
 ### Project pieces
 
@@ -227,7 +228,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout, a plugin's `piece`, `arthur doctor`), plugins | The projects, inside a job only the job's own (`host.job`), each with its `folder`, the real path of its project folder, and its `pieces`, every other plugin's piece of its file by plugin name (above, "Project pieces"). |
 | `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
-| `doctor` | delivery, discord, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
+| `doctor` | delivery, discord, docker, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
 | `jobs.keep` | github, delivery | the core (`arthur prune`) | Whether an ended job's record is kept; asked once its worktree and branch are freed, so a provider also frees what it holds of the job: github deletes its branch on origin, delivery its folder of the job (AR0555). |
@@ -248,7 +249,8 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `models.lists` | orchestration | models | Every role's model list. |
 | `machines.round` | resources | machines | A round of machine checks as it begins: a `Map` of each machine's name to the paths its check's df reads (AR0269). |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
-| `resources.disk` | none yet (docker) | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home (above, "Changes since entry 51"). |
+| `resources.disk` | docker | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home; docker's data root on a machine labelled `tools: docker` (above, "Changes since entry 51"). |
+| `machines.labels` | machines | docker | `(machine)`: that machine's labels, `local`'s with its detected `os` and `arch`, undefined for a name not registered by the machines plugin (above, "Changes since entry 51"). |
 | `schedule.register` | schedule | orchestration, manage | Registers another plugin's schedule entries. |
 | `schedule.message` | schedule | develop (`arthur eval`) | `(id, message, procedure text)`: the text the coordinator gets for that action due on time, `[scheduled <id>] <message>` with the procedure's text under a blank line. |
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |

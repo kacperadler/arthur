@@ -405,10 +405,11 @@ export default defineConfig({
 			},
 		}),
 
-		// Docker on every machine labelled `tools: docker`. What a job creates (containers, networks, volumes, images it builds) is
-		// labelled `arthur.job=<id>`, and compose stacks get the job's project name; all of it is removed on the job's machine
-		// when its worktree is removed (prune, merge, a dropped ticket). Pulled and shared images stay. A failed cleanup never
-		// keeps the worktree: it is a notice, and the sweep retries. Anything labelled `arthur.keep` is never touched.
+		// Docker on every machine labelled `tools: docker` (the machines plugin's labels). What a job creates (containers,
+		// networks, volumes, images it builds) is labelled `arthur.job=<id>`, compose stacks get the job's project name, and
+		// Docker's data root counts for `keepFree.disk`. Planned (roadmap 71, 72): all of it removed on the job's machine when
+		// its worktree is removed (prune, merge, a dropped ticket); pulled and shared images stay; a failed cleanup never keeps
+		// the worktree: it is a notice, and the sweep retries. Anything labelled `arthur.keep` is never touched.
 		docker({
 			buildCache: "10G", // after each cleanup and sweep, Docker's shared build cache is cut to this size; 0 = no cap
 			leftoverHours: 48, // the sweep removes unlabelled stopped containers, unused networks, dangling images, unused
@@ -484,8 +485,8 @@ export default defineConfig({
 // Every other piece is its plugin's, checked by it at load: its tracker (`instance` names an instance of the youtrack plugin;
 // without it, the unnamed one), its CI workflow, its commit rules, auto-merge, the machine labels its jobs need (a ticket's
 // own `"requires"` in its JSON block replaces them), its sites, its Dokploy app (`instance` names an instance of the dokploy
-// plugin; without it, the unnamed one), what a merge makes of its findings; planned, `docker.project(false)`
-// to leave its jobs' Docker resources unlabelled and uncleaned (default: on while the docker plugin is), and
+// plugin; without it, the unnamed one), what a merge makes of its findings, `docker.project(false)` to leave its jobs'
+// Docker resources unlabelled (default: labelled while the docker plugin is; uncleaned too once cleanup is built), and
 // `orchestration.project({ chat })`, the place of a channel (a Telegram topic, a Discord or Slack channel) where the project's
 // own agent talks with you; without it the coordinator handles the project. One repository may be several projects, each
 // checkout its own folder. Each file imports the helpers it uses: `import { projects } from "@arthur/projects";`.
@@ -529,7 +530,7 @@ export default defineConfig({
 //		github.project({ workflow: "ci.yml" }),
 //		commitRules.project({ file: "commit-rules.md" }), // projects/acme-site/commit-rules.md, read as plain words
 //		findings.project("summary"),
-//		docker.project(false), // planned: its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
+//		docker.project(false), // its jobs get no docker script, so their containers are not labelled (the cleanup and sweep are planned)
 //	];
 //
 // projects/acme-ios/project.config.ts

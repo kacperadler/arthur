@@ -41,7 +41,7 @@ const UNITS = ["B", "kB", "MB", "GB", "TB"];
 export const row = (kind: Kind, given: Row): Row => ({ ...Object.fromEntries(Object.keys(shapes[kind] as Row).map((key) => [key, key === "Platform" ? null : ""])), ...given });
 
 // Bytes as docker/go-units' HumanSize prints them: 4 significant digits, decimal units.
-export function human(size: number): string {
+function human(size: number): string {
 	let unit = 0;
 	for (; size >= 1000 && unit < UNITS.length - 1; unit++) size /= 1000;
 	return `${Number(size.toPrecision(4))}${UNITS[unit]}`;

@@ -1316,3 +1316,4 @@
 {"record":"close","id":"AR-D654","time":"2026-11-11T22:47:23+01:00","reason":"asked as the wrong kind; recorded as a question instead"}
 {"record":"ask","id":"AR-D655","time":"2026-11-11T22:47:24+01:00","project":"arthur","kind":"question","question":"How far may tonight's queue run while the owner sleeps?","options":["Until Claude 7 Day usage reaches 25%","Stop now"]}
 {"record":"answer","id":"AR-D655","time":"2026-11-11T22:47:25+01:00","decided":"Work tonight queue until Claude 7 Day usage reaches 25%","picked":1,"words":"ok i have to go to sleep so work till 25% usage","message":14240}
+{"record":"ask","id":"AR-D656","time":"2026-11-11T23:14:27+01:00","project":"arthur","kind":"merge","question":"Merge AR0686 (removes 8 redundant comment lines, no code change; review PASS) now? It waits for you because one of the 8 files, packages/delivery/src/ci-wait.ts, is on the always-review list.","options":["Merge it","Not yet"],"ticket":"AR0686"}

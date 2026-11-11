@@ -5420,9 +5420,9 @@
   {
     "id": "AR0671",
     "title": "Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
-    "updated": "2026-11-11T21:21:20.313Z"
+    "updated": "2026-11-11T22:05:53.971Z"
   },
   {
     "id": "AR0672",
@@ -5543,9 +5543,9 @@
   {
     "id": "AR0686",
     "title": "Code: a review on the fable model finds redundant comments and removes them",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
-    "updated": "2026-11-11T19:48:01.757Z",
+    "updated": "2026-11-11T22:14:12.894Z",
     "after": [
       "AR0685"
     ]

@@ -41,3 +41,4 @@ Out:
 
 ## Decisions
 
+- 2026-11-11: Source: F2 of AR0647

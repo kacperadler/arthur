@@ -267,7 +267,7 @@ test("a merge, a merge flag, a plan, --budget 0 and take-main need the owner's m
 	ownerSaid(folder, 6, `${plain}, ${job}, ${plan}: yes, go ahead`);
 	for (const id of [flags, budget, take, plain, job, plan]) assert.equal((await answer(id))[0], 0, id);
 	assert.deepEqual(log()?.filter((each) => each.record === "answer").map((each) => [each.id, each.message]), [[question, 1], [flags, 3], [budget, 4], [take, 5], [plain, 6], [job, 6], [plan, 6]]);
-	const both = `your words: "yes, go ahead"; your message:`;
+	const both = `picked: option 1, "Go"; your words: "yes, go ahead"; your message:`;
 	assert.deepEqual(notices(), [
 		`Recorded as your decision ${flags} (merge of AC0001, lets through --unreviewed and --no-ci): Go; ${both} "ac-d1 yes, go ahead"`,
 		`Recorded as your decision ${budget} (budget of AC0002, lets through --budget 0): Go; ${both} "AC-D2: yes, go ahead"`,
@@ -277,6 +277,16 @@ test("a merge, a merge flag, a plan, --budget 0 and take-main need the owner's m
 		`Recorded as your decision ${plan} (plan of AC0002, lets through arthur ticket status AC0002 planned): Go; ${both} "${plain}, ${job}, ${plan}: yes, go ahead"`,
 	]);
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { decision: string }).decision), [flags, budget, take, plain, job, plan]);
+	// AR0688: a "no" offered as option 1 and picked is recorded, as the approval; the notice names the option in its words.
+	const no = (await run("decision", ["ask", "--kind", "merge", "--ticket", "AC0001", "--question", "Merge?", "--option", "Not yet", "--option", "Merge it"]))[1];
+	ownerSaid(folder, 7, `${no} - not yet`);
+	assert.equal((await answer(no, `${no} - not yet`))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${no} (merge of AC0001, lets through arthur merge): Go; picked: option 1, "Not yet"; your words: "${no} - not yet"; your message: "${no} - not yet"`);
+	// The option picked is named by its own number, not the first or the last offered: option 2 of three.
+	const middle = (await run("decision", ["ask", "--kind", "plan", "--ticket", "AC0002", "--question", "Plan?", "--option", "Approve", "--option", "Plan it again", "--option", "Drop it"]))[1];
+	ownerSaid(folder, 8, `${middle} - plan it again`);
+	assert.equal((await run("decision", ["answer", middle, "--decided", "Plan the ticket again", "--picked", "2", `${middle} - plan it again`]))[0], 0);
+	assert.equal(notices().at(-1), `Recorded as your decision ${middle} (plan of AC0002, lets through arthur ticket status AC0002 planned): Plan the ticket again; picked: option 2, "Plan it again"; your words: "${middle} - plan it again"; your message: "${middle} - plan it again"`);
 });
 
 // AR0668: a fragment of his "no" (its id, a dash, the word) once proved a "yes"; the notice now shows the message it came from.
@@ -301,23 +311,23 @@ test("a high-impact answer needs his answer quoted, not its id, a sign or one wo
 	assert.equal((await answer(budget, `${budget} ok`))[0], 0, "its id and one word");
 	assert.equal((await answer(take, `${take}: yes`))[0], 0, "its id and one word, as he wrote them");
 	assert.equal((await answer(flags, `${flags} no, do not merge`))[0], 0, "his answer quoted");
-	assert.equal(notices().at(-1), `Recorded as your decision ${flags} (merge of AC0001, lets through --unreviewed): Merge it; your words: "${flags} no, do not merge"; your message: "${no}\n[file, image/png] (/srv/media/AgAD-screen.png)"`);
+	assert.equal(notices().at(-1), `Recorded as your decision ${flags} (merge of AC0001, lets through --unreviewed): Merge it; picked: none; your words: "${flags} no, do not merge"; your message: "${no}\n[file, image/png] (/srv/media/AgAD-screen.png)"`);
 	// 399 code points, then a character of two UTF-16 units as the 400th: kept whole, the rest cut and the cut marked.
 	const long = `${budget} yes ${"q".repeat(399 - budget.length - 5)}😀${"r".repeat(50)}`;
 	ownerSaid(folder, 3, `${long}\n`);
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
-	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)} … (cut)"`);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; picked: none; your words: "${budget} yes"; your message: "${long.slice(0, -50)} … (cut)"`);
 	ownerSaid(folder, 4, long.slice(0, -50));
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
-	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)}"`, "400 code points are not cut");
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; picked: none; your words: "${budget} yes"; your message: "${long.slice(0, -50)}"`, "400 code points are not cut");
 	ownerSaid(folder, 5, long.slice(0, -49));
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
-	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${long.slice(0, -50)} … (cut)"`, "401 code points are cut, the cut marked");
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; picked: none; your words: "${budget} yes"; your message: "${long.slice(0, -50)} … (cut)"`, "401 code points are cut, the cut marked");
 	// A key and an env file's value he pastes reach neither the channel nor the event: his message is redacted as the log is.
 	const key = "sk-live-4f9a8b7c6d5e4f3a2b1c";
 	ownerSaid(folder, 6, `${budget} yes, the key is ${key}, the pass ${secret}`);
 	assert.equal((await answer(budget, `${budget} yes`))[0], 0);
-	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; your words: "${budget} yes"; your message: "${budget} yes, the key is [redacted], the pass [redacted]"`);
+	assert.equal(notices().at(-1), `Recorded as your decision ${budget} (budget, lets through --budget 0): Merge it; picked: none; your words: "${budget} yes"; your message: "${budget} yes, the key is [redacted], the pass [redacted]"`);
 	assert.ok(!JSON.stringify(fake.emitted).includes(secret) && !JSON.stringify(fake.emitted).includes(key), "no event holds them");
 	// An id of two digits split inside its number (`AC-D1 2`): the id of AC-D1 and a word "2" to the words, his AC-D12 alone in his message.
 	for (let at = 5; at < 12; at++) await ask("--kind", "question");
@@ -853,7 +863,7 @@ test("a class is approved only on the owner's message naming its proposal, with 
 	assert.equal(notices().length, before, "a refusal sends no notice");
 	ownerSaid(fake.host.folder, 51, "AC-D4 tak, zawsze");
 	assert.deepEqual((await run("decision", approve))[1], "AC-D4 answered: Pre-approve raising a line budget; the class is approved: its questions are answered by policy from now on");
-	assert.deepEqual(notices().slice(before), ['Recorded as your decision AC-D4 (class, approves the class budget questions naming "line budget" → Raise the line budget): Pre-approve raising a line budget; your words: "tak, zawsze"; your message: "AC-D4 tak, zawsze"']);
+	assert.deepEqual(notices().slice(before), ['Recorded as your decision AC-D4 (class, approves the class budget questions naming "line budget" → Raise the line budget): Pre-approve raising a line budget; picked: option 1, "Approve the class"; your words: "tak, zawsze"; your message: "AC-D4 tak, zawsze"']);
 });
 
 test("a proposal is refused, naming why and writing nothing: no backing decision, an unknown, unanswered or differing one, a class's own kind", async (t) => {

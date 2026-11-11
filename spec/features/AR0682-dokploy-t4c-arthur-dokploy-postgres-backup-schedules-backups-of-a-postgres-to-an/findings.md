@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/dokploy/src/dokploy-postgres.ts:103`
 - What: `--schedule` is checked as the plan says, five fields of the cron alphabet (digits, letters, `*`, `,`, `/`, `?`, `#`, `-`), not each field's range. `arthur dokploy postgres backup <postgres> --destination s3-main --schedule "99 3 * * *"` passes, `backup.create` stores it, and Dokploy's `scheduleBackup` hands it to node-schedule, whose `scheduleJob` returns null for a rule it cannot parse [INFERENCE: from node-schedule's documented behavior, not run here]; the backup is listed as enabled and never runs, with no error.
 - Suggestion: check each field against its range (minute 0-59, hour 0-23, day 1-31, month 1-12 or JAN-DEC, weekday 0-7 or SUN-SAT) with its lists, ranges and steps, before any request; leave Dokploy's own validation out.
-- Status: open
+- Status: deferred (client summary)

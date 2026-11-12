@@ -5176,9 +5176,9 @@
   {
     "id": "AR0643",
     "title": "Roadmap 107: a notice when a new release exists",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0643-roadmap-107-a-notice-when-a-new-release-exists/ticket.md",
-    "updated": "2026-11-06T08:18:06.181Z",
+    "updated": "2026-11-12T20:43:39.128Z",
     "after": [
       "AR0642"
     ]

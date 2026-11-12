@@ -139,12 +139,12 @@ test("stats.tickets: the report of the project asked, of the tickets merged at `
 	assert.deepEqual(run.section("other"), ["No merged ticket in other yet."], "the project asked, not the main one");
 });
 
-test("a finding's first line: a heading at any level up to 6, a section's end of either kind, each way a finding opens", () => {
+test("a finding's first line: a heading at any level from 1 to 6, a section's end of either kind, each way a finding opens", () => {
 	// The final message right under its heading, no blank line between.
 	const final = (text: string) => `# AC0001 - Review 1\n\n- Verdict: FAIL\n\n## Final message\n${text}`;
 	const rows: [string, string[]][] = [
 		["## Findings\n- a\n- b", ["- a", "- b"]],
-		["## Findings\n- a\n- b\n# Notes\n- c", ["- a", "- b"]],
+		["# Findings\n- a\n- b\n# Notes\n- c", ["- a", "- b"]],
 		["###### Findings\n- a\n###### Notes\n- c", ["- a"]],
 		["####### Findings\n- a\n- b", ["####### Findings"]],
 		["## Findings\n- a\n####### b\n- c", ["- a", "- c"]],

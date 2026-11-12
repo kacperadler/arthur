@@ -2,9 +2,10 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host, Ticket } from "@arthur/core/plugin";
 
-// `arthur stats` (spec/roadmap.md, entry 61): per merged ticket of a project its review rounds, verdicts, cost and days, then
-// the mean rounds, the share of first-round PASS, the share of autopilot, the 3 most expensive and the first line of each
-// finding of a FAIL review. Read only, from the board and the files in each ticket's folder. docs/commands/stats.md.
+// `arthur stats` (spec/roadmap.md, entries 61 and 110), and `stats.tickets`, the `### Stats` section of manage's audit and retro
+// prompts: per merged ticket of a project its review rounds, verdicts, cost and days, then the mean rounds, the share of
+// first-round PASS, the share of autopilot, the 3 most expensive and the first line of each finding of a FAIL review. Read only,
+// from the board and the files in each ticket's folder. docs/commands/stats.md.
 
 const REVIEW = /^review-(\d+)\.md$/;
 const DAY_MS = 86_400_000;
@@ -66,14 +67,10 @@ function row(host: Pick<Host, "clock">, ticket: Ticket, root: string): Row {
 	};
 }
 
-// The tickets of `project` merged at `since` or later, every merged one with no `since`: an audit's window.
-export const mergedSince = (host: Pick<Host, "board">, project: string | undefined, since?: Date) =>
-	host.board.list(project).filter((ticket) => ticket.status === "merged" && (since === undefined || Date.parse(ticket.updated) >= since.getTime()));
-
 // The stats of `project`, the main one when undefined, of the tickets merged at `since` or later when given (an audit's);
 // `host.board.list` refuses an unknown project, so `where` is found.
-export function stats(host: Pick<Host, "board" | "clock">, project: string | undefined, since?: Date): string {
-	const merged = mergedSince(host, project, since);
+export function ticketStats(host: Pick<Host, "board" | "clock">, project: string | undefined, since?: Date): string {
+	const merged = host.board.list(project).filter((each) => each.status === "merged" && (since === undefined || Date.parse(each.updated) >= since.getTime()));
 	const projects = host.board.projects();
 	const where = (project === undefined ? projects[0] : projects.find((each) => each.name === project))!;
 	if (merged.length === 0) return `No merged ticket in ${where.name} ${since === undefined ? "yet" : `since ${host.clock.local(since).date} ${host.clock.local(since).time}`}.`;

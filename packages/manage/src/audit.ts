@@ -5,12 +5,12 @@ import type { Host, Job, Ticket } from "@arthur/core/plugin";
 import { fileReport, lastReport, type Reports } from "./report-file.ts";
 import { AUDIT_BUDGET, type AuditOptions } from "./manage-options.ts";
 import { scheduleKind } from "./scheduled-kind.ts";
-import { mergedSince, stats } from "./stats.ts";
 
 // The audit (spec/roadmap.md, entry 62): the kind `audit`, read-only, with the auditor role and the audit criteria; every audit's
-// prompt gets the commits since the last audit, the board digest, the stats, the open findings of its project and the deferred
-// ones of the tickets merged since; the schedule entry of `audit.at` and `audit.days` (scheduled-kind.ts), which starts none
-// with no commit since the last audit; the filing (report-file.ts) and the procedure its end brings. docs/manage.md, "The audit".
+// prompt gets the commits since the last audit, the board digest, the stats (`stats.tickets`, the stats plugin's), the open
+// findings of its project and the deferred ones of the tickets merged since; the schedule entry of `audit.at` and `audit.days`
+// (scheduled-kind.ts), which starts none with no commit since the last audit; the filing (report-file.ts) and the procedure its
+// end brings. docs/manage.md, "The audit".
 
 const KIND = "audit";
 const ROLE = "auditor";
@@ -73,14 +73,15 @@ function context(host: Host, job: Job): string {
 	const { last, heading, commits } = since(root, job.base);
 	const made = last === undefined ? undefined : git(root, ["show", "-s", "--format=%cI", last])?.trim();
 	const window = made === undefined ? undefined : new Date(made);
+	const merged = host.board.list(job.project).filter((ticket) => ticket.status === "merged" && (window === undefined || Date.parse(ticket.updated) >= window.getTime()));
 	const vision = host.jobs.vision(job.project);
 	return [
 		`## This audit\n\nYou audit project ${job.project} at ${job.base}; your worktree is a detached checkout of that commit.`,
 		`### Commits ${heading}\n\n${commits.length === 0 ? "none" : commits.join("\n")}`,
 		`### Board\n\n${host.board.digest(job.project)}`,
-		`### Stats\n\n${stats(host, job.project, window)}`,
+		`### Stats\n\n${host.collect<string>("stats.tickets", job.project, window).join("\n\n") || "none: the stats plugin is not loaded"}`,
 		`### Open findings\n\n${findings(root, host.board.list(job.project), /^- Status: open\b/m, false).join("\n") || "none"}`,
-		`### Deferred findings\n\n${findings(root, mergedSince(host, job.project, window), /^- Status: deferred \(client summary\)/m, true).join("\n") || "none"}`,
+		`### Deferred findings\n\n${findings(root, merged, /^- Status: deferred \(client summary\)/m, true).join("\n") || "none"}`,
 		`### Vision\n\n${vision.text === undefined ? `none: ${vision.path} is ${vision.problem}` : `\`${vision.path}\`: read it first, and rank each proposal by how far it moves the project there.`}`,
 	].join("\n\n");
 }

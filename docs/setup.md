@@ -73,8 +73,8 @@ Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job
 - `github`: the CI runs of the branches in play, and the push of a branch a review passed and of main after a merge (`packages/github/docs/github.md`);
 - `commit-rules`: each project's `commitRules.project(...)` (`packages/commit-rules/docs/commit-rules.md`);
 - `findings`: what `arthur merge` makes of a ticket's open findings (`packages/findings/docs/findings.md`);
-- `manage`: health, stats, the audit, the retro and pruning (`packages/manage/docs/manage.md`);
-- `stats`: the tokens, cost at list price and time of every job run and coordinator turn, kept in `<home>/stats/` (`packages/stats/docs/stats.md`).
+- `manage`: health, the audit, the retro and pruning (`packages/manage/docs/manage.md`);
+- `stats`: the tokens, cost at list price and time of every job run and coordinator turn, kept in `<home>/stats/`, and `arthur stats`, how a project's merged tickets went (`packages/stats/docs/stats.md`).
 
 The channels, `telegram` and `discord`, come in step 13, and other machines for jobs with the `machines` plugin of step 11.
 

@@ -10,16 +10,15 @@ import { pyramid } from "./pyramid.ts";
 import { releaseNotice } from "./release-notice.ts";
 import { repeatsCommand } from "./repeats-command.ts";
 import { retro } from "./retro.ts";
-import { stats } from "./stats.ts";
 
-// The manage plugin (spec/roadmap.md, entries 60 to 64): `arthur health` and `/health`, one line per thing that should have
-// happened by now and has not, from every plugin's answer to `health`, manage's own checks among them (health-checks.ts); read
-// only. With `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a
-// problem the round before saw too is not sent again, across a restart too. `arthur stats`: the merged tickets' reviews, costs
-// and days (stats.ts). The kind `audit`, and with `audit.at` its schedule entry (audit.ts); the kind `retro`, `arthur
-// retro-due`, `/retro`, and with `retro.at` its schedule entry (retro.ts); `arthur repeats` and `/repeats` (repeats-command.ts);
-// the kind `pyramid`, `arthur pyramid` and `/pyramid` (pyramid.ts). With `prune.keepJobsDays`, the schedule plugin runs the
-// daily cleanup (cleanup.ts); with the schedule plugin, the daily notice of a new release (release-notice.ts). docs/manage.md.
+// The manage plugin (spec/roadmap.md, entries 60 and 62 to 64): `arthur health` and `/health`, one line per thing that should
+// have happened by now and has not, from every plugin's answer to `health`, manage's own checks among them (health-checks.ts);
+// read only. With `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a
+// problem the round before saw too is not sent again, across a restart too. The kind `audit`, and with `audit.at` its schedule
+// entry (audit.ts); the kind `retro`, `arthur retro-due`, `/retro`, and with `retro.at` its schedule entry (retro.ts); `arthur
+// repeats` and `/repeats` (repeats-command.ts); the kind `pyramid`, `arthur pyramid` and `/pyramid` (pyramid.ts). With
+// `prune.keepJobsDays`, the schedule plugin runs the daily cleanup (cleanup.ts); with the schedule plugin, the daily notice of a
+// new release (release-notice.ts). docs/manage.md.
 
 export type { ManageOptions };
 
@@ -96,18 +95,6 @@ export function manage(options: ManageOptions = {}): Plugin {
 						return 2;
 					}
 					console.log(report());
-				},
-			});
-			host.commands.register({
-				name: "stats",
-				doc: new URL("../docs/commands/stats.md", import.meta.url),
-				inJob: true,
-				run({ args, project }) {
-					if (args.length > 0) {
-						console.error("usage: arthur stats [--project <name>]");
-						return 2;
-					}
-					console.log(stats(host, project));
 				},
 			});
 			round = () => {

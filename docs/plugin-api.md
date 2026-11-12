@@ -136,6 +136,7 @@ Each decided in the ticket that made it.
 - AR0644 (AR0604's approved plan, W1; the owner on 2026-11-06, AR-D520): `jobs.cleanup(fn)`, a plugin's hook the core runs inside the prune right before a job's worktree goes, so what the plugin made for the job (the docker plugin's resources, roadmap 71) goes with it; `jobs.keep` stays, asked after the worktree and branch go, which is too late for a job whose branch is kept and cannot be awaited. `jobs.prune(ids)` now returns a promise, since a hook may run commands over SSH that the prune awaits; its refusals reject. Delivery's merge and drop and manage's daily prune await it.
 - AR0645 (AR0604's approved plan, W2, Not available directly 2, Option 1; the owner on 2026-11-06, AR-D520): the provided name `machines.labels`, by machines, `(machine)` to that machine's labels, which no member gave a plugin: `host.jobs.machines()` names machines only, and `local`'s `tools` live in the machines plugin's options. The docker plugin asks it for `tools: docker`, so without the machines plugin it acts on no machine. No host member changed.
 - AR0691 (the owner on 2026-11-11, AR-D639): the provided name `delivery.merging`, by delivery, asked by session with `collect` before each restart it makes or is asked for: `()` to `{ project, job }` of each merge in a run, a project whose `merge.lock` names a live process (`job` the one its `merging` names, `""` before the merge wrote it), so no restart ends a merge between its first look at main and its `spec:` commit, its checks on main included; the lock goes before the merge's push and its prune, which a restart may still end; a lock its process left names none. No host member changed.
+- AR0651 (AR0480's approved plan, ticket 4, roadmap 110; the owner approved it on 2026-11-06, AR-D523): the provided name `stats.tickets`, by stats, asked by manage with `collect` for the `### Stats` section of an audit's and a retro's prompt: `(project, since?)` to the merged tickets' report `arthur stats` prints, of the tickets merged at `since` or later; none answering is the stats plugin not loaded, which the section then says. `arthur stats` moved from manage to stats with it. No host member changed.
 
 ### Project pieces
 
@@ -268,6 +269,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `delivery.ciEnded` | delivery | github (its poll, as a run ends) | `{ project, branch, below, run }`: whether a CI wait counts the run and delivery woke the coordinator for it (above, "Changes since entry 51"). |
 | `delivery.merging` | delivery | session (the fresh start's try, `/restart`, the restart due) | `{ project, job }` of each merge in a run; none while no `merge.lock` names a live process (above, "Changes since entry 51"). |
 | `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
+| `stats.tickets` | stats | manage (an audit's and a retro's prompt) | `(project, since?)`: the merged tickets' report `arthur stats` prints, of the tickets merged at `since` or later (`arthur stats --help`). |
 
 ## Option tables and `./options`
 

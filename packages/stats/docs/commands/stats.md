@@ -1,6 +1,6 @@
 # arthur stats
 
-Usage: `arthur stats [--project <name>]`. Comes with the `manage` plugin (roadmap entry 61). Answered without the model, for one project, the main one unless `--project` names another.
+Usage: `arthur stats [--project <name>]`. Comes with the `stats` plugin (roadmap entry 61, moved from manage in 110). Answered without the model, for one project, the main one unless `--project` names another. The same report, of the tickets merged since the last audit or retro, is the `### Stats` section of their prompts, which manage asks the stats plugin for as `stats.tickets` (`packages/manage/docs/manage.md`).
 
 How the merged tickets went: one line per merged ticket, in the order they were made, then six lines over all of them:
 
@@ -33,4 +33,4 @@ Over all merged tickets:
 - Most expensive: the 3 with the highest known cost, highest first, and how many have none known.
 - FAIL findings: for each FAIL review, `<id> review-N: ` and the first line of each of its findings. The findings are the section under the first heading of its final message that names `Findings` (`## Findings`, `## Review Findings`, `**Findings**`, `Findings:`), up to the next `#` heading or a bold `Notes` or `Checks`; each finding is a line that opens as the section's first does: a number (`1.`), a bullet (`-`, `*`), or bold (`**`) after a blank line. A section that opens with plain text is one finding; a review with no such heading gives the first line of its final message.
 
-With no merged ticket, one line says so: `No merged ticket in <project> yet.` It reads only: nothing is written. More than nothing after the command prints `usage: arthur stats [--project <name>]` and exits 2; an unknown project exits 1 with the board's refusal.
+With no merged ticket, one line says so: `No merged ticket in <project> yet.`, and asked with a time as `stats.tickets`, `No merged ticket in <project> since <YYYY-MM-DD> <HH:MM>.` in `core.timeZone`. It reads only: nothing is written. More than nothing after the command prints `usage: arthur stats [--project <name>]` and exits 2; an unknown project exits 1 with the board's refusal.

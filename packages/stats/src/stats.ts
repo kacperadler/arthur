@@ -4,10 +4,12 @@ import { fileURLToPath } from "node:url";
 import type { OptionTable, Tool } from "@arthur/core/option-table";
 import type { Event, Host, JobRecord, OptionProblem, Options, Plugin } from "@arthur/core/plugin";
 import { addUsage, appendLine, type Line, readLines, round } from "./stats-lines.ts";
+import { ticketStats } from "./tickets.ts";
 
-// The stats plugin (spec/roadmap.md, entry 109): one line in `runs.jsonl` of its folder per `job-ended`, what that run added to
-// the job's record, written only by `arthur run` once started; at its first start one `backfill` line per record that ended
-// before; and the coordinator's turns through its extension (session-extension.ts): docs/stats.md.
+// The stats plugin (spec/roadmap.md, entries 109 and 110): one line in `runs.jsonl` of its folder per `job-ended`, what that run
+// added to the job's record, written only by `arthur run` once started; at its first start one `backfill` line per record that
+// ended before; the coordinator's turns through its extension (session-extension.ts); and the merged tickets' report as
+// `arthur stats` and as `stats.tickets`, the `### Stats` section of manage's audit and retro prompts (tickets.ts): docs/stats.md.
 
 // Its options file too (`./options`), which `arthur setup` reads: what it is in one line, the tools it runs, its options.
 export const summary = "stats: the tokens, cost and time of every job run and coordinator turn, kept in its folder";
@@ -66,6 +68,19 @@ export function stats(options: { readonly enabled?: boolean } = {}): Plugin {
 			[host, runs] = [given, join(given.folder, "runs.jsonl")];
 			given.provide("coordinator.extension", () => ({ file: EXTENSION, env: { ARTHUR_STATS_FOLDER: given.folder } }));
 			given.events.on("job-ended", (event) => (waiting === undefined ? record(given, event) : void waiting.push(event)));
+			given.provide("stats.tickets", (project: string, since?: Date) => ticketStats(given, project, since));
+			given.commands.register({
+				name: "stats",
+				doc: new URL("../docs/commands/stats.md", import.meta.url),
+				inJob: true,
+				run({ args, project }) {
+					if (args.length > 0) {
+						console.error("usage: arthur stats [--project <name>]");
+						return 2;
+					}
+					console.log(ticketStats(given, project));
+				},
+			});
 		},
 		start() {
 			if (host === undefined) return;

@@ -242,6 +242,7 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	env.commit("the page criteria");
 	const plugin = fakeHost({ name: "manage", root: env.root, code: [inside, outside] });
 	plugin.provide("projects", () => [{ name: "acme", path: env.root, prefix: "AC" }]);
+	plugin.provide("stats.tickets", (project: string, since?: Date) => `the merged tickets of ${project} since ${since?.toISOString() ?? "ever"}`);
 	await plugin.setup(manage({}));
 	const job = await plugin.host.jobs.spawn({ task: RETRO_TASK, kind: "retro" });
 	const home = dirname(plugin.host.folder);
@@ -262,7 +263,7 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 		),
 		section,
 	);
-	assert.ok(section.includes("### Stats\n\nStats of acme: 2 merged tickets\n"), "no retro yet: every merged ticket");
+	assert.ok(section.includes("### Stats\n\nthe merged tickets of acme since ever\n\n### Repeats"), "no retro yet: every merged ticket");
 	assert.ok(section.includes("### Board\n\n"), section);
 	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, verify, audit, report, retro, pyramid.\n`), section);
 });
@@ -292,6 +293,21 @@ test("a retro's prompt lists the corrections of the project's jobs since the las
 	writeFileSync(join(env.root, "spec/retro/2026-10-20.md"), `# Retro 2026-10-20\n\n- Merges up to: ${env.git("rev-parse", "HEAD")}\n`);
 	env.commit("the last retro");
 	assert.equal(await corrections(), `${lead}none\n\n`);
+});
+
+test("a retro's ### Stats is stats.tickets' answer since the last retro's commit was made; without the stats plugin one line says so", async (t) => {
+	const env = await load(t);
+	const stats = async () => {
+		const prompt = env.read((await env.jobs.spawn({ task: RETRO_TASK, kind: "retro" })).id, "prompt");
+		return prompt.slice(prompt.indexOf("### Stats"), prompt.indexOf("### Repeats"));
+	};
+	assert.equal(await stats(), "### Stats\n\nnone: the stats plugin is not loaded\n\n");
+	env.fake.provide("stats.tickets", (project: string, since?: Date) => `the merged tickets of ${project} since ${since?.toISOString() ?? "ever"}`);
+	mkdirSync(join(env.root, "spec/retro"));
+	execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "--allow-empty", "-m", "later"], { cwd: env.root, env: { ...process.env, GIT_COMMITTER_DATE: "2030-01-01T00:00:00Z" } });
+	writeFileSync(join(env.root, "spec/retro/2026-10-20.md"), `# Retro 2026-10-20\n\n- Merges up to: ${env.git("rev-parse", "HEAD")}\n`);
+	env.commit("the last retro");
+	assert.equal(await stats(), "### Stats\n\nthe merged tickets of acme since 2030-01-01T00:00:00.000Z\n\n");
 });
 
 test("retro.day and retro.at register one weekly entry; it starts a retro only while one is due, and none on another day", async (t) => {

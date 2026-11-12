@@ -13,7 +13,7 @@ function say(line: string, code: number): never {
 const version: unknown = JSON.parse(readFileSync("package.json", "utf8")).version;
 if (typeof version !== "string") say("package.json has no version: no release", 0);
 const tag = `v${version}`;
-const remote = spawnSync("git", ["ls-remote", "--exit-code", "--tags", "origin", `refs/tags/${tag}`], { encoding: "utf8" });
+const remote = spawnSync("git", ["ls-remote", "--exit-code", "origin", `refs/tags/${tag}`], { encoding: "utf8" });
 if (remote.status === 0) say(`${tag} exists on origin: no release`, 0);
 // --exit-code makes 2 "no such ref"; anything else is a fetch that failed.
 if (remote.status !== 2) say(`git ls-remote origin failed: ${remote.stderr.trim()}; no release of ${tag}`, 1);

@@ -120,8 +120,9 @@ const pkg = (version: string, more = {}) => `${JSON.stringify({ name: "acme", ve
 const outcome = (root: string, id: string, merged: string) => writeFileSync(join(root, `spec/features/${id}-x/outcome.md`), `# ${id} - Outcome\n\n- Merged: ${merged}\`\n`);
 
 test("releases: a commit of main's first-parent line that changes the root version; each ticket under the first at or after its merge, by day without it", async (t) => {
-	const ids = [["AC0001", "feat"], ["AC0002", "chore"], ["AC0003", "fix"], ["AC0005", "feat"], ["AC0006"], ["AC0007"]] as const;
-	const acme = project(ids.map(([id, kind]) => ({ id, status: "merged", kind, updated: "2026-01-31T00:00:00Z" })));
+	const ids = [["AC0001", "feat"], ["AC0002", "chore"], ["AC0003", "fix"], ["AC0005", "feat"], ["AC0006"], ["AC0007"], ["AC0008", undefined, "2026-02-03T12:00:00Z"]] as const;
+	// No outcome.md: AC0006 merged before any release, AC0008 on the day of two, 2026-02-04 in Auckland, under the first of them.
+	const acme = project(ids.map(([id, kind, updated]) => ({ id, status: "merged", kind, updated: updated ?? "2026-01-31T00:00:00Z" })));
 	const [, , ac1, ac2, ac3, , , ac5] = history(acme, [
 		{ at: "2026-02-01T00:00:00Z", files: { "README.md": "# acme\n" } },
 		// A version that appears, where there was none, is no release.
@@ -137,24 +138,29 @@ test("releases: a commit of main's first-parent line that changes the root versi
 	]);
 	for (const [id, merged] of [["AC0001", `2026-02-01, \`${ac1}`], ["AC0002", `2026-02-02, \`${ac2}`], ["AC0003", `2026-02-03, \`${ac3}`], ["AC0005", `2026-02-05, \`${ac5}`], ["AC0007", "2026-02-06, `0000000"]] as const) outcome(acme, id, merged);
 	const run = await load(t, acme);
-	assert.deepEqual(await run(), { code: 0, out: "wrote CHANGELOG.md: 6 merged tickets", err: "" });
+	assert.deepEqual(await run(), { code: 0, out: "wrote CHANGELOG.md: 7 merged tickets", err: "" });
 	const unreleased = `## Unreleased\n\n### 2026-02-06\n\n#### Other\n\n- AC0007 Title of AC0007 (0000000)\n\n### 2026-02-05\n\n#### Added\n\n- AC0005 Title of AC0005 (${ac5})\n`;
 	const old = `### 2026-02-02\n\n#### Changed\n\n- AC0002 Title of AC0002 (${ac2})\n\n### 2026-02-01\n\n#### Added\n\n- AC0001 Title of AC0001 (${ac1})\n\n### 2026-01-31\n\n#### Other\n\n- AC0006 Title of AC0006\n`;
-	const releases = ["## 0.3.1 (2026-02-04)\n\nNo merged ticket in this release.\n", `## 0.3.0 (2026-02-04)\n\n### 2026-02-03\n\n#### Fixed\n\n- AC0003 Title of AC0003 (${ac3})\n`, `## 0.2.0 (2026-02-02)\n\n${old}`];
+	const at030 = `### 2026-02-04\n\n#### Other\n\n- AC0008 Title of AC0008\n\n### 2026-02-03\n\n#### Fixed\n\n- AC0003 Title of AC0003 (${ac3})\n`;
+	const releases = ["## 0.3.1 (2026-02-04)\n\nNo merged ticket in this release.\n", `## 0.3.0 (2026-02-04)\n\n${at030}`, `## 0.2.0 (2026-02-02)\n\n${old}`];
 	assert.equal(readFileSync(join(acme, "CHANGELOG.md"), "utf8"), [HEAD, unreleased, ...releases].join("\n"));
 });
 
-test("a project whose root version never changed gets the CHANGELOG.md it got without Git, byte for byte; so does a package.json broken by hand", async (t) => {
+test("a project whose root version never changed gets the CHANGELOG.md it got without Git, byte for byte; so does a package.json broken by hand, and a commit replaced (refs/replace)", async (t) => {
 	const acme = project([{ id: "AC0001", status: "merged", kind: "feat", merged: "2026-02-02, `aaa1111" }, { id: "AC0002", status: "merged", kind: "fix", updated: "2026-02-03T00:00:00Z" }]);
 	const run = await load(t, acme);
 	await run();
 	const before = readFileSync(join(acme, "CHANGELOG.md"), "utf8");
-	history(acme, [
+	const [first, second] = history(acme, [
 		{ at: "2026-02-01T00:00:00Z", files: { "package.json": pkg("1.0.0") } },
 		{ at: "2026-02-02T00:00:00Z", files: { "package.json": pkg("1.0.0", { description: "A shop" }) } },
 		{ at: "2026-02-03T00:00:00Z", files: { "package.json": "{ broken" } },
 		{ at: "2026-02-04T00:00:00Z", files: { "package.json": pkg("1.0.1") } },
 	]);
+	// A replacement of the second commit by one that changes the version, as a job's program may plant one: Git's own history is read.
+	const git = (input: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", acme, ...args], { encoding: "utf8", input }).trim();
+	const blob = git(pkg("2.0.0"), "hash-object", "-w", "--stdin");
+	git("", "replace", second ?? "", git("", "commit-tree", "-p", first ?? "", "-m", "planted", git(`100644 blob ${blob}\tpackage.json\n`, "mktree")));
 	await run();
 	assert.equal(readFileSync(join(acme, "CHANGELOG.md"), "utf8"), before);
 });

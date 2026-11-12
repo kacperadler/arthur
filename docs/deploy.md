@@ -9,7 +9,7 @@ A line that names a roadmap entry describes what that entry builds; the order is
 A job can run on another machine, such as a Mac for an iOS build (`arthur spawn --machine <name>`, roadmap entries 21 and 22). The `machines` plugin declares and checks them (entry 30) and places each job on a machine with the labels its spawn, ticket or project `requires` (entry 31). Arthur reaches a machine only over SSH, as `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <host>`: never with a password, never accepting a host key it does not know, giving up after 10 seconds on a machine that does not answer. The machine runs the job's worktree, agent and guards through its own `arthur`. Arthur sends it no MCP secret, only the task, the prompt, the commits and the variables a plugin's `prepare` returns, such as a provider's key of the models plugin (`arthur spawn --help`, "On another machine"). `arthur stop`, `steer`, `continue` and `prune` of its jobs run there too. It needs:
 
 1. Node 24, git and OMP, logged in with its own credential (`omp login` there), as in steps 2 and 3 of [`setup.md`](setup.md). With the nvm plugin on, nvm in `~/.nvm` there (or `NVM_DIR` set for a command over SSH) and each Node version the projects' `.nvmrc` name, `nvm install <version>` there: a spawn downloads none (`packages/nvm/docs/nvm.md`).
-2. Arthur's core of the same version as here: clone and `npm ci` as in step 4 of [`setup.md`](setup.md), at the same commit, without a config. `arthur version` prints `<release> <hash>`; both machines must print the same hash, its last word, or every spawn there is refused naming both lines. Update it there with every update here.
+2. Arthur's core of the same version as here: clone and `npm ci` as in step 4 of [`setup.md`](setup.md), without a config. `arthur version` prints `<release> <hash>`; both machines must print the same hash, its last word, or every spawn there is refused naming both lines. Once `arthur` is on its `PATH` (step 3), `arthur machines update <name>` here brings it to the commit here, and again with every update here ("Updating", below).
 3. `node`, `omp`, `git` and `arthur` on the `PATH` of a command run over SSH, which reads no profile and returns early from Ubuntu's `~/.bashrc`: put the `PATH` line at the top of `~/.bashrc` there, before its `case $- in` line, not at its end. The `machines` plugin's check runs `node -e` there for the machine's free CPU and memory, and with `keepFree.disk` `df -Pk` for its free disk, which the `resources` plugin reads; a machine where `node -e` fails, or where `git` is not found, is offline.
 4. From this host, as Arthur's user: a key the machine accepts (`ssh-copy-id <host>`), and its host key known, accepted once by hand. Then this prints the same hash as `arthur version` here, without asking anything:
 
@@ -61,6 +61,18 @@ Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls 
 
 ## Updating
 
+An install at a release tag, as step 4 of [`setup.md`](setup.md) makes it:
+
+```sh
+cd ~/arthur
+arthur update
+arthur config check
+```
+
+`arthur update` runs `git fetch --tags origin` in Arthur's checkout, checks out the newest release tag (or the tag or commit given, `arthur update v0.2.0`) and runs `npm ci`, going back where it was when `npm ci` fails. It refuses changed tracked files, naming them, and with no argument a checkout on a branch (`arthur update --help`).
+
+A development checkout of `main`, as the VPS Arthur itself is built on, is updated with `git pull` instead (`arthur update` refuses it: `main is a development checkout; update it with git pull`):
+
 ```sh
 cd ~/arthur
 git pull
@@ -69,4 +81,6 @@ arthur config check
 systemctl --user restart arthur
 ```
 
-A restart stops every plugin, the coordinator included. Run `arthur jobs` first and restart when none runs. Until it, once a pull or a merge changed Arthur's code, the session plugin's restart guard refuses every new job, `restart due: ...` (`packages/session/docs/session.md`, "The restart guard"). While one is due, `/restart` from the phone does this restart too, after the coordinator's handoff (`arthur restart --help`).
+`arthur run` runs the code it loaded at its start until it starts again. With the session plugin its restart guard refuses every new job meanwhile, `restart due: ...`, and under the service restarts `arthur run` itself once no job and no merge runs (`packages/session/docs/session.md`, "The restart guard"); `arthur update` says so. Without it, `arthur update` names the restart, `systemctl --user restart arthur`: a restart stops every plugin, the coordinator included, so run `arthur jobs` first and restart when none runs. While a restart is due, `/restart` from the phone does it too, after the coordinator's handoff (`arthur restart --help`).
+
+Each machine of the `machines` plugin then needs the same version: `arthur machines update` runs `arthur update <commit>` on each over SSH, the commit this checkout is at, not the newest release; `arthur machines update <name>` on one (`arthur machines --help`). A machine offline is named and skipped, the others updated. A machine whose Arthur has no `arthur update` yet, one whose `arthur version` prints a hash alone, is updated once by hand there: `cd ~/arthur && git fetch --tags origin && git checkout --quiet <commit> && npm ci`, the commit `git -C ~/arthur rev-parse HEAD` prints here.

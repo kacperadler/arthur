@@ -15,6 +15,7 @@ import { spawnCommand } from "./spawn-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
 import { coreRequirements } from "./requirements.ts";
 import { runPlugins } from "./run.ts";
+import { updateCommand } from "./update.ts";
 import { setup } from "./setup.ts";
 
 // The core's own commands (cli.ts), which run even when the config or a plugin does not load.
@@ -43,6 +44,7 @@ export function coreCommands(problem: string | undefined, loaded: () => Loaded |
 	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs, need("", (app) => app.emit))) commands.register("core", command);
 	commands.register("core", remoteJobCommand());
 	commands.register("core", { name: "version", doc: new URL("../docs/commands/version.md", import.meta.url), inJob: true, run: () => console.log(arthurVersion()) });
+	commands.register("core", updateCommand(() => loaded()?.plugins ?? []));
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),

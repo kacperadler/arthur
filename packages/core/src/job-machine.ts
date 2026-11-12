@@ -27,17 +27,18 @@ const quote = (word: string) => `'${word.replaceAll("'", `'\\''`)}'`;
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export const LOCAL = "local";
 
-// The hash both ends must share: of the core's source files, so two checkouts of one commit agree.
-export function coreVersion(): string {
-	const hash = createHash("sha256");
-	for (const name of readdirSync(import.meta.dirname).sort()) hash.update(name).update(readFileSync(join(import.meta.dirname, name)));
+// The hash both ends must share: of the core's source files, so two checkouts of one commit agree; `core` another checkout's
+// core folder (`arthur update`), else this one's.
+export function coreVersion(core = join(import.meta.dirname, "..")): string {
+	const [hash, src] = [createHash("sha256"), join(core, "src")];
+	for (const name of readdirSync(src).sort()) hash.update(name).update(readFileSync(join(src, name)));
 	return hash.digest("hex").slice(0, 12);
 }
 
 // The release, the core's package.json `version`, one for the core and every first-party plugin.
-export const release = (): string => JSON.parse(readFileSync(join(import.meta.dirname, "../package.json"), "utf8")).version;
+export const release = (core = join(import.meta.dirname, "..")): string => JSON.parse(readFileSync(join(core, "package.json"), "utf8")).version;
 // What `arthur version` prints, `<release> <hash>`; another machine's line passes the spawn when it is two words, the last this hash.
-export const arthurVersion = (): string => `${release()} ${coreVersion()}`;
+export const arthurVersion = (core?: string): string => `${release(core)} ${coreVersion(core)}`;
 
 // The machines of one load, `local` always among them; `owner` is the plugin that registers, named in refusals.
 export function machineRegistry(home: string) {

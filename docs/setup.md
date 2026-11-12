@@ -46,15 +46,18 @@ omp login
 
 ## 4. Get Arthur, and `arthur` on your `PATH`
 
-Each line checks first, as in step 2: a clone already in `~/arthur` is kept as it is (update it as [`deploy.md`](deploy.md#updating) says), and the `PATH` line goes into `~/.bashrc` once.
+Arthur is installed as a full clone of its repository, not a shallow one (the restart guard of `packages/session/docs/session.md` compares commits), at its newest release tag, a Git tag `v<version>` with a GitHub release. Each line checks first, as in step 2: a clone already in `~/arthur` is kept and moved to the newest release tag it holds (update it as [`deploy.md`](deploy.md#updating) says), and the `PATH` line goes into `~/.bashrc` once.
 
 ```sh
 [ -d ~/arthur/.git ] || git clone https://github.com/kacperadler/arthur.git ~/arthur
 cd ~/arthur
+git checkout --quiet "$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
 npm ci
 grep -qs 'arthur/node_modules/.bin' ~/.bashrc || printf 'export PATH="$HOME/arthur/node_modules/.bin:$PATH"\n' >> ~/.bashrc
 export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 ```
+
+A development checkout of `main`, as the VPS Arthur itself is built on, leaves out the `git checkout` line and stays on `main`.
 
 **Check:** `arthur version` prints the release and the hash of the core, such as `0.1.0 c88b660134fb`.
 
@@ -119,7 +122,7 @@ Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones incl
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 
-The config and the project folders stay in `~/arthur`, so their `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts`, `projects/` and `.arthur/` (`.gitignore`), so your projects never reach the public repository, and `git pull` leaves both as they are.
+The config and the project folders stay in `~/arthur`, so their `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts`, `projects/` and `.arthur/` (`.gitignore`), so your projects never reach the public repository, and `arthur update` and `git pull` leave both as they are.
 
 Arthur's own repository checks that nothing of yours reaches it (`test/other-projects.ts`): `npm test`, and so `arthur merge` on main, fails on a tracked file or a commit message the merge brings that names a folder of `projects/` but `arthur` (in a path or a content, in any case or as a ticket folder's slug; a `Signed-off-by:` line's address that is the commit's own author's or committer's aside), and names the file and the project; `git -C ~/arthur config core.hooksPath .githooks` makes every commit there refuse one too, the coordinator's and each job's, as a job's worktree runs the repository's hooks (after its commit rule, `packages/commit-rules/docs/commit-rules.md`). `arthur merge` makes its own `spec: <id> merged` commit with hooks off, so it runs the same check before it, as the `commit-msg` script of `package.json`, and leaves the files uncommitted and unpushed on a refusal (`arthur merge --help`, "Steps").
 

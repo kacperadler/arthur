@@ -5619,9 +5619,9 @@
   {
     "id": "AR0696",
     "title": "The review gate needs min(100, all) mutants, not min(25, all)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
-    "updated": "2026-11-12T09:33:22.848Z",
+    "updated": "2026-11-12T10:57:18.972Z",
     "after": [
       "AR0671"
     ]

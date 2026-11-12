@@ -428,8 +428,7 @@ test("arthur machines update runs arthur update <this core's HEAD commit> on eac
 	writeFileSync(join(machine("silent-box"), "bin/arthur"), "#!/bin/sh\nexit 3\n", { mode: 0o755 });
 	// Killed while it runs (as the 600 s cut kills it): its ssh ends by a signal, code null.
 	writeFileSync(join(machine("cut-box"), "bin/arthur"), "#!/bin/sh\necho 'npm warn deprecated' >&2\nkill -9 $PPID\n", { mode: 0o755 });
-	const [dirty, silent, cut] = ["dirty", "silent", "cut"].map((name) => ({ name, ssh: `${name}-box`, home: "/home/arthur/.arthur" }));
-	const list = [MAC, BUILD, dirty, silent, cut];
+	const list = [MAC, BUILD, ...["dirty", "silent", "cut"].map((name) => ({ name, ssh: `${name}-box`, home: "/home/arthur/.arthur" }))];
 	rmSync(sshLog, { force: true });
 	const plugin = machines({ list });
 	const fake = fakeHost({ name: "machines", options: { list }, code: [core] });

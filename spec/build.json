@@ -5639,9 +5639,9 @@
   {
     "id": "AR0698",
     "title": "Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0698-release-0-1-0-tag-v0-1-0-and-its-github-release-by-hand-once-ar0641-merges/ticket.md",
-    "updated": "2026-11-12T07:11:08.834Z",
+    "updated": "2026-11-12T07:34:32.355Z",
     "after": [
       "AR0641"
     ]

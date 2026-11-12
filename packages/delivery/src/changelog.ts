@@ -28,7 +28,7 @@ export function writeChangelog(host: Pick<Host, "board" | "clock">, project: str
 	const projects = host.board.projects();
 	// `host.board.list` refuses an unknown project, so `root` is found.
 	const root = (project === undefined ? projects[0] : projects.find((each) => each.name === project))?.path ?? "";
-	const lines = merged.map((ticket): Line => {
+	const lines = merged.map((ticket) => {
 		const [outcomePath, ticketPath] = [join(root, dirname(ticket.path), "outcome.md"), join(root, ticket.path)];
 		const outcome = MERGED.exec(existsSync(outcomePath) ? readFileSync(outcomePath, "utf8") : "");
 		const goal = (existsSync(ticketPath) ? readFileSync(ticketPath, "utf8") : "").split(/^## Goal$/m)[1]?.split(/^## /m)[0] ?? "";

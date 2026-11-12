@@ -15,6 +15,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0686 Code: a review on the fable model finds redundant comments and removes them (e1847934)
 - AR0693 A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes (5afc8e5a)
 - AR0694 A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision (5512e3fb)
+- AR0695 The coordinator checks a finding's or audit's ticket against autopilot before asking the owner (dc057e4d)
 - AR0696 The review gate needs min(100, all) mutants, not min(25, all) (42f5b862)
 - AR0697 The test kit stops every process a test left in its folder when a test file exits (cdcd7c6b)
 - AR0698 Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges

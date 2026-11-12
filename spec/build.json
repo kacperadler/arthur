@@ -5609,9 +5609,9 @@
   {
     "id": "AR0695",
     "title": "The coordinator checks a finding's or audit's ticket against autopilot before asking the owner",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0695-the-coordinator-checks-a-finding-s-or-audit-s-ticket-against-autopilot-before/ticket.md",
-    "updated": "2026-11-11T20:24:15.444Z",
+    "updated": "2026-11-12T13:55:29.589Z",
     "after": [
       "AR0694"
     ]

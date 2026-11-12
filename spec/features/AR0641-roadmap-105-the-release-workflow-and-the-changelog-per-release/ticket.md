@@ -36,4 +36,5 @@ Out:
 
 ## Decisions
 - 2026-11-12: Make v0.1.0 by hand once on GitHub; the release workflow makes every later release; the owner: "Make v0.1.0 by hand once on GitHub" (AR-D659)
+- 2026-11-12: Merge AR0641; the owner: "AR-D662 1, AR-D661 1" (AR-D661)
 

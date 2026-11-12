@@ -4411,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-12T08:05:17.869Z",
+    "updated": "2026-11-12T08:12:19.911Z",
     "after": [
       "AR0554"
     ]

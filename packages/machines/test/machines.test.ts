@@ -426,6 +426,8 @@ test("arthur machines update runs arthur update <this core's HEAD commit> on eac
 	const fake = fakeHost({ name: "machines", options: { list: [MAC, BUILD, dirty] }, code: [core] });
 	await fake.setup(plugin);
 	const [command] = fake.commands;
+	// Each `arthur update` there is cut after 600 s, as the command's page says.
+	const ssh = t.mock.method(fake.host.jobs, "run");
 	const log = t.mock.method(console, "log", () => {});
 	const run = async (...args: string[]) => {
 		log.mock.resetCalls();
@@ -441,6 +443,7 @@ test("arthur machines update runs arthur update <this core's HEAD commit> on eac
 	]);
 	assert.deepEqual(["mac-mini", "dirty-box"].map((host) => readFileSync(join(root, host, "args"), "utf8")), [`update ${commit}\n`, `update ${commit}\n`], "the commit here, not the newest release");
 	assert.ok(calls().every((call) => call.endsWith(` 'arthur' 'update' '${commit}'`)));
+	assert.deepEqual(ssh.mock.calls.map((call) => [call.arguments[0], call.arguments[2]]), [["mac", 600], ["build", 600], ["dirty", 600]]);
 	rmSync(sshLog);
 	assert.deepEqual(await run("mac"), [0, ["mac: updated 0.1.0 0123456789ab to 0.2.0 ba9876543210"]]);
 	assert.equal(calls().length, 1, "only the machine named");

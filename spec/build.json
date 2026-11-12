@@ -5155,9 +5155,9 @@
   {
     "id": "AR0641",
     "title": "Roadmap 105: the release workflow and the changelog per release",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0641-roadmap-105-the-release-workflow-and-the-changelog-per-release/ticket.md",
-    "updated": "2026-11-06T08:18:04.993Z",
+    "updated": "2026-11-12T01:31:00.795Z",
     "after": [
       "AR0647"
     ]
@@ -5595,16 +5595,16 @@
   {
     "id": "AR0693",
     "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
-    "updated": "2026-11-12T01:12:31.614Z"
+    "updated": "2026-11-12T01:48:04.282Z"
   },
   {
     "id": "AR0694",
     "title": "A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0694-a-plan-yes-ticket-goes-straight-to-its-planner-the-plan-question-is-the-owner-s/ticket.md",
-    "updated": "2026-11-11T20:24:13.244Z"
+    "updated": "2026-11-12T01:31:02.200Z"
   },
   {
     "id": "AR0695",

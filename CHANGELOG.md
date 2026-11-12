@@ -9,6 +9,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0553 Speech: the coordinator answers a voice note with a voice note, spoken on this server (17dc9ed0)
 - AR0647 Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72) (cc86eb39)
 
+### Changed
+
+- AR0641 Roadmap 105: the release workflow and the changelog per release (bb47fe30)
+
 ## 2026-11-11
 
 ### Added

@@ -48,6 +48,8 @@ import { schedule } from "@arthur/schedule";
 import * as scheduleFile from "@arthur/schedule/options";
 import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
+import { speak } from "@arthur/speak";
+import * as speakFile from "@arthur/speak/options";
 import { stats } from "@arthur/stats";
 import * as statsFile from "@arthur/stats/options";
 import { telegram } from "@arthur/telegram";
@@ -87,6 +89,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	resources: [resourcesFile, resources({})],
 	schedule: [scheduleFile, schedule()],
 	session: [sessionFile, session()],
+	speak: [speakFile, speak()],
 	stats: [statsFile, stats()],
 	telegram: [telegramFile, telegram({ bots: [] })],
 	uptime: [uptimeFile, uptime()],
@@ -117,6 +120,8 @@ const TOOLS: Readonly<Record<string, readonly string[]>> = {
 	models: ["curl"],
 
 	orchestration: ["tmux"],
+
+	speak: ["ffmpeg"],
 
 	video: ["ffmpeg"],
 

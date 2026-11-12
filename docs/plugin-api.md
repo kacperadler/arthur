@@ -205,7 +205,7 @@ The events plugins share, which channels and the coordinator keep (`arthur send 
 | --- | --- | --- |
 | `message-received` | `channel`, `parts` (each `Part`), `place?`, `instance?` | A channel, once per owner's message. |
 | `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule, github). |
-| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn; a claimed part's `reply`. |
+| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn, and after it `voice note not sent: <why>` when the reply's voice note could not go (AR0553); a claimed part's `reply`. |
 | `schedule-fired` | `id`, `slot` (ISO time), `late`, `does` (`action`, `job` or `run`) | Schedule, once an entry's slot is claimed, before it runs. |
 | `notice` | `text`, `place?` | Any plugin; every channel sends it unless `coordinator.silent` holds it. |
 
@@ -237,7 +237,8 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `roles.model` | orchestration | the core, session (its LLM probe), develop (`arthur eval`) | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | listen, video | the core (`turnText`) | A `Claim` for a part it handles. |
 | `listen.transcribe` | listen | listen (`arthur transcribe`), video (a video's sound track, through `collect`: none answering is the listen plugin not enabled), any plugin | A promise of `{ seconds, text, segments }` for a file's path, each segment `{ start, end, text }` in seconds; rejects with why it was not transcribed (`docs/listen.md`). |
-| `channel.send` | discord, telegram | the core (`arthur send`), manage (`/retro`, `/repeats`, only the channel the command came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
+| `speak.say` | speak | speak (`arthur say`), orchestration (a reply to a voice note, through `collectEach`: none answering is the speak plugin not enabled), any plugin | A promise of the absolute path of an OGG/Opus voice note in `.arthur/speak/` for a text, spoken by Piper with the voice of its language; rejects with why it was not spoken (`packages/speak/docs/speak.md`). |
+| `channel.send` | discord, telegram | the core (`arthur send`), manage (`/retro`, `/repeats`, only the channel the command came from), orchestration (the voice note of a reply, only the channel the voice note came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
 | `coordinator.context` | develop, findings, manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |

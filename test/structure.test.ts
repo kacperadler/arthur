@@ -43,7 +43,7 @@ const BUDGETS = {
 
 	nvm: 98,
 
-	orchestration: 2863,
+	orchestration: 2918,
 
 	projects: 595,
 
@@ -53,9 +53,11 @@ const BUDGETS = {
 
 	session: 960,
 
+	speak: 248,
+
 	stats: 200,
 
-	telegram: 680,
+	telegram: 682,
 
 	uptime: 383,
 

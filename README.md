@@ -50,6 +50,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **stats**, built: the tokens, cost at list price and time of every job run and coordinator turn, kept in its own folder; its views come next ([stats](packages/stats/docs/stats.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).
+- **speak**, built: the coordinator's reply to a voice note also sent as a voice note, spoken on this server by Piper, and `arthur say` ([speak](packages/speak/docs/speak.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
 - **activity**, built: one file per day of who did what, each logged event with its actor and the messages it acted on, kept 90 days ([activity](packages/activity/docs/activity.md)).
 - **docker**, partly built: what a job creates with Docker labelled with its id, its own compose project, all of it removed with its worktree, Docker's data root counted for the disk floor, and a daily sweep of leftovers with `arthur docker`; a project's own Docker service (`docker.project({ service })`) is held out ([docker](packages/docker/docs/docker.md)).
@@ -66,7 +67,7 @@ flowchart TD
   end
   subgraph FIRST[First-version plugins: each talks only to the core]
     chan[channels<br/>telegram, discord]
-    media[media: claim a channel's parts<br/>listen, video]
+    media[media: claim a channel's parts, speak the replies<br/>listen, video, speak]
     coord[coordinator<br/>orchestration, session, schedule]
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker partly built]

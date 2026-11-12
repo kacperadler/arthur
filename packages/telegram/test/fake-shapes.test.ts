@@ -41,6 +41,7 @@ test("every answer of the fake Bot API holds the fields its documentation requir
 		[TOKEN, "sendMessage", { chat_id: CHAT, text: "hi", message_thread_id: 7 }, "Message"],
 		[TOKEN, "sendPhoto", { chat_id: CHAT, photo: "attach://a", caption: "look" }, "Message"],
 		[TOKEN, "sendVideo", { chat_id: CHAT, video: "attach://a" }, "Message"],
+		[TOKEN, "sendVoice", { chat_id: CHAT, voice: "attach://a" }, "Message"],
 		[TOKEN, "sendDocument", { chat_id: CHAT, document: "attach://a" }, "Message"],
 		[TOKEN, "sendMediaGroup", { chat_id: CHAT, media }, "Array of Message"],
 		[TOKEN, "getFile", { file_id: "AgAC-big" }, "File"],

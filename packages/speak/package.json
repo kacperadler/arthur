@@ -1,0 +1,11 @@
+{
+  "name": "@arthur/speak",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/speak.ts",
+    "./options": "./src/speak-options.ts"
+  },
+  "version": "0.1.0"
+}

@@ -59,7 +59,8 @@ async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:
 	const fake = fakeHost({ name: "manage", options, now: NOW, root });
 	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
 	const entries: Record<string, unknown>[] = [];
-	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.map((each) => ({ plugin, ...each }))));
+	// The release notice's entry, which every load registers, is release-notice.test.ts's.
+	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.flatMap((each) => (each.id === "release" ? [] : [{ plugin, ...each }]))));
 	await fake.setup(manage(options));
 	const printed: string[] = [];
 	t.mock.method(console, "log", (line: string) => printed.push(line));

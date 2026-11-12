@@ -7,6 +7,7 @@ import { cleanup } from "./cleanup.ts";
 import { ownHealth } from "./health-checks.ts";
 import { checkOptions, type ManageOptions } from "./manage-options.ts";
 import { pyramid } from "./pyramid.ts";
+import { releaseNotice } from "./release-notice.ts";
 import { repeatsCommand } from "./repeats-command.ts";
 import { retro } from "./retro.ts";
 import { stats } from "./stats.ts";
@@ -18,7 +19,7 @@ import { stats } from "./stats.ts";
 // and days (stats.ts). The kind `audit`, and with `audit.at` its schedule entry (audit.ts); the kind `retro`, `arthur
 // retro-due`, `/retro`, and with `retro.at` its schedule entry (retro.ts); `arthur repeats` and `/repeats` (repeats-command.ts);
 // the kind `pyramid`, `arthur pyramid` and `/pyramid` (pyramid.ts). With `prune.keepJobsDays`, the schedule plugin runs the
-// daily cleanup (cleanup.ts). docs/manage.md.
+// daily cleanup (cleanup.ts); with the schedule plugin, the daily notice of a new release (release-notice.ts). docs/manage.md.
 
 export type { ManageOptions };
 
@@ -26,6 +27,8 @@ export type { ManageOptions };
 const TICK_MS = 1000;
 // When the daily cleanup runs, in `core.timeZone`.
 const PRUNE_AT = "03:00";
+// When the notice of a new release is looked for, in `core.timeZone`.
+const RELEASE_AT = "09:00";
 const ALL_WELL = "All well: nothing that should have happened by now is missing.";
 
 // Every provider's lines in setup order, trimmed, blank ones dropped; a provider that throws costs its own line only, named.
@@ -72,6 +75,8 @@ export function manage(options: ManageOptions = {}): Plugin {
 				const entry = { id: "prune", at: PRUNE_AT, option: "prune.keepJobsDays", run: () => cleanup(host, keepDays, tmpdir(), process.getuid?.() ?? -1) };
 				if (host.collect("schedule.register", host.name, [entry]).length === 0) throw new Error("prune.keepJobsDays needs the schedule plugin, which runs the daily prune; add schedule() to the config's plugins, or leave prune out");
 			}
+			// No option of its own: a core not at a release tag is not checked (release-notice.ts), and without the schedule nothing is.
+			host.collect("schedule.register", host.name, [{ id: "release", at: RELEASE_AT, option: "enabled", run: () => releaseNotice(host) }]);
 			audit(host, (host.options as ManageOptions).audit);
 			retro(host, (host.options as ManageOptions).retro);
 			repeatsCommand(host);

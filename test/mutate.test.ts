@@ -77,7 +77,7 @@ test("a mutant no test catches is named, a caught one is not; the tests run tier
 	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
 });
 
-test("--max caps the mutants run and says how many were not; a wrong argument is the usage", () => {
+test("--max caps the mutants run and says how many were not, 100 without it; a wrong argument is the usage", () => {
 	const root = repo();
 	const capped = mutate(root, "--max", "2");
 	assert.deepEqual([capped.stdout, capped.status], ["mutate: 2 mutants, 2 caught, 0 survived; 10 not run (--max 2)\n", 0]);
@@ -85,6 +85,16 @@ test("--max caps the mutants run and says how many were not; a wrong argument is
 		const wrong = mutate(root, ...args);
 		assert.deepEqual([wrong.stdout, wrong.stderr, wrong.status], ["", "mutate: usage: npm run mutate [-- --max <n>]\n", 2], args.join(" "));
 	}
+	for (const [cap, left] of [["1", 11], ["9", 3]] as const) {
+		const cut = late(root, [0, 1_500_000], "--max", cap);
+		assert.deepEqual([cut.stdout, cut.stderr, cut.status], [`mutate: 0 mutants, 0 caught, 0 survived; ${cap} not run (time); ${left} not run (--max ${cap})\n`, "", 0], `--max ${cap} is a cap`);
+	}
+	// Without --max, the 100 the review gate needs (AR0696); the deadline at once runs none of them.
+	writeFileSync(join(root, "packages/a/src/many.ts"), Array.from({ length: 15 }, (_, n) => `export const over${n} = ${n} > 3;\n`).join(""));
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "many");
+	const most = late(root, [0, 1_500_000]);
+	assert.deepEqual([most.stdout, most.stderr, most.status], ["mutate: 0 mutants, 0 caught, 0 survived; 100 not run (time); 3 not run (--max 100)\n", "", 0]);
 	assert.equal(existsSync(join(root, "far.ran")), false);
 });
 

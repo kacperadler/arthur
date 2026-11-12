@@ -4,13 +4,14 @@ import type { Plugin } from "@arthur/core/plugin";
 import { checkMachine, type Disk, missingHere, publicAddress, type Report } from "./machine-check.ts";
 import { checkOptions, type Labels, type MachineEntry, type MachinesOptions } from "./machine-options.ts";
 import { labelsProblem, labelsText, placement } from "./machine-place.ts";
+import { updateMachines } from "./machine-update.ts";
 
 // The machines plugin (spec/roadmap.md, entries 30 and 31): the machines of the `list` option, each registered with the core's
 // job runner; `local`'s labels, and each machine's as `machines.labels`; each machine checked at start and every
 // `check.everySeconds` (machine-check.ts), its changes emitted as `machine-online` and `machine-offline`, each round handed to
 // `collect("machines.round")` as it begins, whose answers name the paths each check's df reads; each job placed by labels
-// (machine-place.ts); `arthur machines` and `/machines`; a doctor requirement per machine, `local` only with tools labels; a
-// project's piece, the labels its jobs need.
+// (machine-place.ts); `arthur machines` and `/machines`, and `arthur machines update` (machine-update.ts); a doctor requirement
+// per machine, `local` only with tools labels; a project's piece, the labels its jobs need.
 // docs/commands/machines.md.
 
 export type { MachineEntry, MachinesOptions };
@@ -151,8 +152,9 @@ export function machines(options: MachinesOptions = {}): Plugin {
 				inJob: true,
 				phone: { about: "every machine: its labels, online or why not, its jobs", reply: (text) => (text.trim() === "" ? overview() : "usage: /machines") },
 				async run({ args }) {
+					if (args[0] === "update" && args.length <= 2) return updateMachines(host, list, args[1]);
 					if (args.length > 0) {
-						console.error("usage: arthur machines");
+						console.error("usage: arthur machines [update [<name>]]");
 						return 2;
 					}
 					console.log(await overview());

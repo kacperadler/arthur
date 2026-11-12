@@ -8,7 +8,7 @@ import { JOB_SCOPE } from "../src/inside-job.ts";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const CORE_LIST = "commands: config, continue, doctor, help, jobs, prune, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, version\n";
+const CORE_LIST = "commands: config, continue, doctor, help, jobs, prune, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, update, version\n";
 
 // A plugin's commands as a config holds them, with the projects `acme` and `shop` in the config's folder: `echo` prints what it
 // got and exits 3, `boom` throws, `gone` loses its doc file right after it registered it, before any `--help`.
@@ -36,7 +36,7 @@ function arthur(folder: string, ...args: string[]): { readonly status: number | 
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 }
 
-const ALL = "commands: boom, config, continue, doctor, echo, gone, help, jobs, prune, quiet, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, version\n";
+const ALL = "commands: boom, config, continue, doctor, echo, gone, help, jobs, prune, quiet, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, update, version\n";
 
 test("a plugin's command runs with its arguments and exits with its code; --project goes to the command, not its arguments", () => {
 	const folder = project();
@@ -416,7 +416,7 @@ test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it ru
 	assert.equal(arthur(folder, "quiet").status, 0, "the home folder as a live one has it");
 	const home = () => readdirSync(join(folder, ".arthur"), { recursive: true, encoding: "utf8" }).sort().map((path) => (statSync(join(folder, ".arthur", path)).isFile() ? `${path}: ${readFileSync(join(folder, ".arthur", path), "utf8")}` : path));
 	const before = home();
-	for (const args of [["echo", "x"], ["boom"], ["--project", "acme", "echo"], ["ticket", "new", "A"], ["spawn", "Fix it."], ["send", "a.png"], ["stop", "x"], ["stopall"], ["steer", "x", "y"], ["continue", "x", "y"], ["prune", "--all"], ["run"], ["setup"], ["config", "check"], ["doctor"], ["remote-job", "stop", "/home/arthur/.arthur", "x"]]) {
+	for (const args of [["echo", "x"], ["boom"], ["--project", "acme", "echo"], ["ticket", "new", "A"], ["spawn", "Fix it."], ["send", "a.png"], ["stop", "x"], ["stopall"], ["steer", "x", "y"], ["continue", "x", "y"], ["prune", "--all"], ["run"], ["setup"], ["config", "check"], ["doctor"], ["update"], ["remote-job", "stop", "/home/arthur/.arthur", "x"]]) {
 		const run = inJob(record, ...args);
 		const name = args[0] === "--project" ? args[2] : args[0] === "remote-job" ? "remote-job stop" : args[0];
 		const refusal = `arthur ${name}: refused inside a job 2026-10-23-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message\n`;

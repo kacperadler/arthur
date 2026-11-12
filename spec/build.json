@@ -5155,9 +5155,9 @@
   {
     "id": "AR0641",
     "title": "Roadmap 105: the release workflow and the changelog per release",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0641-roadmap-105-the-release-workflow-and-the-changelog-per-release/ticket.md",
-    "updated": "2026-11-12T01:31:00.795Z",
+    "updated": "2026-11-12T07:11:03.461Z",
     "after": [
       "AR0647"
     ]
@@ -5169,8 +5169,8 @@
     "path": "spec/features/AR0642-roadmap-106-installing-a-release-arthur-update-and-arthur-machines-update/ticket.md",
     "updated": "2026-11-06T08:18:05.584Z",
     "after": [
-      "AR0640",
-      "AR0641"
+      "AR0641",
+      "AR0698"
     ]
   },
   {
@@ -5634,6 +5634,16 @@
     "updated": "2026-11-12T07:00:34.918Z",
     "after": [
       "AR0671"
+    ]
+  },
+  {
+    "id": "AR0698",
+    "title": "Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges",
+    "status": "planning",
+    "path": "spec/features/AR0698-release-0-1-0-tag-v0-1-0-and-its-github-release-by-hand-once-ar0641-merges/ticket.md",
+    "updated": "2026-11-12T07:11:08.834Z",
+    "after": [
+      "AR0641"
     ]
   }
 ]

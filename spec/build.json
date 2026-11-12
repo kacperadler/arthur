@@ -5629,9 +5629,9 @@
   {
     "id": "AR0697",
     "title": "The test kit stops every process a test left in its folder when a test file exits",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
-    "updated": "2026-11-12T07:24:02.339Z",
+    "updated": "2026-11-12T07:51:08.623Z",
     "after": [
       "AR0671"
     ]

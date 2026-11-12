@@ -5155,9 +5155,9 @@
   {
     "id": "AR0641",
     "title": "Roadmap 105: the release workflow and the changelog per release",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0641-roadmap-105-the-release-workflow-and-the-changelog-per-release/ticket.md",
-    "updated": "2026-11-12T07:11:03.461Z",
+    "updated": "2026-11-12T07:49:58.670Z",
     "after": [
       "AR0647"
     ]

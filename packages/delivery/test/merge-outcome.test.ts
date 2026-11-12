@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { FOLDER, load, OWNER, TICKET } from "./merge-setup.ts";
+import { FOLDER, load, OWNER, PACKAGE, TICKET } from "./merge-setup.ts";
 
 // arthur merge (merge-setup.ts): what a merge writes after it went in: outcome.md, the review costs, CHANGELOG.md, the findings.
 
@@ -70,6 +70,24 @@ test("each merge that went in rebuilds CHANGELOG.md and commits it; one edited b
 	const merged = await merge(pay.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(merged.err, "");
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), /\n- AC0001 Shop \([0-9a-f]+\)\n- AC0002 Cart \([0-9a-f]+\)\n- AC0003 Pay \([0-9a-f]+\)\n$/);
+});
+
+test("a release ticket's own merge writes its release's section, its ticket and those before it in it, and commits it; the next merge's ticket is Unreleased", async (t) => {
+	const { root, git, commit, take, worker, merge } = await load(t);
+	const version = (to: string) => ({ "package.json": JSON.stringify({ ...JSON.parse(PACKAGE), version: to }) });
+	commit(root, version("0.1.0"));
+	await take();
+	const first = await worker();
+	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
+	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), /\n\n## \d{4}-\d{2}-\d{2}\n\n### Other\n\n- AC0001 Shop \([0-9a-f]+\)\n$/, "a version that appears is no release");
+	const release = await worker(version("0.2.0"), "Ticket: spec/features/AC0002-cart/ticket.md");
+	assert.equal((await merge(release.id, "--unreviewed", "--decision", OWNER)).err, "");
+	const day = "\\d{4}-\\d{2}-\\d{2}";
+	const released = new RegExp(`\\.\n\n## 0\\.2\\.0 \\(${day}\\)\n\n### ${day}\n\n#### Other\n\n- AC0001 Shop \\([0-9a-f]+\\)\n- AC0002 Cart \\([0-9a-f]+\\)$`);
+	assert.match(git(root, "show", "HEAD:CHANGELOG.md"), released, "committed in spec: AC0002 merged, no Unreleased heading");
+	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
+	assert.equal((await merge(pay.id, "--unreviewed", "--decision", OWNER)).err, "");
+	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\\.\n\n## Unreleased\n\n### ${day}\n\n#### Other\n\n- AC0003 Pay \\([0-9a-f]+\\)\n\n## 0\\.2\\.0 \\(${day}\\)\n`));
 });
 
 test("findings go to findings.onMerge: none open makes no ticket, an open one's ticket gets the next id; without a provider they stay open, said once", async (t) => {

@@ -51,7 +51,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 ## F6. The owner's container from an image a job built carries the job's label, so the sweep takes it once the job is gone
 
-- Kind: risk
+- Kind: fix
 - Found by: 2026-11-12-review-12761f1d (review), 2026-11-12
 - Where: `packages/docker/src/docker-sweep.ts:55`
 - What: Docker copies an image's labels onto each container made from it, so a container the owner runs from an image a job built carries `arthur.job=<id>`. Once that job's record is gone the sweep, and the job's cleanup at its prune, take the owner's stopped container with its anonymous volumes. [INFERENCE] from Docker's label inheritance; not reproduced against a real daemon.
@@ -60,7 +60,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 ## F7. Two Arthur homes on one Docker host sweep each other's resources
 
-- Kind: risk
+- Kind: fix
 - Found by: 2026-11-12-review-12761f1d (review), 2026-11-12
 - Where: `packages/docker/src/docker-sweep.ts:85`
 - What: the sweep matches labels against the job records of its own home, but Docker is shared by the whole machine, so with a second home on it (another checkout, a development install) each sweep finds the other's jobs gone and removes what they made, at any age.

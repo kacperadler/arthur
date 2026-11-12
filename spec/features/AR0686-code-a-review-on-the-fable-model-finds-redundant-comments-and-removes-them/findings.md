@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/dokploy/src/dokploy-postgres.ts:14`
 - What: `// A list in Dokploy's answer, or none.` sits over the one-line `const listed = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);`, the same pair the plan removes from `dokploy-setup.ts` and `dokploy-source.ts`. The file came in with AR0681 (56ebaebd), after the plan's `ed1720e8`, so the approved list does not name it and this branch leaves it (the ticket: the worker removes exactly what the approved plan lists).
 - Suggestion: remove that one comment line; nothing else changes.
-- Status: open
+- Status: deferred (client summary)

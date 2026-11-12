@@ -34,3 +34,4 @@ Out:
 ## Decisions
 
 <!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-11-12: AR0698 approved: tag v0.1.0 and its GitHub release by hand once AR0641 merges; the owner: "AR-D660 1" (AR-D660)

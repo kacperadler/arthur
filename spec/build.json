@@ -5165,9 +5165,9 @@
   {
     "id": "AR0642",
     "title": "Roadmap 106: installing a release, arthur update and arthur machines update",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0642-roadmap-106-installing-a-release-arthur-update-and-arthur-machines-update/ticket.md",
-    "updated": "2026-11-12T15:59:11.874Z",
+    "updated": "2026-11-12T18:54:45.662Z",
     "after": [
       "AR0641",
       "AR0698"

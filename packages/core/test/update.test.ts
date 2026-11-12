@@ -76,6 +76,17 @@ test("a tag or commit given is the target, older than HEAD too; a checkout on a 
 	assert.deepEqual(update(core, "v0.2.0", []), [`up to date: ${arthurVersion(core)}`]);
 });
 
+test("a replacement of the target's commit (refs/replace) in the checkout is not followed: the tag's own files are checked out", () => {
+	const { release, clone } = repository();
+	const first = release("0.1.0");
+	const { root, core } = clone("v0.1.0");
+	const second = release("0.2.0");
+	git(root, "fetch", "--quiet", "--tags", "origin");
+	git(root, "replace", second, first);
+	assert.equal(update(core, "v0.2.0", [])[0]?.endsWith(` to ${arthurVersion(core)}`), true);
+	assert.deepEqual([git(root, "--no-replace-objects", "rev-parse", "HEAD"), installed(root), arthurVersion(core).split(" ")[0]], [second, "0.2.0", "0.2.0"]);
+});
+
 test("after an update, the session plugin's restart guard restarts arthur run; without it, or with restartGuard false, the owner does", () => {
 	const { release, clone } = repository();
 	release("0.1.0");

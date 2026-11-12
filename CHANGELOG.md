@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-12
+
+### Added
+
+- AR0647 Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72) (cc86eb39)
+
 ## 2026-11-11
 
 ### Added

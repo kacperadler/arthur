@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:167`, and `spec/vision.md:161` ("unlabelled and left to the sweep")
 - What: "The sweep" in the vision lists "stopped containers, unused networks, dangling images, unused anonymous volumes, build cache unused that long" as the unlabelled leftovers it removes. The owner approved AR0604's plan with every recommendation (AR-D520), which limits the unlabelled part to dangling images, unused networks and the build cache, so his own stopped stacks keep their containers and data; this branch builds that limit and states it in `packages/docker/docs/docker.md`, the roadmap's entry 72 and `arthur.config.example.ts`. The vision is the owner's, so the worker leaves its line as it is.
 - Suggestion: the owner rewords the vision's sentence to the approved limit, for example "unlabelled leftovers older than `leftoverHours`: unused networks, dangling images, build cache unused that long; the owner's own stopped containers and volumes stay", and line 161's "left to the sweep" as roadmap entry 70 now says it: of what a job made unlabelled, the sweep takes only dangling images, unused networks and old build cache. Nothing else changes.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. herdr's start-up test fails under a loaded machine, against the 5 s limit of each herdr call
 
@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-sweep.ts:123`
 - What: `sweep` takes each machine's lock with `queueLock(..., WAIT_MS)` outside the `try` that turns a machine's failure into its line, so a lock another process holds past 12 minutes rejects the whole call: the daily sweep stops before the other machines and sends no notice. The comment above `sweep` says so.
 - Suggestion: take the lock inside the `try`, so a wait that runs out is that machine's line (`<machine>: the sweep failed: <lock path>: held by pid <pid> for over 720 s`), and pass `WAIT_MS` in so a test can hold the lock for a moment instead of 12 minutes.
-- Status: open
+- Status: deferred (client summary)
 
 ## F4. An image with several tags is listed once per tag and removed by its ID, which Docker refuses
 
@@ -38,7 +38,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-look.ts:69`, `packages/docker/src/docker-cleanup.ts:68`
 - What: `docker image ls` prints one row per tag, all with the same ID, so a gone job's image tagged twice gives the word `image:<id>` twice, and `docker image rm <id>` is refused as referenced in multiple repositories: the sweep and the cleanup at each prune name it as kept, every time.
 - Suggestion: remove a tagged image by each `<repository>:<tag>` (the last untag deletes it), and a dangling one by its ID; count it once in `arthur docker`.
-- Status: open
+- Status: deferred (client summary)
 
 ## F5. A label value with a comma splits into extra keys
 
@@ -47,7 +47,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-look.ts:43`
 - What: the listings print labels as `k=v,k=v`, and `pairs` splits on every comma, so a value holding one (compose's `com.docker.compose.project.config_files` with two files) makes a bogus key. Harmless for `arthur.job`, `arthur.keep` and the compose project today, unless such a bogus key is `arthur.keep`.
 - Suggestion: read the labels of containers, networks and volumes as JSON, as images' are (`docker inspect --format '{{json .Config.Labels}}'` and the like), or join a piece without `=` to the value before it.
-- Status: open
+- Status: deferred (client summary)
 
 ## F6. The owner's container from an image a job built carries the job's label, so the sweep takes it once the job is gone
 
@@ -56,7 +56,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-sweep.ts:55`
 - What: Docker copies an image's labels onto each container made from it, so a container the owner runs from an image a job built carries `arthur.job=<id>`. Once that job's record is gone the sweep, and the job's cleanup at its prune, take the owner's stopped container with its anonymous volumes. [INFERENCE] from Docker's label inheritance; not reproduced against a real daemon.
 - Suggestion: count a container as the job's only when its `arthur.job` label differs from its image's (the docker script adds it on `run` and `create`), or have the script add a second label only containers get, such as `arthur.container=<id>`; the owner can label his own `arthur.keep` meanwhile.
-- Status: open
+- Status: deferred (client summary)
 
 ## F7. Two Arthur homes on one Docker host sweep each other's resources
 
@@ -65,4 +65,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-sweep.ts:85`
 - What: the sweep matches labels against the job records of its own home, but Docker is shared by the whole machine, so with a second home on it (another checkout, a development install) each sweep finds the other's jobs gone and removes what they made, at any age.
 - Suggestion: label each resource with the home too (`arthur.home=<a hash of the home's path>`, added by the docker script) and sweep only those of this home; resources without it keep today's rule.
-- Status: open
+- Status: deferred (client summary)

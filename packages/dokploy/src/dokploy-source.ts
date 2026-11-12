@@ -5,7 +5,6 @@ import { call, field, ID, type Instance, NOTHING, text } from "./dokploy-api.ts"
 
 export type Source = { readonly repo: string; readonly branch: string; readonly buildPath?: string; readonly github?: string; readonly replace: boolean };
 
-// A list in Dokploy's answer, or none.
 const listed = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 export async function sourceApp(instance: Instance, id: string, { repo, branch, buildPath = "/", github, replace }: Source, next: (then: string) => string): Promise<number> {

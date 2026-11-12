@@ -28,7 +28,6 @@ const ID = /^[\w-]+$/;
 
 const paths = (host: Host, id: string) => ({ wait: join(host.folder, id, "ci-wait"), told: join(host.folder, id, "ci-told") });
 
-// The job ids with a wait.
 const waiting = (host: Host) => (existsSync(host.folder) ? readdirSync(host.folder) : []).filter((id) => ID.test(id) && existsSync(paths(host, id).wait));
 
 function read(host: Host, id: string): Wait | Error {

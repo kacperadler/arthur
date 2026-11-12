@@ -33,7 +33,8 @@ async function load(t: TestContext, options: ManageOptions) {
 	t.after(() => (before === undefined ? delete process.env.TMPDIR : (process.env.TMPDIR = before)));
 	const fake = fakeHost({ name: "manage", options, now: NOW });
 	const entries: Record<string, unknown>[] = [];
-	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.map((entry) => ({ plugin, ...entry }))));
+	// The release notice's entry, which every load registers, is release-notice.test.ts's.
+	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.flatMap((entry) => (entry.id === "release" ? [] : [{ plugin, ...entry }]))));
 	const root = repository();
 	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
 	await fake.setup(manage(options));

@@ -62,7 +62,8 @@ async function load(t: TestContext, options: ManageOptions = {}, run: AgentRun =
 	const fake = fakeHost({ name: "manage", options, now: NOW, root });
 	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
 	const entries: Record<string, unknown>[] = [];
-	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.map((each) => ({ plugin, ...each }))));
+	// The release notice's entry, which every load registers, is release-notice.test.ts's.
+	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.flatMap((each) => (each.id === "release" ? [] : [{ plugin, ...each }]))));
 	await fake.setup(manage(options));
 	const home = dirname(fake.host.folder);
 	const read = (id: string, name: string) => (existsSync(join(home, "jobs", id, name)) ? readFileSync(join(home, "jobs", id, name), "utf8") : "");

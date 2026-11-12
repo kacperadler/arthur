@@ -2,7 +2,7 @@
 
 Usage: `arthur schedule [list]`; `arthur schedule add <id> <at> [--days <day,...>] (--message <text> [--procedure <path>] | --task <text> [--kind <kind>] [--project <name>])`; `arthur schedule remove <id>`. Comes with the `schedule` plugin.
 
-The `schedule` plugin: actions and jobs at set times (roadmap entries 39 and 40), so Arthur works while the owner is away. An entry is a daily time or a one-off date and time, and does an action (a message to the coordinator) or a job (a spawn); an entry a plugin registers may instead run that plugin's own code. Entries come from the config, from other plugins, which register theirs from their own options, and from the `file` option, which `arthur schedule add` and `remove` change.
+The `schedule` plugin: actions and jobs at set times (roadmap entries 39 and 40), so Arthur works while the owner is away. An entry is a daily time or a one-off date and time, and does an action (a message to the coordinator) or a job (a spawn); an entry a plugin registers may instead run that plugin's own code. Entries come from the config, from other plugins, which register theirs from their own options or always (manage's release notice, which only turning manage off removes), and from the `file` option, which `arthur schedule add` and `remove` change.
 
 Inside a job (`arthur help --help`) only the list runs: `add` and `remove`, once their usage is right, print `arthur schedule <add|remove>: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message` and exit 1, the file unchanged.
 
@@ -32,7 +32,7 @@ An entry has either `action` or `job`. Refused at load (and by `arthur config ch
 
 ## Entries other plugins register
 
-A plugin registers the entries its own options make (orchestration's morning report, manage's audit and retro) from its `setup`, which must run after schedule's: with `requires: ["schedule"]`, or listed after schedule in the config. The name is `schedule.register`, which schedule provides:
+A plugin registers the entries its own options make (orchestration's morning report, manage's audit and retro), and those it always makes (manage's release notice), from its `setup`, which must run after schedule's: with `requires: ["schedule"]`, or listed after schedule in the config. The name is `schedule.register`, which schedule provides:
 
 ```ts
 host.call("schedule.register", host.name, [
@@ -41,7 +41,7 @@ host.call("schedule.register", host.name, [
 ], host.package);
 ```
 
-- Each entry is in the shape above, plus `option`: the path of the plugin's option that makes it, which `list` shows and `remove` names.
+- Each entry is in the shape above, plus `option`: the path of the plugin's option that makes it, which `list` shows and `remove` names; `enabled` for one the plugin always makes, which only turning the plugin off removes.
 - In place of `action` or `job`, an entry may have `run`: an async function of the plugin's own code, run at the entry's time without a model turn or a job (a daily prune, a Docker sweep): `{ id: "prune", at: "03:00", option: "prune.keepJobsDays", run: () => prune(host) }`. Only a registered entry takes it; the config and the file hold no code, so `run` there is an unknown key. `list` shows it as `run: the plugin's own code`.
 - Its id becomes `<plugin>.<id>` (`manage.audit`), so two plugins never clash; its run state is kept under that id.
 - A procedure is the absolute path of a `.md` file in the registering plugin's own package folder, `host.package`, which it passes after its entries: the folder around its `module` (`packages/<plugin>/` in Arthur's checkout, `node_modules/@arthur/<plugin>/` or a scope's package of any name in an install), one of the plugins' in the host's `code`, with no `..` in it, read as the file is when the entry runs; a symlink on the way below that folder is never read. The config's and the file's procedures keep their own rule, a relative path inside the folder `arthur run` runs in, so neither rule opens the other: a file entry cannot name a package's file, and a plugin cannot name `.env` or a file outside its package. A plugin that names no `module` (one the config writes itself) has no package folder, so its entries take no procedure; nor does one that passes none.

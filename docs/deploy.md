@@ -71,6 +71,8 @@ arthur config check
 
 `arthur update` runs `git fetch --tags origin` in Arthur's checkout, checks out the newest release tag (or the tag or commit given, `arthur update v0.2.0`) and runs `npm ci`, going back where it was when `npm ci` fails. It refuses changed tracked files, naming them, and with no argument a checkout on a branch (`arthur update --help`).
 
+With the manage and schedule plugins, an install at a release tag is told of a newer release once a day: one `notice` per release, `Arthur 0.3.0 is out; this one runs 0.2.0: arthur update` (`packages/manage/docs/manage.md`, "The release notice").
+
 A development checkout of `main`, as the VPS Arthur itself is built on, is updated with `git pull` instead (`arthur update` refuses it: `main is a development checkout; update it with git pull`):
 
 ```sh

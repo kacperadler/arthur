@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -37,12 +37,13 @@ function world(live: string): Partial<State> {
 			ps: [
 				row("ps", { ID: "c01", Names: "old-web", State: "exited", Labels: gone, Mounts: "f00danon", Networks: "old_net" }),
 				row("ps", { ID: "c02", Names: "old-run", State: "running", Labels: gone, Networks: "run_net" }),
-				row("ps", { ID: "c03", Names: "old-db", State: "exited", Labels: "com.docker.compose.project=arthur-77777777,com.docker.compose.service=db" }),
+				row("ps", { ID: "c03", Names: "old-db", State: "created", Labels: "com.docker.compose.project=arthur-77777777,com.docker.compose.service=db" }),
 				row("ps", { ID: "c04", Names: "live-web", State: "exited", Labels: mine }),
 				row("ps", { ID: "c05", Names: "live-db", State: "exited", Labels: `com.docker.compose.project=arthur-${live.slice(-8)}` }),
 				row("ps", { ID: "c06", Names: "mysql", State: "exited", Labels: "", Mounts: "mysql_data", Networks: "owner_net", CreatedAt: OLD }),
 				row("ps", { ID: "c07", Names: "kept-web", State: "exited", Labels: `${gone},${keep}` }),
 				row("ps", { ID: "c08", Names: "old-paused", State: "paused", Labels: gone }),
+				row("ps", { ID: "c09", Names: "old-dead", State: "dead", Labels: gone }),
 			],
 			"network-ls": [
 				row("network-ls", { ID: "n01", Name: "old_net", Labels: gone }),
@@ -70,6 +71,8 @@ function world(live: string): Partial<State> {
 				row("image-ls", { ID: "a00000000005", Repository: "<none>", Tag: "<none>", CreatedAt: OLD }),
 				row("image-ls", { ID: "a00000000006", Repository: "<none>", Tag: "<none>", CreatedAt: OLD }),
 				row("image-ls", { ID: "a00000000007", Repository: "postgres", Tag: "16", CreatedAt: OLD }),
+				// Pulled by digest: a repository and no tag, so not dangling.
+				row("image-ls", { ID: "a00000000008", Repository: "postgres", Tag: "<none>", CreatedAt: OLD }),
 			],
 		},
 		imageLabels: { a00000000001: gone, a00000000002: "com.docker.compose.project=arthur-77777777", a00000000005: keep, a00000000006: mine },
@@ -136,6 +139,7 @@ test("--dry-run lists what a real run removes and why, removing nothing; the run
 		out: [
 			`local: would remove container old-web (${reason})`,
 			"local: would remove container old-db (its job arthur-77777777 no longer exists)",
+			`local: would remove container old-dead (${reason})`,
 			`local: would remove network old_net (${reason})`,
 			`local: would remove network run_net (${reason})`,
 			"local: would remove network stale_net (unused, 48 h old)",
@@ -145,7 +149,7 @@ test("--dry-run lists what a real run removes and why, removing nothing; the run
 			"local: would remove image a00000000003 (dangling, 48 h old)",
 			`local: would remove script folder ${folders}/${GONE}`,
 			"local: would prune the build cache unused for 48 h, then cut it to 10G",
-			"local: --dry-run: 10 would be removed; nothing removed",
+			"local: --dry-run: 11 would be removed; nothing removed",
 		].join("\n"),
 		err: "",
 	});
@@ -156,12 +160,13 @@ test("--dry-run lists what a real run removes and why, removing nothing; the run
 	const refused = `kept network run_net: Error response from daemon: error while removing network: network run_net has active endpoints (name:"old-run" id:"c02")`;
 	assert.deepEqual({ ...swept, out: steady(swept.out) }, {
 		code: 0,
-		out: `local: removed 2 containers, 2 networks, 1 volume, 3 images, 1 script folder; ${refused}; build cache cut to 10G; 15.03GB reclaimed; <n> GB free on ${ROOT}`,
+		out: `local: removed 3 containers, 2 networks, 1 volume, 3 images, 1 script folder; ${refused}; build cache cut to 10G; 15.03GB reclaimed; <n> GB free on ${ROOT}`,
 		err: "",
 	});
 	assert.deepEqual(changes(from), [
 		["container", "rm", "--volumes", "c01"],
 		["container", "rm", "--volumes", "c03"],
+		["container", "rm", "--volumes", "c09"],
 		["network", "rm", "n01"],
 		["network", "rm", "n02"],
 		["network", "rm", "n03"],
@@ -178,9 +183,9 @@ test("--dry-run lists what a real run removes and why, removing nothing; the run
 			["old-run", "live-web", "live-db", "mysql", "kept-web", "old-paused"],
 			["run_net", "young_net", "owner_net", "bridge", "keep_net", "live_net"],
 			["stray_anon", "mysql_data", "keep_data", "live_data"],
-			["<none>:<none>:a00000000004", "<none>:<none>:a00000000005", "<none>:<none>:a00000000006", "postgres:16:a00000000007"],
+			["<none>:<none>:a00000000004", "<none>:<none>:a00000000005", "<none>:<none>:a00000000006", "postgres:16:a00000000007", "postgres:<none>:a00000000008"],
 		],
-		"the anonymous volume went with old-web; a running container, the owner's own, the young, arthur.keep and the live job's stay",
+		"the created and dead containers went, the anonymous volume with old-web; a running or paused container, the owner's own, an image pulled by digest, the young, arthur.keep and the live job's stay",
 	);
 	assert.deepEqual([existsSync(join(folders, GONE)), existsSync(join(folders, live)), existsSync(join(folders, "not.a.job"))], [false, true, true]);
 	assert.equal(fake.now().cache, 0, "the cache unused for 48 h went");
@@ -198,11 +203,11 @@ test("arthur docker: Docker's usage and what each job labelled on each machine, 
 		code: 1,
 		out: [
 			`local: Docker's data root ${ROOT}`,
-			"  Images: 7 (0 active), 1.3GB, 1.3GB reclaimable",
-			"  Containers: 8 (0 active), 150MB, 150MB reclaimable",
+			"  Images: 8 (0 active), 1.3GB, 1.3GB reclaimable",
+			"  Containers: 9 (0 active), 150MB, 150MB reclaimable",
 			"  Local Volumes: 6 (0 active), 1.2GB, 1.2GB reclaimable",
 			"  Build Cache: 0 (0 active), 12.88GB, 12.88GB reclaimable",
-			`  ${GONE} (no longer exists, so the sweep removes them): 4 containers, 2 networks, 2 volumes, 1 image`,
+			`  ${GONE} (no longer exists, so the sweep removes them): 5 containers, 2 networks, 2 volumes, 1 image`,
 			"  arthur-77777777 (no longer exists, so the sweep removes them): 1 container, 1 image",
 			`  ${live}: 2 containers, 1 network, 1 volume, 1 image`,
 			"gpu: offline: ssh: connect to host gpu port 22: Connection refused",
@@ -222,7 +227,7 @@ test("sweep.at registers a daily entry, refused at load without the schedule plu
 	assert.deepEqual(notices().map(steady), [
 		[
 			"docker: the sweep (daily):",
-			`- local: removed 2 containers, 2 networks, 1 volume, 3 images; kept network run_net: Error response from daemon: error while removing network: network run_net has active endpoints (name:"old-run" id:"c02"); 15.03GB reclaimed; <n> GB free on ${ROOT}`,
+			`- local: removed 3 containers, 2 networks, 1 volume, 3 images; kept network run_net: Error response from daemon: error while removing network: network run_net has active endpoints (name:"old-run" id:"c02"); 15.03GB reclaimed; <n> GB free on ${ROOT}`,
 		].join("\n"),
 	]);
 	await entries[0]?.run();
@@ -253,6 +258,21 @@ test("a sweep that removes nothing still sends its notice when a machine failed,
 	assert.deepEqual(cache.notices().map(steady), [`docker: the sweep (daily):\n- local: nothing to remove; build cache cut to 10G; 2GB reclaimed; <n> GB free on ${ROOT}`]);
 });
 
+test("a labelled machine where command -v finds no docker is no failure: no notice, exit 0 for arthur docker and its sweep", async (t) => {
+	const { host, entries, notices } = await load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" } });
+	const bare = temporaryFolder();
+	symlinkSync("/bin/sh", join(bare, "sh"));
+	const saved = process.env.PATH;
+	process.env.PATH = bare;
+	t.after(() => void (process.env.PATH = saved));
+	const from = fake.calls().length;
+	await entries[0]?.run();
+	assert.deepEqual(notices(), [], "nothing failed");
+	assert.deepEqual(await arthur(t, host), { code: 0, out: "local: command -v finds no docker there", err: "" });
+	assert.deepEqual(await arthur(t, host, "sweep"), { code: 0, out: "local: command -v finds no docker there", err: "" });
+	assert.equal(fake.calls().length, from, "docker is not reached");
+});
+
 test("a config that lists the schedule plugin after docker loads: docker's setup runs after schedule's, so sweep.at finds it", () => {
 	const folder = temporaryFolder();
 	execFileSync("git", ["init", "--quiet", folder]);
@@ -276,7 +296,7 @@ test("disk-low sweeps that machine in arthur run, and the notice says it is stil
 	assert.equal(fake.calls().length, from, "before the start, or on a machine without the label, docker is not asked");
 	host.emit("disk-low", { machine: "local", path: ROOT, free: 5, floor: 1e18 });
 	const [notice = ""] = await until("the disk-low sweep's notice", () => (notices().length > 0 ? notices() : undefined), SWEEP);
-	assert.match(notice, /^docker: the sweep \(disk-low on local\):\n- local: removed 2 containers, 2 networks, 1 volume, 3 images; .*; build cache cut to 10G; 15\.03GB reclaimed; [\d.]+ GB free on (\S+); still under the floor: [\d.]+ GB free on \1, floor 931322574\.6 GB$/);
+	assert.match(notice, /^docker: the sweep \(disk-low on local\):\n- local: removed 3 containers, 2 networks, 1 volume, 3 images; .*; build cache cut to 10G; 15\.03GB reclaimed; [\d.]+ GB free on (\S+); still under the floor: [\d.]+ GB free on \1, floor 931322574\.6 GB$/);
 	assert.match((await arthur(t, host, "sweep", "--machine", "local")).out, /; still under the floor: [\d.]+ GB free on .*, floor 931322574\.6 GB$/, "the floor kept for the sweep by hand");
 	host.emit("disk-low", { machine: "local", path: ROOT, free: 5, floor: 1 });
 	// The disk-low's sweep took the machine's lock at the emit; a sweep by hand waits for it to end, notice included.
@@ -294,7 +314,7 @@ test("a machine offline is skipped and Docker stopped on another is named, the r
 	await entries[0]?.run();
 	const [notice = ""] = notices();
 	assert.deepEqual(notice.split("\n").slice(2), ["- gpu: offline: ssh: connect to host gpu port 22: Connection refused; not swept", `- far: Docker does not answer: ${DOWN}; not swept`]);
-	assert.match(notice.split("\n")[1] ?? "", /^- local: removed 4 containers, 3 networks, 2 volumes, 4 images; /, "the job of the world has no record here");
+	assert.match(notice.split("\n")[1] ?? "", /^- local: removed 5 containers, 3 networks, 2 volumes, 4 images; /, "the job of the world has no record here");
 	assert.equal(existsSync(join(homes.gpu, "docker", "jobs", GONE)), true);
 	const swept = await arthur(t, host, "sweep", "--machine", "far", "--dry-run");
 	assert.deepEqual(swept, { code: 1, out: `far: Docker does not answer: ${DOWN}; not swept`, err: "" });
@@ -332,7 +352,7 @@ test("Docker stopping half-way, or the removal cut by its limit: what went is na
 	await entries[0]?.run();
 	fake.down(false);
 	const left = "network old_net, network run_net, network stale_net, network live_net, volume old_data, volume live_data, image old:latest, image oldcompose-db:latest, image a00000000003, image a00000000006";
-	assert.equal(notices()[0], `docker: the sweep (daily):\n- local: Docker stopped answering half-way: removed 4 containers; left: ${left}`);
+	assert.equal(notices()[0], `docker: the sweep (daily):\n- local: Docker stopped answering half-way: removed 5 containers; left: ${left}`);
 	const limits: (number | undefined)[] = [];
 	const late: Host["jobs"]["run"] = async (machine, argv, limit, input) => {
 		limits.push(limit);

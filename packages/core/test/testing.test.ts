@@ -348,8 +348,9 @@ test("the kit ends, before it removes its folder, the tmux servers a test left o
 
 test("the kit kills, before it removes its folder, each process a test left whose working folder or command line lies in it, not itself and none outside", async (t) => {
 	const kit = import.meta.resolve("@arthur/core/testing");
-	const outside = spawn("sleep", ["300"], { cwd: temporaryFolder(), stdio: "ignore" });
-	t.after(() => outside.kill("SIGKILL"));
+	// Beside the child's kit folder, in the same TMPDIR as its: a sleep working there and a node naming a file there.
+	const outside = [spawn("sleep", ["300"], { cwd: temporaryFolder(), stdio: "ignore" }), spawn(process.execPath, ["-e", "setInterval(() => {}, 2 ** 30)", join(temporaryFolder(), "named")], { cwd: "/", stdio: "ignore" })];
+	t.after(() => outside.forEach((one) => one.kill("SIGKILL")));
 	// A child loads the kit, works in a folder of its own, leaves a sleep working there and a node naming a file there, and exits.
 	const code = `const { temporaryFolder } = await import(${JSON.stringify(kit)});
 		const { spawn } = await import("node:child_process");
@@ -363,12 +364,14 @@ test("the kit kills, before it removes its folder, each process a test left whos
 	t.after(() => pids.filter(alive).forEach((pid) => process.kill(pid, "SIGKILL")));
 	assert.equal(existsSync(cwd), false, `${cwd} is left`);
 	await until("the left processes' end at the kit's exit", () => !pids.some(alive), { deadlineMs: 5000 });
-	assert.ok(alive(outside.pid ?? 0), "the kit killed a process outside its folder");
+	assert.deepEqual(outside.map((one) => alive(one.pid ?? 0)), [true, true], "the kit killed a process outside its folder");
 });
 
+// A process killed but not yet reaped (a zombie, state Z) answers a signal 0; its state in /proc/<pid>/stat, after its name's last ")", tells it apart.
 function alive(pid: number): boolean {
 	try {
-		return process.kill(pid, 0);
+		const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+		return stat[stat.lastIndexOf(")") + 2] !== "Z";
 	} catch {
 		return false;
 	}

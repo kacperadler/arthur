@@ -81,6 +81,15 @@ test("each newer release on origin is told once, oldest first by version; older 
 	release(origin, "v0.11.0");
 	await again.run();
 	assert.deepEqual(notices(again.fake), [out("0.10.1"), out("0.11.0", "0.10.1")]);
+	// Updated past what was told, to 0.12.0 before it was told: the one it runs is no news, only a newer one is.
+	release(origin, "v0.12.0");
+	git(clone, "fetch", "--quiet", "--tags", "origin");
+	git(clone, "checkout", "--quiet", "v0.12.0");
+	await again.run();
+	assert.equal(notices(again.fake).length, 2, "0.12.0 runs here: not told");
+	release(origin, "v0.12.1");
+	await again.run();
+	assert.deepEqual(notices(again.fake).slice(2), [out("0.12.1", "0.12.0")]);
 });
 
 test("the newest release tag at HEAD is the one this checkout runs", async () => {
@@ -96,7 +105,7 @@ test("the newest release tag at HEAD is the one this checkout runs", async () =>
 test("a told file that is broken or edited by hand is nothing told: every newer release is told once more", async () => {
 	const { origin, core } = arthur();
 	release(origin, "v0.3.0");
-	for (const text of ["{", '{ "told": "latest" }', '{ "told": 3 }', "[]"]) {
+	for (const text of ["{", "null", '{ "told": "latest" }', '{ "told": 3 }', '{ "told": ["0.3.0"] }', "[]"]) {
 		const { fake, run } = await load([core]);
 		writeFileSync(join(fake.host.folder, "releases.json"), text);
 		await run();
@@ -121,7 +130,7 @@ test("a checkout at no release tag, such as main, a core outside Git, or none, i
 		assert.equal(existsSync(join(fake.host.folder, "releases.json")), false);
 	}
 	git(clone, "checkout", "--quiet", "v0.2.0");
-	await assert.rejects((await load([core])).run(), { message: new RegExp(`^git ls-remote --tags --refs origin v\\* in ${core}: fatal: `) }, "at the tag the listing runs");
+	await assert.rejects((await load([core])).run(), { message: `git ls-remote --tags --refs origin v* in ${core}: fatal: '${join(origin, "gone")}' does not appear to be a git repository` }, "at the tag the listing runs");
 });
 
 test("a listing that fails or is cut after its limit fails the run, naming it; nothing is told or written", async () => {

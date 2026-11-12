@@ -1,9 +1,9 @@
 // The files of a new plugin package, by path inside `packages/<name>/` (`arthur plugin new`, docs/commands/plugin.md): its
 // package.json, one plugin file that is its options file too, a test against the fake host, and its doc page. `fn` is the
-// name of the plugin's function, `name` in camelCase. What it does is the plugin's ticket's to write.
+// name of the plugin's function, `name` in camelCase; `version` the root package.json's. What it does is the plugin's ticket's to write.
 
-export function pluginFiles(name: string, fn: string): Record<string, string> {
-	const manifest = { name: `@arthur/${name}`, private: true, type: "module", license: "Apache-2.0", exports: { ".": `./src/${name}.ts`, "./options": `./src/${name}.ts` } };
+export function pluginFiles(name: string, fn: string, version: string): Record<string, string> {
+	const manifest = { name: `@arthur/${name}`, version, private: true, type: "module", license: "Apache-2.0", exports: { ".": `./src/${name}.ts`, "./options": `./src/${name}.ts` } };
 	return {
 		"package.json": `${JSON.stringify(manifest, null, 2)}\n`,
 		[`src/${name}.ts`]: `import type { OptionTable, Tool } from "@arthur/core/option-table";

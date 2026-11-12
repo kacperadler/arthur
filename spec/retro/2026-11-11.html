@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Retro 2026-11-11</title><style>:root{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif}header{background:var(--ink);color:var(--paper);padding:32px 18px 24px;text-align:center;border-bottom:6px solid var(--blue)}header ul{list-style:none;padding:0}header h1{margin:0 auto;max-width:860px;font-size:30px;line-height:1.1;font-weight:800}header p{margin:12px auto 0;max-width:720px;color:#cfcfcf}main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}li.sub{margin-left:1.5em;list-style:circle}.red{color:var(--red)}h2{font-size:22px;line-height:1.2;font-weight:800;margin:40px 0 6px;padding-bottom:6px;border-bottom:3px solid var(--ink);text-align:center}code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);padding:1px 4px;overflow-wrap:anywhere}.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}.cols>div{border:2px solid var(--ink);padding:0 14px}.cols>div.after{border-color:var(--blue)}.cols p{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 ui-monospace,Menlo,monospace}@media (max-width:640px){.cols{grid-template-columns:1fr}}.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 6px;border:1.5px solid var(--ink);border-radius:3px;background:var(--paper);color:var(--ink)}.tag.code{background:var(--ink);color:var(--paper)}.tag.static{border-color:var(--blue);color:var(--blue)}.tag.prose{border-color:#555555;color:#555555}.tag.you{border-color:var(--red);color:var(--red)}</style></head>
+<body>
+<header>
+<h1>Retro 2026-11-11</h1>
+<ul>
+<li>Job: 2026-11-11-retro-a52a6efe</li>
+<li>Merges up to: 85b65e5b29918daab79558eeac833863fef6632e</li>
+</ul>
+</header>
+<main>
+<h2>Period</h2>
+<ul>
+<li>2026-11-06 to 11-11: 48 tickets merged, $371.46 in total. 42 were reviewed: 24 FAIL reviews, 1.9 rounds on average, and 28 of 42 (67%) passed on the first round. The period left 76 findings.</li>
+<li>Main work: the rules on the owner's own decision words (AR0664, AR0665, AR0668, AR0677, AR0679, AR0684, AR0688; $72.97 and 8 of the 24 FAILs, AR0668 alone took 7 rounds); Docker W1–W3 (AR0644–AR0646; AR0645 was the most expensive at $42.56 over 5 rounds); Dokploy T3–T4c (AR0654, AR0680–AR0682); the activity, stats, herdr and pyramid plugins; and fixes to the test and mutate tooling (AR0637, AR0658, AR0687, AR0689, AR0691).</li>
+<li>What went badly: 16 of the 24 FAILs were a code change no test caught, the same as last retro. About 25 continues sent workers back to rerun their checks on the clean tip; AR0656 and AR0687 now handle that. Until AR0689, mutate's 1500 s limit kept slow branches out of review.</li>
+<li>Decisions: 138 asks. The owner answered 125 himself (90.6%), against 59.4% since the start; none were answered by policy. He picked the recommended option 107 times out of 108.</li>
+<li>autoMerge has been on for Arthur since AR-D622, but 9 merges still came to him. 7 of those waited only because they touched a role, a criteria file or the vision. No ticket was pre-approved by autopilot (0 of 48).</li>
+</ul>
+<h2>1. A role, criteria or vision change named in the approved ticket's Scope merges on its own</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR-D622 (owner): "If ticket is approved and CI is green merge it and do not ask me about it". Earlier, AR-D500 was decided as "…without asking the owner (always-review paths included)".</li>
+<li>After AR-D622, each of these questions says "waits for you because it changes…":</li>
+<li class="sub">AR-D626 (AR0677), AR-D630 (AR0680) and AR-D637 (AR0681): the coordinator role.</li>
+<li class="sub">AR-D644 (AR0687): the worker role.</li>
+<li class="sub">AR-D647 (AR0682): the coordinator role and the vision.</li>
+<li class="sub">AR-D631 (AR0676): the vision.</li>
+<li class="sub">AR-D646 (AR0689): <code>criteria/verify.md</code>.</li>
+<li class="sub">AR-D627 (AR0645): <code>package.json</code>.</li>
+<li class="sub">AR-D632 (AR0671): the CI workflow.</li>
+<li>Since the start, the owner agreed with the merge recommendation 61 times out of 61.</li>
+<li>Today only AR0687's Scope names its role file. Ticket Scopes would have to start naming role and vision files for this to take effect.</li>
+</ul>
+<p>Why it matters: 7 of the 9 merge questions since AR-D622 were about wording the owner had already approved with the ticket. This loosens the held-path list <code>--auto</code> uses (AR0576), but only for roles, criteria and the vision, and only when the plan question he answers (AR-D603) names the file. CI, <code>package.json</code>, lockfiles and the rules for his merge words (AR0664, AR0688) stay as they are.</p>
+<p>Scope: <code>packages/delivery/src/auto-merge.ts</code>, <code>autoRefusal</code>'s held-path loop</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>	// Both names of a renamed file count.
+	for (const path of git(root, "diff", "--no-renames", "--name-only", `${before}...${tip}`).split("\n").filter(Boolean)) {
+		const rule = rules.find(([, globs]) =&gt; globs.some((glob) =&gt; matchesGlob(path, glob)))?.[0] ?? (held(path) ? "the always-review list" : undefined);
+		if (rule !== undefined) return `--auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision &lt;the owner's decision id&gt;`;
+	}</p></div>
+<div class="after"><h3>After</h3>
+<p>	// A role, criteria file or the vision that the ticket's Scope names before `Out:` passed the owner in his plan decision
+	// (AR0665, AR-D603); main's ticket.md, which no worker branch may change (merge.check). CI, package.json and the rest stay his.
+	const prose = [...(rules[0]?.[1] ?? []), ...(rules[1]?.[1] ?? []), "**/criteria/**", ".agents/arthur/criteria/**"];
+	const ticket = job.tickets[0] === undefined ? "" : git(root, "show", `${before}:${job.tickets[0]}`);
+	const scope = (ticket.split(/^## Scope\s*$/m)[1] ?? "").split(/^(?:Out:|## )/m)[0] ?? "";
+	const named = new Set(Array.from(scope.matchAll(/`([^`\s]+?)(?::\d+(?:-\d+)?)?`/g), (match) =&gt; match[1]));
+	// Both names of a renamed file count.
+	for (const path of git(root, "diff", "--no-renames", "--name-only", `${before}...${tip}`).split("\n").filter(Boolean)) {
+		if (named.has(path) &amp;&amp; prose.some((glob) =&gt; matchesGlob(path, glob))) continue;
+		const rule = rules.find(([, globs]) =&gt; globs.some((glob) =&gt; matchesGlob(path, glob)))?.[0] ?? (held(path) ? "the always-review list" : undefined);
+		if (rule !== undefined) return `--auto merges no held path: ${job.branch} changes ${path} (${rule}), which its ticket's Scope does not name; its merge waits for the owner: arthur merge ${job.id} --decision &lt;the owner's decision id&gt;`;
+	}</p></div>
+</div>
+<h2>2. A <code>- Plan: yes</code> ticket goes straight to its planner: the plan question is the owner's one decision</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>Each of these tickets cost two asks, one to approve the ticket and then one to approve its plan:</li>
+<li class="sub">AR0671: AR-D593, then AR-D596</li>
+<li class="sub">AR0685: AR-D623, then AR-D633</li>
+<li class="sub">AR0686: AR-D625, then AR-D634</li>
+<li class="sub">AR0689: AR-D635 and AR-D636, then AR-D643</li>
+<li class="sub">AR0655: AR-D531, then AR-D534</li>
+<li class="sub">AR0482: AR-D552, then AR-D559 and AR-D561</li>
+<li class="sub">AR0483: AR-D552, then AR-D562</li>
+<li class="sub">AR0667: AR-D580, then AR-D594</li>
+<li>In 60 plan asks since the start, the owner never refused one, and agreed with the recommendation 48 times out of 48.</li>
+<li><code>packages/orchestration/docs/commands/plan.md</code>, step 3: the plan decision alone sets the ticket <code>planned</code> with <code>--decision</code>. Nothing in the code needs the first ask.</li>
+</ul>
+<p>Why it matters: this removes the first ask on every planned ticket (8 tickets this period), while every plan still needs his own answer naming its id (AR-D603 unchanged). The cost: a planner budget (default $5) can be spent on a ticket he would then drop.</p>
+<p>Scope: <code>packages/orchestration/roles/coordinator.md</code>, the Commands bullet "A ticket with <code>- Plan: yes</code>…"</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>- A ticket with <code>- Plan: yes</code> under its Goal gets a plan the owner approves before its worker: <code>arthur spawn --kind plan 'Ticket: spec/features/&lt;id&gt;-&lt;slug&gt;/ticket.md'</code>; its end brings the procedure (<code>arthur plan --help</code>).</p></div>
+<div class="after"><h3>After</h3>
+<p>- A ticket with <code>- Plan: yes</code> under its Goal gets a plan the owner approves before its worker: <code>arthur spawn --kind plan 'Ticket: spec/features/&lt;id&gt;-&lt;slug&gt;/ticket.md'</code>, started without first asking him to approve the ticket, within the usage limit he set; its end brings the procedure (<code>arthur plan --help</code>), whose plan question is his one decision on the ticket: its approval sets it planned (<code>--decision</code>).</p></div>
+</div>
+<h2>3. Check a finding's or audit's ticket against autopilot before asking the owner</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0672: a fix, from audit 2026-11-10, 3 Scope files, none on the always-review list, budget 3, which is the cap. It was still asked as AR-D608 ("approve all five").</li>
+<li>AR0692: a test ticket from F2 of AR0647, 3 Scope files, none held. It was still asked as AR-D648. [INFERENCE] I did not run <code>--autopilot</code>, because it moves the ticket.</li>
+<li>Autopilot pre-approved none of the 48 merged tickets, and 8 tickets ever. The owner never refused a ticket approval (60 plan asks, none refused).</li>
+</ul>
+<p>Why it matters: these asks carry no information for the owner, yet each one waits for him. Autopilot's own rules ("decides nothing for the owner") need judgement, so code cannot take this over and a sentence has to. It uses the autopilot exception that AR0665 and AR0679 kept beside AR-D603; if he counts every ticket approval as his, refuse this proposal.</p>
+<p>Scope: <code>packages/orchestration/roles/coordinator.md</code>, the "Tickets and board" bullet "The one exception…"</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>- The one exception: a bug or cleanup ticket from a finding or an audit may be pre-approved by policy, judged by the autopilot criteria below, with <code>arthur ticket status &lt;id&gt; planned --autopilot</code>; it prints the budget to spawn its worker with, or refuses naming each rule broken, and then the ticket waits for the owner (<code>arthur coordinator --help</code>, "Autopilot").</p></div>
+<div class="after"><h3>After</h3>
+<p>- The one exception: a bug or cleanup ticket from a finding or an audit is judged by the autopilot criteria below before the owner is asked; when it meets them, pre-approve it with <code>arthur ticket status &lt;id&gt; planned --autopilot</code> instead of asking him. It prints the budget to spawn its worker with, or refuses naming each rule broken, and only then does the ticket wait for his plan decision (<code>arthur coordinator --help</code>, "Autopilot").</p></div>
+</div>
+<h2>4. The review gate needs min(100, all) mutants, not min(25, all)</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0663 review-3: reported as survivors by <code>npm run mutate -- --max 100</code>, "which goes past the <code>--max 25</code> gate".</li>
+<li>AR0680 review-1 F3: <code>--max 150</code> found 3 survivors on line 14.</li>
+<li>Mutants that mutate itself generates, but the worker's 25 never reached:</li>
+<li class="sub">AR0529 review-1: a number moved by one.</li>
+<li class="sub">AR0668 review-6: a number moved by one.</li>
+<li class="sub">AR0670 review-3: an <code>||</code> operand dropped.</li>
+<li class="sub">AR0658 review-2: an <code>&amp;&amp;</code> operand dropped.</li>
+<li class="sub">AR0668 review-1: a regex alternative dropped.</li>
+<li class="sub">AR0663 review-2 F2: a character-class member dropped.</li>
+<li>16 of the period's 24 FAILs were uncaught changes. Last retro: 14 of 20.</li>
+</ul>
+<p>Why it matters: the gate exists (AR0637) but samples too few mutants, so reviews find what the worker could have found, at a review round each (AR0668: 7 rounds, $18.78). The cost: a core branch needs several resumed mutate runs (AR0689), so wait for faster tests.</p>
+<p>Scope: <code>packages/delivery/src/review-command.ts</code>, <code>untested</code>, after AR0671</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>		const need = Math.min(25, run + unrun);
+		…
+	return gaps.length === 0 ? undefined : `… (check and test pass, mutate ran at least min(25, all) mutants): ${gaps.join(", ")}`;</p></div>
+<div class="after"><h3>After</h3>
+<p>		const need = Math.min(100, run + unrun);
+		…
+	return gaps.length === 0 ? undefined : `… (check and test pass, mutate ran at least min(100, all) mutants): ${gaps.join(", ")}`;</p></div>
+</div>
+<h2>5. The test kit stops, when a test file exits, every process a test left in its folder</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0632 F1, AR0668 F2 and AR0691 F4: a fake agent started with <code>-e …/handoff-extension.ts</code> was still running 15 to 54 minutes later and was killed by hand.</li>
+<li>AR0637 F1, AR0658 F2 and AR0689 F1: a fixture's blocking <code>node --test packages/a/test/limit.test.ts</code> was still running 15 to 44 minutes later and was killed by hand.</li>
+<li>All 6 are deferred. In every case the process's command line or working folder was under <code>/tmp/arthur-test-*</code>, the kit's own folder.</li>
+</ul>
+<p>Why it matters: twice the same kind of leak, each found three times by <code>ps</code> and fixed by hand. Stopping it in the kit's exit hook catches it whichever test is at fault. [INFERENCE] A test process killed with SIGKILL runs no exit hook.</p>
+<p>Scope: <code>packages/core/src/testing.ts</code>, the <code>process.on("exit", …)</code> handler</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>process.on("exit", () =&gt; {
+	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
+	for (const socket of (spawnSync("find", [root, "-type", "s", "-print0"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).stdout ?? "").split("\0").filter(Boolean)) spawnSync("tmux", ["-S", socket, "kill-server"], { stdio: "ignore" });
+	rmSync(root, { recursive: true, force: true });
+});</p></div>
+<div class="after"><h3>After</h3>
+<p>process.on("exit", () =&gt; {
+	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
+	for (const socket of (spawnSync("find", [root, "-type", "s", "-print0"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).stdout ?? "").split("\0").filter(Boolean)) spawnSync("tmux", ["-S", socket, "kill-server"], { stdio: "ignore" });
+	// A process a test left whose folder or arguments lie in the kit's (a fake agent, a fixture's blocking test) goes too, by pid.
+	for (const pid of readdirSync("/proc").filter((name) =&gt; /^\d+$/.test(name) &amp;&amp; Number(name) !== process.pid)) {
+		try {
+			if (readlinkSync(`/proc/${pid}/cwd`).startsWith(root) || readFileSync(`/proc/${pid}/cmdline`, "utf8").includes(root)) process.kill(Number(pid), "SIGKILL");
+		} catch {
+			// Gone already, or not ours to read.
+		}
+	}
+	rmSync(root, { recursive: true, force: true });
+});</p></div>
+</div>
+<h2>Dead sentences</h2>
+<p><code>[INFERENCE]</code>: for each sentence I searched the period's reviews, findings and outcomes for its subject and found no mention.</p>
+<ul>
+<li><code>packages/core/roles/worker.md:43</code>: "Never commit with <code>--no-verify</code>." (0 mentions)</li>
+<li><code>packages/delivery/roles/reviewer.md:9</code>: "…never <code>origin/*</code>, which can lag." (0 mentions)</li>
+<li><code>packages/orchestration/roles/coordinator.md:38</code>: "<code>arthur stopall</code> … only when the owner asks." (0 mentions)</li>
+<li><code>packages/orchestration/roles/coordinator.md:75</code>: "<code>arthur coordinator stop</code> … Run it only when the owner asks." (0 mentions)</li>
+<li><code>packages/orchestration/roles/coordinator.md:77</code>: "<code>--ignore-restart</code> only when the owner asks…" (0 mentions)</li>
+<li><code>packages/orchestration/criteria/autopilot.md:24-25</code>: no ticket was pre-approved or refused by autopilot.</li>
+<li><code>.agents/arthur/criteria/review.md:30</code>: "…or a text that is not English reaches code, docs or the user." (0 mentions)</li>
+<li><code>packages/projects/roles/onboarding.md</code> and <code>packages/projects/roles/coordinator/onboarding-ended.md</code>: no onboarding ran.</li>
+</ul>
+<h2>Decisions that stay his</h2>
+<ul>
+<li><strong>Plans (AR-D603)</strong> and <strong>merge words (AR0664, AR0668, AR0677, AR0688)</strong> stay his. The digest's two merge class lines (shapes 9 and 10) are not proposed: <code>decision-use.ts:44-45</code> refuses an answer given by policy, so such a class would let no merge through. That also makes AR-D218, the approved merge class, a rule that does nothing; it can be revoked on his word.</li>
+<li><strong>Usage and timing</strong> stay his: 8 of the 18 overrides since the start (AR-D199, D300, D326, D406, D430, D442, D472, D475), each picking "sooner" or "past the cap". He now sets it as one standing number (AR-D557, then AR-D595 at 90%), and no per-job timing question has come since.</li>
+<li><strong>His own outside work</strong> stays his: 3 overrides (AR-D257, D446, D479), and he agreed with the recommendation 1 time out of 3 in shape 32. The class line for it is not proposed.</li>
+<li><strong>Setup, priorities and history rewrites</strong> stay his: AR-D13, D97, D441, D556, D591 (he reversed it), D624, D522, D540.</li>
+<li><strong>Line budgets</strong> are already decided by AR-D538: no line-budget question since AR-D550.</li>
+<li><strong>PG</strong>: 7 overrides out of 39 answers he scored. 5 were merges he sent back after seeing a preview (PG-D28, D31, D34, D40, D41) and 2 were colours (PG-D5, D30). AR-D620 turned autoMerge on for PG, so its design changes now go in without his look [INFERENCE: I could not read PG's project file]. My advice: turn autoMerge off for PG, his one-line word.</li>
+<li><strong>KA</strong>: 36 asks, 28 of 28 agreed, no overrides. autoMerge covers its 8 merges. Its 11 job starts could go under a queue grant like AR-D557, which he types himself.</li>
+<li><strong>MD</strong>: 6 of 6 merge recommendations agreed, so autoMerge is enough. Both overrides (MD-D13, MD-D15) were setup choices and stay his.</li>
+</ul>
+</main>
+</body></html>

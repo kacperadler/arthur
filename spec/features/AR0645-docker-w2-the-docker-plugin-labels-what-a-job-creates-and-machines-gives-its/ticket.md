@@ -36,4 +36,5 @@ Out:
 
 ## Decisions
 - 2026-11-10: Option (a): the sandbox shows <home>/docker/jobs/<id> to its own job; defaults buildCache 10G, leftoverHours 48, no sweep accepted; the owner: "AR-D597 - 1" (AR-D597)
+- 2026-11-10: Merge AR0645 as is; the roadmap 70 line is reworded to match; the owner: "AR-D627: 1" (AR-D627)
 

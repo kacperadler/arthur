@@ -12,7 +12,7 @@ import { startNotice, turnFailures } from "./start-notice.ts";
 
 // The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, or once
 // a turn ends with it at `compactAtPercent` of its context window (`compactOn`), new at
-// `freshAt` once no job runs, restarted on `/restart`, each after a handoff the coordinator writes and the next conversation
+// `freshAt` once no job and no merge runs, restarted on `/restart`, each after a handoff the coordinator writes and the next conversation
 // reads first. `arthur run` asks for each in `<home>/session/request.json` and acts on its outcome (restart.ts for restarts);
 // the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part; the restart guard
 // (restart-guard.ts) holds spawns once a commit changed the code `arthur run` loaded; at each start the model is probed and
@@ -36,9 +36,9 @@ export type SessionOptions = {
 const EXTENSIONS = ["handoff-extension.ts", "turn-extension.ts"].map((file) => fileURLToPath(new URL(file, import.meta.url)));
 // The share of its context window the conversation used at its last turn's end, as the turn extension leaves it.
 const CONTEXT_USE = "context-use";
-const TICK_MS = 500;
 
-export function session(options: SessionOptions = {}): Plugin {
+// `tickMs`: how often the plugin and the coordinator's handoff extension look, 500 ms; shorter in a test only.
+export function session(options: SessionOptions = {}, tickMs = 500): Plugin {
 	let host: Host | undefined;
 	let timer: NodeJS.Timeout | undefined;
 	let stopProbe: (() => void) | undefined;
@@ -53,7 +53,7 @@ export function session(options: SessionOptions = {}): Plugin {
 		doctor: serviceRequirements,
 		setup(given) {
 			host = given;
-			for (const file of EXTENSIONS) given.provide("coordinator.extension", () => ({ file, env: { ARTHUR_SESSION_FOLDER: given.folder } }));
+			for (const file of EXTENSIONS) given.provide("coordinator.extension", () => ({ file, env: { ARTHUR_SESSION_FOLDER: given.folder, ARTHUR_SESSION_TICK_MS: String(tickMs) } }));
 			given.events.on("doctor", ({ data }) => {
 				const lines = typeof data === "object" && data !== null && "lines" in data ? data.lines : undefined;
 				missing = Array.isArray(lines) ? lines.filter((line) => typeof line === "string") : [];
@@ -80,7 +80,7 @@ export function session(options: SessionOptions = {}): Plugin {
 						if (!told.has(line)) console.error(line);
 						told.add(line);
 					}
-			}, TICK_MS);
+			}, tickMs);
 		},
 		stop() {
 			clearInterval(timer);

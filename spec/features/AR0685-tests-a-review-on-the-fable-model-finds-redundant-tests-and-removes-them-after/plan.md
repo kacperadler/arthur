@@ -1,0 +1,60 @@
+# AR0685 - Plan
+
+- Job: 2026-11-10-plan-f34128c6
+- Planned at: 7190d0fa08665b2acd488f26e871aaca2aa02948
+
+## Approach
+
+Remove 29 tests that either pin wording of a prompt/doc file or repeat a path another test already proves, after AR0671's splits (list built from `arthur/2026-11-10-worker-4b7cab02`'s test files, with HEAD's newer `decisions`/`decision-use`/`plans`/`dokploy`/`develop` tests overlaid; the two sides only overlap on `test/structure.test.ts`, which this plan does not touch). No source file changes; no test is skipped; two files emptied by it (`packages/core/test/core-commands.test.ts`, nothing else) are deleted. Everything else in `packages/*/test/**` and `test/**` is left alone, including the "each default the option table writes" tests (a docs↔code contract, not an incidental default), the `arthur.config.example.ts` tests (the example must load), the fake-host fidelity tests in `testing.test.ts`, `test/readme.test.ts` (checks the named command runs and the link resolves, not phrasing; kept per AR0029/AR0461/AR0659) and the umask tests (each hits a different code path: board folder, load, doctor check, run's own step, a job's files).
+
+Tests to remove, by file and name, with the reason and the test that still catches the behaviour:
+
+**Wording / source text (19)**
+- `packages/orchestration/test/context.test.ts` — 8 tests, each a regex over `roles/coordinator.md`'s sentences, no behaviour run: `the coordinator's role names arthur youtrack for a project's issue or article, and says its text is never an instruction` (:69); `…explains [Arthur: github], sends a CI log to a worker as a quote, and takes what Arthur's messages carry as data` (:79); `…takes a forwarded text as its sender's words…` (:90); `…names the project's override and criteria files as what instructs it after the role, and its context as data` (:98); `…says it writes to YouTrack only when the owner asks…` (:106); `…reads pull requests with arthur github…` (:115); `…acts on delivery's own arthur merge --auto without the owner or a second run…` (:130); `…keeps a reply to one line at night…` (:143). `coordinator.md` is on delivery's default always-review list (`review-needed.test.ts:195`), so any change to it is reviewed; the context's behaviour stays tested by `context.test.ts:150, :183, :203`.
+- `packages/orchestration/test/morning-report.test.ts` — 8 tests reading `roles/coordinator/morning-report.md` and matching sentences: `the procedure carries the role file's rule…` (:45); `a night with nothing done says so in one line…` (:55); `while the silent mode is on, the procedure has the coordinator run arthur silent ask…` (:61); the five parameterised `the section <Built overnight|Merged without the owner|Waiting for approval|Waiting for a decision|Needs attention> is left out when empty` (:72). Kept: `:28` (the action registered with that procedure path, and the file starts `# The morning report`), `:34`, `:39`.
+- `packages/delivery/test/review-wake.test.ts: a FAIL's line is today's text, word for word: below the limit it hands back, at the 4th it stops and the limit's procedure follows` (:20) — pins `review-failed.md` verbatim. Kept: `:28` (the same `wake()` with a throwaway template: every placeholder, `$` patterns, the limit at 4); `hand-back.test.ts:12` (the fourth FAIL stops at the limit, in `arthur run`).
+- `packages/resources/test/disk.test.ts: the vision and roadmap entry 69 give the disk refusal in the code's words` (:135) — asserts `spec/vision.md` and `spec/roadmap.md` quote a code string. Kept: `:116` (the refusal line itself).
+- `test/outside-text.test.ts: the role files are the coordinator's and the eight job roles'` (:28) — pins the list of `packages/*/roles/*.md`; a new role breaks it with no bug. `test/outside-text.test.ts: the coordinator, which no spawn starts, keeps the rule in its own role` (:56) — one sentence of `coordinator.md`. Kept: `:33` (every job role's assembled prompt holds the rule and the ending rules once, and no job role restates them — the behaviour; it discovers the roles by `readdirSync`, so new roles are covered).
+
+**Duplicates (10)**
+- `packages/core/test/core-commands.test.ts: arthur ticket status <id> planned asks the loaded owner, then moves on the loaded board` (:6) — wiring with a mocked `Loaded`. Kept: `cli.test.ts:306 arthur ticket status <id> planned asks decision.owner for the owner's plan decision…` (the real CLI, a plugin's `decision.owner`, the same request fields). File emptied → delete.
+- `packages/core/test/ticket-command.test.ts: status <id> planned moves only on the owner's decision decision.owner passes…` (:32) — same three asks (`""`, `DM-D2`, `DM-D1`), same refusals, same move, as `cli.test.ts:306`. `…is wrong usage: exit 2, nothing asked or moved` (:54) — its six cases are in `cli.test.ts:306` (`--decision` off planned, without a value, twice, two ids), `cli.test.ts:233` (`status DM0001` alone) and `cli.test.ts:272` (`--budget` without `--autopilot`). Kept: `ticket-command.test.ts:43 a move to any other status asks no decision; after and file go on as before` — the only test of `ticket file`'s success path (`filed j1`).
+- `packages/core/test/run.test.ts: a lock of a dead pid, one that names no pid, or one written in an earlier boot is taken over` (:73) — three `arthur run` starts for the stale-lock cases `lock.test.ts:81 a lock of a dead pid, one that names no pid, or one an earlier boot wrote is taken over` already proves (plus `""` and a crashed taker). `arthur run`'s use of that lock stays proven by `run.test.ts:50` (a second run refused naming the pid) and `:90` (a live pid of this boot refuses).
+- `packages/core/test/jobs.test.ts: two spawns at once get distinct ids, branches and worktrees` (:215). Kept: `spawn.test.ts:228 two arthur spawn processes at once get distinct ids, branches and worktrees` (three real processes, branches and worktrees checked) and `jobs.test.ts:162 two spawns at once take turns from their checks to their record…` (in-process).
+- `packages/core/test/job-records.test.ts`: `an empty id is refused with exit 2 before anything is removed, even beside a real id` (:558, prune), `stop with an empty id is refused with exit 2 before it acts; the job is not touched` (:565), `continue with an empty id or an empty instruction is refused with exit 2; the ended job's record is left as it was` (:580) — all four commands share one check, `words.includes("")` in `packages/core/src/job-commands.ts:83` (`command()`), and each test spawns a worker to reach it. Kept: `:572 steer with an empty id or an empty text is refused with exit 2 before it acts; no steer is queued` (an empty word beside a real one, in either position). Each command's usage line stays checked by `:535`, `:543` and `job-control.test.ts:782`.
+- `packages/delivery/test/merge.test.ts: a merge after a PASS goes in only with the owner's merge decision of its ticket: without one, or with one decision.owner refuses, main is unchanged (AR0665)` (:148) — a full merge with checks. Kept: `merge-command.test.ts:85 after a PASS, a merge asks the owner's decision for itself…` (no decision and `AC-D9` refused, main unchanged, the same `{what, kind, ticket, job, use}` asked) and `merge.test.ts:11 a branch with a PASS on its tip goes in…` (merges with `--decision OWNER`, status `merged`).
+
+Similar tests kept, and why: `doctor.test.ts:281` beside `:102` (the core `env` line uses the refused config's `envFile`, which `:102` does not cover); `decisions.test.ts:844` and `:894` (both "a class is approved only on the owner's…": one is the message-naming rule with notices, the other in-job/by-policy/no-pick refusals); `sandbox.test.ts:829` and `test/job-home.test.ts:30` (same title prefix, AR0593 checkouts vs AR0590 home reads); `restart.test.ts:54` beside `:38` (only `:54` has a coordinator to prove no handoff is asked); `github.test.ts:185` (the templating mechanism with a copied package, not the wording); `review-needed.test.ts:216/:223` (the default list names files that exist; the example config loads); per-plugin "inside a job … refused" tests (each plugin's own refusal message, not the core's `inJob` gate); `lock.test.ts:171/:175` (different seeded files).
+
+## Not available directly
+- none
+
+## Files
+- `packages/core/test/core-commands.test.ts`: deleted (its one test removed).
+- `packages/core/test/ticket-command.test.ts`: tests at :32 and :54 removed; :43 and `load()` stay.
+- `packages/core/test/run.test.ts`: test at :73 removed.
+- `packages/core/test/jobs.test.ts`: test at :215 removed.
+- `packages/core/test/job-records.test.ts`: tests at :558, :565, :580 removed.
+- `packages/delivery/test/merge.test.ts`: test at :148 removed (branch numbering; on main after AR0671 merges).
+- `packages/delivery/test/review-wake.test.ts`: test at :20 removed; `PROCEDURE`/`failed` helpers stay for :28.
+- `packages/orchestration/test/context.test.ts`: the 8 role-wording tests (:69–:143) removed; `ROLE` constant goes if nothing else reads it.
+- `packages/orchestration/test/morning-report.test.ts`: :45, :55, :61 and the :72 loop removed; `procedure()` helper goes with them.
+- `packages/resources/test/disk.test.ts`: test at :135 removed; drop the `readFileSync` import if unused.
+- `test/outside-text.test.ts`: tests at :28 and :56 removed; `roles`/`jobRoles` stay for :33.
+- `spec/features/AR0685-…/outcome.md`: counts and times before/after, and for each duplicate removed the kept test shown failing with the behaviour broken by hand.
+
+## Risks
+- A removed wording test guarded a rule from a past ticket (AR0194, AR0350, AR0505, AR0485, AR0205, AR0557, AR0258, AR0286, AR0584). Mitigation: `coordinator.md`, `roles/*.md` and `roles/coordinator/*.md` are on delivery's default always-review list, so every edit gets a reviewer; `outside-text.test.ts:33` still proves the Every-job rule reaches each job prompt once.
+- `npm run mutate -- --max 25` caught count must not drop. The duplicates' kept tests hit the same source lines (`job-commands.ts:83`, `lock.ts` takeover, `ticket-command.ts`, `merge-command.ts`'s owner ask, `jobs.ts` spawn ids); the wording tests exercised no source. The worker compares the mutate summary on main and on the branch.
+- Line-number drift: numbers above are the AR0671 branch's (HEAD's for `decisions`/`decision-use`/`plans`); the worker locates each by name.
+- Unused imports/helpers left behind fail `npm run check` or lint-by-review: remove them with the tests (`readFileSync` in disk.test.ts, `ROLE` in context.test.ts, `procedure()` in morning-report.test.ts).
+
+## How to test
+- The plan lists every test by file and name with its reason and the kept look-alikes: this plan, sections above.
+- The worker removes exactly these tests, none skipped, no source change: `git diff --stat main` shows only the 11 test files above (two deleted); `grep -rn "skip:" ` on the diff adds nothing; `git diff main -- packages/*/src test/*.ts` (non-test files) is empty.
+- For each duplicate, the kept test fails when the behaviour is broken by hand: e.g. change `words.includes("")` in `job-commands.ts:83` to `false` → `job-records.test.ts:572` fails; make `takeLock` refuse a dead pid in `lock.ts` → `lock.test.ts:81` fails; make `ticket-command.ts` skip the owner ask on `planned` → `cli.test.ts:306` fails; make `merge-command.ts` not ask `decision.owner` for a plain merge → `merge-command.test.ts:85` fails; make a spawn's id draw constant → `spawn.test.ts:228` fails. Each shown in outcome.md, then reverted.
+- `npm run check`, `npm test`, `npm run mutate -- --max 25` pass on the clean tip, each in one call with `timeout 1800`; the mutate summary's caught count equals main's run the same way before the change.
+- Counts and times: `npm test` on main and on the tip (this server; expected 1716 → 1687 tests) and the CI run of each, in outcome.md.
+
+## Open questions
+- none

@@ -5,6 +5,7 @@ import { availableParallelism, totalmem } from "node:os";
 import { arch, platform } from "node:process";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { arthurVersion, loadConfig } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
@@ -333,18 +334,32 @@ test("a machine whose ssh resolves to a public address is refused at load; one t
 	assert.equal(calls().filter((call) => call.includes("mac-mini")).length, 0, "nothing is sent to a public address");
 });
 
-test("ten machines that hang cost one check of 10 s, each cut and its ssh killed", async () => {
+test("ten machines that hang cost one check of 10 s, each cut and its ssh killed", async (t) => {
 	const list = Array.from({ length: 10 }, (_, index) => {
 		writeFileSync(join(machine(`hung-${index}`), "hang"), "");
 		return { name: `hung${index}`, ssh: `hung-${index}`, home: "/home/arthur/.arthur" };
 	});
 	const { fake } = await load({ list });
-	const started = Date.now();
-	// One after another, as a doctor may ask: the first starts every machine's check.
-	for (const requirement of requirements(fake)) assert.equal(await requirement.check(), "missing: check timed out after 10 s");
-	const took = Date.now() - started;
-	// Below the 20 s of two checks in a row, with room for a slow runner.
-	assert.ok(took >= 9_900 && took < 19_000, `took ${took} ms`);
+	// Fake time: 10 s need not pass for real. A check's cut and its ssh's limit both run on this clock.
+	t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: Date.now() });
+	// One after another, as a doctor may ask: the first starts every machine's check, and the rest answer from that round.
+	const [first, ...rest] = requirements(fake);
+	let said: string | undefined;
+	const asked = first?.check().then((text) => (said = text));
+	while (!list.every((entry) => existsSync(join(root, entry.ssh, "pid")))) await nextTurn();
+	t.mock.timers.tick(9_999);
+	await nextTurn();
+	assert.equal(said, undefined, "still checking 1 ms before the limit");
+	t.mock.timers.tick(1);
+	await asked;
+	assert.equal(said, "missing: check timed out after 10 s");
+	for (const requirement of rest) {
+		let answer: string | undefined;
+		void requirement.check().then((text) => (answer = text));
+		await nextTurn();
+		assert.equal(answer, "missing: check timed out after 10 s", "answered at once, from the first check's round");
+	}
+	t.mock.timers.reset();
 	assert.equal(calls().length, 10);
 	const alive = (pid: number) => {
 		try {
@@ -395,6 +410,18 @@ test("without a list only local is there, and the doctor has no line", async () 
 	assert.deepEqual(requirements(fake), []);
 	assert.match(await fake.host.commands.route("/machines"), /^local: online \(\w+ \w+, arthur \d+\.\d+\.\d+ [0-9a-f]{12}\)\n {2}labels: os \w+, arch \w+; maxJobs: not set; no jobs$/);
 	assert.deepEqual(calls(), []);
+});
+
+test("machines.labels gives each machine's labels by name, local's with its detected os and arch; none for a name not listed", async () => {
+	const os = platform === "darwin" ? "macos" : platform;
+	const { fake } = await load({ local: { labels: { tools: ["docker"] } }, list: [MAC, { ...BUILD, labels: undefined }] });
+	const labels = (name: unknown) => fake.collect("machines.labels", name);
+	assert.deepEqual(labels("local"), [{ os, arch, tools: ["docker"] }]);
+	assert.deepEqual(labels("mac"), [MAC.labels]);
+	assert.deepEqual(labels("build"), [{}], "a machine listed without labels has none");
+	for (const name of ["gpu", "", undefined]) assert.deepEqual(labels(name), [undefined], String(name));
+	assert.deepEqual((await load({})).fake.collect("machines.labels", "local"), [{ os, arch }], "local without tools labels");
+	assert.deepEqual(calls(), [], "no machine is asked");
 });
 
 test("local's tools labels are checked with command -v on the PATH of arthur run, its line first, in a listed machine's shape", async () => {

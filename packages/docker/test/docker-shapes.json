@@ -1,0 +1,35 @@
+{
+	"sources": {
+		"docker-cli-v29.9.2": "https://github.com/docker/cli/tree/v29.9.2: cli/command/formatter/reflect.go (--format '{{json .}}' marshals every exported method of a context without arguments, FullHeader left out), formatter/container.go (docker ps), network/formatter.go (docker network ls), formatter/volume.go (docker volume ls), formatter/image.go (docker image ls), formatter/disk_usage.go (docker system df, one line per Type, sizes by docker/go-units HumanSize), system/info.go (docker info --format, a template on the daemon's Info), cli/flags/options.go and container/opts.go, run.go, create.go (the options docker-label.ts skips); container/stop.go and rm.go, network/remove.go, volume/remove.go, image/remove.go (what each removal prints: the name given, or Untagged and Deleted lines for an image; network rm's status error, `exit status 1`, printed after its own line); cmd/docker/builder.go (`docker builder` runs buildx when it is installed, else the legacy builder's builder/prune.go, which takes no --max-used-space) and cmd/docker/docker.go (an error printed on stderr, exit 1); cli/cobra.go (FlagErrorFunc: an unknown flag's text, exit 125)",
+		"moby-docker-v29.9.2": "https://github.com/moby/moby/tree/docker-v29.9.2: api/types/volume/volume.go (docker volume inspect, a JSON list of Volume, CreatedAt, ClusterVolume, Status and UsageData omitted when empty), api/types/system/info.go (DockerRootDir, ServerVersion, SecurityOptions, Warnings), daemon/info.go (name=rootless in SecurityOptions; the warning of an API on TCP without TLS), client/errors.go (the daemon not reachable; `Error response from daemon: ` before each daemon error), daemon/delete.go (a running container), daemon/network.go and daemon/libnetwork/network.go, error.go (a network with endpoints, each `name:%q id:%q`), daemon/volume/service/errors.go (a volume in use, the containers' IDs), daemon/images/image_delete.go (an image a container uses)",
+		"buildx-v0.38.1": "https://github.com/docker/buildx/tree/v0.38.1: commands/prune.go (--max-used-space; its last line `Total:` and the size; the table of pruned records before it is left out by the fake)",
+		"compose-v2.40.0": "https://github.com/docker/compose/tree/v2.40.0: pkg/compose/build.go (getImageBuildLabels: an image compose builds carries com.docker.compose.project)",
+		"docker-cli-v29.9.2-sweep": "https://github.com/docker/cli/tree/v29.9.2: cli/command/image/inspect.go (--format a template on the image's InspectResponse: .Id the full sha256 ID, whose first 12 hex digits are the ID docker image ls prints; {{json .Config.Labels}} an object, null for none), formatter/image.go (--format '{{.ID}}'); moby api/types/system/info.go (SystemTime, the daemon's clock in RFC 3339 with nanoseconds); buildx commands/prune.go (--filter until=<duration>: records unused that long)",
+		"docker-29.9.2-client": "docker version on this machine: Client: Docker Engine - Community, Version 29.9.2, Git commit a82e528"
+	},
+	"recorded": "2026-11-11",
+	"how": "the keys of each answer: a list holds its first item's keys, any other value null; texts verbatim, %s where Docker puts a value",
+	"shapes": {
+		"ps": { "Command": null, "CreatedAt": null, "HealthStatus": null, "ID": null, "Image": null, "Labels": null, "LocalVolumes": null, "Mounts": null, "Names": null, "Networks": null, "Platform": null, "Ports": null, "RunningFor": null, "Size": null, "State": null, "Status": null },
+		"network-ls": { "CreatedAt": null, "Driver": null, "ID": null, "IPv4": null, "IPv6": null, "Internal": null, "Labels": null, "Name": null, "Scope": null },
+		"volume-ls": { "Availability": null, "Driver": null, "Group": null, "Labels": null, "Links": null, "Mountpoint": null, "Name": null, "Scope": null, "Size": null, "Status": null },
+		"volume-inspect": [{ "CreatedAt": null, "Driver": null, "Labels": null, "Mountpoint": null, "Name": null, "Options": null, "Scope": null }],
+		"image-ls": { "Containers": null, "CreatedAt": null, "CreatedSince": null, "Digest": null, "ID": null, "Repository": null, "SharedSize": null, "Size": null, "Tag": null, "UniqueSize": null },
+		"system-df": { "Active": null, "Reclaimable": null, "Size": null, "TotalCount": null, "Type": null },
+		"info": { "DockerRootDir": null, "SecurityOptions": [], "ServerVersion": null, "SystemTime": null, "Warnings": [] },
+		"image-inspect": { "Id": null, "Config": { "Labels": null } },
+		"context-inspect": { "Endpoints": { "docker": { "Host": null } } }
+	},
+	"texts": {
+		"version": "Docker version %s, build %s",
+		"daemon": "Cannot connect to the Docker daemon at %s. Is the docker daemon running?",
+		"builder-prune": "Total:\t%s",
+		"container-running": "Error response from daemon: cannot remove container \"%s\": container is running: stop the container before removing or force remove",
+		"network-in-use": "Error response from daemon: error while removing network: network %s has active endpoints (%s)\nexit status 1",
+		"volume-in-use": "Error response from daemon: remove %s: volume is in use - [%s]",
+		"legacy-builder-flag": "unknown flag: %s\n\nUsage:  docker builder prune\n\nRun 'docker builder prune --help' for more information",
+		"image-in-use": "Error response from daemon: conflict: unable to delete %s (%s) - image is being used by %s container %s",
+		"tcp-warning": "[DEPRECATION NOTICE]: API is accessible on http://%s without encryption.%s\n%s",
+		"rootless": "name=rootless"
+	}
+}

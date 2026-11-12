@@ -1,6 +1,6 @@
 {
 	"turn": {
-		"message": "merge SH0006"
+		"message": "SH-D41 yes, merge SH0006"
 	},
 	"stub": [
 		{
@@ -29,7 +29,7 @@
 	],
 	"expect": {
 		"calls": [
-			"^arthur decision ask (?=.*--kind merge\\b)(?=.*--ticket SH0006\\b)",
+			"^arthur decision answer SH-D41 (?=.*--picked 1\\b)",
 			"^arthur merge (\\S+-)?8e9f0a1b --decision SH-D41$"
 		],
 		"never": [

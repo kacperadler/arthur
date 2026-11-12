@@ -50,7 +50,8 @@ flowchart TD
     models[models<br/>providers on other machines<br/>ordered model list per role]
     resources[resources<br/>caps per job and feature<br/>jobs from free resources<br/>disk floor per machine]
     docker[docker<br/>labels what a job creates<br/>removed with its worktree<br/>build cache cap, sweep]
-    machines ~~~ models ~~~ resources ~~~ docker
+    uptime[uptime<br/>client sites over HTTP<br/>down and up notices]
+    machines ~~~ models ~~~ resources ~~~ docker ~~~ uptime
   end
 
   subgraph PROJ[Projects, trackers, delivery, commits]
@@ -69,7 +70,8 @@ flowchart TD
     manage[manage<br/>audit, retro, health]
     develop[develop<br/>plugin new, evals]
     stats[stats<br/>tokens, cost and time of runs and turns]
-    manage ~~~ develop ~~~ stats
+    activity[activity<br/>who did what, one file per day<br/>arthur log, /log]
+    manage ~~~ develop ~~~ stats ~~~ activity
   end
 
   subgraph REACH[For clients]
@@ -99,5 +101,5 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,delivery,dokploy,projects,nvm,findings,youtrack,github,commit,manage,develop,stats,listen,video,speak first;
+  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,uptime,delivery,dokploy,projects,nvm,findings,youtrack,github,commit,manage,develop,stats,activity,listen,video,speak first;
   class whatsapp,signal,slack,agents,server later;

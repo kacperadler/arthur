@@ -1,0 +1,11 @@
+{
+  "name": "@arthur/docker",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/docker.ts",
+    "./options": "./src/docker-options.ts"
+  },
+  "version": "0.1.0"
+}

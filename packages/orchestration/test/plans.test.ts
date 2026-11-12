@@ -46,22 +46,22 @@ async function load(t: TestContext, run: AgentRun = { steps: [{ message: "## App
 	const ended = async (id: string) => {
 		await until(`${id} to end`, () => readState(home, id) === "ended");
 	};
-	// `arthur decision <args>` as the coordinator runs it, an answer with the owner's own message holding its words (AR0664); its first line.
+	// `arthur decision <args>` as the coordinator runs it, an answer with the owner's own message holding its words and id (AR0664, AR0677); its first line.
 	let said = 0;
 	const decision = async (...args: string[]) => {
 		const printed: string[] = [];
 		t.mock.method(console, "log", (text: string) => void printed.push(text));
 		t.mock.method(console, "error", (text: string) => void printed.push(text));
-		if (args[0] === "answer") ownerSaid(fake.host.folder, ++said, args.at(-1) ?? "");
+		if (args[0] === "answer") ownerSaid(fake.host.folder, ++said, `${args[1]}: ${args.at(-1)}`);
 		const code = await fake.commands.find((command) => command.name === "decision")?.run({ args, project: undefined });
 		t.mock.restoreAll();
 		assert.equal(code ?? 0, 0, printed.join("\n"));
 		return printed.join("\n").split("\n")[0] ?? "";
 	};
-	// The owner's approval of plan.md at `commit`, asked as a `kind` question of `ticket` and answered in his own words; its id.
-	const approve = async (commit: string, kind = "plan", ticket = "AC0001") => {
-		const id = await decision("ask", "--kind", kind, "--ticket", ticket, "--question", `Approve the plan of ${ticket}?`);
-		await decision("answer", id, "--decided", `Plan approved by the owner: plan.md at ${commit}`, "ok, go");
+	// The owner's approval of plan.md at `commit`, asked as a `kind` question of `ticket` and answered in his own words, `pick` the flags of his pick; its id.
+	const approve = async (commit: string, kind = "plan", ticket = "AC0001", pick = ["--picked", "1"]) => {
+		const id = await decision("ask", "--kind", kind, "--ticket", ticket, "--question", `Approve the plan of ${ticket}?`, "--option", "Approve", "--option", "Not yet");
+		await decision("answer", id, "--decided", `Plan approved by the owner: plan.md at ${commit}`, ...pick, "ok, go");
 		return id;
 	};
 	return { root, fake, jobs: fake.host.jobs, git, commit, ended, home, decision, approve };
@@ -201,7 +201,7 @@ test("a worker on a Plan: yes ticket needs its plan.md committed, approved by th
 	await assert.rejects(jobs.spawn({ task }), { message: unapproved });
 });
 
-test("a plan approval counts only as the owner's own answer, in his message, to a plan question of the ticket approving that commit: a line by hand, or naming another decision, is refused (AR0665)", async (t) => {
+test("a plan approval counts only as the owner's own answer, in his message, to a plan question of the ticket picking option 1 and approving that commit: a line by hand, or naming another decision, is refused (AR0665, AR0688)", async (t) => {
 	const { jobs, root, commit, approve, decision } = await load(t);
 	const task = `Ticket: ${TICKET}\nPlan: ${PLAN}`;
 	writeFileSync(join(root, PLAN), "# plan one\n");
@@ -209,14 +209,16 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 	const question = await approve(filed, "question");
 	const other = await approve(filed, "plan", "AC0002");
 	const stale = await approve("0000000");
-	const unproved = await decision("ask", "--kind", "plan", "--ticket", "AC0001", "--question", "Approve the plan of AC0001?");
+	// AR0688: the decided line approves, but his pick does not: none, or option 2.
+	const [unpicked, second] = [await approve(filed, "plan", "AC0001", []), await approve(filed, "plan", "AC0001", ["--picked", "2"])];
+	const unproved = await decision("ask", "--kind", "plan", "--ticket", "AC0001", "--question", "Approve the plan of AC0001?", "--option", "Approve");
 	const log = join(root, "spec/decisions.jsonl");
 	// An answer as one recorded before AR0664 holds it: no owner's message behind it.
 	writeFileSync(log, `${readFileSync(log, "utf8")}${JSON.stringify({ record: "answer", id: unproved, time: "2026-01-02T00:00:00+00:00", decided: `Plan approved by the owner: plan.md at ${filed}`, words: "ok" })}\n`);
 	const proved = await approve(filed);
 	const line = (id?: string) => `- 2026-01-01: Plan approved by the owner: plan.md at ${filed}; the owner: "ok"${id === undefined ? "" : ` (${id})`}\n`;
 	const refused = (ids: string) =>
-		`refused by orchestration: AC0001: the approval of its plan.md (${ids}) is no plan decision of AC0001 in the decision log that the owner answered in his own message, approving that commit; ask him: arthur decision ask --kind plan --ticket AC0001`;
+		`refused by orchestration: AC0001: the approval of its plan.md (${ids}) is no plan decision of AC0001 in the decision log that the owner answered in his own message, picking option 1 and approving that commit; ask him: arthur decision ask --kind plan --ticket AC0001`;
 	for (const [decisions, ids] of [
 		[line(), "no decision id"],
 		[line("AC-D99"), "AC-D99"],
@@ -224,6 +226,8 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 		[line(other), other],
 		[line(stale), stale],
 		[line(unproved), unproved],
+		[line(unpicked), unpicked],
+		[line(second), second],
 		[`${line(question)}${line(unproved)}`, `${question}, ${unproved}`],
 	]) {
 		writeFileSync(join(root, TICKET), ticketText(decisions));
@@ -239,6 +243,11 @@ test("a plan approval counts only as the owner's own answer, in his message, to 
 	writeFileSync(join(root, TICKET), ticketText(line(proved)));
 	commit("answered again");
 	await assert.rejects(jobs.spawn({ task }), { message: refused(proved) });
+	// His later answer's pick counts, not his first: option 2 under the approval's words refuses; option 1 again starts the worker.
+	await decision("answer", proved, "--decided", `Plan approved by the owner: plan.md at ${filed}`, "--picked", "2", "not yet");
+	await assert.rejects(jobs.spawn({ task }), { message: refused(proved) });
+	await decision("answer", proved, "--decided", `Plan approved by the owner: plan.md at ${filed}`, "--picked", "1", "ok, go now");
+	assert.equal((await jobs.spawn({ task })).kind, "worker");
 });
 
 test("the plan guard reads only the Goal: a Plan: yes line elsewhere, a ticket without it, and other kinds are not checked", async (t) => {

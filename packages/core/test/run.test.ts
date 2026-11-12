@@ -70,23 +70,6 @@ test("arthur run starts in dependency order, refuses a second run on the home na
 	assert.ok(!existsSync(join(home, "run.pid")), "the lock is gone after a clean stop");
 });
 
-test("a lock of a dead pid, one that names no pid, or one written in an earlier boot is taken over", async (t) => {
-	const dead = spawnSync(process.execPath, ["-e", ""]).pid;
-	// The test's own pid is alive: only the boot it names makes the lock stale.
-	const stale = [String(dead), "not a pid", ...(existsSync(BOOT_ID) ? [`${process.pid} 00000000-0000-0000-0000-000000000000`] : [])];
-	for (const text of stale) {
-		const { folder, home, log } = project('plugin("orchestration")');
-		mkdirSync(home);
-		writeFileSync(join(home, "run.pid"), text);
-		const run = start(t, folder);
-		await until(`the start over a lock holding ${JSON.stringify(text)}`, () => run.output().includes("started"));
-		assert.match(readFileSync(join(home, "run.pid"), "utf8"), new RegExp(`^${run.child.pid}( |$)`));
-		run.child.kill("SIGTERM");
-		assert.equal((await run.ended).status, 0);
-		assert.equal(log(), "start orchestration\nstop orchestration\n");
-	}
-});
-
 test("a lock of a live pid written in this boot refuses the run", { skip: !existsSync(BOOT_ID) }, () => {
 	const { folder, home, log } = project('plugin("orchestration")');
 	mkdirSync(home);

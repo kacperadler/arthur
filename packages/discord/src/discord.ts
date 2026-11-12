@@ -26,7 +26,8 @@ const asRecord = (value: unknown) => (typeof value === "object" && value !== nul
 // Discord's own REST API, version 10, when `apiUrl` is left out.
 export const API_URL = "https://discord.com/api/v10";
 
-export function discord(options: DiscordOptions): Plugin {
+// `closeMs`: how long a close the gateway does not answer is waited for (gateway.ts), shorter in a test only.
+export function discord(options: DiscordOptions, closeMs?: number): Plugin {
 	// Set at setup: the start, which queues what came before it and connects each bot, and the end of the sends under way.
 	let [begin, idle] = [(): Promise<void>[] => [], () => Promise.resolve()];
 	let connections: Promise<void>[] = [];
@@ -75,7 +76,7 @@ export function discord(options: DiscordOptions): Plugin {
 				ready = true;
 				for (const each of early.splice(0)) send(...each);
 				box.flush();
-				return bots.map((each) => gateway(each, stopping.signal, (type, data) => ears.get(each)?.on(type, data), fatal));
+				return bots.map((each) => gateway(each, stopping.signal, (type, data) => ears.get(each)?.on(type, data), fatal, closeMs));
 			};
 			// The messages in hand first, since a command's reply joins the outbox.
 			idle = async () => {

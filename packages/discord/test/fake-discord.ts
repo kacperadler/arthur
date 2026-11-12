@@ -270,8 +270,8 @@ export async function fakeDiscord(t: TestContext) {
 }
 
 // The plugin on a fake host, with `coordinator.silent` holding what `held` says, its console.error lines kept; `folder` stands for
-// the plugin's folder, so a second load shares the first one's outbox, as a restart does.
-export async function load(t: TestContext, options: Partial<DiscordOptions> & { readonly apiUrl: string }, setup: { readonly held?: (notice: unknown) => boolean; readonly env?: Readonly<Record<string, string>>; readonly folder?: string } = {}) {
+// the plugin's folder, so a second load shares the first one's outbox, as a restart does; `closeMs` replaces the gateway's 5 s for a close.
+export async function load(t: TestContext, options: Partial<DiscordOptions> & { readonly apiUrl: string }, setup: { readonly held?: (notice: unknown) => boolean; readonly env?: Readonly<Record<string, string>>; readonly folder?: string; readonly closeMs?: number } = {}) {
 	const errors: string[] = [];
 	t.mock.method(console, "error", (text: string) => void errors.push(text));
 	const full = { bots: [{ tokenEnv: "ARTHUR_DISCORD_BOT_TOKEN", guildIdEnv: "ARTHUR_DISCORD_GUILD_ID", userIdEnv: "ARTHUR_DISCORD_USER_ID", channelIdEnv: "ARTHUR_DISCORD_CHANNEL_ID" }], ...options };
@@ -282,7 +282,7 @@ export async function load(t: TestContext, options: Partial<DiscordOptions> & { 
 		asked.push(notice);
 		return setup.held?.(notice) ?? false;
 	});
-	const plugin = discord(full as DiscordOptions);
+	const plugin = discord(full as DiscordOptions, setup.closeMs);
 	const folder = setup.folder ?? fake.host.folder;
 	await (setup.folder === undefined ? fake.setup(plugin) : plugin.setup({ ...fake.host, folder }));
 	t.after(() => plugin.stop?.());

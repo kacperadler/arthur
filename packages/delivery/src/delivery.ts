@@ -7,6 +7,7 @@ import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions, STEP_SECONDS } from "./delivery-options.ts";
 import { type HandBack, handBack } from "./hand-back.ts";
 import { identityRequirement, mergeCommand } from "./merge-command.ts";
+import { merging } from "./merge-recovery.ts";
 import { type PassForward, passForward } from "./pass-forward.ts";
 import { FEATURE, reviewCommand, reviewTask, worker } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
@@ -119,6 +120,8 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.provide("delivery.alwaysReview", ({ paths }: { readonly paths: readonly string[] }) => paths.filter(held));
 			// Asked by github's poll as a run ends on a branch: true when a CI wait woke the coordinator for it (ci-wait.ts).
 			host.provide("delivery.ciEnded", (end: CiEnd) => ciEnded(host, end, forward));
+			// Asked by session, which makes no restart while a merge runs (AR0691): `{ project, job }` of each merge in a run.
+			host.provide("delivery.merging", () => merging(host));
 			// `arthur doctor` and the start of `arthur run`: git's identity for a merge commit in each project's checkout, told before
 			// a review is paid for, not by `arthur merge` after it.
 			host.provide("doctor", () => host.board.projects().map(({ name, path }) => identityRequirement(name, path)));

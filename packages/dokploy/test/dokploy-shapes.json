@@ -2,10 +2,13 @@
 	"sources": {
 		"project-all-documented": "https://docs.dokploy.com/docs/api, the example answer of GET /api/project.all, verbatim",
 		"dokploy-v0.30.10": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/project.ts (all, as an owner or admin), routers/application.ts (one; deploy, which returns nothing on a server of its own, so its 200 has no body; dropDeployment, which returns true), routers/deployment.ts (all), packages/server/src/services/application.ts (findApplicationById), services/deployment.ts (findAllDeploymentsByApplicationId), the tables of packages/server/src/db/schema/ (project, environment, application, domain, deployment, tag), and the error body of @dokploy/trpc-openapi 0.0.18 (adapters/node-http/core.js, with `issues` when zod refuses the input, and input.js, which parses JSON only under exactly application/json) with apps/dokploy/server/api/trpc.ts (errorFormatter, its flattened zodError) and pages/api/[...trpc].ts (the 401 without a key)",
-		"dokploy-v0.30.10-setup": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/application.ts (create, which returns the row it inserted; saveBuildType and saveEnvironment, which return true), routers/domain.ts (create, which returns the row; validateDomain), routers/mount.ts (create, which returns the row; mounted as mounts in api/root.ts), packages/server/src/services/domain.ts (validateDomain: { isValid, resolvedIp } when the host resolves to the server, with error when it does not, { isValid, error } when it does not resolve), and the tables of packages/server/src/db/schema/ (application, domain, mount)"
+		"dokploy-v0.30.10-setup": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/application.ts (create, which returns the row it inserted; saveBuildType and saveEnvironment, which return true), routers/domain.ts (create, which returns the row; validateDomain), routers/mount.ts (create, which returns the row; mounted as mounts in api/root.ts), packages/server/src/services/domain.ts (validateDomain: { isValid, resolvedIp } when the host resolves to the server, with error when it does not, { isValid, error } when it does not resolve), and the tables of packages/server/src/db/schema/ (application, domain, mount)",
+		"dokploy-v0.30.10-source": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/github.ts (githubProviders: each { githubId, githubUrl, gitProvider } with every column of the git_provider table; getGithubRepositories and getGithubBranches, which answer octokit.paginate's list of GitHub's own repositories and branches: github-examples.json), routers/application.ts (saveGithubProvider and update, which return true), packages/server/src/services/application.ts (findApplicationById: github without githubClientSecret, githubPrivateKey and githubWebhookSecret), and the tables of packages/server/src/db/schema/ (github, git-provider)",
+		"dokploy-v0.30.10-postgres": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/environment.ts (one, as an owner or admin), packages/server/src/services/environment.ts (findEnvironmentById: the environment's columns but createdAt, each service's few columns with its server's name and id, and its project), routers/postgres.ts (create, which returns the row it inserted and mounts the volume <appName>-data at getMountPath's path; one; deploy, which returns the record it read before deploying), packages/server/src/services/postgres.ts (findPostgresById: its environment with its project, mounts, server, and backups with their destination minus accessKey and secretAccessKey and their deployments), and the tables of packages/server/src/db/schema/ (postgres, backups, destination, mount)",
+		"dokploy-v0.30.10-backup": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/destination.ts (all: every column of the organization's destinations, accessKey and secretAccessKey included, the newest first), routers/backup.ts (create, which returns nothing, so its 200 has no body), and the tables of packages/server/src/db/schema/ (destination, backups: apiCreateBackup)"
 	},
-	"recorded": "2026-10-31, the writes (application-drop-deployment, error-input) 2026-11-06; the setup writes (application-create, application-save-build-type, application-save-environment, domain-create, mounts-create, domain-validate-domain*) and application-one.mounts 2026-11-06",
-	"how": "the keys of each answer at every depth; a list holds its first item's keys, any other value null. Dokploy's openapi.json gives {} for every 200, so the shapes come from the documentation's one example (project-all-documented) and from the source at v0.30.10 (the rest). A related record findApplicationById reads that the fake answers empty or null (redirects, security, ports, previewDeployments; the git providers, server and registries) is [] or null here: not compared below. application.deploy answers no JSON at all, so it has no shape",
+	"recorded": "2026-10-31, the writes (application-drop-deployment, error-input) 2026-11-06; the setup writes (application-create, application-save-build-type, application-save-environment, domain-create, mounts-create, domain-validate-domain*) and application-one.mounts 2026-11-06; the source routes (github-*, application-save-github-provider, application-update) and application-one.github 2026-11-10; the Postgres routes (environment-one, postgres-*) 2026-11-11; destination-all 2026-11-11",
+	"how": "the keys of each answer at every depth; a list holds its first item's keys, any other value null. Dokploy's openapi.json gives {} for every 200, so the shapes come from the documentation's one example (project-all-documented) and from the source at v0.30.10 (the rest). A related record findApplicationById reads that the fake answers empty or null (redirects, security, ports, previewDeployments; the git providers but github, server and registries) is [] or null here: not compared below; so are a service's server, which the fake answers null, the services of environment-one but its applications and postgres, which it answers [], and a backup's deployments. application.deploy and backup.create answer no JSON at all, so they have no shape. GitHub's repositories and branches come from docs.github.com's examples (github-examples.json)",
 	"shapes": {
 		"project-all-documented": [
 			{
@@ -330,7 +333,15 @@
 			"security": [],
 			"ports": [],
 			"gitlab": null,
-			"github": null,
+			"github": {
+				"githubId": null,
+				"githubAppName": null,
+				"githubAppId": null,
+				"githubClientId": null,
+				"githubInstallationId": null,
+				"githubUrl": null,
+				"gitProviderId": null
+			},
 			"bitbucket": null,
 			"gitea": null,
 			"server": null,
@@ -558,6 +569,564 @@
 		"domain-validate-domain-unresolved": {
 			"isValid": null,
 			"error": null
-		}
+		},
+		"github-github-providers": [
+			{
+				"githubId": null,
+				"githubUrl": null,
+				"gitProvider": {
+					"gitProviderId": null,
+					"name": null,
+					"providerType": null,
+					"createdAt": null,
+					"organizationId": null,
+					"userId": null,
+					"sharedWithOrganization": null
+				}
+			}
+		],
+		"github-get-github-repositories": [
+			{
+				"id": null,
+				"node_id": null,
+				"name": null,
+				"full_name": null,
+				"owner": {
+					"login": null,
+					"id": null,
+					"node_id": null,
+					"avatar_url": null,
+					"gravatar_id": null,
+					"url": null,
+					"html_url": null,
+					"followers_url": null,
+					"following_url": null,
+					"gists_url": null,
+					"starred_url": null,
+					"subscriptions_url": null,
+					"organizations_url": null,
+					"repos_url": null,
+					"events_url": null,
+					"received_events_url": null,
+					"type": null,
+					"site_admin": null
+				},
+				"private": null,
+				"html_url": null,
+				"description": null,
+				"fork": null,
+				"url": null,
+				"archive_url": null,
+				"assignees_url": null,
+				"blobs_url": null,
+				"branches_url": null,
+				"collaborators_url": null,
+				"comments_url": null,
+				"commits_url": null,
+				"compare_url": null,
+				"contents_url": null,
+				"contributors_url": null,
+				"deployments_url": null,
+				"downloads_url": null,
+				"events_url": null,
+				"forks_url": null,
+				"git_commits_url": null,
+				"git_refs_url": null,
+				"git_tags_url": null,
+				"git_url": null,
+				"issue_comment_url": null,
+				"issue_events_url": null,
+				"issues_url": null,
+				"keys_url": null,
+				"labels_url": null,
+				"languages_url": null,
+				"merges_url": null,
+				"milestones_url": null,
+				"notifications_url": null,
+				"pulls_url": null,
+				"releases_url": null,
+				"ssh_url": null,
+				"stargazers_url": null,
+				"statuses_url": null,
+				"subscribers_url": null,
+				"subscription_url": null,
+				"tags_url": null,
+				"teams_url": null,
+				"trees_url": null,
+				"clone_url": null,
+				"mirror_url": null,
+				"hooks_url": null,
+				"svn_url": null,
+				"homepage": null,
+				"language": null,
+				"forks_count": null,
+				"stargazers_count": null,
+				"watchers_count": null,
+				"size": null,
+				"default_branch": null,
+				"open_issues_count": null,
+				"is_template": null,
+				"topics": [
+					null
+				],
+				"has_issues": null,
+				"has_projects": null,
+				"has_wiki": null,
+				"has_pages": null,
+				"has_downloads": null,
+				"archived": null,
+				"disabled": null,
+				"visibility": null,
+				"pushed_at": null,
+				"created_at": null,
+				"updated_at": null,
+				"allow_rebase_merge": null,
+				"template_repository": null,
+				"temp_clone_token": null,
+				"allow_squash_merge": null,
+				"allow_auto_merge": null,
+				"delete_branch_on_merge": null,
+				"allow_merge_commit": null,
+				"subscribers_count": null,
+				"network_count": null,
+				"license": {
+					"key": null,
+					"name": null,
+					"url": null,
+					"spdx_id": null,
+					"node_id": null,
+					"html_url": null
+				},
+				"forks": null,
+				"open_issues": null,
+				"watchers": null,
+				"custom_properties": {
+					"environment": null,
+					"service": null
+				}
+			}
+		],
+		"github-get-github-branches": [
+			{
+				"name": null,
+				"commit": {
+					"sha": null,
+					"url": null
+				},
+				"protected": null,
+				"protection": {
+					"required_status_checks": {
+						"enforcement_level": null,
+						"contexts": [
+							null
+						]
+					}
+				},
+				"protection_url": null
+			}
+		],
+		"application-save-github-provider": null,
+		"application-update": null,
+		"environment-one": {
+			"name": null,
+			"description": null,
+			"environmentId": null,
+			"isDefault": null,
+			"projectId": null,
+			"env": null,
+			"applications": [
+				{
+					"name": null,
+					"applicationId": null,
+					"createdAt": null,
+					"applicationStatus": null,
+					"description": null,
+					"serverId": null,
+					"icon": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"mariadb": [
+				{
+					"mariadbId": null,
+					"name": null,
+					"createdAt": null,
+					"applicationStatus": null,
+					"description": null,
+					"serverId": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"mongo": [
+				{
+					"mongoId": null,
+					"name": null,
+					"createdAt": null,
+					"applicationStatus": null,
+					"description": null,
+					"serverId": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"mysql": [
+				{
+					"mysqlId": null,
+					"name": null,
+					"createdAt": null,
+					"applicationStatus": null,
+					"description": null,
+					"serverId": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"postgres": [
+				{
+					"postgresId": null,
+					"name": null,
+					"description": null,
+					"createdAt": null,
+					"applicationStatus": null,
+					"serverId": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"redis": [
+				{
+					"redisId": null,
+					"name": null,
+					"createdAt": null,
+					"applicationStatus": null,
+					"description": null,
+					"serverId": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"compose": [
+				{
+					"composeId": null,
+					"name": null,
+					"createdAt": null,
+					"composeStatus": null,
+					"description": null,
+					"serverId": null,
+					"icon": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"libsql": [
+				{
+					"libsqlId": null,
+					"name": null,
+					"createdAt": null,
+					"applicationStatus": null,
+					"description": null,
+					"serverId": null,
+					"server": {
+						"name": null,
+						"serverId": null
+					}
+				}
+			],
+			"project": {
+				"projectId": null,
+				"name": null,
+				"description": null,
+				"createdAt": null,
+				"organizationId": null,
+				"env": null
+			}
+		},
+		"postgres-create": {
+			"postgresId": null,
+			"name": null,
+			"appName": null,
+			"databaseName": null,
+			"databaseUser": null,
+			"databasePassword": null,
+			"description": null,
+			"dockerImage": null,
+			"command": null,
+			"args": null,
+			"env": null,
+			"memoryReservation": null,
+			"externalPort": null,
+			"memoryLimit": null,
+			"cpuReservation": null,
+			"cpuLimit": null,
+			"applicationStatus": null,
+			"healthCheckSwarm": null,
+			"restartPolicySwarm": null,
+			"placementSwarm": null,
+			"updateConfigSwarm": null,
+			"rollbackConfigSwarm": null,
+			"modeSwarm": null,
+			"labelsSwarm": null,
+			"networkSwarm": null,
+			"stopGracePeriodSwarm": null,
+			"endpointSpecSwarm": null,
+			"ulimitsSwarm": null,
+			"replicas": null,
+			"createdAt": null,
+			"environmentId": null,
+			"serverId": null,
+			"networkIds": null,
+			"detachDokployNetwork": null
+		},
+		"postgres-deploy": {
+			"postgresId": null,
+			"name": null,
+			"appName": null,
+			"databaseName": null,
+			"databaseUser": null,
+			"databasePassword": null,
+			"description": null,
+			"dockerImage": null,
+			"command": null,
+			"args": null,
+			"env": null,
+			"memoryReservation": null,
+			"externalPort": null,
+			"memoryLimit": null,
+			"cpuReservation": null,
+			"cpuLimit": null,
+			"applicationStatus": null,
+			"healthCheckSwarm": null,
+			"restartPolicySwarm": null,
+			"placementSwarm": null,
+			"updateConfigSwarm": null,
+			"rollbackConfigSwarm": null,
+			"modeSwarm": null,
+			"labelsSwarm": null,
+			"networkSwarm": null,
+			"stopGracePeriodSwarm": null,
+			"endpointSpecSwarm": null,
+			"ulimitsSwarm": null,
+			"replicas": null,
+			"createdAt": null,
+			"environmentId": null,
+			"serverId": null,
+			"networkIds": null,
+			"detachDokployNetwork": null,
+			"environment": {
+				"environmentId": null,
+				"name": null,
+				"description": null,
+				"createdAt": null,
+				"env": null,
+				"projectId": null,
+				"isDefault": null,
+				"project": {
+					"projectId": null,
+					"name": null,
+					"description": null,
+					"createdAt": null,
+					"organizationId": null,
+					"env": null
+				}
+			},
+			"mounts": [
+				{
+					"mountId": null,
+					"type": null,
+					"hostPath": null,
+					"volumeName": null,
+					"filePath": null,
+					"content": null,
+					"serviceType": null,
+					"mountPath": null,
+					"applicationId": null,
+					"composeId": null,
+					"libsqlId": null,
+					"mariadbId": null,
+					"mongoId": null,
+					"mysqlId": null,
+					"postgresId": null,
+					"redisId": null
+				}
+			],
+			"server": null,
+			"backups": [
+				{
+					"backupId": null,
+					"appName": null,
+					"schedule": null,
+					"enabled": null,
+					"database": null,
+					"prefix": null,
+					"serviceName": null,
+					"destinationId": null,
+					"keepLatestCount": null,
+					"includeEncryptionKey": null,
+					"backupType": null,
+					"databaseType": null,
+					"composeId": null,
+					"postgresId": null,
+					"mariadbId": null,
+					"mysqlId": null,
+					"mongoId": null,
+					"libsqlId": null,
+					"userId": null,
+					"metadata": null,
+					"destination": {
+						"destinationId": null,
+						"name": null,
+						"provider": null,
+						"bucket": null,
+						"region": null,
+						"endpoint": null,
+						"additionalFlags": null,
+						"organizationId": null,
+						"createdAt": null
+					},
+					"deployments": []
+				}
+			]
+		},
+		"postgres-one": {
+			"postgresId": null,
+			"name": null,
+			"appName": null,
+			"databaseName": null,
+			"databaseUser": null,
+			"databasePassword": null,
+			"description": null,
+			"dockerImage": null,
+			"command": null,
+			"args": null,
+			"env": null,
+			"memoryReservation": null,
+			"externalPort": null,
+			"memoryLimit": null,
+			"cpuReservation": null,
+			"cpuLimit": null,
+			"applicationStatus": null,
+			"healthCheckSwarm": null,
+			"restartPolicySwarm": null,
+			"placementSwarm": null,
+			"updateConfigSwarm": null,
+			"rollbackConfigSwarm": null,
+			"modeSwarm": null,
+			"labelsSwarm": null,
+			"networkSwarm": null,
+			"stopGracePeriodSwarm": null,
+			"endpointSpecSwarm": null,
+			"ulimitsSwarm": null,
+			"replicas": null,
+			"createdAt": null,
+			"environmentId": null,
+			"serverId": null,
+			"networkIds": null,
+			"detachDokployNetwork": null,
+			"environment": {
+				"environmentId": null,
+				"name": null,
+				"description": null,
+				"createdAt": null,
+				"env": null,
+				"projectId": null,
+				"isDefault": null,
+				"project": {
+					"projectId": null,
+					"name": null,
+					"description": null,
+					"createdAt": null,
+					"organizationId": null,
+					"env": null
+				}
+			},
+			"mounts": [
+				{
+					"mountId": null,
+					"type": null,
+					"hostPath": null,
+					"volumeName": null,
+					"filePath": null,
+					"content": null,
+					"serviceType": null,
+					"mountPath": null,
+					"applicationId": null,
+					"composeId": null,
+					"libsqlId": null,
+					"mariadbId": null,
+					"mongoId": null,
+					"mysqlId": null,
+					"postgresId": null,
+					"redisId": null
+				}
+			],
+			"server": null,
+			"backups": [
+				{
+					"backupId": null,
+					"appName": null,
+					"schedule": null,
+					"enabled": null,
+					"database": null,
+					"prefix": null,
+					"serviceName": null,
+					"destinationId": null,
+					"keepLatestCount": null,
+					"includeEncryptionKey": null,
+					"backupType": null,
+					"databaseType": null,
+					"composeId": null,
+					"postgresId": null,
+					"mariadbId": null,
+					"mysqlId": null,
+					"mongoId": null,
+					"libsqlId": null,
+					"userId": null,
+					"metadata": null,
+					"destination": {
+						"destinationId": null,
+						"name": null,
+						"provider": null,
+						"bucket": null,
+						"region": null,
+						"endpoint": null,
+						"additionalFlags": null,
+						"organizationId": null,
+						"createdAt": null
+					},
+					"deployments": []
+				}
+			]
+		},
+		"destination-all": [
+			{
+				"destinationId": null,
+				"name": null,
+				"provider": null,
+				"accessKey": null,
+				"secretAccessKey": null,
+				"bucket": null,
+				"region": null,
+				"endpoint": null,
+				"additionalFlags": null,
+				"organizationId": null,
+				"createdAt": null
+			}
+		]
 	}
 }

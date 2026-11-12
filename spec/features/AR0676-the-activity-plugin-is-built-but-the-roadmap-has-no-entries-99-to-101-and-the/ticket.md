@@ -52,3 +52,4 @@ Out:
 - 2026-11-10: Source: F2 of AR0654
 - 2026-11-10: Source: F2 of AR0563
 - 2026-11-10: AR0676 approved; the owner: "approve all five" (AR-D611)
+- 2026-11-10: Merge AR0676 once its review passes and CI is green; the owner: "AR-D631: 1" (AR-D631)

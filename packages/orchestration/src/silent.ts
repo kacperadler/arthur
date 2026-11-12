@@ -36,14 +36,14 @@ function silentState(folder: string): State {
 	return "broken";
 }
 
-// The answer an ask gets from the grant in force, none or one: an ask with `--recommend`, but a class's proposal, a budget
-// question (the kind `--budget 0` takes) or a merge question (`--unreviewed`, `--no-ci`, `arthur take-main`: the owner's own
-// decision, decision-use.ts); before `until`, the usage `models.usage` reads under `usage` percent, of one of `tickets`.
+// The answer an ask gets from the grant in force, none or one: an ask with `--recommend`, but a class's proposal or a plan,
+// budget (`--budget 0`) or merge question (`--unreviewed`, `--no-ci`, `arthur take-main`): the owner's own decision (AR-D603,
+// decision-use.ts); before `until`, the usage `models.usage` reads under `usage` percent, of one of `tickets`.
 export function byRecommendation(host: Host, ask: Ask): Answer[] {
 	const state = silentState(host.folder);
 	const grant = typeof state === "object" ? state.grant : undefined;
 	const decided = typeof ask.recommend === "number" ? ask.options[ask.recommend - 1] : ask.recommend;
-	if (grant === undefined || decided === undefined || [CLASS, "budget", "merge"].includes(ask.kind)) return [];
+	if (grant === undefined || decided === undefined || [CLASS, "plan", "budget", "merge"].includes(ask.kind)) return [];
 	if (grant.until !== undefined && !(host.clock.now().getTime() < Date.parse(grant.until))) return [];
 	if (grant.tickets !== undefined && !(ask.ticket !== undefined && grant.tickets.includes(ask.ticket))) return [];
 	const [used] = grant.usage === undefined ? [] : host.collect<unknown>("models.usage");
@@ -86,7 +86,7 @@ function grantOf(host: Host, bounds: Readonly<Record<string, string>>): Omit<Gra
 function granted(host: Host, grant: Grant): string {
 	const at = grant.until === undefined ? undefined : host.clock.local(new Date(grant.until));
 	const bounds = [...(at === undefined ? [] : [`until ${at.time} on ${at.day} ${at.date}`]), ...(grant.usage === undefined ? [] : [`while usage is under ${grant.usage}%`]), ...(grant.tickets === undefined ? [] : [`for ${grant.tickets.join(", ")}`])];
-	return `the owner's grant ${grant.id}: an arthur decision ask with --recommend is answered by its recommendation ${bounds.join(", ")}; never a merge question, a budget question or a class's proposal`;
+	return `the owner's grant ${grant.id}: an arthur decision ask with --recommend is answered by its recommendation ${bounds.join(", ")}; never a plan question, a merge question, a budget question or a class's proposal`;
 }
 
 // Whether the reply written to `outbox/<name>`, of a turn holding no owner message, is held: silent is on, and `arthur silent

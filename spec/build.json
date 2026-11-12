@@ -4413,7 +4413,7 @@
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
     "status": "done",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-10T02:42:46.922Z",
+    "updated": "2026-11-10T17:52:54.971Z",
     "after": [
       "AR0554"
     ]
@@ -5155,9 +5155,9 @@
   {
     "id": "AR0641",
     "title": "Roadmap 105: the release workflow and the changelog per release",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0641-roadmap-105-the-release-workflow-and-the-changelog-per-release/ticket.md",
-    "updated": "2026-11-06T08:18:04.993Z",
+    "updated": "2026-11-12T01:31:00.795Z",
     "after": [
       "AR0647"
     ]
@@ -5193,9 +5193,9 @@
   {
     "id": "AR0645",
     "title": "Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0645-docker-w2-the-docker-plugin-labels-what-a-job-creates-and-machines-gives-its/ticket.md",
-    "updated": "2026-11-10T14:58:45.184Z",
+    "updated": "2026-11-11T07:13:36.864Z",
     "after": [
       "AR0644"
     ]
@@ -5203,9 +5203,9 @@
   {
     "id": "AR0646",
     "title": "Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0646-docker-w3-a-job-s-containers-networks-volumes-and-images-go-with-its-worktree/ticket.md",
-    "updated": "2026-11-06T08:22:36.839Z",
+    "updated": "2026-11-11T13:30:22.496Z",
     "after": [
       "AR0645"
     ]
@@ -5213,9 +5213,9 @@
   {
     "id": "AR0647",
     "title": "Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0647-docker-w4-the-daily-sweep-of-docker-leftovers-arthur-docker-and-arthur-docker/ticket.md",
-    "updated": "2026-11-06T08:22:38.959Z",
+    "updated": "2026-11-12T01:30:38.306Z",
     "after": [
       "AR0646"
     ]
@@ -5420,16 +5420,16 @@
   {
     "id": "AR0671",
     "title": "Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
-    "updated": "2026-11-09T20:39:15.428Z"
+    "updated": "2026-11-11T22:22:11.138Z"
   },
   {
     "id": "AR0672",
     "title": "`arthur plugin new` writes a package without the release version, so every new plugin fails `npm test` until it is edited by hand",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0672-arthur-plugin-new-writes-a-package-without-the-release-version-so-every-new/ticket.md",
-    "updated": "2026-11-10T07:19:26.749Z",
+    "updated": "2026-11-10T20:23:04.681Z",
     "after": [
       "AR0673"
     ]
@@ -5437,9 +5437,9 @@
   {
     "id": "AR0673",
     "title": "Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0673-plugin-branches-running-in-parallel-conflict-on-lists-that-every-new-plugin/ticket.md",
-    "updated": "2026-11-10T07:19:32.135Z"
+    "updated": "2026-11-10T18:16:00.045Z"
   },
   {
     "id": "AR0674",
@@ -5458,9 +5458,9 @@
   {
     "id": "AR0676",
     "title": "The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0676-the-activity-plugin-is-built-but-the-roadmap-has-no-entries-99-to-101-and-the/ticket.md",
-    "updated": "2026-11-10T07:19:34.794Z",
+    "updated": "2026-11-10T20:51:29.991Z",
     "after": [
       "AR0673"
     ]
@@ -5468,9 +5468,9 @@
   {
     "id": "AR0677",
     "title": "A no to a plan or merge question still approves the ticket or the merge, and a bare yes without the decision id is enough",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0677-a-no-to-a-plan-or-merge-question-still-approves-the-ticket-or-the-merge-and-a/ticket.md",
-    "updated": "2026-11-10T13:46:29.214Z",
+    "updated": "2026-11-10T19:04:07.267Z",
     "after": [
       "AR0684"
     ]
@@ -5485,9 +5485,9 @@
   {
     "id": "AR0679",
     "title": "The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0679-the-go-with-my-recommendation-grant-and-approved-policies-still-answer-plan/ticket.md",
-    "updated": "2026-11-10T07:14:37.656Z",
+    "updated": "2026-11-11T01:18:05.261Z",
     "after": [
       "AR0677"
     ]
@@ -5495,16 +5495,16 @@
   {
     "id": "AR0680",
     "title": "Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0680-dokploy-t4a-arthur-dokploy-source-connects-an-app-to-its-github-repository-so-a/ticket.md",
-    "updated": "2026-11-10T07:37:13.794Z"
+    "updated": "2026-11-10T20:30:53.074Z"
   },
   {
     "id": "AR0681",
     "title": "Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0681-dokploy-t4b-arthur-dokploy-postgres-create-makes-a-postgres-beside-an-app-and/ticket.md",
-    "updated": "2026-11-10T07:36:30.393Z",
+    "updated": "2026-11-11T12:07:37.942Z",
     "after": [
       "AR0680"
     ]
@@ -5512,9 +5512,9 @@
   {
     "id": "AR0682",
     "title": "Dokploy T4c: arthur dokploy postgres backup schedules backups of a Postgres to an S3 destination",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0682-dokploy-t4c-arthur-dokploy-postgres-backup-schedules-backups-of-a-postgres-to-an/ticket.md",
-    "updated": "2026-11-10T07:36:31.740Z",
+    "updated": "2026-11-11T18:39:53.890Z",
     "after": [
       "AR0681"
     ]
@@ -5536,21 +5536,104 @@
   {
     "id": "AR0685",
     "title": "Tests: a review on the fable model finds redundant tests and removes them, after the test speed work",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0685-tests-a-review-on-the-fable-model-finds-redundant-tests-and-removes-them-after/ticket.md",
-    "updated": "2026-11-10T12:20:38.910Z",
+    "updated": "2026-11-10T22:41:01.562Z"
+  },
+  {
+    "id": "AR0686",
+    "title": "Code: a review on the fable model finds redundant comments and removes them",
+    "status": "done",
+    "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
+    "updated": "2026-11-11T22:14:12.894Z",
+    "after": [
+      "AR0685"
+    ]
+  },
+  {
+    "id": "AR0687",
+    "title": "Workers commit after their checks ran, so every review is refused until a second run on the tip",
+    "status": "merged",
+    "path": "spec/features/AR0687-workers-commit-after-their-checks-ran-so-every-review-is-refused-until-a-second/ticket.md",
+    "updated": "2026-11-11T13:01:18.415Z"
+  },
+  {
+    "id": "AR0688",
+    "title": "A plan worker starts on a recorded no, and a no recorded as option 1 still passes, since only the decided line is read",
+    "status": "merged",
+    "path": "spec/features/AR0688-a-plan-worker-starts-on-a-recorded-no-and-a-no-recorded-as-option-1-still-passes/ticket.md",
+    "updated": "2026-11-11T01:12:08.909Z"
+  },
+  {
+    "id": "AR0689",
+    "title": "The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed",
+    "status": "merged",
+    "path": "spec/features/AR0689-the-review-gate-needs-25-mutants-but-mutate-stops-at-1500-s-so-a-branch-touching/ticket.md",
+    "updated": "2026-11-11T12:54:22.412Z"
+  },
+  {
+    "id": "AR0690",
+    "title": "docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays",
+    "status": "planned",
+    "path": "spec/features/AR0690-docker-buildx-with-its-own-options-before-build-docker-buildx-builder-x-build/ticket.md",
+    "updated": "2026-11-11T07:09:57.565Z"
+  },
+  {
+    "id": "AR0691",
+    "title": "An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish",
+    "status": "merged",
+    "path": "spec/features/AR0691-an-automatic-restart-kills-a-running-merge-of-arthur-code-which-is-rolled-back/ticket.md",
+    "updated": "2026-11-11T19:21:41.302Z"
+  },
+  {
+    "id": "AR0692",
+    "title": "herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches",
+    "status": "merged",
+    "path": "spec/features/AR0692-herdr-start-up-test-fails-under-load-its-20-s-wait-for-the-start-up-pass-times/ticket.md",
+    "updated": "2026-11-11T21:49:01.819Z"
+  },
+  {
+    "id": "AR0693",
+    "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
+    "status": "done",
+    "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
+    "updated": "2026-11-12T01:48:04.282Z"
+  },
+  {
+    "id": "AR0694",
+    "title": "A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision",
+    "status": "done",
+    "path": "spec/features/AR0694-a-plan-yes-ticket-goes-straight-to-its-planner-the-plan-question-is-the-owner-s/ticket.md",
+    "updated": "2026-11-12T02:17:37.176Z"
+  },
+  {
+    "id": "AR0695",
+    "title": "The coordinator checks a finding's or audit's ticket against autopilot before asking the owner",
+    "status": "planned",
+    "path": "spec/features/AR0695-the-coordinator-checks-a-finding-s-or-audit-s-ticket-against-autopilot-before/ticket.md",
+    "updated": "2026-11-11T20:24:15.444Z",
+    "after": [
+      "AR0694"
+    ]
+  },
+  {
+    "id": "AR0696",
+    "title": "The review gate needs min(100, all) mutants, not min(25, all)",
+    "status": "planned",
+    "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
+    "updated": "2026-11-11T20:24:17.954Z",
     "after": [
       "AR0671"
     ]
   },
   {
-    "id": "AR0686",
-    "title": "Code: a review on the fable model finds redundant comments and removes them",
+    "id": "AR0697",
+    "title": "The test kit stops every process a test left in its folder when a test file exits",
     "status": "planned",
-    "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
-    "updated": "2026-11-10T12:42:13.369Z",
+    "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
+    "updated": "2026-11-11T20:24:20.604Z",
     "after": [
-      "AR0685"
+      "AR0671"
     ]
   }
 ]

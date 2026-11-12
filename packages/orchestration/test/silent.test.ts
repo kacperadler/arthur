@@ -115,7 +115,7 @@ test("coordinator.silent holds every notice while on, but the one of a job block
 	const { run, silent } = await setup(t);
 	const ordinary = { text: "the coordinator's last 3 turns ended without a reply" };
 	const blocked = { text: "AR1 asks: may I?", blocked: "2026-10-19-worker-00000001" };
-	const recorded = { text: "Recorded as your decision AR-D1 (budget, lets through --budget 0): Go; your words: \"AR-D1 yes\"", decision: "AR-D1" };
+	const recorded = { text: "Recorded as your decision AR-D1 (budget, lets through --budget 0): Go; picked: option 1, \"Go\"; your words: \"AR-D1 yes\"", decision: "AR-D1" };
 	assert.deepEqual([silent(ordinary), silent(blocked), silent(recorded)], [false, false, false], "off: nothing is held");
 	await run("on", WORK);
 	assert.deepEqual([silent(ordinary), silent(blocked), silent(recorded), silent(undefined), silent({ text: "x", decision: 1 })], [true, false, false, true, true]);
@@ -264,7 +264,7 @@ async function granting(t: TestContext) {
 }
 
 const ANSWERED = (id: string, grant: string, decided: string) => `${id}\n${id} answered by recommendation (${grant}): ${decided}; act on it as on the owner's answer, and say so in your reply`;
-const NEVER = "never a merge question, a budget question or a class's proposal";
+const NEVER = "never a plan question, a merge question, a budget question or a class's proposal";
 
 test("a grant with --until answers an ask with --recommend by its recommendation, an option's or its words, until that time; an ask without --recommend waits", async (t) => {
 	const { fake, phone, ask, log, state, grant, context } = await granting(t);
@@ -323,7 +323,7 @@ test("a grant with --tickets answers only an ask of one of its tickets", async (
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D3"], "no ticket");
 });
 
-test("a grant never answers a merge question, a budget question, a class's proposal, or a question a class answers or two classes match; its answer backs no class", async (t) => {
+test("a grant never answers a plan question, a merge question, a budget question, a class's proposal, or a question a class answers or two classes match; its answer backs no class", async (t) => {
 	const { phone, decision, ask, log, grant } = await granting(t);
 	await phone("on", WORK, "--until", "23:00", "--recommend");
 	const merge = (...what: string[]) => decision("ask", "--kind", "merge", "--question", "Merge AC0001?", "--option", "Merge", "--recommend", "1", ...what);
@@ -343,6 +343,8 @@ test("a grant never answers a merge question, a budget question, a class's propo
 	assert.deepEqual(await ask("--recommend", "2"), [0, "AC-D9\nAC-D9 goes to the owner: it matches classes AC-D6 and AC-D8"]);
 	assert.deepEqual(await decision("ask", "--kind", "question", "--question", "Green or yellow?", "--option", "Green", "--recommend", "1"), [0, ANSWERED("AC-D10", grant(), "Green")]);
 	assert.deepEqual(await decision("class", "propose", "--kind", "question", "--match", "green", "--decided", "Green", "--backed-by", "AC-D10"), [1, `arthur decision class propose: refused: AC-D10 was answered by recommendation (${grant()}), not by the owner`]);
+	// AR-D603: a plan question always goes to the owner, while the grant holds and recommends its approval.
+	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "Approve the plan of AC0001?", "--option", "Approve", "--recommend", "1", "--ticket", "AC0001"), [0, "AC-D11"]);
 	assert.deepEqual(log().filter((each) => each.record === "answer" && each.words.startsWith("by recommendation")).map((each) => each.id), ["AC-D10"]);
 });
 

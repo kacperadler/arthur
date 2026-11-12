@@ -1,9 +1,7 @@
-// Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and activity,
-// commit-rules, delivery, develop, discord, dokploy, findings, github, herdr, listen, machines, manage, models, nvm, orchestration, projects,
-// resources, schedule, session, speak, stats, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
-// docker (first); server, signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first
-// planned import (`Cannot find package '@arthur/docker'`). Take a plugin from it once its package exists. Illustrative for the planned
-// ones: their option names are proposed, not final.
+// Example arthur.config.ts with every plugin, planned ones included. A plugin is built when `packages/` holds its folder; the
+// others are planned, no package yet (spec/roadmap.md builds them). So a copy of the whole file does not load; it fails on the
+// first planned import (`Cannot find package '@arthur/<name>'`). Take a plugin from it once its package exists. Illustrative for
+// the planned ones: their option names are proposed, not final.
 //
 // Rules:
 // - One file, one list: a plugin is a function call with its options.
@@ -220,8 +218,8 @@ export default defineConfig({
 			compactOn: "schedule", // what compacts it: "schedule" (compactAt), "context" (compactAtPercent) or "both", whichever first
 			compactAtPercent: 80, // with "context" or "both": once a turn ends with the conversation at this % of its context window
 			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
-			freshAt: "23:00", // "HH:MM"; a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) runs
-			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15
+			freshAt: "23:00", // "HH:MM"; a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) and no merge runs
+			freshRetryMinutes: 15, // while a job or a merge runs, try again this often; a positive whole number; default 15
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped
 			restartGuard: true, // once a commit changed the code `arthur run` loaded, refuse every spawn and continue (unless
 			// --ignore-restart) until `arthur run` starts again; `/restart` under the service ends `arthur run` then, which clears it
@@ -301,9 +299,11 @@ export default defineConfig({
 		// One entry per Dokploy server of the owner, its address literal and its API key in a variable: the unnamed one's in
 		// ARTHUR_DOKPLOY_TOKEN, `client`'s in ARTHUR_DOKPLOY_CLIENT_TOKEN. `url` is https, or http on loopback, a private or a
 		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments,
-		// `upload|deploy` sends an app a file or folder or starts its deploy, and `create|setup|env` creates an app and sets its
-		// build type, domain, volume and env, on the owner's word, the coordinator only; a project's app is its
-		// `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
+		// `upload|deploy` sends an app a file or folder or starts its deploy, `create|setup|env` creates an app and sets its
+		// build type, domain, volume and env, `source` connects an app to its GitHub repository, `postgres create` makes a
+		// Postgres beside an app, its URL in the app's env, and `postgres backup` schedules its backups to an S3 destination,
+		// on the owner's word, the coordinator only; a project's app is its `dokploy.project({ instance?, app })`.
+		// packages/dokploy/docs/dokploy.md.
 		dokploy({
 			instances: [
 				{ url: "https://dokploy.example.com", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" },
@@ -418,14 +418,17 @@ export default defineConfig({
 			},
 		}),
 
-		// Docker on every machine labelled `tools: docker`. What a job creates (containers, networks, volumes, images it builds) is
-		// labelled `arthur.job=<id>`, and compose stacks get the job's project name; all of it is removed on the job's machine
-		// when its worktree is removed (prune, merge, a dropped ticket). Pulled and shared images stay. A failed cleanup never
-		// keeps the worktree: it is a notice, and the sweep retries. Anything labelled `arthur.keep` is never touched.
+		// Docker on every machine labelled `tools: docker` (the machines plugin's labels). What a job creates (containers,
+		// networks, volumes, images it builds) is labelled `arthur.job=<id>`, compose stacks get the job's project name, and
+		// Docker's data root counts for `keepFree.disk`. All of it is removed on the job's machine right before its worktree
+		// goes (prune, merge, a dropped ticket); pulled and shared images stay, and so does what another job's container uses;
+		// a failed cleanup never keeps the worktree: it is a notice. The sweep (`arthur docker sweep [--machine] [--dry-run]`,
+		// daily, and at once on a machine under `keepFree.disk`) removes what a job that no longer exists labelled, and never
+		// anything labelled `arthur.keep`; `arthur docker` shows what Docker holds on each machine.
 		docker({
 			buildCache: "10G", // after each cleanup and sweep, Docker's shared build cache is cut to this size; 0 = no cap
-			leftoverHours: 48, // the sweep removes unlabelled stopped containers, unused networks, dangling images, unused
-			// anonymous volumes and build cache older than this; what a job that no longer exists labelled goes at any age
+			leftoverHours: 48, // the sweep removes unlabelled dangling images, unused networks and build cache older than this;
+			// the owner's own stopped containers and volumes stay; what a job that no longer exists labelled goes at any age
 			sweep: { at: "04:00" }, // registers a daily schedule entry; also runs at once on a machine under `keepFree.disk`
 		}),
 
@@ -497,8 +500,8 @@ export default defineConfig({
 // Every other piece is its plugin's, checked by it at load: its tracker (`instance` names an instance of the youtrack plugin;
 // without it, the unnamed one), its CI workflow, its commit rules, auto-merge, the machine labels its jobs need (a ticket's
 // own `"requires"` in its JSON block replaces them), its sites, its Dokploy app (`instance` names an instance of the dokploy
-// plugin; without it, the unnamed one), what a merge makes of its findings; planned, `docker.project(false)`
-// to leave its jobs' Docker resources unlabelled and uncleaned (default: on while the docker plugin is), and
+// plugin; without it, the unnamed one), what a merge makes of its findings, `docker.project(false)` to leave its jobs'
+// Docker resources unlabelled and uncleaned (default: labelled, and removed with the worktree, while the docker plugin is), and
 // `orchestration.project({ chat })`, the place of a channel (a Telegram topic, a Discord or Slack channel) where the project's
 // own agent talks with you; without it the coordinator handles the project. One repository may be several projects, each
 // checkout its own folder. Each file imports the helpers it uses: `import { projects } from "@arthur/projects";`.
@@ -542,7 +545,7 @@ export default defineConfig({
 //		github.project({ workflow: "ci.yml" }),
 //		commitRules.project({ file: "commit-rules.md" }), // projects/acme-site/commit-rules.md, read as plain words
 //		findings.project("summary"),
-//		docker.project(false), // planned: its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
+//		docker.project(false), // its jobs get no docker script, so their containers are neither labelled nor cleaned; the sweep still runs
 //	];
 //
 // projects/acme-ios/project.config.ts

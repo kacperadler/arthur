@@ -1332,3 +1332,5 @@
 {"record":"answer","id":"AR-D656","time":"2026-11-12T11:45:11+01:00","decided":"Merge AR0686","picked":1,"words":"AR-D663 1, AR-D656 1, AR-D657 1, AR-D658 1","message":14816}
 {"record":"answer","id":"AR-D657","time":"2026-11-12T11:45:12+01:00","decided":"Merge AR0693","picked":1,"words":"AR-D663 1, AR-D656 1, AR-D657 1, AR-D658 1","message":14816}
 {"record":"answer","id":"AR-D658","time":"2026-11-12T11:45:12+01:00","decided":"Merge AR0694","picked":1,"words":"AR-D663 1, AR-D656 1, AR-D657 1, AR-D658 1","message":14816}
+{"record":"ask","id":"AR-D664","time":"2026-11-12T15:55:20+01:00","project":"arthur","kind":"question","question":"herdr tabs show a bare shell because every new shell on the server gets Node 14 (nvm default alias 14), which cannot run Arthur. Set the nvm default to Node 24 (nvm alias default 24) and restart the commands in the open tabs?","options":["Yes, set the default to 24","No, keep 14"],"recommend":1}
+{"record":"answer","id":"AR-D664","time":"2026-11-12T15:56:03+01:00","decided":"Set the server nvm default to Node 24 and restart the commands in the open herdr tabs","picked":1,"words":"AR-D664 yes","message":15229}

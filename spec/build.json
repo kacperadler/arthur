@@ -4411,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-12T07:23:43.167Z",
+    "updated": "2026-11-12T08:05:17.869Z",
     "after": [
       "AR0554"
     ]
@@ -5629,9 +5629,9 @@
   {
     "id": "AR0697",
     "title": "The test kit stops every process a test left in its folder when a test file exits",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
-    "updated": "2026-11-12T07:51:08.623Z",
+    "updated": "2026-11-12T08:04:03.327Z",
     "after": [
       "AR0671"
     ]

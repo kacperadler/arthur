@@ -3,12 +3,12 @@ import { describe } from "@arthur/core";
 import { type Entry, isObject } from "./entry.ts";
 import { entryProblems } from "./schedule-options.ts";
 
-// The entries another plugin registers from its options (spec/roadmap.md, entry 40), through `host.call("schedule.register",
-// host.name, entries, host.package)`: each in the config's shape plus `option`, the path of the plugin's option that makes it, or
-// with `run` in place of an action or a job: the plugin's own code, which neither the config nor the file holds; its id becomes
-// `<plugin>.<id>`. They live in memory for one load, so a plugin turned off leaves none behind. A procedure is the absolute path
-// of a .md file in the registering plugin's own package folder (`Host.package`, one of the plugins' in `Host.code`), never the
-// relative path the config and the file take, so neither check widens the other: docs/commands/schedule.md.
+// The entries another plugin registers from its options or always (spec/roadmap.md, entries 40 and 107), through
+// `host.call("schedule.register", host.name, entries, host.package)`: each in the config's shape plus `option`, the path of the
+// plugin's option that makes it (`enabled` for one it always makes), or with `run` in place of an action or a job: its own code,
+// which neither the config nor the file holds; its id becomes `<plugin>.<id>`. They live in memory for one load, so a plugin
+// turned off leaves none behind. A procedure is the absolute path of a .md file in the plugin's own package folder (`Host.package`,
+// one of `Host.code`), never the relative path the config and the file take, so neither check widens the other: docs/commands/schedule.md.
 export type Registered = Entry & { readonly plugin: string; readonly option: string; readonly code: string; readonly run?: () => Promise<void> };
 
 const PLUGIN = /^[a-z]+(-[a-z]+)*$/;

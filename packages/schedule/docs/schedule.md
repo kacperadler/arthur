@@ -1,6 +1,6 @@
 # The schedule plugin
 
-Actions and jobs at set times, so Arthur works while the owner is away. An entry is a daily time (optionally on some days) or a one-off date and time, in `core.timeZone`, and does an action, a message to the coordinator with an optional procedure file under it, or a job, a spawn of a given kind. Entries come from the config, from the `file` option, which `arthur schedule add` and `remove` change, and from other plugins, which register theirs from their own options (orchestration's morning report, manage's audit and retro). `arthur run` sweeps every 10 s and runs each due slot once.
+Actions and jobs at set times, so Arthur works while the owner is away. An entry is a daily time (optionally on some days) or a one-off date and time, in `core.timeZone`, and does an action, a message to the coordinator with an optional procedure file under it, or a job, a spawn of a given kind. Entries come from the config, from the `file` option, which `arthur schedule add` and `remove` change, and from other plugins, which register theirs from their own options (orchestration's morning report, manage's audit and retro) or always (manage's release notice). `arthur run` sweeps every 10 s and runs each due slot once.
 
 ```ts
 schedule({

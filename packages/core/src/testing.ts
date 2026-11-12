@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { root } from "./test-env.ts"; // First: the kit's environment is set before any other module of the core loads.
 import { board } from "./board.ts";
@@ -22,7 +22,7 @@ import type { AgentRun } from "./fake-agent.ts";
 export type { AgentRun, AgentStep } from "./fake-agent.ts";
 
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process (`--import`) as the safety net: its environment (test-env.ts) keeps live variables, folders and identities out of reach, so no test reaches
-// a live bot, token or tmux server; `omp` on `PATH` is the fake agent with no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
+// a live bot, token or tmux server; `omp` on `PATH` is the fake agent with no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, every process a test left in its folder, and every folder the kit makes.
 
 // The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-` would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed. `ARTHUR_JOB_SLICE` names it to a load in this process (host.ts) and to an `arthur` it starts; a test that gives the CLI an env of its own passes it there.
 export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
@@ -30,6 +30,8 @@ process.env.ARTHUR_JOB_SLICE = jobSlice.slice;
 process.on("exit", () => {
 	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
 	for (const socket of (spawnSync("find", [root, "-type", "s", "-print0"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).stdout ?? "").split("\0").filter(Boolean)) spawnSync("tmux", ["-S", socket, "kill-server"], { stdio: "ignore" });
+	// SIGKILL, which nothing traps, to each process a test left working or named in the kit's folder; a pid gone, another user's, or NaN (no pid) throws.
+	for (const pid of readdirSync("/proc").map(Number)) if (pid !== process.pid) try { if (`${readlinkSync(`/proc/${pid}/cwd`)}/`.startsWith(`${root}/`) || readFileSync(`/proc/${pid}/cmdline`).includes(root)) process.kill(pid, "SIGKILL"); } catch {}
 	rmSync(root, { recursive: true, force: true });
 });
 process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);

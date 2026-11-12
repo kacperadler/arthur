@@ -51,7 +51,7 @@ export function update(core: string, target: string | undefined, plugins: readon
 		throw new Error(`npm ci failed at ${wanted} (${failed}); back at ${old}, ${back}`);
 	}
 	const guarded = plugins.some((plugin) => plugin.name === "session" && plugin.options?.restartGuard !== false);
-	const restart = guarded ? "arthur run restarts on it once no job and no merge runs (the session plugin's restart guard)" : "restart arthur run on it once no job runs: systemctl --user restart arthur";
+	const restart = guarded ? "under its service, arthur run restarts on it once no job and no merge runs (the session plugin's restart guard)" : "restart arthur run on it once no job runs: systemctl --user restart arthur";
 	return [`updated ${old} to ${arthurVersion(core)}`, restart];
 }
 

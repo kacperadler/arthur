@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { test } from "node:test";
 import { arthurVersion } from "../src/job-machine.ts";
 import { temporaryFolder } from "../src/testing.ts";
@@ -9,7 +9,7 @@ import { update } from "../src/update.ts";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 const SYSTEMCTL = "restart arthur run on it once no job runs: systemctl --user restart arthur";
-const GUARD = "arthur run restarts on it once no job and no merge runs (the session plugin's restart guard)";
+const GUARD = "under its service, arthur run restarts on it once no job and no merge runs (the session plugin's restart guard)";
 
 // Arthur's repository in small: `origin`, bare, and `work`, where each release is committed and tagged `v<version>`: the core's
 // package.json and one source file, and a root package without dependencies whose `npm ci` writes `installed` (its version)
@@ -130,6 +130,15 @@ test("refused, naming what, nothing changed: a core outside Git, changed tracked
 	assert.throws(() => update(bare.core, undefined, []), { message: `${bare.root} has no release tag v* after git fetch --tags origin` });
 	git(root, "remote", "set-url", "origin", join(root, "gone.git"));
 	assert.throws(() => update(core, undefined, []), (error: Error) => error.message.startsWith(`git fetch in ${root}: fatal: `));
+	// A git step that fails without a word on stderr: its exit code is said.
+	const [real, bin, path] = [execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim(), temporaryFolder(), process.env.PATH];
+	writeFileSync(join(bin, "git"), `#!/bin/sh\n[ "$4" = fetch ] && exit 128\nexec '${real}' "$@"\n`, { mode: 0o755 });
+	process.env.PATH = `${bin}${delimiter}${path}`;
+	try {
+		assert.throws(() => update(core, undefined, []), { message: `git fetch in ${root}: exit code 128` });
+	} finally {
+		process.env.PATH = path;
+	}
 	assert.deepEqual([head(root), installed(root)], [first, undefined]);
 });
 

@@ -214,6 +214,7 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 	machine("old-box", "Linux x86_64", "0123456789ab");
 	machine("alone-box", "Linux x86_64", hash);
 	machine("other-box", "Linux x86_64", "0.1.0 0123456789ab");
+	machine("empty-box", "Linux x86_64", "");
 	machine("next-box", "Linux x86_64", `9.9.9 ${hash}`);
 	machine("bare-box", "Linux aarch64", null);
 	writeFileSync(join(machine("nogit-box"), "bin/git"), NO_GIT, { mode: 0o755 });
@@ -226,6 +227,7 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		{ name: "old", ssh: "old-box", home: "/home/arthur/.arthur" },
 		{ name: "alone", ssh: "alone-box", home: "/home/arthur/.arthur" },
 		{ name: "other", ssh: "other-box", home: "/home/arthur/.arthur" },
+		{ name: "empty", ssh: "empty-box", home: "/home/arthur/.arthur" },
 		{ name: "next", ssh: "next-box", home: "/home/arthur/.arthur" },
 		{ name: "bare", ssh: "bare-box", home: "/home/arthur/.arthur" },
 		{ name: "nogit", ssh: "nogit-box", home: "/home/arthur/.arthur", labels: { tools: ["no-such-tool"] } },
@@ -247,6 +249,7 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		["old", `missing: it runs arthur 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "arthur machines update old", "no job runs on old", false],
 		["alone", `missing: it runs arthur ${hash}, this one is ${arthurVersion()}; both need the same version`, "arthur machines update alone", "no job runs on alone", false],
 		["other", `missing: it runs arthur 0.1.0 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "arthur machines update other", "no job runs on other", false],
+		["empty", `missing: it runs arthur (no version), this one is ${arthurVersion()}; both need the same version`, "arthur machines update empty", "no job runs on empty", false],
 		["next", `ok (linux x64, arthur 9.9.9 ${hash})`, "ssh next-box true, by hand", "no job runs on next", false],
 		[
 			"bare",
@@ -419,11 +422,17 @@ test("arthur machines update runs arthur update <this core's HEAD commit> on eac
 		writeFileSync(join(machine(host), "bin/arthur"), `#!/bin/sh\necho "$*" > args\nprintf '%s\\n' '${said}' >&${code === 0 ? 1 : 2}\nexit ${code}\n`, { mode: 0o755 });
 	there("mac-mini", "updated 0.1.0 0123456789ab to 0.2.0 ba9876543210\nrestart arthur run on it once no job runs: systemctl --user restart arthur");
 	writeFileSync(join(machine("build-box"), "fail"), KEY_REFUSED.replace("mac-mini", "build-box"));
-	there("dirty-box", "arthur update: /home/arthur/arthur has changed tracked files: package.json; commit, stash or undo them first", 1);
-	const dirty = { name: "dirty", ssh: "dirty-box", home: "/home/arthur/.arthur" };
+	// npm's errors on stderr first, then arthur update's own line, which is the one said.
+	there("dirty-box", "npm error code 1\nnpm error command failed\narthur update: npm ci failed at v0.2.0 (exit code 1); back at 0.1.0 0123456789ab, npm ci ran again there", 1);
+	// One that fails without a word: its exit code is said.
+	writeFileSync(join(machine("silent-box"), "bin/arthur"), "#!/bin/sh\nexit 3\n", { mode: 0o755 });
+	// Killed while it runs (as the 600 s cut kills it): its ssh ends by a signal, code null.
+	writeFileSync(join(machine("cut-box"), "bin/arthur"), "#!/bin/sh\necho 'npm warn deprecated' >&2\nkill -9 $PPID\n", { mode: 0o755 });
+	const [dirty, silent, cut] = ["dirty", "silent", "cut"].map((name) => ({ name, ssh: `${name}-box`, home: "/home/arthur/.arthur" }));
+	const list = [MAC, BUILD, dirty, silent, cut];
 	rmSync(sshLog, { force: true });
-	const plugin = machines({ list: [MAC, BUILD, dirty] });
-	const fake = fakeHost({ name: "machines", options: { list: [MAC, BUILD, dirty] }, code: [core] });
+	const plugin = machines({ list });
+	const fake = fakeHost({ name: "machines", options: { list }, code: [core] });
 	await fake.setup(plugin);
 	const [command] = fake.commands;
 	// Each `arthur update` there is cut after 600 s, as the command's page says.
@@ -438,16 +447,18 @@ test("arthur machines update runs arthur update <this core's HEAD commit> on eac
 		[
 			"mac: updated 0.1.0 0123456789ab to 0.2.0 ba9876543210",
 			"build: offline, skipped: ssh build-box: arthur@build-box: Permission denied (publickey).",
-			"dirty: not updated: arthur update: /home/arthur/arthur has changed tracked files: package.json; commit, stash or undo them first",
+			"dirty: not updated: arthur update: npm ci failed at v0.2.0 (exit code 1); back at 0.1.0 0123456789ab, npm ci ran again there",
+			"silent: not updated: exit code 3",
+			`cut: cut before arthur update ended there (npm warn deprecated), maybe during its npm ci: run arthur update ${commit} there by hand`,
 		],
 	]);
 	assert.deepEqual(["mac-mini", "dirty-box"].map((host) => readFileSync(join(root, host, "args"), "utf8")), [`update ${commit}\n`, `update ${commit}\n`], "the commit here, not the newest release");
 	assert.ok(calls().every((call) => call.endsWith(` 'arthur' 'update' '${commit}'`)));
-	assert.deepEqual(ssh.mock.calls.map((call) => [call.arguments[0], call.arguments[2]]), [["mac", 600], ["build", 600], ["dirty", 600]]);
+	assert.deepEqual(ssh.mock.calls.map((call) => [call.arguments[0], call.arguments[2]]), list.map((machine) => [machine.name, 600]));
 	rmSync(sshLog);
 	assert.deepEqual(await run("mac"), [0, ["mac: updated 0.1.0 0123456789ab to 0.2.0 ba9876543210"]]);
 	assert.equal(calls().length, 1, "only the machine named");
-	await assert.rejects(run("gpu"), { message: "no machine gpu; machines: mac, build, dirty" });
+	await assert.rejects(run("gpu"), { message: "no machine gpu; machines: mac, build, dirty, silent, cut" });
 	const error = t.mock.method(console, "error", () => {});
 	assert.equal(await command?.run({ args: ["update", "mac", "build"], project: undefined }), 2);
 	assert.deepEqual(error.mock.calls.map((call) => call.arguments), [["usage: arthur machines [update [<name>]]"]]);
@@ -471,6 +482,7 @@ test("arthur machines update runs arthur update <this core's HEAD commit> on eac
 	const none = fakeHost({ name: "machines", options: {}, code: [core] });
 	await none.setup(machines({}));
 	await assert.rejects(Promise.resolve(none.commands[0]?.run({ args: ["update"], project: undefined })), { message: "no machine to update: the list of the machines plugin is empty" });
+	await assert.rejects(Promise.resolve(none.commands[0]?.run({ args: ["update", "mac"], project: undefined })), { message: "no machine mac; machines: none" });
 	assert.deepEqual(calls(), []);
 });
 

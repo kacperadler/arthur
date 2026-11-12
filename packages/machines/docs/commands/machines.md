@@ -71,9 +71,9 @@ build: offline, skipped: ssh build-box: ssh: connect to host build-box port 22: 
 gpu: not updated: arthur update: /home/arthur/arthur has changed tracked files: package.json; commit, stash or undo them first
 ```
 
-A machine ssh does not reach (its exit code 255) is named and skipped, `offline, skipped: ssh <ssh>: <ssh's line>`; one where `arthur update` refused or failed, or that was cut, `not updated: <its last line>`; the others are updated all the same. Exit code 0 when each was updated or up to date, else 1. A machine whose Arthur has no `arthur update` yet is updated once by hand (`docs/deploy.md`, "Updating").
+A machine ssh does not reach (its exit code 255) is named and skipped, `offline, skipped: ssh <ssh>: <ssh's line>`; one where `arthur update` refused or failed, `not updated: <its last line on stderr>` (`exit code <n>` when it said nothing); one killed before it ended, at the 600 seconds or by a signal, `cut before arthur update ended there (<its last line>), maybe during its npm ci: run arthur update <commit> there by hand`, since its own rollback did not run; the others are updated all the same. Exit code 0 when each was updated or up to date, else 1. A machine whose Arthur has no `arthur update` yet is updated once by hand (`docs/deploy.md`, "Updating").
 
-Refused, exit code 1: inside a job, `arthur machines update: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, before any SSH; a name not in the list, `no machine <name>; machines: <names>`; an empty list, `no machine to update: the list of the machines plugin is empty`; and a core outside a Git checkout, `this core, <folder>, is not in a Git checkout: arthur machines update brings each machine to the commit it is at`.
+Refused, exit code 1: inside a job, `arthur machines update: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, before any SSH; a name not in the list, `no machine <name>; machines: <names>` (`machines: none` with an empty list); an empty list, `no machine to update: the list of the machines plugin is empty`; and a core outside a Git checkout, `this core, <folder>, is not in a Git checkout: arthur machines update brings each machine to the commit it is at`.
 
 ## Placing a job
 

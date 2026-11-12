@@ -30,3 +30,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: `decide` reads the changed files from `git diff --numstat` without `-z`. With git's default `core.quotePath`, a non-ASCII path such as `.github/workflows/ż.yml` comes out quoted (`".github/workflows/\305\274.yml"`) and misses its glob. `arthur merge --auto` had the same gap, which this branch fixed with `-z`: before the fix, the AR0693 test showed a branch adding `.github/workflows/ż.yml` merging. [INFERENCE] I did not run `review-needed` on such a path. If its later rules (docs only, size, checks) let the branch through, it answers `no review`, and `--auto` takes that as its PASS.
 - Suggestion: `git diff --numstat -z` in `decide`, parsed per NUL-separated record, plus a test with a non-ASCII held path. The rest of `decide` stays as it is.
 - Status: open
+
+## F4. A project's `prompts.criteriaDir` outside `.agents/` and not named `criteria/` is not held by `--auto` or `review-needed`
+
+- Kind: security
+- Found by: 2026-11-11-worker-07795aec (worker), 2026-11-12
+- Where: `packages/delivery/src/auto-merge.ts:42`, `packages/delivery/src/delivery-options.ts:17`
+- What: `autoRefusal`'s `rules` give a project's `prompts.rolesDir` its own held rule ("a role") and `prompts.vision` one ("the vision"), but give `prompts.criteriaDir` none. The always-review list reaches a criteria file only through `**/criteria/**` or `.agents/**`. So a project with `prompts: { criteriaDir: ".ops/rules" }` gets a branch that rewrites its review criteria merged by `--auto` with no Scope naming it, and `arthur review-needed` can answer `no review` for it. [INFERENCE] I read this from the lines above and did not run it. A criteriaDir under `.agents/` (the default, or the `.agents/ops/rules` of the AR0693 test) is held.
+- Suggestion: add a `criteria` rule to `rules`, beside the role rule, holding `**/criteria/**` and the project's `prompts.criteriaDir` folder. Have `delivery.alwaysReview` and `review-needed` hold the project's `prompts` folders too, each with a test. AR0693's Scope exception stays as it is.
+- Status: open

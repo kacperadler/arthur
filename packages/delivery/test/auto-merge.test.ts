@@ -259,6 +259,27 @@ test("--auto merges a role, criteria or vision file main's ticket names in its S
 	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0001 merged\nMerge AC0001: T AC0001");
 });
 
+test("--auto takes the project's own prompts.rolesDir, prompts.criteriaDir and prompts.vision, which no default glob reaches: a file there the Scope names merges, one it does not name is refused", async (t) => {
+	const { worker, review, merge, set, answers, git, root } = await load(t);
+	set({ autoMerge: true, prompts: { rolesDir: ".agents/ops/people", criteriaDir: ".agents/ops/rules", vision: "docs/vision.md" } });
+	const [role, criteria, vision] = [".agents/ops/people/worker.md", ".agents/ops/rules/review.md", "docs/vision.md"];
+	writeFileSync(join(root, "spec/features/AC0001-t/ticket.md"), `# AC0001 - T\n\n\`\`\`json\n{ "id": "AC0001" }\n\`\`\`\n\n## Scope\n\nIn:\n- \`${role}\`\n- \`${criteria}\`\n- \`${vision}\`\n`);
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "spec: scope");
+	for (const [n, path, rule] of [[2, role, "a role"], [3, criteria, "the always-review list"], [4, vision, "the vision"]] as const) {
+		const job = await worker(n, { [path]: "# Rules\n" });
+		await review(job.id, "PASS");
+		answers.ci = ciRun(job.tip, job.branch);
+		assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>; main is unchanged`, path);
+	}
+	const named = await worker(1, { [role]: "# Rules\n", [criteria]: "# Rules\n", [vision]: "# Acme\n" });
+	await review(named.id, "PASS");
+	answers.ci = ciRun(named.tip, named.branch);
+	const merged = await merge(named.id, "--auto");
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0001 merged\nMerge AC0001: T AC0001");
+});
+
 test("--auto reads past a replacement of main's tip under refs/replace: the held path the branch changes still refuses it", async (t) => {
 	const { worker, review, merge, answers, git, root } = await load(t);
 	const job = await worker(1, { "packages/shop/package.json": "{}\n" });

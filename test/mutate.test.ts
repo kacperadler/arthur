@@ -85,6 +85,8 @@ test("--max caps the mutants run and says how many were not, 100 without it; a w
 		const wrong = mutate(root, ...args);
 		assert.deepEqual([wrong.stdout, wrong.stderr, wrong.status], ["", "mutate: usage: npm run mutate [-- --max <n>]\n", 2], args.join(" "));
 	}
+	const one = late(root, [0, 1_500_000], "--max", "1");
+	assert.deepEqual([one.stdout, one.stderr, one.status], ["mutate: 0 mutants, 0 caught, 0 survived; 1 not run (time); 11 not run (--max 1)\n", "", 0], "--max 1 is a cap");
 	// Without --max, the 100 the review gate needs (AR0696); the deadline at once runs none of them.
 	writeFileSync(join(root, "packages/a/src/many.ts"), Array.from({ length: 15 }, (_, n) => `export const over${n} = ${n} > 3;\n`).join(""));
 	git(root, "add", "--all");

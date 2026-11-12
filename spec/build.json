@@ -5165,9 +5165,9 @@
   {
     "id": "AR0642",
     "title": "Roadmap 106: installing a release, arthur update and arthur machines update",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0642-roadmap-106-installing-a-release-arthur-update-and-arthur-machines-update/ticket.md",
-    "updated": "2026-11-06T08:18:05.584Z",
+    "updated": "2026-11-12T08:58:02.669Z",
     "after": [
       "AR0641",
       "AR0698"
@@ -5619,9 +5619,9 @@
   {
     "id": "AR0696",
     "title": "The review gate needs min(100, all) mutants, not min(25, all)",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
-    "updated": "2026-11-12T07:00:33.635Z",
+    "updated": "2026-11-12T09:33:22.848Z",
     "after": [
       "AR0671"
     ]

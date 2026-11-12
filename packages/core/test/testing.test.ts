@@ -340,18 +340,39 @@ test("the kit ends, before it removes its folder, the tmux servers a test left o
 	assert.equal(run.status, 0, run.stderr);
 	assert.equal(run.stderr, "");
 	const pids = JSON.parse(run.stdout) as number[];
-	const alive = (pid: number) => {
-		try {
-			return process.kill(pid, 0);
-		} catch {
-			return false;
-		}
-	};
 	t.after(() => pids.filter(alive).forEach((pid) => process.kill(pid, "SIGKILL")));
 	assert.equal(new Set(pids).size, 3, `three servers: ${pids}`);
 	await until("the tmux servers' end at the kit's exit", () => !pids.some(alive), { deadlineMs: 5000 });
 	assert.equal(spawnSync("tmux", ["-S", outside, "has-session", "-t", "outside"]).status, 0, "the kit ended a server outside its folder");
 });
+
+test("the kit kills, before it removes its folder, each process a test left whose working folder or command line lies in it, not itself and none outside", async (t) => {
+	const kit = import.meta.resolve("@arthur/core/testing");
+	const outside = spawn("sleep", ["300"], { cwd: temporaryFolder(), stdio: "ignore" });
+	t.after(() => outside.kill("SIGKILL"));
+	// A child loads the kit, works in a folder of its own, leaves a sleep working there and a node naming a file there, and exits.
+	const code = `const { temporaryFolder } = await import(${JSON.stringify(kit)});
+		const { spawn } = await import("node:child_process");
+		process.chdir(temporaryFolder());
+		const left = [spawn("sleep", ["300"], { stdio: "ignore" }), spawn(process.execPath, ["-e", "setInterval(() => {}, 2 ** 30)", temporaryFolder() + "/named"], { cwd: "/", stdio: "ignore" })];
+		for (const one of left) one.unref();
+		console.log(JSON.stringify({ pids: left.map((one) => one.pid), cwd: process.cwd() }));`;
+	const run = spawnSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8" });
+	assert.equal(run.status, 0, run.stderr || `ended by ${run.signal}`);
+	const { pids, cwd } = JSON.parse(run.stdout) as { readonly pids: number[]; readonly cwd: string };
+	t.after(() => pids.filter(alive).forEach((pid) => process.kill(pid, "SIGKILL")));
+	assert.equal(existsSync(cwd), false, `${cwd} is left`);
+	await until("the left processes' end at the kit's exit", () => !pids.some(alive), { deadlineMs: 5000 });
+	assert.ok(alive(outside.pid ?? 0), "the kit killed a process outside its folder");
+});
+
+function alive(pid: number): boolean {
+	try {
+		return process.kill(pid, 0);
+	} catch {
+		return false;
+	}
+}
 
 test("omp under the kit is the fake agent with no run scripted: it fails, and no job of a test reaches the real agent", () => {
 	const run = spawnSync("omp", ["-p", "--mode", "json", "Fix it."], { encoding: "utf8" });

@@ -4411,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-10T17:52:54.971Z",
+    "updated": "2026-11-12T07:01:31.905Z",
     "after": [
       "AR0554"
     ]
@@ -5619,9 +5619,9 @@
   {
     "id": "AR0696",
     "title": "The review gate needs min(100, all) mutants, not min(25, all)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
-    "updated": "2026-11-11T20:24:17.954Z",
+    "updated": "2026-11-12T07:00:33.635Z",
     "after": [
       "AR0671"
     ]
@@ -5629,9 +5629,9 @@
   {
     "id": "AR0697",
     "title": "The test kit stops every process a test left in its folder when a test file exits",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
-    "updated": "2026-11-11T20:24:20.604Z",
+    "updated": "2026-11-12T07:00:34.918Z",
     "after": [
       "AR0671"
     ]

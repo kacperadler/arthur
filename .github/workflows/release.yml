@@ -1,0 +1,30 @@
+name: release
+
+# A merged release ticket changes the root package.json's version: this makes its GitHub release v<version> once, with that
+# version's section of CHANGELOG.md as the notes (spec/roadmap.md, entry 105). Nothing is published on npm.
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    # gh release create makes the tag and the release with the workflow's own token: there is no secret to keep.
+    permissions:
+      contents: write
+    # One run at a time, so the next one sees the tag the one before made.
+    concurrency: release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      # When the tag does not exist yet: npm ci, npm run check and npm test, then gh release create (test/release.ts).
+      - run: node test/release.ts
+        env:
+          GH_TOKEN: ${{ github.token }}

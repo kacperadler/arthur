@@ -34,7 +34,6 @@ const TIMEOUT_MS = 30_000;
 // A secondary rate limit that says no time: "wait for at least one minute before retrying".
 const MINUTE_MS = 60_000;
 
-// A key of an answer's object, undefined when it is no object or lacks it.
 export const field = (item: unknown, key: string): unknown => (typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined);
 
 // One request of `path`, from the API's root, with `json` as its body when given; `what` is the thing asked and `needs` the

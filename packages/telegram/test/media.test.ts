@@ -145,6 +145,27 @@ test("channel.send: an album of one goes as itself, a photo over 10 MB as a docu
 	]);
 });
 
+test("channel.send: an .ogg file goes alone as a voice note, after the album and the documents, never in an album; one alone takes the caption", async (t) => {
+	const api = await botApi(t);
+	const { fake } = await load(t, { apiUrl: api.url });
+	const path = files({ "one.ogg": "opus bytes", "a.png": png(100, 100), "c.pdf": "a report", "two.OGG": "more opus", "d.oga": "not .ogg" });
+	const send = async (message: unknown) => {
+		const [answer] = fake.host.collectEach<() => Promise<string>>("channel.send", message);
+		assert.ok(answer !== undefined && "value" in answer, JSON.stringify(answer));
+		return answer.value();
+	};
+	assert.equal(await send({ files: ["one.ogg", "a.png", "c.pdf", "two.OGG", "d.oga"].map(path), caption: "Hear." }), "sent 5 files in 4 messages");
+	assert.equal(await send({ files: [path("one.ogg")], caption: "Alone.", place: "12" }), "sent 1 file in 1 message");
+	const to = { chat_id: String(CHAT), disable_notification: "false" };
+	assert.deepEqual(api.media(), [
+		{ method: "sendPhoto", ...to, photo: upload(path("a.png")), caption: "Hear." },
+		{ method: "sendMediaGroup", ...to, file0: upload(path("c.pdf")), file1: upload(path("d.oga")), media: JSON.stringify([{ type: "document", media: "attach://file0" }, { type: "document", media: "attach://file1" }]) },
+		{ method: "sendVoice", ...to, voice: upload(path("one.ogg")) },
+		{ method: "sendVoice", ...to, voice: upload(path("two.OGG")) },
+		{ method: "sendVoice", ...to, message_thread_id: "12", voice: upload(path("one.ogg")), caption: "Alone." },
+	]);
+});
+
 test("channel.send refuses before any send: 11 files, a file over 50 MB, a photo past Telegram's sides, an empty or missing file, a long caption", async (t) => {
 	const api = await botApi(t);
 	const { fake } = await load(t, { apiUrl: api.url });

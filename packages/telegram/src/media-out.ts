@@ -3,14 +3,14 @@ import { basename, extname } from "node:path";
 import { type Bot, call, topic } from "./bot-api.ts";
 
 // `channel.send` on Telegram (spec/roadmap.md, entry 49): files by the main bot, to a topic when the place is one, without a
-// notification in quiet hours: photos and videos as an album (one alone as itself), the other files as documents after it, the
-// caption on the first message. Every file is checked before the send is answered, so a refusal sends nothing:
-// packages/telegram/docs/telegram.md, "Sending files".
+// notification in quiet hours: photos and videos as an album (one alone as itself), the other files as documents after it, and
+// each `.ogg` file alone as a voice note (AR0553), the caption on the first message. Every file is checked before the send is
+// answered, so a refusal sends nothing: packages/telegram/docs/telegram.md, "Sending files".
 
-type Item = { readonly path: string; readonly kind: "photo" | "video" | "document" };
+type Item = { readonly path: string; readonly kind: "photo" | "video" | "document" | "voice" };
 
-const KINDS: Readonly<Record<string, Item["kind"]>> = { ".jpg": "photo", ".jpeg": "photo", ".png": "photo", ".webp": "photo", ".mp4": "video", ".mov": "video" };
-const METHODS: Readonly<Record<Item["kind"], string>> = { photo: "sendPhoto", video: "sendVideo", document: "sendDocument" };
+const KINDS: Readonly<Record<string, Item["kind"]>> = { ".jpg": "photo", ".jpeg": "photo", ".png": "photo", ".webp": "photo", ".mp4": "video", ".mov": "video", ".ogg": "voice" };
+const METHODS: Readonly<Record<Item["kind"], string>> = { photo: "sendPhoto", video: "sendVideo", document: "sendDocument", voice: "sendVoice" };
 const MB = 1024 * 1024;
 // The Bot API's limits on a bot's upload: a photo up to 10 MB (a larger one goes as a document), any file up to 50 MB, 10 in
 // an album, a caption of 1024 characters, a photo's width and height together up to 10000 px and at most 20 to 1.
@@ -40,8 +40,9 @@ export function outgoing(bot: Bot, quiet: () => boolean, message: unknown): () =
 		return { path, kind };
 	});
 	if (problems.length > 0) throw new Error(problems.join("\n"));
-	// A document goes in an album only with documents, so photos and videos go first, then the documents.
-	const groups = [items.filter((item) => item.kind !== "document"), items.filter((item) => item.kind === "document")].filter((group) => group.length > 0);
+	// A document goes in an album only with documents, and a voice note in none, so photos and videos go first, then the
+	// documents, then each voice note.
+	const groups = [items.filter((item) => item.kind === "photo" || item.kind === "video"), items.filter((item) => item.kind === "document"), ...items.filter((item) => item.kind === "voice").map((item) => [item])].filter((group) => group.length > 0);
 	const thread = topic(place);
 	return async () => {
 		for (const [index, group] of groups.entries()) {

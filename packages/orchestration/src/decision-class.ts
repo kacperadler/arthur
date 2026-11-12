@@ -50,7 +50,6 @@ export function propose(host: Host, project: Project, given: { readonly kind: st
 // The evidence for a class: its backing decisions and their agreement rate.
 export const evidence = (each: Class) => `backed by ${each.backedBy.join(", ")}; the recommendation agreed with the owner's pick on ${each.agreed} of ${each.scored}${each.backedBy.length > each.scored ? ` (${each.backedBy.length - each.scored} with no recommendation or pick, not scored)` : ""}`;
 
-// Records the owner's revoke of class `id`.
 export function revoke(host: Host, project: Project, id: string, said: string): { readonly unwritten?: string } {
 	if (said.trim() === "") throw new Error(`no words: arthur decision class revoke ${id} <the owner's words>`);
 	return change(host, project, (entries, time) => {

@@ -46,6 +46,7 @@ import { server } from "@arthur/server"; // later, named
 import { session } from "@arthur/session"; // first, named
 import { signal } from "@arthur/signal"; // later, named
 import { slack } from "@arthur/slack"; // later, named
+import { speak } from "@arthur/speak"; // first, named
 import { stats } from "@arthur/stats"; // first, named
 import { telegram } from "@arthur/telegram"; // first, named
 import { uptime } from "@arthur/uptime"; // first, named
@@ -363,6 +364,17 @@ export default defineConfig({
 			maxSeconds: 600, // a longer file is not transcribed; the human is told in one line, the coordinator gets the path
 		}),
 
+		// The coordinator's reply to a voice note also goes back as a voice note, through the channel the note came from, where
+		// the text goes, after it: spoken on this server's CPU by Piper with the voice of the reply's language (Polish when it
+		// holds a Polish letter or word, else English), made OGG/Opus by ffmpeg in .arthur/speak/; nothing leaves the server. A reply
+		// to text gets text only. When the voice cannot go, one line says why. `arthur say <text> [--out <file>]` and `speak.say` do
+		// the same for any text. `arthur doctor` checks `piper`, each voice and `ffmpeg`; while one is missing the text goes alone.
+		speak({
+			voices: { pl: "pl_PL-gosia-medium", en: "en_US-lessac-medium" }, // a Piper voice name (the file .arthur/speak/voices/<name>.onnx and its .onnx.json) or the absolute path of a .onnx file
+			maxChars: 1500, // a longer reply goes as text alone, with one line saying why
+			timeoutSeconds: 120, // piper or ffmpeg running longer on one reply is killed; the text goes alone, with one line saying why
+		}),
+
 		// Videos from any channel, cut on this server by ffmpeg; nothing leaves the server. The coordinator gets a few frames as PNG
 		// files in .arthur/video/, each with the second it shows, and the words of the sound track through the listen plugin's
 		// `listen.transcribe`: `[video <seconds> s] <transcript> frames: <path> at <s> s, ... (<path>)`. `arthur doctor` checks
@@ -410,12 +422,13 @@ export default defineConfig({
 		// networks, volumes, images it builds) is labelled `arthur.job=<id>`, compose stacks get the job's project name, and
 		// Docker's data root counts for `keepFree.disk`. All of it is removed on the job's machine right before its worktree
 		// goes (prune, merge, a dropped ticket); pulled and shared images stay, and so does what another job's container uses;
-		// a failed cleanup never keeps the worktree: it is a notice. Planned (roadmap 72): the sweep retries what is left, and
-		// never touches anything labelled `arthur.keep`.
+		// a failed cleanup never keeps the worktree: it is a notice. The sweep (`arthur docker sweep [--machine] [--dry-run]`,
+		// daily, and at once on a machine under `keepFree.disk`) removes what a job that no longer exists labelled, and never
+		// anything labelled `arthur.keep`; `arthur docker` shows what Docker holds on each machine.
 		docker({
 			buildCache: "10G", // after each cleanup and sweep, Docker's shared build cache is cut to this size; 0 = no cap
-			leftoverHours: 48, // the sweep removes unlabelled stopped containers, unused networks, dangling images, unused
-			// anonymous volumes and build cache older than this; what a job that no longer exists labelled goes at any age
+			leftoverHours: 48, // the sweep removes unlabelled dangling images, unused networks and build cache older than this;
+			// the owner's own stopped containers and volumes stay; what a job that no longer exists labelled goes at any age
 			sweep: { at: "04:00" }, // registers a daily schedule entry; also runs at once on a machine under `keepFree.disk`
 		}),
 
@@ -532,7 +545,7 @@ export default defineConfig({
 //		github.project({ workflow: "ci.yml" }),
 //		commitRules.project({ file: "commit-rules.md" }), // projects/acme-site/commit-rules.md, read as plain words
 //		findings.project("summary"),
-//		docker.project(false), // its jobs get no docker script, so their containers are not labelled nor removed with the worktree (the sweep is planned)
+//		docker.project(false), // its jobs get no docker script, so their containers are neither labelled nor cleaned; the sweep still runs
 //	];
 //
 // projects/acme-ios/project.config.ts

@@ -2,6 +2,22 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-12
+
+### Added
+
+- AR0553 Speech: the coordinator answers a voice note with a voice note, spoken on this server (17dc9ed0)
+- AR0647 Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72) (cc86eb39)
+
+### Changed
+
+- AR0641 Roadmap 105: the release workflow and the changelog per release (bb47fe30)
+- AR0686 Code: a review on the fable model finds redundant comments and removes them (e1847934)
+- AR0694 A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision (5512e3fb)
+- AR0696 The review gate needs min(100, all) mutants, not min(25, all) (42f5b862)
+- AR0697 The test kit stops every process a test left in its folder when a test file exits (cdcd7c6b)
+- AR0698 Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges
+
 ## 2026-11-11
 
 ### Added
@@ -21,6 +37,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0671 Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first (68ff7073)
 - AR0692 herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches (eca9687c)
 
 ## 2026-11-10

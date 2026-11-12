@@ -4411,9 +4411,9 @@
   {
     "id": "AR0553",
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-11-10T17:52:54.971Z",
+    "updated": "2026-11-12T08:12:19.911Z",
     "after": [
       "AR0554"
     ]
@@ -5155,9 +5155,9 @@
   {
     "id": "AR0641",
     "title": "Roadmap 105: the release workflow and the changelog per release",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0641-roadmap-105-the-release-workflow-and-the-changelog-per-release/ticket.md",
-    "updated": "2026-11-06T08:18:04.993Z",
+    "updated": "2026-11-12T08:18:02.753Z",
     "after": [
       "AR0647"
     ]
@@ -5165,12 +5165,12 @@
   {
     "id": "AR0642",
     "title": "Roadmap 106: installing a release, arthur update and arthur machines update",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0642-roadmap-106-installing-a-release-arthur-update-and-arthur-machines-update/ticket.md",
-    "updated": "2026-11-06T08:18:05.584Z",
+    "updated": "2026-11-12T08:58:02.669Z",
     "after": [
-      "AR0640",
-      "AR0641"
+      "AR0641",
+      "AR0698"
     ]
   },
   {
@@ -5213,9 +5213,9 @@
   {
     "id": "AR0647",
     "title": "Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72)",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0647-docker-w4-the-daily-sweep-of-docker-leftovers-arthur-docker-and-arthur-docker/ticket.md",
-    "updated": "2026-11-11T15:44:56.971Z",
+    "updated": "2026-11-12T01:30:38.306Z",
     "after": [
       "AR0646"
     ]
@@ -5420,9 +5420,9 @@
   {
     "id": "AR0671",
     "title": "Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0671-tests-run-faster-no-real-waits-of-seconds-the-slowest-file-split-ci-in-parallel/ticket.md",
-    "updated": "2026-11-11T21:21:20.313Z"
+    "updated": "2026-11-11T22:22:11.138Z"
   },
   {
     "id": "AR0672",
@@ -5543,9 +5543,9 @@
   {
     "id": "AR0686",
     "title": "Code: a review on the fable model finds redundant comments and removes them",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
-    "updated": "2026-11-11T19:48:01.757Z",
+    "updated": "2026-11-12T10:49:37.173Z",
     "after": [
       "AR0685"
     ]
@@ -5595,16 +5595,16 @@
   {
     "id": "AR0693",
     "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
-    "updated": "2026-11-11T20:24:40.107Z"
+    "updated": "2026-11-12T01:48:04.282Z"
   },
   {
     "id": "AR0694",
     "title": "A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0694-a-plan-yes-ticket-goes-straight-to-its-planner-the-plan-question-is-the-owner-s/ticket.md",
-    "updated": "2026-11-11T20:24:13.244Z"
+    "updated": "2026-11-12T10:53:30.079Z"
   },
   {
     "id": "AR0695",
@@ -5619,9 +5619,9 @@
   {
     "id": "AR0696",
     "title": "The review gate needs min(100, all) mutants, not min(25, all)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
-    "updated": "2026-11-11T20:24:17.954Z",
+    "updated": "2026-11-12T10:57:18.972Z",
     "after": [
       "AR0671"
     ]
@@ -5629,11 +5629,21 @@
   {
     "id": "AR0697",
     "title": "The test kit stops every process a test left in its folder when a test file exits",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
-    "updated": "2026-11-11T20:24:20.604Z",
+    "updated": "2026-11-12T08:22:46.236Z",
     "after": [
       "AR0671"
+    ]
+  },
+  {
+    "id": "AR0698",
+    "title": "Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges",
+    "status": "merged",
+    "path": "spec/features/AR0698-release-0-1-0-tag-v0-1-0-and-its-github-release-by-hand-once-ar0641-merges/ticket.md",
+    "updated": "2026-11-12T08:18:51.892Z",
+    "after": [
+      "AR0641"
     ]
   }
 ]

@@ -36,9 +36,9 @@ export type SessionOptions = {
 const EXTENSIONS = ["handoff-extension.ts", "turn-extension.ts"].map((file) => fileURLToPath(new URL(file, import.meta.url)));
 // The share of its context window the conversation used at its last turn's end, as the turn extension leaves it.
 const CONTEXT_USE = "context-use";
-const TICK_MS = 500;
 
-export function session(options: SessionOptions = {}): Plugin {
+// `tickMs`: how often the plugin and the coordinator's handoff extension look, 500 ms; shorter in a test only.
+export function session(options: SessionOptions = {}, tickMs = 500): Plugin {
 	let host: Host | undefined;
 	let timer: NodeJS.Timeout | undefined;
 	let stopProbe: (() => void) | undefined;
@@ -53,7 +53,7 @@ export function session(options: SessionOptions = {}): Plugin {
 		doctor: serviceRequirements,
 		setup(given) {
 			host = given;
-			for (const file of EXTENSIONS) given.provide("coordinator.extension", () => ({ file, env: { ARTHUR_SESSION_FOLDER: given.folder } }));
+			for (const file of EXTENSIONS) given.provide("coordinator.extension", () => ({ file, env: { ARTHUR_SESSION_FOLDER: given.folder, ARTHUR_SESSION_TICK_MS: String(tickMs) } }));
 			given.events.on("doctor", ({ data }) => {
 				const lines = typeof data === "object" && data !== null && "lines" in data ? data.lines : undefined;
 				missing = Array.isArray(lines) ? lines.filter((line) => typeof line === "string") : [];
@@ -80,7 +80,7 @@ export function session(options: SessionOptions = {}): Plugin {
 						if (!told.has(line)) console.error(line);
 						told.add(line);
 					}
-			}, TICK_MS);
+			}, tickMs);
 		},
 		stop() {
 			clearInterval(timer);

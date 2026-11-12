@@ -122,7 +122,7 @@ export function tipChecks(git: (...words: string[]) => string, tip: string, chec
 }
 
 // Why no review of the worker's tip starts yet (AR0580), or undefined: each script of `tipChecks` on the tip's clean tree, `check` and
-// `test` passing, `mutate` with its counts, not capped below min(25, all its mutants) (AR0637), with any survivors (the worker names them).
+// `test` passing, `mutate` with its counts, not capped below min(100, all its mutants) (AR0637, AR0696), with any survivors (the worker names them).
 export function untested(host: Host, job: JobRecord, { git, commit: tip }: { readonly git: (...words: string[]) => string; readonly commit: string } = branchOf(host, job)): string | undefined {
 	const file = join(host.folder, job.id, "checks");
 	const latest = job.machine === "local" ? tipChecks(git, tip, existsSync(file) ? readFileSync(file, "utf8") : "") : [];
@@ -132,8 +132,8 @@ export function untested(host: Host, job: JobRecord, { git, commit: tip }: { rea
 		if (script !== "mutate") return words[1] === "pass" ? [] : [words.slice(0, -2).join(" ")];
 		const [, run = 0, survived, unrun = 0] = (/^mutate \w+ (\d+) run, (\d+) survived, (\d+) not run$/.exec(words.slice(0, -2).join(" ")) ?? []).map(Number);
 		if (survived === undefined) return [`${words.slice(0, -2).join(" ")} without its counts`];
-		const need = Math.min(25, run + unrun);
+		const need = Math.min(100, run + unrun);
 		return run >= need ? [] : [`mutate capped at --max ${run} (${run} run, ${survived} survived, ${unrun} not run of ${run + unrun}; it counts at ${need})`];
 	});
-	return gaps.length === 0 ? undefined : `${job.branch} at ${tip.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(25, all) mutants): ${gaps.join(", ")}`;
+	return gaps.length === 0 ? undefined : `${job.branch} at ${tip.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(100, all) mutants): ${gaps.join(", ")}`;
 }

@@ -37,3 +37,4 @@ Out:
 
 - 2026-11-11: Source: retro spec/retro/2026-11-11.md
 - 2026-11-11: AR0694 approved; the owner: "AR-D649 1, AR-D650 1, AR-D651 1, AR-D652 1, AR-D653 1" (AR-D650)
+- 2026-11-12: Merge AR0694; the owner: "AR-D663 1, AR-D656 1, AR-D657 1, AR-D658 1" (AR-D658)

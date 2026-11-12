@@ -402,7 +402,7 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 	assert.deepEqual(messages().slice(1), [`CI passed on ${where.replace("attempt 1", "attempt 2")}. acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`], "autoMerge off since the wait: the merge is the owner's");
 	set({ autoMerge: true });
 	assert.deepEqual(end({}, { attempt: 3, conclusion: "success" }), [true]);
-	assert.equal(messages().length, 2, "with autoMerge on delivery runs the merge in arthur run, whose output is the wake (review.test.ts)");
+	assert.equal(messages().length, 2, "with autoMerge on delivery runs the merge in arthur run, whose output is the wake (pass-forward.test.ts)");
 	answers.ci = ciRun(job.tip, job.branch, { attempt: 3 });
 	const merged = await merge(job.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);

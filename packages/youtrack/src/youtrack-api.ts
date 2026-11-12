@@ -75,7 +75,6 @@ export async function getAll(instance: Instance, path: string, params: Readonly<
 	}
 }
 
-// A key of an item of YouTrack's JSON, undefined when the item is not an object or lacks it.
 export function field(item: unknown, key: string): unknown {
 	return typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined;
 }

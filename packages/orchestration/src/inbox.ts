@@ -2,11 +2,12 @@ import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync,
 import { join } from "node:path";
 import { describe } from "@arthur/core";
 import { type Received, received, turnText } from "@arthur/core/parts";
-import type { Host } from "@arthur/core/plugin";
+import type { Event, Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
 import { redact, redactValues } from "./credential.ts";
 import { handOver } from "./hand-over.ts";
 import { held } from "./silent.ts";
+import { voiceReplies } from "./voice-reply.ts";
 
 // The coordinator's inbox, the plugin's side (spec/roadmap.md, entries 24 and 49): every message for the coordinator becomes one
 // file `<folder>/inbox/queued/<event's number>-<its time in ms>`, which the inbox extension (inbox-extension.ts) hands to the
@@ -74,17 +75,18 @@ export function inbox(host: Host): { start(): void; stop(): void } {
 	host.provide("coordinator.turn", (name: unknown, data: unknown, more: unknown) => turn(host, name, data, more));
 	for (const name of ["job-started", "job-state", "job-ended"]) host.events.on(name, () => footer(host));
 	let timer: NodeJS.Timeout | undefined;
+	const voice = voiceReplies(host);
 	return {
 		start() {
 			footer(host);
-			timer = setInterval(() => sweep(host), SWEEP_MS);
+			timer = setInterval(() => sweep(host, voice), SWEEP_MS);
 			started = true;
 			resolve();
 		},
 		stop() {
 			started = false;
 			clearInterval(timer);
-			sweep(host);
+			sweep(host, voice);
 		},
 	};
 }
@@ -174,9 +176,10 @@ function footer(host: Host): void {
 	renameSync(join(host.folder, "footer.new"), join(host.folder, "footer"));
 }
 
-// Each reply or notice the extension wrote, oldest first, emitted and then moved to `outbox/sent/`; while silent is on, a reply
-// of a turn holding no owner message is not emitted but moved to `outbox/held/` (silent.ts).
-function sweep(host: Host): void {
+// Each reply or notice the extension wrote, oldest first, emitted and then moved to `outbox/sent/`, a sent reply then to
+// `voice` (voice-reply.ts); while silent is on, a reply of a turn holding no owner message is not emitted but moved to
+// `outbox/held/` (silent.ts).
+function sweep(host: Host, voice: (reply: Event) => void): void {
 	const outbox = join(host.folder, "outbox");
 	if (!existsSync(outbox)) return;
 	for (const name of readdirSync(outbox).filter((each) => each.endsWith(".json")).sort()) {
@@ -184,7 +187,7 @@ function sweep(host: Host): void {
 		const box = "notice" in file || file.channels.length > 0 || !held(host.folder, name) ? "sent" : "held";
 		if ("notice" in file) host.events.emit("notice", { text: redact(file.notice, host.secrets) });
 		// The event names the event numbers its files hold.
-		else if (box === "sent") host.events.emit("coordinator-replied", { text: file.text, answers: file.answers.map((answer) => parseInt(String(answer))), channels: file.channels });
+		else if (box === "sent") voice(host.events.emit("coordinator-replied", { text: file.text, answers: file.answers.map((answer) => parseInt(String(answer))), channels: file.channels }));
 		mkdirSync(join(outbox, box), { recursive: true });
 		renameSync(join(outbox, name), join(outbox, box, name));
 	}

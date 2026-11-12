@@ -62,7 +62,6 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			return halt ? stop(id) : Promise.resolve();
 		},
 		stop,
-		// Returns the steer's number.
 		steer(id: string, text: string): string {
 			const machine = there(id);
 			return machine === undefined ? steerJob(home, id, text) : ssh(machine, ["arthur", "remote-job", "steer", machine.home, id], text).trim();

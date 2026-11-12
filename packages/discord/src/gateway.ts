@@ -35,7 +35,7 @@ type Payload = { readonly op?: unknown; readonly d?: unknown; readonly s?: unkno
 const record = (value: unknown) => (typeof value === "object" && value !== null ? value : {}) as Readonly<Record<string, unknown>>;
 const secure = (url: URL | null) => url?.protocol === "wss:" || (url?.protocol === "ws:" && /^(localhost|127(\.\d+){3}|\[::1\])$/.test(url.hostname));
 
-export async function gateway(bot: Bot, signal: AbortSignal, on: (type: string, data: Readonly<Record<string, unknown>>) => void, fatal: (line: string) => void): Promise<void> {
+export async function gateway(bot: Bot, signal: AbortSignal, on: (type: string, data: Readonly<Record<string, unknown>>) => void, fatal: (line: string) => void, closeMs = CLOSE_MS): Promise<void> {
 	const name = `discord bot ${bot.label}`;
 	let session: { readonly id: string; readonly url: string } | undefined;
 	let seq: number | null = null;
@@ -100,7 +100,7 @@ export async function gateway(bot: Bot, signal: AbortSignal, on: (type: string, 
 		};
 		const close = (code: number, reason?: string) => {
 			socket.close(code, reason);
-			late ??= setTimeout(ended, CLOSE_MS, 1006);
+			late ??= setTimeout(ended, closeMs, 1006);
 		};
 		const beat = () => {
 			if (!acked) return close(4000, "no heartbeat ACK");

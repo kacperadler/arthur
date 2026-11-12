@@ -122,7 +122,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	const watching = watchMemory(id, memory, feature, featureMemory, (what) => {
 		overCap = what;
 		halt("memory");
-	});
+	}, Number(process.env.ARTHUR_TEST_MEMORY_SAMPLE_MS) || undefined); // A test's sample, which launch passes on under node's test runner only.
 	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, place, extensions), secrets, "env", note, "the install", unsandboxed === "true")(["GIT_NO_REPLACE_OBJECTS=1", ...cached(join(folder, "cache"), command)]), note, (chunk) => installed.push(chunk), (running) => (child = running)).catch((error: Error) => error).finally(installed.end).finally(() => stopping); // The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, its sandbox's refusal (`no sandbox: ...`) included, or a stop or a limit during it, starts no agent, and the job ends only once the stop of the install's group is over (AR0481). Its git, as the agent's, reads past refs/replace (AR0621).
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over; its npm's cache is the install's, the record's, never the shared one (AR0456).
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {

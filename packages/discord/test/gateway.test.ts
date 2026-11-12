@@ -130,16 +130,17 @@ test("a close the gateway never answers, as over a dead network path, ends 5 s o
 	const api = await fakeDiscord(t);
 	api.heartbeat = 50;
 	api.deaf = true;
-	const { plugin } = await load(t, { apiUrl: api.url });
+	// 500 ms in place of the 5 s, which need not pass for real.
+	const { plugin } = await load(t, { apiUrl: api.url }, { closeMs: 500 });
 	await plugin.start?.();
 	await until("identified", () => api.sent(2).length === 1);
 	api.unacked = 1;
 	await until("closed for the missing ACK", () => api.connections[0]?.closed !== undefined);
 	const closed = Date.now();
 	await until("resumed on a new connection", () => api.sent(6).length === 1);
-	assert.ok(Date.now() - closed >= 4900, `resumed ${Date.now() - closed} ms after the close, not before the 5 s`);
+	assert.ok(Date.now() - closed >= 450, `resumed ${Date.now() - closed} ms after the close, not before the 500 ms`);
 	const stopping = Date.now();
 	await plugin.stop?.();
 	assert.equal(api.connections[1]?.closed, 1000);
-	assert.ok(Date.now() - stopping < 6000, `stopped ${Date.now() - stopping} ms on`);
+	assert.ok(Date.now() - stopping < 1500, `stopped ${Date.now() - stopping} ms on`);
 });

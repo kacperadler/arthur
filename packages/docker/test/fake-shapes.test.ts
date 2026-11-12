@@ -29,8 +29,8 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 	const fake = fakeDocker(temporaryFolder());
 	const kinds: Kind[] = ["ps", "network-ls", "volume-ls", "image-ls", "system-df"];
 	const volume = { CreatedAt: "2026-11-09T08:00:00Z", Driver: "local", Labels: { "arthur.job": "2026-11-09-worker-0a1b2c3d" }, Mountpoint: "/var/lib/docker/volumes/data/_data", Name: "data", Options: null, Scope: "local" };
-	const labelled = (kind: Kind) => (kind === "system-df" ? { Type: "Images" } : kind === "image-ls" ? { ID: "sha256:0a1b" } : { Labels: "arthur.job=2026-11-09-worker-0a1b2c3d" });
-	fake.state({ rows: Object.fromEntries(kinds.map((kind) => [kind, [row(kind, labelled(kind))]])), volumes: [volume] });
+	const labelled = (kind: Kind) => (kind === "system-df" ? { Type: "Images" } : kind === "image-ls" ? { ID: "0a1b2c3d4e5f" } : { Labels: "arthur.job=2026-11-09-worker-0a1b2c3d" });
+	fake.state({ rows: Object.fromEntries(kinds.map((kind) => [kind, [row(kind, labelled(kind))]])), volumes: [volume], imageLabels: { "0a1b2c3d4e5f": "arthur.job=2026-11-09-worker-0a1b2c3d,arthur.keep=" } });
 	const docker = (...args: string[]) => spawnSync(join(fake.bin, "docker"), args, { encoding: "utf8" });
 	const lines = (...args: string[]) => docker(...args, "--format", "{{json .}}").stdout.trim().split("\n").map((line) => JSON.parse(line));
 	const answers: [string, unknown][] = [
@@ -42,9 +42,15 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 		["image-ls", lines("images")[0]],
 		["system-df", lines("system", "df")[0]],
 		["volume-inspect", JSON.parse(docker("volume", "inspect", "data").stdout)],
-		["info", JSON.parse(`{${["DockerRootDir", "SecurityOptions", "ServerVersion", "Warnings"].map((key) => `"${key}": ${docker("info", "--format", `{{json .${key}}}`).stdout.trim()}`).join(", ")}}`)],
+		["info", JSON.parse(`{${["DockerRootDir", "SecurityOptions", "ServerVersion", "SystemTime", "Warnings"].map((key) => `"${key}": ${docker("info", "--format", `{{json .${key}}}`).stdout.trim()}`).join(", ")}}`)],
 		["context-inspect", { Endpoints: { docker: { Host: docker("context", "inspect", "--format", "{{.Endpoints.docker.Host}}").stdout.trim() } } }],
+		...docker("image", "inspect", "--format", "{{.Id}} {{json .Config.Labels}}", "0a1b2c3d4e5f").stdout.trim().split("\n").map((line): [string, unknown] => {
+			const [id = "", labels = ""] = line.split(" ");
+			return ["image-inspect", { Id: id, Config: { Labels: JSON.parse(labels) } }];
+		}),
 	];
+	assert.equal(docker("image", "ls", "--format", "{{.ID}}").stdout, "0a1b2c3d4e5f\n", "the IDs image inspect takes");
+	assert.match(docker("info", "--format", "{{.SystemTime}}").stdout, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{9}Z\n$/, "Docker's clock, RFC 3339 with nanoseconds");
 	// `system df` summed from the sizes the fake keeps, when no row of it is given.
 	fake.state({ sizes: {}, cache: 1500 });
 	const summed = lines("system", "df");
@@ -52,6 +58,7 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 	assert.deepEqual(summed.map((each) => [each.Type, each.Size]), [["Images", "0B"], ["Containers", "0B"], ["Local Volumes", "0B"], ["Build Cache", "1.5kB"]]);
 	assert.deepEqual(answers.flatMap(([name, got]) => drift(got, shapes[name], name)), []);
 	assert.equal((answers[7]?.[1] as unknown[]).length, 1, "volume inspect answers the volume named");
+	assert.deepEqual(answers[10]?.[1], { Id: `sha256:0a1b2c3d4e5f${"0".repeat(52)}`, Config: { Labels: { "arthur.job": "2026-11-09-worker-0a1b2c3d", "arthur.keep": "" } } }, "image inspect's ID starts with the ID image ls prints");
 	assert.equal(docker("--version").stdout, `Docker version ${VERSION}, build a82e528\n`);
 	assert.equal(docker("builder", "prune", "--force", "--max-used-space", "10G").stdout, "Total:\t0B\n");
 	assert.equal(docker("info", "--format", '{{.DockerRootDir}}{{"\\n"}}{{.ServerVersion}}').stdout, `/var/lib/docker\n${VERSION}\n`);
@@ -61,5 +68,5 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 	assert.deepEqual([down.status, down.stderr], [1, "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\n"]);
 	assert.equal(docker("context", "inspect", "--format", "{{.Endpoints.docker.Host}}").status, 0, "the context needs no daemon");
 	assert.equal(docker("--version").status, 0, "nor does the version");
-	assert.equal(fake.calls().length, 20, "each call noted");
+	assert.equal(fake.calls().length, 24, "each call noted");
 });

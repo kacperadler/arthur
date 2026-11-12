@@ -1,6 +1,6 @@
 # The docker plugin
 
-Roadmap entries 70 and 71: what a job creates with Docker is labelled `arthur.job=<id>`, its compose stacks get a project name of their own, all of it is removed right before the job's worktree goes, and Docker's data root counts for the disk floor of the `resources` plugin. It acts on the machines whose labels hold `tools: docker`, as the `machines` plugin gives them (`machines.labels`, "Provided names" in `docs/plugin-api.md`); without the machines plugin no machine has labels, and the plugin does nothing. The sweep of leftovers (entry 72) is not built yet.
+Roadmap entries 70 to 72: what a job creates with Docker is labelled `arthur.job=<id>`, its compose stacks get a project name of their own, all of it is removed right before the job's worktree goes, Docker's data root counts for the disk floor of the `resources` plugin, and a sweep removes the leftovers, daily, on `disk-low` and by hand. It acts on the machines whose labels hold `tools: docker`, as the `machines` plugin gives them (`machines.labels`, "Provided names" in `docs/plugin-api.md`); without the machines plugin no machine has labels, and the plugin does nothing. `arthur docker` shows what Docker holds on each (`arthur docker --help`).
 
 ```ts
 plugins: [orchestration({}), machines({ local: { labels: { tools: ["docker"] } } }), projects({ folders: [...] }), docker({ buildCache: "10G", leftoverHours: 48, sweep: { at: "04:00" } })],
@@ -8,11 +8,11 @@ plugins: [orchestration({}), machines({ local: { labels: { tools: ["docker"] } }
 
 ## Options
 
-Each optional; checked at load (and by `arthur config check`). `buildCache` is used by each job's cleanup ("At each prune"); `leftoverHours` and `sweep` come with the sweep (entry 72), and until then are only checked.
+Each optional; checked at load (and by `arthur config check`). `buildCache` is used by each job's cleanup ("At each prune") and each sweep; `leftoverHours` and `sweep` by the sweep ("The sweep").
 
 - `buildCache`: the size Docker's shared build cache is cut to after each job's cleanup and each sweep: bytes with K, M, G or T (`"10G"`), or `0` for no cap. Default `"10G"`.
-- `leftoverHours`: the sweep removes unlabelled leftovers older than this many hours (stopped containers, unused networks, dangling images, unused anonymous volumes, build cache); a number, 1 or more. Default 48.
-- `sweep.at`: `"HH:MM"`, 00:00 to 23:59, in `core.timeZone`: the daily sweep, a schedule entry. Default none: no daily sweep.
+- `leftoverHours`: the sweep removes unlabelled dangling images and unused networks, and the build cache unused, this many hours old or older; a number, 1 or more. Default 48.
+- `sweep.at`: `"HH:MM"`, 00:00 to 23:59, in `core.timeZone`: the daily sweep, an entry the plugin registers with the `schedule` plugin (`arthur schedule` lists it as `docker.sweep`). Default none: no daily sweep. Refused at load without the schedule plugin: `sweep.at needs the schedule plugin, which runs the daily sweep; add schedule() to the config's plugins, or leave sweep out`.
 
 Refused at load, naming the option: `leftoverHours` below 1 or not a number (`leftoverHours: expected a number of hours, 1 or more, got 0`); a `buildCache` that is not bytes with K, M, G or T or `0` (`10%`, `"0"`, `"10 GB"`); `sweep` that is not an object, or without `at`; `sweep.at` that is not `"HH:MM"` (`sweep.at: expected "HH:MM", 00:00 to 23:59, got "24:00"`); an option or key it does not take.
 
@@ -40,7 +40,7 @@ Refused, the spawn ending with `plugin docker: prepare failed: <reason>; the job
 
 - Docker's own options before the command stay where they are: `docker --log-level debug run img` runs `docker --log-level debug run --label arthur.job=<id> img`. A leading `--` ends those options and Docker runs the command after it, so `docker -- run img` is labelled too.
 - Every word that sets the `arthur.job` key is dropped, wherever it stands, before or after the image and before or after any `--`, so a job cannot label for another: `--label=arthur.job=X`, `-l=arthur.job=X`, `-larthur.job=X`, `--label` or `-l` followed by `arthur.job=X` (both words go; a group such as `-dl` keeps `-d`), and a bare `arthur.job=X` word. The script does not guess which word is an option's value: a literal `--label` or `--` given as one (`build --build-arg -- --label=arthur.job=x`, `volume create --label -- --label=arthur.job=x v`) shields nothing. A label with another key is kept, and so is every other word, the container's command and arguments after the image included. A `--label-file` stays, and Docker gives `--label` the last word over it.
-- Unlabelled, and left to the sweep: `docker` called by its absolute path, Docker's API called from a library, and a compose stack under a `-p` of the job's own. The cleanup ("At each prune") does not find them.
+- Unlabelled: `docker` called by its absolute path, Docker's API called from a library, and a compose stack under a `-p` of the job's own. The cleanup ("At each prune") does not find them, and the sweep takes of them only dangling images, unused networks and old build cache ("The sweep"); their containers and volumes stay, as the owner's own do.
 
 A sandboxed job (Linux with Landlock, `arthur spawn --help`, "The sandbox"), whose sandbox hides Arthur's home, is shown its own script folder, `<home>/docker/jobs/<id>`, and no other job's nor the rest of the plugin's folder, so its shell runs the script (AR-D597). Such a job does not reach Docker's daemon: its sandbox opens no Unix socket but a datagram one, so the labelled command fails there as any `docker` command would.
 
@@ -69,6 +69,38 @@ The hook gives up with one core `notice`, `prune of job <id> on machine <machine
 - `Docker stopped answering half-way: <what went>; left for the sweep: <each one not removed>`, or `the removal timed out after 85 s half-way: ...` or `the removal exited <code>: <its first line> half-way: ...`: what went stays gone.
 
 A label `arthur.keep` matters to the sweep only: the cleanup removes a job's own resource whatever its other labels.
+
+## The sweep
+
+What the cleanup at each prune could not remove, and what no job labelled, swept on each machine labelled `tools: docker`, whatever its projects' pieces say:
+
+- daily at `sweep.at`, the schedule entry `docker.sweep`, every labelled machine in turn;
+- on `disk-low`, the event the `resources` plugin emits when a machine falls under `keepFree.disk`: that machine at once, while `arthur run` runs, which also delivers the `disk-low` another process logged;
+- by hand, `arthur docker sweep [--machine <name>] [--dry-run]` (`arthur docker sweep --help`); `--dry-run` removes nothing and lists what a real run would remove, and why.
+
+One sweep at a time per machine, across processes too: a sweep waits for the one running there (a lock, `<home>/docker/sweep.<machine>.lock`, waited for up to 12 minutes), then finds only what that one left. On each machine two `sh -c` calls run through `host.jobs.run` (over SSH on another one): the listing, cut after 60 s (`docker info` for Docker's clock and data root, `docker container ls --all`, `network ls`, `volume ls` and `image ls` with `--format '{{json .}}'`, `docker image inspect` for the images' labels, `docker system df`, and the script folders under `<home there>/docker/jobs/`), then the removal, cut after 600 s. The job records are read after the listing: a job's record exists before anything it makes, so the resources of a live job always find it. It removes:
+
+1. What a job labelled whose record no longer exists (`arthur.job=<id>`, or the compose project `arthur-<8 hex digits>` that no record's id ends in), at any age: what a cleanup gave up on, a volume kept while in use, a job pruned while Docker was down. Its stopped containers (`created`, `exited` or `dead`) with their anonymous volumes (`docker container rm --volumes`), then its networks, volumes and images (`docker <kind> rm`).
+2. Unlabelled, `leftoverHours` old or older by Docker's clock (`docker info`'s `SystemTime`) against the resource's `CreatedAt`, so one exactly that old goes and one a minute younger stays: dangling images (`<none>:<none>`), and networks that no container lists, running or stopped, other than `bridge`, `host` and `none`.
+3. The build cache unused that long (`docker builder prune --force --filter until=<leftoverHours>h`), then cut to `buildCache` as at each prune; not cut with `buildCache: 0`.
+4. The script folders `<home there>/docker/jobs/<id>/` of jobs that no longer exist.
+
+It never removes anything labelled `arthur.keep` (any value; `docker volume create --label arthur.keep ...`), a container that is running, paused or restarting, a resource labelled by a job whose record exists, and of the unlabelled ones a container, a volume (named or anonymous), a tagged image, or a network a container lists: the owner's own stopped stacks keep their containers and their data (AR-D520). Run `arthur docker sweep --dry-run` first on a machine you share. What Docker refuses while `docker info` still answers is kept and named, `kept <kind> <name>: <Docker's first line>`, such as a network a running container is attached to.
+
+One `notice` per sweep, daily or on `disk-low` (by hand the same lines are printed instead): `docker: the sweep (daily):` or `docker: the sweep (disk-low on <machine>):`, then a line per machine:
+
+```
+- local: removed 1 container, 2 networks, 1 image, 1 script folder; build cache cut to 10G; 1.25GB reclaimed; 38.2 GB free on /var/lib/docker
+- build: removed 3 images; build cache cut to 10G; 3.1GB reclaimed; 12.3 GB free on /var/lib/docker; still under the floor: 12.3 GB free on /var/lib/docker, floor 20 GB
+- gpu: offline: ssh: connect to host gpu port 22: Connection refused; not swept
+- mac: Docker does not answer: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?; not swept
+```
+
+- A machine swept: what went, by kind, or `nothing to remove`; each one kept; `build cache not pruned: <Docker's line>` or `build cache not cut: <Docker's line>` (`unknown flag: --max-used-space` from the legacy builder); the space reclaimed, `docker system df`'s sizes before less after as at each prune, never below `0B`; the free disk on Docker's data root after, `df -Pk` there, in GB of 2^30 cut to one decimal.
+- `still under the floor: <free> free on <path>, floor <floor>`: the path and floor of the last `disk-low` seen for that machine, kept in `<home>/docker/floors.json` so a sweep by hand knows them too, measured with `df -Pk` after the sweep.
+- A machine not swept: `offline: <ssh's line>` (exit 255), `Docker does not answer: <Docker's line>`, `listing what Docker holds exited <code>: <its first line>` or `timed out after 60 s`, each with `; not swept`; the others are swept all the same. Half-way: `Docker stopped answering half-way: <what went>; left: <each one not removed>`, or `the removal timed out after 600 s half-way: ...`; what went stays gone. A labelled machine without `docker` says `command -v finds no docker there` and is no failure.
+
+No notice when nothing was reclaimed, nothing failed and no machine is under its floor. In quiet hours (`core.quietHours`) the notice goes as every notice does: each channel sends it without a notification.
 
 ## The disk floor
 

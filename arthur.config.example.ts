@@ -410,12 +410,13 @@ export default defineConfig({
 		// networks, volumes, images it builds) is labelled `arthur.job=<id>`, compose stacks get the job's project name, and
 		// Docker's data root counts for `keepFree.disk`. All of it is removed on the job's machine right before its worktree
 		// goes (prune, merge, a dropped ticket); pulled and shared images stay, and so does what another job's container uses;
-		// a failed cleanup never keeps the worktree: it is a notice. Planned (roadmap 72): the sweep retries what is left, and
-		// never touches anything labelled `arthur.keep`.
+		// a failed cleanup never keeps the worktree: it is a notice. The sweep (`arthur docker sweep [--machine] [--dry-run]`,
+		// daily, and at once on a machine under `keepFree.disk`) removes what a job that no longer exists labelled, and never
+		// anything labelled `arthur.keep`; `arthur docker` shows what Docker holds on each machine.
 		docker({
 			buildCache: "10G", // after each cleanup and sweep, Docker's shared build cache is cut to this size; 0 = no cap
-			leftoverHours: 48, // the sweep removes unlabelled stopped containers, unused networks, dangling images, unused
-			// anonymous volumes and build cache older than this; what a job that no longer exists labelled goes at any age
+			leftoverHours: 48, // the sweep removes unlabelled dangling images, unused networks and build cache older than this;
+			// the owner's own stopped containers and volumes stay; what a job that no longer exists labelled goes at any age
 			sweep: { at: "04:00" }, // registers a daily schedule entry; also runs at once on a machine under `keepFree.disk`
 		}),
 
@@ -532,7 +533,7 @@ export default defineConfig({
 //		github.project({ workflow: "ci.yml" }),
 //		commitRules.project({ file: "commit-rules.md" }), // projects/acme-site/commit-rules.md, read as plain words
 //		findings.project("summary"),
-//		docker.project(false), // its jobs get no docker script, so their containers are not labelled nor removed with the worktree (the sweep is planned)
+//		docker.project(false), // its jobs get no docker script, so their containers are neither labelled nor cleaned; the sweep still runs
 //	];
 //
 // projects/acme-ios/project.config.ts

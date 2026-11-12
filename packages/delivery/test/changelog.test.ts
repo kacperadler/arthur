@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -94,4 +95,66 @@ test("--project writes that project's CHANGELOG.md from its own board, the main 
 	assert.deepEqual(await run([], "beta"), { code: 0, out: "wrote CHANGELOG.md: 1 merged ticket", err: "" });
 	assert.equal(readFileSync(join(beta, "CHANGELOG.md"), "utf8"), `${HEAD}\n## 2026-01-04\n\n### Fixed\n\n- BE0001 Title of BE0001 (bbb2222)\n`);
 	assert.equal(existsSync(join(acme, "CHANGELOG.md")), false);
+});
+
+// A Git history in `root`: each step writes its files and commits them on main at its time (UTC), or with `branch` commits them
+// there and merges it into main with --no-ff at that time; returns each step's commit on main, short.
+type Step = { readonly at: string; readonly files: Readonly<Record<string, string>>; readonly branch?: true };
+function history(root: string, steps: readonly Step[]): string[] {
+	const git = (at: string, ...args: string[]) => {
+		const env = { ...process.env, GIT_AUTHOR_DATE: at, GIT_COMMITTER_DATE: at };
+		return execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", root, ...args], { encoding: "utf8", env }).trim();
+	};
+	git(steps[0]?.at ?? "", "init", "--quiet", "--initial-branch=main");
+	return steps.map(({ at, files, branch }) => {
+		if (branch) git(at, "checkout", "--quiet", "-b", "side");
+		for (const [path, text] of Object.entries(files)) writeFileSync(join(root, path), text);
+		git(at, "add", "--all");
+		git(at, "commit", "--quiet", "--allow-empty", "-m", at);
+		if (branch) git(at, "checkout", "--quiet", "main"), git(at, "merge", "--quiet", "--no-ff", "-m", "Merge side", "side"), git(at, "branch", "--quiet", "-D", "side");
+		return git(at, "rev-parse", "--short", "HEAD");
+	});
+}
+
+const pkg = (version: string, more = {}) => `${JSON.stringify({ name: "acme", version, ...more })}\n`;
+const outcome = (root: string, id: string, merged: string) => writeFileSync(join(root, `spec/features/${id}-x/outcome.md`), `# ${id} - Outcome\n\n- Merged: ${merged}\`\n`);
+
+test("releases: a commit of main's first-parent line that changes the root version; each ticket under the first at or after its merge, by day without it", async (t) => {
+	const ids = [["AC0001", "feat"], ["AC0002", "chore"], ["AC0003", "fix"], ["AC0005", "feat"], ["AC0006"], ["AC0007"]] as const;
+	const acme = project(ids.map(([id, kind]) => ({ id, status: "merged", kind, updated: "2026-01-31T00:00:00Z" })));
+	const [, , ac1, ac2, ac3, , , ac5] = history(acme, [
+		{ at: "2026-02-01T00:00:00Z", files: { "README.md": "# acme\n" } },
+		// A version that appears, where there was none, is no release.
+		{ at: "2026-02-01T01:00:00Z", files: { "package.json": pkg("0.1.0") } },
+		{ at: "2026-02-01T02:00:00Z", files: { "a.ts": "1\n" } },
+		// The release ticket's own merge: a release; the branch's commit under it, off the first-parent line, is none.
+		{ at: "2026-02-02T00:00:00Z", files: { "package.json": pkg("0.2.0") }, branch: true },
+		{ at: "2026-02-03T00:00:00Z", files: { "package.json": pkg("0.2.0", { description: "A shop" }) } },
+		// 20:00 UTC is the next day in Auckland, the clock's time zone.
+		{ at: "2026-02-03T20:00:00Z", files: { "package.json": pkg("0.3.0") } },
+		{ at: "2026-02-04T00:00:00Z", files: { "package.json": pkg("0.3.1") } },
+		{ at: "2026-02-05T00:00:00Z", files: { "a.ts": "2\n" } },
+	]);
+	for (const [id, merged] of [["AC0001", `2026-02-01, \`${ac1}`], ["AC0002", `2026-02-02, \`${ac2}`], ["AC0003", `2026-02-03, \`${ac3}`], ["AC0005", `2026-02-05, \`${ac5}`], ["AC0007", "2026-02-06, `0000000"]] as const) outcome(acme, id, merged);
+	const run = await load(t, acme);
+	assert.deepEqual(await run(), { code: 0, out: "wrote CHANGELOG.md: 6 merged tickets", err: "" });
+	const unreleased = `## Unreleased\n\n### 2026-02-06\n\n#### Other\n\n- AC0007 Title of AC0007 (0000000)\n\n### 2026-02-05\n\n#### Added\n\n- AC0005 Title of AC0005 (${ac5})\n`;
+	const old = `### 2026-02-02\n\n#### Changed\n\n- AC0002 Title of AC0002 (${ac2})\n\n### 2026-02-01\n\n#### Added\n\n- AC0001 Title of AC0001 (${ac1})\n\n### 2026-01-31\n\n#### Other\n\n- AC0006 Title of AC0006\n`;
+	const releases = ["## 0.3.1 (2026-02-04)\n\nNo merged ticket in this release.\n", `## 0.3.0 (2026-02-04)\n\n### 2026-02-03\n\n#### Fixed\n\n- AC0003 Title of AC0003 (${ac3})\n`, `## 0.2.0 (2026-02-02)\n\n${old}`];
+	assert.equal(readFileSync(join(acme, "CHANGELOG.md"), "utf8"), [HEAD, unreleased, ...releases].join("\n"));
+});
+
+test("a project whose root version never changed gets the CHANGELOG.md it got without Git, byte for byte; so does a package.json broken by hand", async (t) => {
+	const acme = project([{ id: "AC0001", status: "merged", kind: "feat", merged: "2026-02-02, `aaa1111" }, { id: "AC0002", status: "merged", kind: "fix", updated: "2026-02-03T00:00:00Z" }]);
+	const run = await load(t, acme);
+	await run();
+	const before = readFileSync(join(acme, "CHANGELOG.md"), "utf8");
+	history(acme, [
+		{ at: "2026-02-01T00:00:00Z", files: { "package.json": pkg("1.0.0") } },
+		{ at: "2026-02-02T00:00:00Z", files: { "package.json": pkg("1.0.0", { description: "A shop" }) } },
+		{ at: "2026-02-03T00:00:00Z", files: { "package.json": "{ broken" } },
+		{ at: "2026-02-04T00:00:00Z", files: { "package.json": pkg("1.0.1") } },
+	]);
+	await run();
+	assert.equal(readFileSync(join(acme, "CHANGELOG.md"), "utf8"), before);
 });

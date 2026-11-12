@@ -288,7 +288,7 @@ test("a worker's run that ends before check, test and mutate passed on its clean
 	const { stop, job, git } = load(t, ALL);
 	job({ kind: "worker", branch: BRANCH });
 	const tip = git("rev-parse", "HEAD").slice(0, 7);
-	const why = `${BRANCH} at ${tip} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(25, all) mutants)`;
+	const why = `${BRANCH} at ${tip} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(100, all) mutants)`;
 	assert.deepEqual(stop(), [{ continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${why}: no check, no test, no mutate. ${ASK}` }]);
 	assert.deepEqual(stop(), [undefined], "the run's second end is its end, its checks missing or not");
 	const worker = (packageJson = ALL) => {

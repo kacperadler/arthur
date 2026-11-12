@@ -278,11 +278,11 @@ test("a review starts only on a tip whose check, test and mutate passed there: a
 	const job = await worker();
 	const tip = job.commit;
 	const checks = (lines: string) => (mkdirSync(join(fake.host.folder, job.id), { recursive: true }), writeFileSync(join(fake.host.folder, job.id, "checks"), lines));
-	// Each on the tip's clean tree: mutate with survivors left, which the worker names, capped at 25 of its 29 mutants.
-	const passing = (at: string) => `check pass ${at} clean\ntest pass 3/3 ${at} clean\nmutate fail 25 run, 3 survived, 4 not run ${at} clean\n`;
-	const refusal = (at: string, gaps: string) => `${job.branch} at ${at.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(25, all) mutants): ${gaps}`;
+	// Each on the tip's clean tree: mutate with survivors left, which the worker names, capped at 100 of its 104 mutants.
+	const passing = (at: string) => `check pass ${at} clean\ntest pass 3/3 ${at} clean\nmutate fail 100 run, 3 survived, 4 not run ${at} clean\n`;
+	const refusal = (at: string, gaps: string) => `${job.branch} at ${at.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran at least min(100, all) mutants): ${gaps}`;
 	const moved = (from: string) => ["check", "test", "mutate"].map((script) => `${script} ran on ${from.slice(0, 7)}, not the tip`).join(", ");
-	const mutated = (counts: string) => passing(tip).replace("mutate fail 25 run, 3 survived, 4 not run", `mutate ${counts}`);
+	const mutated = (counts: string) => passing(tip).replace("mutate fail 100 run, 3 survived, 4 not run", `mutate ${counts}`);
 	for (const [lines, gaps] of [
 		["", "no check, no test, no mutate"],
 		[passing(tip).replace(/^check .*\n/, ""), "no check"],
@@ -292,9 +292,11 @@ test("a review starts only on a tip whose check, test and mutate passed there: a
 		[passing(tip).replace("test pass 3/3", "test fail 2/3"), "test fail 2/3"],
 		[passing(tip).replace(`test pass 3/3 ${tip} clean`, `test pass 3/3 ${tip} dirty`), "test ran on a dirty tree"],
 		[passing(tip).replace(`not run ${tip}`, `not run ${old}`), `mutate ran on ${old.slice(0, 7)}, not the tip`],
-		// AR0637: a run capped below min(25, all its mutants), or one without its counts, did not reach the whole change.
+		// AR0637, AR0696: a run capped below min(100, all its mutants), or one without its counts, did not reach the whole change.
 		[mutated("pass 4 run, 0 survived, 12 not run"), "mutate capped at --max 4 (4 run, 0 survived, 12 not run of 16; it counts at 16)"],
 		[mutated("fail 24 run, 2 survived, 1 not run"), "mutate capped at --max 24 (24 run, 2 survived, 1 not run of 25; it counts at 25)"],
+		[mutated("fail 99 run, 2 survived, 51 not run"), "mutate capped at --max 99 (99 run, 2 survived, 51 not run of 150; it counts at 100)"],
+		[mutated("pass 25 run, 0 survived, 75 not run"), "mutate capped at --max 25 (25 run, 0 survived, 75 not run of 100; it counts at 100)"],
 		[mutated("pass"), "mutate pass without its counts"],
 		[mutated("fail"), "mutate fail without its counts"],
 	] as const) {
@@ -302,7 +304,7 @@ test("a review starts only on a tip whose check, test and mutate passed there: a
 		const refused = await review("PASS", job.id);
 		assert.deepEqual([refused.code, refused.err], [1, `arthur review: ${refusal(tip, gaps)}`], JSON.stringify(lines));
 	}
-	for (const counts of ["pass 3 run, 0 survived, 0 not run", "fail 25 run, 1 survived, 0 not run", "pass 26 run, 0 survived, 74 not run", "pass 0 run, 0 survived, 0 not run"]) {
+	for (const counts of ["pass 3 run, 0 survived, 0 not run", "fail 100 run, 1 survived, 50 not run", "pass 40 run, 0 survived, 0 not run", "pass 101 run, 0 survived, 74 not run", "pass 0 run, 0 survived, 0 not run"]) {
 		checks(mutated(counts));
 		assert.equal(untested(fake.host, workerOf(fake.host, job.id)), undefined, counts);
 	}

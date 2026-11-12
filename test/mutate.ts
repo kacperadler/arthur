@@ -45,7 +45,7 @@ function refuse(why: string): never {
 }
 
 const args = process.argv.slice(2);
-const max = args.length === 0 ? 25 : args.length === 2 && args[0] === "--max" && /^[1-9]\d*$/.test(args[1] ?? "") ? Number(args[1]) : refuse("usage: npm run mutate [-- --max <n>]");
+const max = args.length === 0 ? 100 : args.length === 2 && args[0] === "--max" && /^[1-9]\d*$/.test(args[1] ?? "") ? Number(args[1]) : refuse("usage: npm run mutate [-- --max <n>]");
 const root = git(process.cwd(), "rev-parse", "--show-toplevel").trim();
 if (git(root, "status", "--porcelain", "--untracked-files=no") !== "") refuse("refused: the tree has uncommitted changes to tracked files; commit them first");
 const base = git(root, "merge-base", "main", "HEAD").trim();

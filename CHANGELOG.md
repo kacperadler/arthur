@@ -13,6 +13,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0641 Roadmap 105: the release workflow and the changelog per release (bb47fe30)
 - AR0686 Code: a review on the fable model finds redundant comments and removes them (e1847934)
+- AR0694 A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision (5512e3fb)
 - AR0697 The test kit stops every process a test left in its folder when a test file exits (cdcd7c6b)
 - AR0698 Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges
 

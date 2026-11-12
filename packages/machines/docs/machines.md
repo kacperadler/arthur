@@ -19,4 +19,4 @@ machines({
 
 Each machine's labels are what other plugins read as `machines.labels`: the `docker` plugin acts on the machines whose `tools` hold `docker` ([`commands/machines.md`](commands/machines.md)).
 
-`arthur machines` (`/machines` on a channel) shows each machine, online or why not, with its jobs; its page, what `arthur machines --help` prints, is [`commands/machines.md`](commands/machines.md).
+`arthur machines` (`/machines` on a channel) shows each machine, online or why not, with its jobs, and `arthur machines update [<name>]` brings each to the commit Arthur's checkout here is at, through `arthur update` there; its page, what `arthur machines --help` prints, is [`commands/machines.md`](commands/machines.md).

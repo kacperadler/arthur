@@ -244,14 +244,14 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 			"no job runs on build",
 			false,
 		],
-		["old", `missing: it runs arthur 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on old", false],
-		["alone", `missing: it runs arthur ${hash}, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on alone", false],
-		["other", `missing: it runs arthur 0.1.0 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)", "no job runs on other", false],
+		["old", `missing: it runs arthur 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "arthur machines update old", "no job runs on old", false],
+		["alone", `missing: it runs arthur ${hash}, this one is ${arthurVersion()}; both need the same version`, "arthur machines update alone", "no job runs on alone", false],
+		["other", `missing: it runs arthur 0.1.0 0123456789ab, this one is ${arthurVersion()}; both need the same version`, "arthur machines update other", "no job runs on other", false],
 		["next", `ok (linux x64, arthur 9.9.9 ${hash})`, "ssh next-box true, by hand", "no job runs on next", false],
 		[
 			"bare",
 			"missing: arthur is not there (sh: 1: arthur: not found)",
-			"install Arthur's core there at this commit, arthur on the PATH of a command over ssh (docs/deploy.md)",
+			"install Arthur's core there (docs/deploy.md), arthur on the PATH of a command over ssh, then arthur machines update bare",
 			"no job runs on bare",
 			false,
 		],
@@ -401,8 +401,74 @@ test("arthur machines and /machines: local first with its detected labels, then 
 	assert.equal(await fake.host.commands.route("/machines all"), "usage: /machines");
 	const error = t.mock.method(console, "error", () => {});
 	assert.equal(await command?.run({ args: ["all"], project: undefined }), 2);
-	assert.deepEqual(error.mock.calls.map((call) => call.arguments), [["usage: arthur machines"]]);
+	assert.deepEqual(error.mock.calls.map((call) => call.arguments), [["usage: arthur machines [update [<name>]]"]]);
 	assert.deepEqual(fake.host.commands.phone(), [{ name: "machines", about: "every machine: its labels, online or why not, its jobs" }]);
+});
+
+test("arthur machines update runs arthur update <this core's HEAD commit> on each machine, or the one named; an offline one is named and skipped", async (t) => {
+	const core = temporaryFolder();
+	const git = (...args: string[]) => execFileSync("git", ["-C", core, ...args], { encoding: "utf8" }).trim();
+	git("init", "--quiet");
+	git("commit", "--quiet", "--allow-empty", "-m", "Release 0.2.0");
+	const commit = git("rev-parse", "HEAD");
+	git("commit", "--quiet", "--allow-empty", "-m", "Release 0.3.0");
+	git("tag", "v0.3.0");
+	git("checkout", "--quiet", commit);
+	// `arthur update` there: notes its arguments, then says what this machine's `said` holds, exit code `code`.
+	const there = (host: string, said: string, code = 0) =>
+		writeFileSync(join(machine(host), "bin/arthur"), `#!/bin/sh\necho "$*" > args\nprintf '%s\\n' '${said}' >&${code === 0 ? 1 : 2}\nexit ${code}\n`, { mode: 0o755 });
+	there("mac-mini", "updated 0.1.0 0123456789ab to 0.2.0 ba9876543210\nrestart arthur run on it once no job runs: systemctl --user restart arthur");
+	writeFileSync(join(machine("build-box"), "fail"), KEY_REFUSED.replace("mac-mini", "build-box"));
+	there("dirty-box", "arthur update: /home/arthur/arthur has changed tracked files: package.json; commit, stash or undo them first", 1);
+	const dirty = { name: "dirty", ssh: "dirty-box", home: "/home/arthur/.arthur" };
+	rmSync(sshLog, { force: true });
+	const plugin = machines({ list: [MAC, BUILD, dirty] });
+	const fake = fakeHost({ name: "machines", options: { list: [MAC, BUILD, dirty] }, code: [core] });
+	await fake.setup(plugin);
+	const [command] = fake.commands;
+	const log = t.mock.method(console, "log", () => {});
+	const run = async (...args: string[]) => {
+		log.mock.resetCalls();
+		return [await command?.run({ args: ["update", ...args], project: undefined }), log.mock.calls.map((call) => call.arguments[0])];
+	};
+	assert.deepEqual(await run(), [
+		1,
+		[
+			"mac: updated 0.1.0 0123456789ab to 0.2.0 ba9876543210",
+			"build: offline, skipped: ssh build-box: arthur@build-box: Permission denied (publickey).",
+			"dirty: not updated: arthur update: /home/arthur/arthur has changed tracked files: package.json; commit, stash or undo them first",
+		],
+	]);
+	assert.deepEqual(["mac-mini", "dirty-box"].map((host) => readFileSync(join(root, host, "args"), "utf8")), [`update ${commit}\n`, `update ${commit}\n`], "the commit here, not the newest release");
+	assert.ok(calls().every((call) => call.endsWith(` 'arthur' 'update' '${commit}'`)));
+	rmSync(sshLog);
+	assert.deepEqual(await run("mac"), [0, ["mac: updated 0.1.0 0123456789ab to 0.2.0 ba9876543210"]]);
+	assert.equal(calls().length, 1, "only the machine named");
+	await assert.rejects(run("gpu"), { message: "no machine gpu; machines: mac, build, dirty" });
+	const error = t.mock.method(console, "error", () => {});
+	assert.equal(await command?.run({ args: ["update", "mac", "build"], project: undefined }), 2);
+	assert.deepEqual(error.mock.calls.map((call) => call.arguments), [["usage: arthur machines [update [<name>]]"]]);
+
+	const was = process.env.ARTHUR_JOB;
+	t.after(() => (was === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = was)));
+	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-11-12-worker-0a1b2c3d";
+	rmSync(sshLog);
+	error.mock.resetCalls();
+	assert.deepEqual(await run(), [1, []]);
+	const refusal = "arthur machines update: refused inside a job 2026-11-12-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message";
+	assert.deepEqual([error.mock.calls.map((call) => call.arguments), calls()], [[[refusal]], []]);
+	delete process.env.ARTHUR_JOB;
+
+	const outside = temporaryFolder();
+	const loose = fakeHost({ name: "machines", options: { list: [MAC] }, code: [outside] });
+	await loose.setup(machines({ list: [MAC] }));
+	await assert.rejects(Promise.resolve(loose.commands[0]?.run({ args: ["update"], project: undefined })), {
+		message: `this core, ${outside}, is not in a Git checkout: arthur machines update brings each machine to the commit it is at`,
+	});
+	const none = fakeHost({ name: "machines", options: {}, code: [core] });
+	await none.setup(machines({}));
+	await assert.rejects(Promise.resolve(none.commands[0]?.run({ args: ["update"], project: undefined })), { message: "no machine to update: the list of the machines plugin is empty" });
+	assert.deepEqual(calls(), []);
 });
 
 test("without a list only local is there, and the doctor has no line", async () => {

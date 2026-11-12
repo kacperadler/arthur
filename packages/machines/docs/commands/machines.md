@@ -1,6 +1,6 @@
 # arthur machines
 
-Usage: `arthur machines`; on a channel `/machines`. Comes with the `machines` plugin.
+Usage: `arthur machines`, `arthur machines update [<name>]`; on a channel `/machines`. Comes with the `machines` plugin.
 
 Every machine jobs may run on, `local` first, then the list in config order, each checked now (below), without the model; the shell and the channel get the same text. Each machine's line says online or why not, and under it its labels, its `maxJobs` and its jobs that have not ended, each with its state:
 
@@ -11,7 +11,7 @@ mac (ssh mac-mini): offline: ssh mac-mini: arthur@mac-mini: Permission denied (p
   labels: os macos, arch arm64, tools xcodebuild; maxJobs: 2; no jobs
 ```
 
-Any argument is wrong usage: `usage: arthur machines` and exit code 2 in the shell, `usage: /machines` on a channel. A config or a plugin that does not load: exit code 1.
+Any other argument is wrong usage: `usage: arthur machines [update [<name>]]` and exit code 2 in the shell, `usage: /machines` on a channel. A config or a plugin that does not load: exit code 1.
 
 ## The list
 
@@ -53,13 +53,27 @@ The machine is online when all three pass. Otherwise it is offline, the reason o
 - `it runs arthur <theirs>, this one is <ours>; both need the same version`, both whole lines of `arthur version`: another hash, or a line of a hash alone, as Arthur printed before its releases.
 - `uname -sm && arthur version && node -e failed there: <its line>`, or `check timed out after 10 s`.
 
-Each offline reason comes with its fix: `ssh-copy-id <ssh>` for a refused key; for a host key, compare `ssh-keyscan <ssh>` with the key the machine itself shows, then add it to `~/.ssh/known_hosts`; Arthur's core at this commit there (`docs/deploy.md`) when `arthur` is missing or of another version; git installed there, on the `PATH` of a command over ssh (`docs/deploy.md`), when `git` is missing; the labels in `arthur.config.ts` set to what the machine is; the machine on the private network (`tailscale up` there) when it does not answer.
+Each offline reason comes with its fix: `ssh-copy-id <ssh>` for a refused key; for a host key, compare `ssh-keyscan <ssh>` with the key the machine itself shows, then add it to `~/.ssh/known_hosts`; `arthur machines update <name>` (below) when its `arthur` is of another version; when `arthur` is missing, `install Arthur's core there (docs/deploy.md), arthur on the PATH of a command over ssh, then arthur machines update <name>`; git installed there, on the `PATH` of a command over ssh (`docs/deploy.md`), when `git` is missing; the labels in `arthur.config.ts` set to what the machine is; the machine on the private network (`tailscale up` there) when it does not answer.
 
 As each round begins, in `arthur run`, `arthur machines`, `/machines` and `arthur doctor` alike, the plugin calls `collect("machines.round", checks, everySeconds)`, `checks` a `Map` of each listed machine's name to a promise of its check: `{ free, disk }`, the line `node -e` printed and, with paths, df's `{ code, output }` (its errors in the output), once it is online, or `{ error }`, its offline reason above; `everySeconds`, its `check.everySeconds`, so the `resources` plugin reads that check until twice that has passed. Each answer is a `Map` of a machine's name to the paths its check's df reads, which the checks wait for, within their 10 seconds; an answer that rejects or is no `Map` names none. The `resources` plugin keeps the check as the machine's free CPU and memory and, with `keepFree.disk`, its free disk, so one ssh call per machine and round serves the check and both readings. A df that fails leaves the machine online, with no room in the `resources` plugin; a df that hangs past the 10 seconds takes the whole check with it, `check timed out after 10 s`.
 
 In `arthur run`, each change is an event, once: `machine-online` with `machine`, `os`, `arch` and `version`, or `machine-offline` with `machine` and `reason`. The first check after the start tells each machine's state; after that only a change does, so a machine that stays offline is told once, and one that goes offline and comes back is told twice. A reason that changes while the machine stays offline is no event. `arthur machines` from a shell checks, but emits nothing: the events are `arthur run`'s.
 
 Other plugins read a machine's labels through `collect("machines.labels", machine)`: `local`'s with its detected `os` and `arch` and its `tools` from `local.labels`, a listed machine's as `arthur.config.ts` writes them (`{}` without `labels`), undefined for a name the plugin does not know. The `docker` plugin acts on the machines whose `tools` hold `docker`.
+
+## Updating
+
+`arthur machines update` brings every listed machine to the version here, `arthur machines update <name>` the one named: it runs `arthur update <commit>` there over the core's SSH, `<commit>` the commit Arthur's checkout here is at (`git rev-parse HEAD` in the core's folder), not the newest release, so a machine runs what this one runs, a development checkout of `main` included. `arthur update` there fetches that commit from its origin, checks it out and runs `npm ci` (`arthur update --help`). The machines are updated in parallel, each cut after 600 seconds, one line each, in the list's order:
+
+```
+mac: updated 0.1.0 3f9c2a1b7d4e to 0.2.0 8b0c9ebef9ca
+build: offline, skipped: ssh build-box: ssh: connect to host build-box port 22: Connection timed out
+gpu: not updated: arthur update: /home/arthur/arthur has changed tracked files: package.json; commit, stash or undo them first
+```
+
+A machine ssh does not reach (its exit code 255) is named and skipped, `offline, skipped: ssh <ssh>: <ssh's line>`; one where `arthur update` refused or failed, or that was cut, `not updated: <its last line>`; the others are updated all the same. Exit code 0 when each was updated or up to date, else 1. A machine whose Arthur has no `arthur update` yet is updated once by hand (`docs/deploy.md`, "Updating").
+
+Refused, exit code 1: inside a job, `arthur machines update: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, before any SSH; a name not in the list, `no machine <name>; machines: <names>`; an empty list, `no machine to update: the list of the machines plugin is empty`; and a core outside a Git checkout, `this core, <folder>, is not in a Git checkout: arthur machines update brings each machine to the commit it is at`.
 
 ## Placing a job
 

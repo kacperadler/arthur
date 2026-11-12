@@ -74,7 +74,7 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 	const said = lastLine(ran.stderr) || `exit code ${ran.code}`;
 	if (ran.code === null) return offline(`check timed out after ${limitSeconds} s`, `ssh ${machine.ssh} true, by hand`);
 	if (ran.code === 255) return offline(`ssh ${machine.ssh}: ${said}`, sshFix(said, machine.ssh));
-	if (ran.code === 127) return offline(`arthur is not there (${said})`, "install Arthur's core there at this commit, arthur on the PATH of a command over ssh (docs/deploy.md)");
+	if (ran.code === 127) return offline(`arthur is not there (${said})`, `install Arthur's core there (docs/deploy.md), arthur on the PATH of a command over ssh, then arthur machines update ${machine.name}`);
 	if (ran.code !== 0) return offline(`uname -sm && arthur version && node -e failed there: ${said}`, `ssh ${machine.ssh} 'uname -sm && arthur version && node -v', by hand`);
 	const [system = "", theirs = "", free = "", ...rest] = ran.stdout.trim().split("\n").map((line) => line.trim());
 	const words = system.split(/\s+/);
@@ -85,7 +85,7 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 		const labels = [wantOs && `os ${wantOs}`, wantArch && `arch ${wantArch}`].filter(Boolean).join(", ");
 		return offline(`its labels say ${labels}; the machine says ${os} ${arch}`, `set the labels of ${machine.name} in arthur.config.ts to what ssh ${machine.ssh} reaches`);
 	}
-	if (/^\S+ (\S+)$/.exec(theirs)?.[1] !== ours.split(" ").at(-1)) return offline(`it runs arthur ${theirs || "(no version)"}, this one is ${ours}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)");
+	if (/^\S+ (\S+)$/.exec(theirs)?.[1] !== ours.split(" ").at(-1)) return offline(`it runs arthur ${theirs || "(no version)"}, this one is ${ours}; both need the same version`, `arthur machines update ${machine.name}`);
 	const at = rest.findIndex((line) => /^disk \d+$/.test(line));
 	const disk = at === -1 ? {} : { disk: { code: Number(rest[at]?.slice("disk ".length)), output: rest.slice(at + 1).join("\n") } };
 	const lines = at === -1 ? rest : rest.slice(0, at);

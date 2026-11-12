@@ -5629,9 +5629,9 @@
   {
     "id": "AR0697",
     "title": "The test kit stops every process a test left in its folder when a test file exits",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0697-the-test-kit-stops-every-process-a-test-left-in-its-folder-when-a-test-file/ticket.md",
-    "updated": "2026-11-12T08:18:32.551Z",
+    "updated": "2026-11-12T08:22:46.236Z",
     "after": [
       "AR0671"
     ]
@@ -5639,9 +5639,9 @@
   {
     "id": "AR0698",
     "title": "Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0698-release-0-1-0-tag-v0-1-0-and-its-github-release-by-hand-once-ar0641-merges/ticket.md",
-    "updated": "2026-11-12T07:34:32.355Z",
+    "updated": "2026-11-12T08:18:51.892Z",
     "after": [
       "AR0641"
     ]

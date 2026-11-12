@@ -5,7 +5,6 @@ import { call, field, type Instance, NOTHING, text } from "./dokploy-api.ts";
 
 export type Setup = { readonly dockerfile?: string; readonly context?: string; readonly domain?: string; readonly port?: string; readonly volume?: string };
 
-// A list in Dokploy's answer, or none.
 const listed = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 // `create <name> --dokploy-project <project> [--environment <name>]`: the app in that environment, else the project's default

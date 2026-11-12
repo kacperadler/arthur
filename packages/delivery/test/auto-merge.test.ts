@@ -215,6 +215,72 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0009 merged\nMerge AC0009: T AC0009");
 });
 
+test("--auto merges a role, criteria or vision file main's ticket names in its Scope before Out:; refuses one named nowhere, in a comment, only under Out: (indented too), after the Scope or in the branch's own ticket, and a named workflow (a non-ASCII one too), package.json, lockfile, code file or other held *.md", async (t) => {
+	const { worker, review, merge, answers, git, root } = await load(t);
+	const ticket = (n: number, text: string) => writeFileSync(join(root, `spec/features/AC000${n}-t/ticket.md`), `# AC000${n} - T\n\n\`\`\`json\n{ "id": "AC000${n}" }\n\`\`\`\n\n${text}`);
+	const prompts = [".agents/arthur/roles/worker.md", ".agents/arthur/criteria/review.md", "packages/shop/roles/coordinator.md", "packages/shop/criteria/review.md", "spec/vision.md"];
+	// A heading with trailing blanks, as autopilot's trimEnd reads it; backticks pair within a line, so a stray one names nothing and takes nothing.
+	ticket(1, `## Scope \t\n\nIn:\n- a stray \` backtick\n- ${prompts.map((path) => `\`${path}\``).join(", ")}: the new rules.\n\nOut:\n- the code\n\n## Decisions\n`);
+	// A comment the rendered ticket hides names nothing, an unclosed one to the end of the file.
+	ticket(2, "## Scope\n\nIn:\n- `.agents/arthur/criteria/review.md`\n<!-- `.agents/arthur/roles/worker.md` -->\n- the code <!-- `spec/vision.md`\n");
+	const others = ["`.github/workflows/ci.yml`", "`.github/workflows/ż.yml`", "`packages/shop/package.json`", "`packages/shop/pnpm-lock.yaml`", "`.agents/skills/deploy.md`"].join(", ");
+	for (const n of [3, 4, 5]) ticket(n, `## Scope\n\nIn:\n- ${others}\n`);
+	ticket(6, "## Scope\n\nIn:\n- `packages/shop/roles/auto.ts`\n\n  Out:\n- `spec/vision.md`\n");
+	ticket(7, "## Scope\n\nIn:\n- the code\n\nOut:\n- `spec/vision.md`\n");
+	ticket(9, "## Scope\n\nIn:\n- the code\n\n## Decisions\n\n- `spec/vision.md` may change\n");
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "spec: scopes");
+	const cases: readonly [number, Readonly<Record<string, string>>, string, string][] = [
+		[2, { ".agents/arthur/criteria/review.md": "Small.\n", ".agents/arthur/roles/worker.md": "Use tabs.\n" }, ".agents/arthur/roles/worker.md", "a role"],
+		[3, { ".github/workflows/ci.yml": "on: pull_request\n" }, ".github/workflows/ci.yml", "CI"],
+		[4, { "packages/shop/package.json": "{}\n" }, "packages/shop/package.json", "package.json"],
+		[5, { "packages/shop/pnpm-lock.yaml": "lockfileVersion: '9.0'\n" }, "packages/shop/pnpm-lock.yaml", "the always-review list"],
+		[6, { "packages/shop/roles/auto.ts": "export const auto = 1;\n" }, "packages/shop/roles/auto.ts", "a role"],
+		[7, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
+		[8, { ".agents/arthur/roles/worker.md": "Use tabs.\n", "spec/features/AC0008-t/ticket.md": "# AC0008 - T\n\n## Scope\n\nIn:\n- `.agents/arthur/roles/worker.md`\n" }, ".agents/arthur/roles/worker.md", "a role"],
+		[9, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
+		// Again: a held *.md that is no role, criteria or vision file, a workflow git would quote without -z, a path under an
+		// indented Out:, one in an unclosed comment.
+		[3, { ".agents/skills/deploy.md": "# Deploy\n" }, ".agents/skills/deploy.md", "the always-review list"],
+		[4, { ".github/workflows/ż.yml": "on: push\n" }, ".github/workflows/ż.yml", "CI"],
+		[6, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
+		[2, { "spec/vision.md": "# Acme, again\n" }, "spec/vision.md", "the vision"],
+	];
+	for (const [n, changes, path, rule] of cases) {
+		const job = await worker(n, changes);
+		await review(job.id, "PASS");
+		answers.ci = ciRun(job.tip, job.branch);
+		assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>; main is unchanged`, `AC000${n}`);
+	}
+	const named = await worker(1, { ...Object.fromEntries(prompts.map((path) => [path, "# New rules\n"])), "shop1.ts": "export const shop = 1;\n" });
+	await review(named.id, "PASS");
+	answers.ci = ciRun(named.tip, named.branch);
+	const merged = await merge(named.id, "--auto");
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0001 merged\nMerge AC0001: T AC0001");
+});
+
+test("--auto takes the project's own prompts.rolesDir, prompts.criteriaDir and prompts.vision, which no default glob reaches: a file there the Scope names merges, one it does not name is refused", async (t) => {
+	const { worker, review, merge, set, answers, git, root } = await load(t);
+	set({ autoMerge: true, prompts: { rolesDir: ".agents/ops/people", criteriaDir: ".agents/ops/rules", vision: "docs/vision.md" } });
+	const [role, criteria, vision] = [".agents/ops/people/worker.md", ".agents/ops/rules/review.md", "docs/vision.md"];
+	writeFileSync(join(root, "spec/features/AC0001-t/ticket.md"), `# AC0001 - T\n\n\`\`\`json\n{ "id": "AC0001" }\n\`\`\`\n\n## Scope\n\nIn:\n- \`${role}\`\n- \`${criteria}\`\n- \`${vision}\`\n`);
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "spec: scope");
+	for (const [n, path, rule] of [[2, role, "a role"], [3, criteria, "the always-review list"], [4, vision, "the vision"]] as const) {
+		const job = await worker(n, { [path]: "# Rules\n" });
+		await review(job.id, "PASS");
+		answers.ci = ciRun(job.tip, job.branch);
+		assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>; main is unchanged`, path);
+	}
+	const named = await worker(1, { [role]: "# Rules\n", [criteria]: "# Rules\n", [vision]: "# Acme\n" });
+	await review(named.id, "PASS");
+	answers.ci = ciRun(named.tip, named.branch);
+	const merged = await merge(named.id, "--auto");
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0001 merged\nMerge AC0001: T AC0001");
+});
+
 test("--auto reads past a replacement of main's tip under refs/replace: the held path the branch changes still refuses it", async (t) => {
 	const { worker, review, merge, answers, git, root } = await load(t);
 	const job = await worker(1, { "packages/shop/package.json": "{}\n" });

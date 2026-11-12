@@ -59,7 +59,6 @@ export async function call(instance: Instance, procedure: string, query: Readonl
 	throw fail(`${response.status} for ${what}: ${said}`);
 }
 
-// A key of an item of Dokploy's JSON, undefined when the item is not an object or lacks it.
 export function field(item: unknown, key: string): unknown {
 	return typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined;
 }

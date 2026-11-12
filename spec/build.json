@@ -5165,9 +5165,9 @@
   {
     "id": "AR0642",
     "title": "Roadmap 106: installing a release, arthur update and arthur machines update",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0642-roadmap-106-installing-a-release-arthur-update-and-arthur-machines-update/ticket.md",
-    "updated": "2026-11-06T08:18:05.584Z",
+    "updated": "2026-11-12T08:58:02.669Z",
     "after": [
       "AR0641",
       "AR0698"
@@ -5543,9 +5543,9 @@
   {
     "id": "AR0686",
     "title": "Code: a review on the fable model finds redundant comments and removes them",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0686-code-a-review-on-the-fable-model-finds-redundant-comments-and-removes-them/ticket.md",
-    "updated": "2026-11-11T22:14:12.894Z",
+    "updated": "2026-11-12T10:49:37.173Z",
     "after": [
       "AR0685"
     ]
@@ -5595,16 +5595,16 @@
   {
     "id": "AR0693",
     "title": "A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0693-a-role-criteria-or-vision-file-the-approved-ticket-s-scope-names-merges-on-its/ticket.md",
-    "updated": "2026-11-12T01:48:04.282Z"
+    "updated": "2026-11-12T13:12:16.870Z"
   },
   {
     "id": "AR0694",
     "title": "A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0694-a-plan-yes-ticket-goes-straight-to-its-planner-the-plan-question-is-the-owner-s/ticket.md",
-    "updated": "2026-11-12T02:17:37.176Z"
+    "updated": "2026-11-12T10:53:30.079Z"
   },
   {
     "id": "AR0695",
@@ -5619,9 +5619,9 @@
   {
     "id": "AR0696",
     "title": "The review gate needs min(100, all) mutants, not min(25, all)",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0696-the-review-gate-needs-min-100-all-mutants-not-min-25-all/ticket.md",
-    "updated": "2026-11-12T07:00:33.635Z",
+    "updated": "2026-11-12T10:57:18.972Z",
     "after": [
       "AR0671"
     ]

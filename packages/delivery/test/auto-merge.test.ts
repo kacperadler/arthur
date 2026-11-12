@@ -219,7 +219,8 @@ test("--auto merges a role, criteria or vision file main's ticket names in its S
 	const { worker, review, merge, answers, git, root } = await load(t);
 	const ticket = (n: number, text: string) => writeFileSync(join(root, `spec/features/AC000${n}-t/ticket.md`), `# AC000${n} - T\n\n\`\`\`json\n{ "id": "AC000${n}" }\n\`\`\`\n\n${text}`);
 	const prompts = [".agents/arthur/roles/worker.md", ".agents/arthur/criteria/review.md", "packages/shop/roles/coordinator.md", "packages/shop/criteria/review.md", "spec/vision.md"];
-	ticket(1, `## Scope\n\nIn:\n${prompts.map((path) => `- \`${path}\`: the new rules.\n`).join("")}\nOut:\n- the code\n\n## Decisions\n`);
+	// A heading with trailing blanks, as autopilot's trimEnd reads it; backticks pair within a line, so a stray one names nothing and takes nothing.
+	ticket(1, `## Scope \t\n\nIn:\n- a stray \` backtick\n- ${prompts.map((path) => `\`${path}\``).join(", ")}: the new rules.\n\nOut:\n- the code\n\n## Decisions\n`);
 	// A comment the rendered ticket hides names nothing, an unclosed one to the end of the file.
 	ticket(2, "## Scope\n\nIn:\n- `.agents/arthur/criteria/review.md`\n<!-- `.agents/arthur/roles/worker.md` -->\n- the code <!-- `spec/vision.md`\n");
 	const others = ["`.github/workflows/ci.yml`", "`.github/workflows/ż.yml`", "`packages/shop/package.json`", "`packages/shop/pnpm-lock.yaml`", "`.agents/skills/deploy.md`"].join(", ");

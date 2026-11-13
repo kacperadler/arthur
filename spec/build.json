@@ -5270,9 +5270,9 @@
   {
     "id": "AR0653",
     "title": "Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0653-stats-s6-claude-usage-windows-beside-the-costs-an-estimate-marked-roadmap-112/ticket.md",
-    "updated": "2026-11-06T08:46:58.977Z",
+    "updated": "2026-11-13T07:13:40.011Z",
     "after": [
       "AR0652"
     ]
@@ -5656,9 +5656,9 @@
   {
     "id": "AR0700",
     "title": "The owner's config loads the stats plugin again, so arthur stats and the Stats of audits and retros come back",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0700-the-owner-s-config-loads-the-stats-plugin-again-so-arthur-stats-and-the-stats-of/ticket.md",
-    "updated": "2026-11-13T07:13:24.765Z"
+    "updated": "2026-11-13T07:13:48.449Z"
   },
   {
     "id": "AR0701",

@@ -109,6 +109,7 @@ test("each filter narrows every section: project, role, model, ticket; a run of 
 	assert.ok((await cli("--role", "coordinator")).out.split("\n").includes("Most expensive tickets: none"));
 	assert.deepEqual(await first("--model", OPUS, "--role", "worker"), [`Spend ${SINCE}, every project, role worker, model ${OPUS}: $9.00 at list price, 2 runs (1 failed or stopped), 0h31m`, "Tokens: 110 in, 2.1K out, 1M cache read, 50K cache write"]);
 	assert.deepEqual(await first("--role", "tester"), [`No job run or coordinator turn ${SINCE}, every project, role tester.`, "Unknown: 0 runs whose record was gone, 2 lines not read"]);
+	assert.deepEqual((await cli("--role", "plan")).out.split("\n").slice(2, 4), ["By role:", "- plan: $0.50 (100%), 1 run (0 failed or stopped)"], "a total under $1 has its shares");
 	assert.deepEqual(await first("--project", "other"), [`Spend ${SINCE}, project other: $1.50 at list price, 2 runs (1 failed or stopped), 0h01m`, "Tokens: 0 in, 0 out, 0 cache read, 0 cache write"]);
 	assert.deepEqual((await cli("--ticket", "AC0013")).out.split("\n"), [
 		`Runs of AC0013 ${SINCE}, every project: $1.50 at list price, 1 run`,
@@ -126,13 +127,14 @@ test("the 5 most expensive tickets, the most expensive first", async (t) => {
 test("--since: today, yesterday and a date from the local day's start in core.timeZone, <n>d from now; anything else is wrong usage", async (t) => {
 	// Each at a limit, in Warsaw (UTC+1): its cost one bit, so a total names the lines it holds.
 	const at = ["2026-11-12T10:00:00.000Z", "2026-11-12T09:59:59.999Z", "2026-11-11T23:00:00.000Z", "2026-11-11T22:59:59.999Z", "2026-11-12T23:00:00.000Z", "2026-11-12T22:59:59.999Z"];
-	const { cli } = await load(t, at.map((time, bit) => run(time, "worker", "acme", [], "finished", 0, 2 ** bit, {})), []);
+	// The first an hour less a second, today's an hour: 1h59m together.
+	const { cli } = await load(t, at.map((time, bit) => run(time, "worker", "acme", [], "finished", [3599, 0, 0, 0, 3600][bit] ?? 0, 2 ** bit, {})), []);
 	const first = async (since: string) => (await cli("--since", since)).out.split("\n")[0];
-	assert.equal(await first("today"), "Spend since 2026-11-13 (today), every project: $16.00 at list price, 1 run (0 failed or stopped), 0h00m");
-	assert.equal(await first("yesterday"), "Spend since 2026-11-12 (yesterday), every project: $55.00 at list price, 5 runs (0 failed or stopped), 0h00m");
-	assert.equal(await first("2026-11-12"), "Spend since 2026-11-12, every project: $55.00 at list price, 5 runs (0 failed or stopped), 0h00m");
-	assert.equal(await first("1d"), "Spend since 2026-11-12 11:00 (1 day), every project: $49.00 at list price, 3 runs (0 failed or stopped), 0h00m");
-	assert.equal(await first("99999d"), "Spend since 1753-01-29 11:24 (99999 days), every project: $63.00 at list price, 6 runs (0 failed or stopped), 0h00m");
+	assert.equal(await first("today"), "Spend since 2026-11-13 (today), every project: $16.00 at list price, 1 run (0 failed or stopped), 1h00m");
+	assert.equal(await first("yesterday"), "Spend since 2026-11-12 (yesterday), every project: $55.00 at list price, 5 runs (0 failed or stopped), 1h59m");
+	assert.equal(await first("2026-11-12"), "Spend since 2026-11-12, every project: $55.00 at list price, 5 runs (0 failed or stopped), 1h59m");
+	assert.equal(await first("1d"), "Spend since 2026-11-12 11:00 (1 day), every project: $49.00 at list price, 3 runs (0 failed or stopped), 1h59m");
+	assert.equal(await first("99999d"), "Spend since 1753-01-29 11:24 (99999 days), every project: $63.00 at list price, 6 runs (0 failed or stopped), 1h59m");
 	assert.equal(await first("2026-11-14"), "No job run or coordinator turn since 2026-11-14, every project.");
 	const usage = { code: 2, out: "", err: "usage: arthur stats [--since today|yesterday|<n>d|YYYY-MM-DD] [--project <name>] [--role <role>] [--ticket <id>] [--model <provider/model>]" };
 	for (const args of [["--since", "0d"], ["--since", "100000d"], ["--since", "07d"], ["--since", "2026-02-30"], ["--since", "2026-13-01"], ["--since", "tomorrow"], ["--since"], ["now"], ["--nope", "x"]])

@@ -230,9 +230,10 @@ export default defineConfig({
 
 		// The tokens, cost at list price and time of every job run (`.arthur/stats/runs.jsonl`, one line per `job-ended`, what
 		// the run added to its record) and of every coordinator turn (`.arthur/stats/sessions/coordinator.jsonl`, through an
-		// extension the coordinator loads); at its first start one line per job record whose run is over. `arthur stats`, how a
-		// project's merged tickets went, and the `### Stats` section of manage's audit and retro prompts. No options but
-		// `enabled`. packages/stats/docs/stats.md.
+		// extension the coordinator loads); at its first start one line per job record whose run is over. `arthur stats` and
+		// `/stats`, the spend by role, project, model, day and ticket; `arthur stats tickets`, how a project's merged tickets
+		// went, and the `### Stats` section of manage's audit and retro prompts. No options but `enabled`.
+		// packages/stats/docs/stats.md.
 		stats(),
 
 		// Actions and jobs at set times (packages/schedule/docs/commands/schedule.md). An entry is a daily "HH:MM" (optionally on

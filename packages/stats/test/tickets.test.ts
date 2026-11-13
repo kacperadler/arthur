@@ -6,7 +6,7 @@ import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { stats } from "../src/stats.ts";
 import { findingLines } from "../src/tickets.ts";
 
-// `arthur stats` and `stats.tickets` against the fake host, over the project acme, whose board and ticket folders the test writes as the core,
+// `arthur stats tickets` and `stats.tickets` against the fake host, over the project acme, whose board and ticket folders the test writes as the core,
 // delivery's reviews and `arthur merge`'s outcome leave them.
 
 type Ticket = { readonly id: string; readonly title: string; readonly status: string; readonly updated: string; readonly files: Readonly<Record<string, string>> };
@@ -17,7 +17,7 @@ const review = (id: string, n: number, verdict: string, message: string) =>
 	`# ${id} - Review ${n}\n\n- Job: 2026-01-01-review-${n}\n- Branch: h/x\n- Commit reviewed: abc\n- Verdict: ${verdict}\n\n## Final message\n\n${message}\n\n${verdict}`;
 const outcome = (id: string, cost: string) => `# ${id} - Outcome\n\n- Merged: 2026-01-03, \`abc\`\n- Branch: h/x\n- Reviews: none\n- Cost: ${cost}; review rounds 0\n`;
 
-// The project acme with `tickets` on its board, each in its own folder with its files; stats as `arthur stats` prints it.
+// The project acme with `tickets` on its board, each in its own folder with its files; stats as `arthur stats tickets` prints it.
 async function load(t: TestContext, tickets: readonly Ticket[]) {
 	const root = join(temporaryFolder(), "acme");
 	const board = tickets.map(({ id, title, status, updated }) => ({ id, title, status, path: `spec/features/${id}-x/ticket.md`, updated }));
@@ -37,7 +37,7 @@ async function load(t: TestContext, tickets: readonly Ticket[]) {
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (text: string) => out.push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
-		const code = await Promise.try(() => command?.run({ args, project })).finally(() => t.mock.restoreAll());
+		const code = await Promise.try(() => command?.run({ args: ["tickets", ...args], project })).finally(() => t.mock.restoreAll());
 		return { code: code ?? 0, out: out.join("\n"), err: err.join("\n") };
 	};
 	// `stats.tickets` as manage's audit and retro ask it for their prompt's `### Stats`.
@@ -51,7 +51,7 @@ const FAIL_BOLD =
 test("no merged ticket says so in one line; any argument is wrong usage; an unknown project is the board's refusal", async (t) => {
 	const run = await load(t, [{ id: "AC0001", title: "Shop", status: "in-progress", updated: "2026-01-02T10:00:00Z", files: { "ticket.md": ticket("AC0001", "2026-01-01"), "review-1.md": review("AC0001", 1, "FAIL", FAIL_NUMBERED) } }]);
 	assert.deepEqual(await run(), { code: 0, out: "No merged ticket in acme yet.", err: "" });
-	assert.deepEqual(await run(["now"]), { code: 2, out: "", err: "usage: arthur stats [--project <name>]" });
+	assert.deepEqual(await run(["now"]), { code: 2, out: "", err: "usage: arthur stats tickets [--project <name>]" });
 	await assert.rejects(run([], "nope"), /unknown project nope; projects: acme, other/);
 });
 
@@ -130,7 +130,7 @@ test("the first line of each finding: by the section's first line's kind, up to 
 test("stats.tickets: the report of the project asked, of the tickets merged at `since` or later; none merged since says when", async (t) => {
 	const merged = (id: string, updated: string) => ({ id, title: id, status: "merged", updated, files: { "ticket.md": ticket(id, "2026-01-01"), "review-1.md": review(id, 1, "PASS", "Fine.") } });
 	const run = await load(t, [merged("AC0001", "2026-01-02T10:00:00Z"), merged("AC0002", "2026-01-04T08:00:00Z")]);
-	assert.deepEqual(run.section("acme"), [(await run()).out], "no since: every merged ticket, as `arthur stats` prints it");
+	assert.deepEqual(run.section("acme"), [(await run()).out], "no since: every merged ticket, as `arthur stats tickets` prints it");
 	const since = new Date("2026-01-04T08:00:00Z");
 	const [section = ""] = run.section("acme", since);
 	assert.match(section, /^Stats of acme: 1 merged ticket\nAC0002 AC0002: /, "merged at since counts");

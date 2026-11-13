@@ -13,6 +13,10 @@
 		{
 			"match": "^arthur health",
 			"output": "All well: nothing that should have happened by now is missing."
+		},
+		{
+			"match": "^arthur stats",
+			"output": "Spend since 2026-10-21 08:00 (1 day), every project: $12.40 at list price, 2 runs (0 failed or stopped), 14 turns, 4h35m\nTokens: 1.2K in, 85K out, 9.8M cache read, 410K cache write\nBy role:\n- coordinator: $10.69 (86%), 14 turns\n- worker: $1.30 (10%), 1 run (0 failed or stopped)\n- review: $0.41 (3%), 1 run (0 failed or stopped)"
 		}
 	],
 	"expect": {
@@ -30,7 +34,8 @@
 			"match": [
 				"SH0013",
 				"SH0014",
-				"SH0015"
+				"SH0015",
+				"Spend[\\s\\S]*\\$12\\.40 at list price"
 			]
 		}
 	}

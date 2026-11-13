@@ -1,8 +1,10 @@
 # The stats plugin
 
-Roadmap entry 109: Arthur keeps the tokens, cost and time of every job run and of every coordinator turn, in two append-only files of its own folder, `<home>/stats/`. It calls no model; the views of these files (`arthur stats`, `/stats`, the morning report's Spend) come with roadmap entry 111. Every cost is omp's at list price, what the tokens would cost on the API, not money paid on a subscription.
+Roadmap entry 109: Arthur keeps the tokens, cost and time of every job run and of every coordinator turn, in two append-only files of its own folder, `<home>/stats/`. It calls no model. Every cost is omp's at list price, what the tokens would cost on the API, not money paid on a subscription.
 
-Roadmap entry 110: the merged tickets' report, which came with manage (61), is this plugin's: `arthur stats` prints it as before (`arthur stats --help`), and the provided name `stats.tickets`, `(project, since?)` to the same report of the tickets merged at `since` or later, gives manage's audit and retro prompts their `### Stats` section (`packages/manage/docs/manage.md`).
+Roadmap entry 111: the views of these files. `arthur stats` prints the spend of a span, the last 7 days by default, by role, project, model, day and ticket, with filters; `/stats` answers its total, by role and top 3 tickets on a channel; the morning report's Spend section is the first two lines of `arthur stats --since 1d` (`arthur stats --help`).
+
+Roadmap entry 110: the merged tickets' report, which came with manage (61), is this plugin's: `arthur stats tickets` prints it (`arthur stats tickets --help`), and the provided name `stats.tickets`, `(project, since?)` to the same report of the tickets merged at `since` or later, gives manage's audit and retro prompts their `### Stats` section (`packages/manage/docs/manage.md`).
 
 ```ts
 plugins: [orchestration({}), stats()],

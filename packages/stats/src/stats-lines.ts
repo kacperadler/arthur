@@ -19,8 +19,9 @@ export function addUsage(a: unknown, b: unknown, sign = 1): Usage {
 	return Object.fromEntries(models.map((model) => [model, Object.fromEntries(FIELDS.map((key) => [key, round(number(left?.[model]?.[key]) + sign * number(right?.[model]?.[key]))]))])) as Usage;
 }
 
-// Each JSON object of the file, in order; a line that is none (cut by a crash, edited by hand) is skipped. None for a missing file.
-export function readLines(path: string): Line[] {
+// Each JSON object of the file, in order; a line that is none (cut by a crash, edited by hand) is skipped, and counted in
+// `unread`. None for a missing file.
+export function readLines(path: string, unread = { lines: 0 }): Line[] {
 	let text = "";
 	try {
 		text = readFileSync(path, "utf8");
@@ -28,12 +29,13 @@ export function readLines(path: string): Line[] {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
 	return text.split("\n").flatMap((line) => {
+		let value: unknown;
 		try {
-			const value: unknown = JSON.parse(line);
-			return typeof value === "object" && value !== null && !Array.isArray(value) ? [value as Line] : [];
-		} catch {
-			return [];
-		}
+			value = JSON.parse(line);
+		} catch {}
+		if (typeof value === "object" && value !== null && !Array.isArray(value)) return [value as Line];
+		if (line !== "") unread.lines++;
+		return [];
 	});
 }
 

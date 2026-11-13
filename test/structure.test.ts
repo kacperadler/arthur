@@ -55,7 +55,7 @@ const BUDGETS = {
 
 	speak: 248,
 
-	stats: 303,
+	stats: 531,
 
 	telegram: 682,
 

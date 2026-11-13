@@ -13,6 +13,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Changed
 
 - AR0651 Stats S4: the merged-ticket report moves from manage to stats (roadmap 110) (a27b618c)
+- AR0704 A test fixture names the owner's real account, user:terminal:kacper, in the public repository (254c2011)
 
 ## 2026-11-12
 

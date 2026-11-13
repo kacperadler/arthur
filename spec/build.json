@@ -5687,16 +5687,16 @@
   {
     "id": "AR0704",
     "title": "A test fixture names the owner's real account, user:terminal:kacper, in the public repository",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0704-a-test-fixture-names-the-owner-s-real-account-user-terminal-kacper-in-the-public/ticket.md",
-    "updated": "2026-11-13T09:59:31.438Z"
+    "updated": "2026-11-13T12:01:36.223Z"
   },
   {
     "id": "AR0705",
     "title": "Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0705-project-agents-t1-each-project-with-a-chat-gets-its-own-supervised-omp-session/ticket.md",
-    "updated": "2026-11-13T10:36:24.218Z"
+    "updated": "2026-11-13T10:43:00.461Z"
   },
   {
     "id": "AR0706",

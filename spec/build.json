@@ -5694,9 +5694,9 @@
   {
     "id": "AR0705",
     "title": "Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85)",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0705-project-agents-t1-each-project-with-a-chat-gets-its-own-supervised-omp-session/ticket.md",
-    "updated": "2026-11-13T20:35:46.596Z"
+    "updated": "2026-11-13T21:58:32.017Z"
   },
   {
     "id": "AR0706",

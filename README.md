@@ -68,13 +68,13 @@ flowchart TD
   subgraph FIRST[First-version plugins: each talks only to the core]
     chan[channels<br/>telegram, discord]
     media[media: claim a channel's parts, speak the replies<br/>listen, video, speak]
-    coord[coordinator<br/>orchestration, session, schedule]
+    coord[coordinator<br/>orchestration, session, schedule; project agents partly built]
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker partly built]
     deliv[delivery and trackers<br/>delivery, github, youtrack, dokploy]
     self[Arthur itself<br/>manage, develop, stats]
   end
-  later[later plugins<br/>project agents, signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
+  later[later plugins<br/>signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
   core <-->|events, commands| FIRST
   core <-.->|events, commands| later
   core -->|a worktree and an omp agent per job| repos[(project repositories)]
@@ -82,8 +82,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class coord,proj,self,media,chan,deliv built;
-  class core,res partial;
+  class proj,self,media,chan,deliv built;
+  class core,res,coord partial;
   class later planned;
   class owner,repos outside;
 ```

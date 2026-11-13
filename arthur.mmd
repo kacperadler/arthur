@@ -1,7 +1,7 @@
 %% What Arthur is built from, and what of it is built.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
-%% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: the owner's own apps over Tailscale.
+%% Also planned, from the approved plan of AR0098: the rest of project agents in orchestration (routing, context, session; roadmap 86 to 88), and the slack channel; from AR0134: the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TD
   human([Owner])
@@ -55,7 +55,8 @@ flowchart TD
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>morning report, decision log, decision classes]
         session[session<br/>compaction, fresh start, restart guard<br/>start notice, LLM probe]
         schedule[schedule<br/>actions, jobs at set times<br/>registered entries, arthur schedule]
-        orchestration ~~~ session ~~~ schedule
+        agents[project agents<br/>one per project with a chat, supervised<br/>arthur attach project; 1 of 4 entries merged]
+        orchestration ~~~ agents ~~~ session ~~~ schedule
       end
       subgraph PROJ[Projects]
         projects[projects<br/>project list, install<br/>arthur init, onboarding]
@@ -89,7 +90,6 @@ flowchart TD
     end
 
     subgraph LATER[Later plugins]
-      agents[project agents<br/>one per project, its own chat]
       signal[signal<br/>a channel, signal-cli]
       slack[slack<br/>a channel, Socket Mode]
       whatsapp[whatsapp<br/>a channel, local bridge]
@@ -97,7 +97,7 @@ flowchart TD
       apps[own apps<br/>web panel, mobile app in Expo<br/>by Tailscale name, no public port]
       knowledge[knowledge base<br/>search, chat with sources]
       company[company edition<br/>business roles as agents]
-      agents ~~~ signal ~~~ slack ~~~ whatsapp ~~~ server ~~~ apps ~~~ knowledge ~~~ company
+      signal ~~~ slack ~~~ whatsapp ~~~ server ~~~ apps ~~~ knowledge ~~~ company
       apps -.->|Tailscale| server
     end
   end
@@ -154,7 +154,7 @@ flowchart TD
   %% One class line per node, in name order, a blank line after each: branches that change two nodes merge without a conflict, as do two that each add one when an existing node sorts between theirs.
   class activity built;
 
-  class agents planned;
+  class agents partial;
 
   class api built;
 

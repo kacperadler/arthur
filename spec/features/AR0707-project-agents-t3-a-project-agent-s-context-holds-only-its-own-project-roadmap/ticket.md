@@ -33,4 +33,5 @@ Out:
 - The session (AR0708).
 
 ## Decisions
+- 2026-11-13: AR0707 approved; the owner: "AR-D673 yes" (AR-D673)
 

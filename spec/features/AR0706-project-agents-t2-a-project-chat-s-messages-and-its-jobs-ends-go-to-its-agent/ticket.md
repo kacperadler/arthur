@@ -33,4 +33,5 @@ Out:
 - The context (AR0707) and session (AR0708).
 
 ## Decisions
+- 2026-11-13: AR0706 approved; the owner: "AR-D672 yes" (AR-D672)
 

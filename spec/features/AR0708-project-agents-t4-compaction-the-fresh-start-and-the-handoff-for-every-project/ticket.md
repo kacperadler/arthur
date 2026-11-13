@@ -33,4 +33,5 @@ Out:
 - Nothing else of AR0669.
 
 ## Decisions
+- 2026-11-13: AR0708 approved; the owner: "AR-D674 yes" (AR-D674)
 

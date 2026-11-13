@@ -34,4 +34,5 @@ Out:
 - Routing (AR0706), context (AR0707), session (AR0708).
 
 ## Decisions
+- 2026-11-13: AR0705 approved; the owner: "AR-D671 yes" (AR-D671)
 

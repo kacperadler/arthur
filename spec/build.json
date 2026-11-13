@@ -5694,16 +5694,16 @@
   {
     "id": "AR0705",
     "title": "Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0705-project-agents-t1-each-project-with-a-chat-gets-its-own-supervised-omp-session/ticket.md",
-    "updated": "2026-11-13T10:34:30.335Z"
+    "updated": "2026-11-13T10:36:24.218Z"
   },
   {
     "id": "AR0706",
     "title": "Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0706-project-agents-t2-a-project-chat-s-messages-and-its-jobs-ends-go-to-its-agent/ticket.md",
-    "updated": "2026-11-13T10:34:31.032Z",
+    "updated": "2026-11-13T10:36:26.450Z",
     "after": [
       "AR0705"
     ]
@@ -5711,9 +5711,9 @@
   {
     "id": "AR0707",
     "title": "Project agents T3: a project agent's context holds only its own project (roadmap 87)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0707-project-agents-t3-a-project-agent-s-context-holds-only-its-own-project-roadmap/ticket.md",
-    "updated": "2026-11-13T10:34:31.739Z",
+    "updated": "2026-11-13T10:36:28.784Z",
     "after": [
       "AR0706"
     ]
@@ -5721,9 +5721,9 @@
   {
     "id": "AR0708",
     "title": "Project agents T4: compaction, the fresh start and the handoff for every project agent (roadmap 88)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0708-project-agents-t4-compaction-the-fresh-start-and-the-handoff-for-every-project/ticket.md",
-    "updated": "2026-11-13T10:34:32.339Z",
+    "updated": "2026-11-13T10:36:31.169Z",
     "after": [
       "AR0707"
     ]

@@ -54,7 +54,7 @@ test("a token or a chat id Telegram could not take refuses the load, naming the 
 	t.mock.method(console, "error", () => {});
 	assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: "secret token", ARTHUR_TELEGRAM_CHAT_ID: "42" }), "bots[0].botTokenEnv: ARTHUR_TELEGRAM_BOT_TOKEN does not hold a bot token as @BotFather gives it: digits, a colon, then letters, digits, _ and -");
 	const chat = "bots[0].chatIdEnv: ARTHUR_TELEGRAM_CHAT_ID does not hold a chat id: the owner's private chat with the bot, a positive whole number";
-	for (const id of ["@kacper", "", "4.2", "042", "-42", "99999999999999999999"]) assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: id }), chat, id);
+	for (const id of ["@alice", "", "4.2", "042", "-42", "99999999999999999999"]) assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: id }), chat, id);
 	assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: "-1001234567890" }), chat, "a group's id is refused: its members are not the owner");
 	assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: "1" }), undefined, "1 is the smallest private chat id");
 });

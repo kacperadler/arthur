@@ -117,7 +117,7 @@ test("an unknown machine, a refused key, arthur missing there or of another vers
 
 	const refused = setup();
 	writeFileSync(join(refused.machine, "refuse"), "");
-	await assert.rejects(refused.jobs.spawn({ task: "Go.", machine: "gpu" }), { message: "machine gpu: ssh gpu: kacper@gpu: Permission denied (publickey)." });
+	await assert.rejects(refused.jobs.spawn({ task: "Go.", machine: "gpu" }), { message: "machine gpu: ssh gpu: alice@gpu: Permission denied (publickey)." });
 	assert.deepEqual(nothing(refused.home, refused.there), [false, false, false]);
 
 	const missing = setup({ arthur: "" });
@@ -248,7 +248,7 @@ test("arthur remote-job repo creates the project's repository bare once, then le
 
 test("registerMachine refuses local, a machine registered twice, a bad name, an ssh that is an option, and a relative home; machines() names the rest", () => {
 	const { jobs } = setup();
-	const machine = { name: "mac", ssh: "mac", home: "/Users/kacper/.arthur", labels: {} };
+	const machine = { name: "mac", ssh: "mac", home: "/Users/alice/.arthur", labels: {} };
 	assert.throws(() => jobs.registerMachine("machines", { ...machine, name: "local" }), { message: "machine local: registered by core and by machines; a machine belongs to one plugin" });
 	assert.throws(() => jobs.registerMachine("other", { ...machine, name: "gpu" }), { message: "machine gpu: registered by machines and by other; a machine belongs to one plugin" });
 	assert.throws(() => jobs.registerMachine("machines", { ...machine, name: "Mac" }), { message: 'machine "Mac": expected a name of lowercase letters, digits and dashes' });
@@ -270,7 +270,7 @@ test("jobs.run runs one command on a machine: words with spaces, quotes, backtic
 	assert.equal(calls().length, 2);
 	assert.match(calls()[0] ?? "", /^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 gpu 'printf' /);
 	writeFileSync(join(machine, "refuse"), "");
-	assert.deepEqual(await jobs.run("gpu", ["true"]), { code: 255, stdout: "", stderr: "kacper@gpu: Permission denied (publickey).\n" });
+	assert.deepEqual(await jobs.run("gpu", ["true"]), { code: 255, stdout: "", stderr: "alice@gpu: Permission denied (publickey).\n" });
 	await assert.rejects(jobs.run("mac", ["true"]), { message: "unknown machine mac; machines: gpu, local" });
 	await assert.rejects(jobs.run("gpu", []), { message: "run: argv must be a non-empty list of words" });
 

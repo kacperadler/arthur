@@ -3,12 +3,14 @@ import type { Host } from "@arthur/core/plugin";
 import { parseSince } from "./spend-read.ts";
 import { spend } from "./spend.ts";
 import { ticketStats } from "./tickets.ts";
+import { windows } from "./windows.ts";
 
-// `arthur stats`, the spend view, `arthur stats tickets`, the merged tickets' report, and `/stats` (spec/roadmap.md, entries 110
-// and 111): docs/commands/stats.md and stats-tickets.md.
+// `arthur stats`, the spend view, `arthur stats tickets`, the merged tickets' report, `arthur stats windows`, the usage windows
+// beside the spend, and `/stats` (spec/roadmap.md, entries 110 to 112): docs/commands/stats.md, stats-tickets.md and stats-windows.md.
 
 const USAGE = "usage: arthur stats [--since today|yesterday|<n>d|YYYY-MM-DD] [--project <name>] [--role <role>] [--ticket <id>] [--model <provider/model>]";
 const TICKETS_USAGE = "usage: arthur stats tickets [--project <name>]";
+const WINDOWS_USAGE = "usage: arthur stats windows";
 const PHONE_USAGE = "usage: /stats [today|yesterday|<n>d|YYYY-MM-DD] [<ticket id>]";
 const TICKET = /^[A-Z]+\d{4,}$/;
 // A job's sandbox hides Arthur's home, so the plugin's folder (job-sandbox.ts); the report reads only the board.
@@ -31,12 +33,14 @@ export function statsCommand(host: Host): void {
 				return spend(host, { since, ticket }, true);
 			},
 		},
-		run({ args, project }) {
+		async run({ args, project }) {
 			if (args[0] === "tickets") {
 				if (args.length > 1) return (console.error(TICKETS_USAGE), 2);
 				return void console.log(ticketStats(host, project));
 			}
+			if (args[0] === "windows" && args.length > 1) return (console.error(WINDOWS_USAGE), 2);
 			if (host.job !== undefined) return (console.error(`arthur stats: ${HIDDEN}`), 1);
+			if (args[0] === "windows") return void console.log(await windows(host));
 			let values: { readonly since?: string; readonly role?: string; readonly ticket?: string; readonly model?: string };
 			try {
 				({ values } = parseArgs({ args: [...args], options: { since: { type: "string" }, role: { type: "string" }, ticket: { type: "string" }, model: { type: "string" } } }));

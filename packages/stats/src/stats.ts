@@ -7,11 +7,11 @@ import { addUsage, appendLine, type Line, readLines, round } from "./stats-lines
 import { statsCommand } from "./stats-command.ts";
 import { ticketStats } from "./tickets.ts";
 
-// The stats plugin (spec/roadmap.md, entries 109 to 111): one line in `runs.jsonl` of its folder per `job-ended`, what that run
+// The stats plugin (spec/roadmap.md, entries 109 to 112): one line in `runs.jsonl` of its folder per `job-ended`, what that run
 // added to the job's record, written only by `arthur run` once started; at its first start one `backfill` line per record that
 // ended before; the coordinator's turns through its extension (session-extension.ts); the spend views `arthur stats` and
-// `/stats` (stats-command.ts); and the merged tickets' report as `arthur stats tickets` and as `stats.tickets`, the `### Stats`
-// section of manage's audit and retro prompts (tickets.ts): docs/stats.md.
+// `/stats` (stats-command.ts), and `arthur stats windows`, the usage windows beside it (windows.ts); and the merged tickets' report
+// as `arthur stats tickets` and as `stats.tickets`, the `### Stats` section of manage's audit and retro prompts (tickets.ts): docs/stats.md.
 
 // Its options file too (`./options`), which `arthur setup` reads: what it is in one line, the tools it runs, its options.
 export const summary = "stats: the tokens, cost and time of every job run and coordinator turn, kept in its folder; arthur stats and /stats show the spend";

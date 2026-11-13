@@ -111,6 +111,7 @@ test("inside a job the commands a role needs run, each to its own answer; youtra
 		[["resources"], 0, /^local: /],
 		[["roles"], 0, /^worker: /],
 		[["stats"], 1, /^arthur stats: the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here\n$/],
+		[["stats", "windows"], 1, /^arthur stats: the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here\n$/],
 		[["stats", "tickets"], 0, /^No merged ticket in shop yet\.\n$/],
 		[["retro-due"], 0, /^no retro due: /],
 		[["health"], 0, /./],

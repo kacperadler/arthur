@@ -6,6 +6,8 @@ Roadmap entry 111: the views of these files. `arthur stats` prints the spend of 
 
 Roadmap entry 110: the merged tickets' report, which came with manage (61), is this plugin's: `arthur stats tickets` prints it (`arthur stats tickets --help`), and the provided name `stats.tickets`, `(project, since?)` to the same report of the tickets merged at `since` or later, gives manage's audit and retro prompts their `### Stats` section (`packages/manage/docs/manage.md`).
 
+Roadmap entry 112: `arthur stats windows` puts each usage window of the account, which the models plugin reads from the agent's report and gives as `models.windows`, beside what Arthur spent at list price on that provider's models in the window's span, by role, each role's part of the window an estimate marked `≈` and an upper bound, since the account's use outside Arthur counts in the window too (`arthur stats windows --help`). Without the models plugin it says so in one line.
+
 ```ts
 plugins: [orchestration({}), stats()],
 ```

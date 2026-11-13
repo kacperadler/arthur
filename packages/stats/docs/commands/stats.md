@@ -1,8 +1,8 @@
 # arthur stats
 
-Usage: `arthur stats [--since today|yesterday|<n>d|YYYY-MM-DD] [--project <name>] [--role <role>] [--ticket <id>] [--model <provider/model>]`, or `arthur stats tickets [--project <name>]`. Comes with the `stats` plugin (roadmap entry 111). Answered without the model, from the plugin's own files, `<home>/stats/runs.jsonl` and `<home>/stats/sessions/*.jsonl` (`packages/stats/docs/stats.md`); it reads only. Every cost is omp's at list price, what the tokens would cost on the API, not money paid on a subscription.
+Usage: `arthur stats [--since today|yesterday|<n>d|YYYY-MM-DD] [--project <name>] [--role <role>] [--ticket <id>] [--model <provider/model>]`, `arthur stats tickets [--project <name>]`, or `arthur stats windows`. Comes with the `stats` plugin (roadmap entry 111). Answered without the model, from the plugin's own files, `<home>/stats/runs.jsonl` and `<home>/stats/sessions/*.jsonl` (`packages/stats/docs/stats.md`); it reads only. Every cost is omp's at list price, what the tokens would cost on the API, not money paid on a subscription.
 
-`arthur stats tickets` is the merged tickets' report of one project, which bare `arthur stats` printed before entry 111: `arthur stats tickets --help`.
+`arthur stats tickets` is the merged tickets' report of one project, which bare `arthur stats` printed before entry 111: `arthur stats tickets --help`. `arthur stats windows` puts each usage window of the account beside this spend in its span, by role (entry 112): `arthur stats windows --help`.
 
 ## The spend
 
@@ -73,5 +73,5 @@ The filters combine; each narrows every section, the total too.
 
 ## Refused
 
-- Wrong usage (an unknown flag, a word after `stats` but `tickets`, a flag without its value, a `--since` none of the above) prints the usage line and exits 2.
+- Wrong usage (an unknown flag, a word after `stats` but `tickets` and `windows`, a flag without its value, a `--since` none of the above) prints the usage line and exits 2.
 - Inside a job (`arthur help --help`), Arthur's home is hidden from the job's sandbox, the plugin's folder with it: `arthur stats` prints `arthur stats: the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here` and exits 1, and `/stats` replies the same, without the prefix. `arthur stats tickets` runs there, as before.

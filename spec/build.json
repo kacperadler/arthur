@@ -5727,5 +5727,12 @@
     "after": [
       "AR0707"
     ]
+  },
+  {
+    "id": "AR0709",
+    "title": "A merge's checks on main cannot create a new folder at the checkout's top, so a test runner's output folder (Playwright's test-results) fails npm test",
+    "status": "planning",
+    "path": "spec/features/AR0709-a-merge-s-checks-on-main-cannot-create-a-new-folder-at-the-checkout-s-top-so-a/ticket.md",
+    "updated": "2026-11-13T14:13:10.411Z"
   }
 ]

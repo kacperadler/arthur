@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-13
+
+### Changed
+
+- AR0651 Stats S4: the merged-ticket report moves from manage to stats (roadmap 110) (a27b618c)
+
 ## 2026-11-12
 
 ### Added

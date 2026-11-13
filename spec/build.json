@@ -5250,9 +5250,9 @@
   {
     "id": "AR0651",
     "title": "Stats S4: the merged-ticket report moves from manage to stats (roadmap 110)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0651-stats-s4-the-merged-ticket-report-moves-from-manage-to-stats-roadmap-110/ticket.md",
-    "updated": "2026-11-06T08:46:55.115Z",
+    "updated": "2026-11-13T00:20:31.118Z",
     "after": [
       "AR0643"
     ]

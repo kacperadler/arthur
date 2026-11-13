@@ -85,6 +85,8 @@ export function checkOptions(options: Options): OptionProblem[] {
 			if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name)) problems.push({ path: `roles.${name}`, problem: "expected a role name of lowercase letters, digits and dashes" });
 			else if (name === "coordinator") problems.push({ path: "roles.coordinator", problem: "the coordinator's model and thinking are coordinator.model and coordinator.thinking" });
 			else checkObject(`roles.${name}.`, value, name === QUICK ? quick : role, problems);
+			// A project agent, like the coordinator, starts on one model: no spawn picks from a list for it.
+			if (name === "project" && Array.isArray((value as { readonly model?: unknown } | null)?.model)) problems.push({ path: "roles.project.model", problem: "expected one model name, the project agents' model, not a list" });
 		}
 	return [...problems, ...checkMcp(options.mcp)];
 }

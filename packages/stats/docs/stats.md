@@ -30,7 +30,7 @@ One line per `job-ended`, what that run added to the job's record (`arthur jobs 
 
 ## Coordinator turns: `sessions/<session>.jsonl`
 
-The plugin gives orchestration an OMP extension, `packages/stats/src/session-extension.ts`, which the coordinator's agent loads (`arthur coordinator --help`, `coordinator.extension`) with `ARTHUR_STATS_FOLDER` naming the plugin's folder. At each real end of a turn (`agent_end` that does not go on) it appends one line to `sessions/coordinator.jsonl`:
+The plugin gives orchestration an OMP extension, `packages/stats/src/session-extension.ts`, which the coordinator's agent and each project agent's load (`arthur coordinator --help`, `coordinator.extension`) with `ARTHUR_STATS_FOLDER` naming the plugin's folder. At each real end of a turn (`agent_end` that does not go on) it appends one line to `sessions/<session>.jsonl`, the session being what `ARTHUR_ORCHESTRATION_SESSION` names, `agent:<project>` in a project agent's (`sessions/agent:shop.jsonl`), else `coordinator` (`sessions/coordinator.jsonl`):
 
 ```json
 {"time":"2026-11-06T10:45:00.000Z","session":"coordinator","seconds":38.2,"until":1794480299512,"cost":0.8125,"usage":{"anthropic/claude-opus-5-5":{"messages":3,"input":9,"output":1400,"cacheRead":310000,"cacheWrite":4200,"cost":0.8125}}}
@@ -39,7 +39,7 @@ The plugin gives orchestration an OMP extension, `packages/stats/src/session-ext
 - The numbers are those of the assistant messages whose `timestamp` is after `until`, the last one counted, which the line keeps; at its start the extension reads it from the file's last line without `sub`. So a turn that goes on after its `agent_end` (`willContinue`) is counted once at its real end, and a restarted coordinator (`--continue`) counts none of the conversation it already counted.
 - `seconds` runs from the turn's first `agent_start`.
 - A session without a UI, a `task` subagent, writes its turns to the same file marked `"sub": true` [INFERENCE: omp loads the coordinator's extensions into its subagents, as the other extensions' `hasUI` guards assume].
-- The coordinator's spend before the plugin is installed is not imported. A project agent (roadmap 85) gets its own session name then; until then every session is `coordinator`.
+- The coordinator's spend before the plugin is installed is not imported.
 
 ## The files
 

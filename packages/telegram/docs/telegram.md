@@ -71,6 +71,10 @@ At every start of `arthur run`, each bot's menu is set to the phone commands the
 
 The session's start notice (`coordinator up on <host>`, or `no LLM access on <host>: ...`, after the lines `arthur doctor` found missing) is a `notice`, sent as it comes, as one text, unless the silent mode holds it, as it holds every notice but a blocked job's.
 
+## Project chats
+
+A project whose file holds `orchestration.project({ chat: { plugin: "telegram", instance?, place } })` has its own agent (`arthur coordinator --help`, "Project agents"), whose chat is the topic `place` (its `message_thread_id`) of the private chat of the bot `instance` names, else of the unnamed bot (the first when every bot has a name). Topics there need the bot's topics turned on, so for each bot some project's chat names the plugin gives `arthur doctor` one line, never critical, `telegram bot <name> topics`: `ok` when `getMe` answers `has_topics_enabled: true`; else `missing: getMe.has_topics_enabled is false: topics are off in the bot's private chat`, `missing: <the getMe failure>`, or `missing: no bot named <instance> in bots`, costing those projects' agents their topics; its fix is `turn on topics for the bot's private chats in @BotFather, then run arthur doctor`. The chats are read from orchestration's `orchestration.chats`, never from its piece; without a chat on Telegram there is no line.
+
 ## Setting it up
 
 1. In Telegram, talk to @BotFather: `/newbot`, a name, then the token it gives goes to `ARTHUR_TELEGRAM_BOT_TOKEN` in `.env`.

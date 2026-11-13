@@ -1,5 +1,5 @@
-import type { Plugin } from "@arthur/core/plugin";
-import { type Bot, topic } from "./bot-api.ts";
+import type { Plugin, Requirement } from "@arthur/core/plugin";
+import { type Bot, call, topic } from "./bot-api.ts";
 import { outgoing } from "./media-out.ts";
 import { menu } from "./menu.ts";
 import { enqueue, outbox } from "./outbox.ts";
@@ -68,6 +68,11 @@ export function telegram(options: TelegramOptions): Plugin {
 			};
 			idle = box.idle;
 			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
+			// Each bot a project's chat names (orchestration's `orchestration.chats`, roadmap 85) talks in topics of its private chat.
+			host.provide("doctor", () => {
+				const chats = host.collect<readonly { readonly project: string; readonly plugin: string; readonly instance?: string }[]>("orchestration.chats").flat().filter((chat) => chat.plugin === "telegram");
+				return [...new Set(chats.map((chat) => chat.instance))].map((instance) => topics(instance === undefined ? main : bots.find((each) => each.name === instance), instance, chats.filter((chat) => chat.instance === instance).map((chat) => chat.project)));
+			});
 		},
 		start() {
 			polls = begin();
@@ -88,4 +93,16 @@ function bot(env: Readonly<Record<string, string>>, { name, botTokenEnv, chatIdE
 	const id = env[chatIdEnv] ?? "";
 	if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) throw new Error(`bots[${index}].chatIdEnv: ${chatIdEnv} does not hold a chat id: the owner's private chat with the bot, a positive whole number`);
 	return { ...(name === undefined ? {} : { name }), label: name ?? "(unnamed)", token, chat: Number(id), apiUrl };
+}
+
+// `bot` undefined: no bot of that name. getMe's `has_topics_enabled` is true once topics are on for the bot's private chats.
+function topics(bot: Bot | undefined, instance: string | undefined, projects: readonly string[]): Requirement {
+	const check = async () => {
+		if (bot === undefined) return `missing: no bot named ${instance} in bots`;
+		const me = await call(bot, "getMe", {}, AbortSignal.timeout(10_000)).catch((error: Error) => error);
+		if (me instanceof Error) return `missing: ${me.message}`;
+		return (me as { readonly has_topics_enabled?: unknown } | null)?.has_topics_enabled === true ? "ok" : "missing: getMe.has_topics_enabled is false: topics are off in the bot's private chat";
+	};
+	const costs = `the agents of ${projects.join(", ")} have no topic to talk in`;
+	return { name: `bot ${bot?.label ?? instance} topics`, check, costs, fix: "turn on topics for the bot's private chats in @BotFather, then run arthur doctor" };
 }

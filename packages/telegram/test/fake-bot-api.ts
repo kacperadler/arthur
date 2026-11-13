@@ -41,7 +41,7 @@ export const message = (id: number, fields: Readonly<Record<string, unknown>> = 
 });
 
 const BOT = { id: 7012345678, is_bot: true, first_name: "Arthur", username: "arthur_bot" };
-// getMe's User of each token, every field the documentation lists for a bot.
+// getMe's User of each token, every field the documentation lists for a bot; the second bot has topics on in its private chats.
 const ME = (token: string) => ({
 	...(token === SECOND ? { id: 7087654321, first_name: "Shop", username: "shop_bot" } : BOT),
 	is_bot: true,
@@ -51,7 +51,7 @@ const ME = (token: string) => ({
 	supports_inline_queries: false,
 	can_connect_to_business: false,
 	has_main_web_app: false,
-	has_topics_enabled: false,
+	has_topics_enabled: token === SECOND,
 	allows_users_to_create_topics: false,
 	can_manage_bots: false,
 	supports_join_request_queries: false,

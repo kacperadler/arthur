@@ -207,3 +207,25 @@ test("the extension counts nothing twice across a resume and a restart; a subage
 	agent().end(conversation);
 	assert.deepEqual(lines(file).at(-1), { time: at(19_000), session: "coordinator", seconds: 0, until: 16_500, cost: 0, usage: {} });
 });
+
+// AR0705: orchestration names a project agent's session `agent:<project>` in ARTHUR_ORCHESTRATION_SESSION.
+test("a project agent's turns go to sessions/agent:<project>.jsonl under its name, an empty name is the coordinator's", (t) => {
+	t.after(() => {
+		delete process.env.ARTHUR_STATS_FOLDER;
+		delete process.env.ARTHUR_ORCHESTRATION_SESSION;
+	});
+	t.mock.method(Date, "now", () => 2_000);
+	process.env.ARTHUR_STATS_FOLDER = temporaryFolder();
+	const turn = () => {
+		const handlers = new Map<string, (event?: object, ctx?: { hasUI: boolean }) => void>();
+		sessionStats({ on: (name: string, handler: (event?: object, ctx?: { hasUI: boolean }) => void) => void handlers.set(name, handler) } as never);
+		handlers.get("agent_start")?.();
+		handlers.get("agent_end")?.({ messages: [{ role: "assistant", provider: "anthropic", model: "m1", timestamp: 1_000, usage: { input: 1, cost: { total: 0.5 } } }] }, { hasUI: true });
+	};
+	const read = (name: string) => lines(join(process.env.ARTHUR_STATS_FOLDER ?? "", "sessions", `${name}.jsonl`)).map((line) => line.session);
+	process.env.ARTHUR_ORCHESTRATION_SESSION = "agent:shop";
+	turn();
+	process.env.ARTHUR_ORCHESTRATION_SESSION = "";
+	turn();
+	assert.deepEqual([read("agent:shop"), read("coordinator")], [["agent:shop"], ["coordinator"]]);
+});

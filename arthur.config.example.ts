@@ -505,7 +505,8 @@ export default defineConfig({
 // plugin; without it, the unnamed one), what a merge makes of its findings, `docker.project(false)` to leave its jobs'
 // Docker resources unlabelled and uncleaned (default: labelled, and removed with the worktree, while the docker plugin is), and
 // `orchestration.project({ chat })`, the place of a channel (a Telegram topic, a Discord or Slack channel) where the project's
-// own agent talks with you; without it the coordinator handles the project. One repository may be several projects, each
+// own agent talks with you, an `omp` `arthur run` keeps beside the coordinator (`arthur attach <project>`); without it the
+// coordinator handles the project. One repository may be several projects, each
 // checkout its own folder. Each file imports the helpers it uses: `import { projects } from "@arthur/projects";`.
 //
 // projects/arthur/project.config.ts
@@ -537,7 +538,7 @@ export default defineConfig({
 //			{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
 //		], { runbook: "site-down.md" }), // optional: projects/acme-shop/site-down.md, the steps the coordinator works through when a site is down
 //		dokploy.project({ instance: "client", app: "kXx3shopWeb01" }), // the application `arthur dokploy app`, `status`, `upload` and `deploy` take without an id
-//		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // planned: its own agent answers in topic 12 of the bot's chat
+//		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // its own agent, in topic 12 of the bot's chat (its messages reach it from roadmap 86 on)
 //	];
 //
 // projects/acme-site/project.config.ts

@@ -14,6 +14,15 @@ import { load } from "./session-setup.ts";
 
 // The session plugin (session-setup.ts): when a compaction is asked for and dropped, its requests, its options.
 
+// AR0705: until roadmap 88 gives each project agent a session folder of its own, its handoff would write the coordinator's files.
+test("the handoff and turn extensions go to the coordinator's session only, none to a project agent's", async (t) => {
+	const box = await load(t, {}, "2026-10-18T07:59:00+02:00");
+	const files = (...asked: unknown[]) => box.fake.collect<{ file: string } | undefined>("coordinator.extension", ...asked).map((each) => each && basename(each.file));
+	assert.deepEqual(files({ session: "coordinator" }), ["handoff-extension.ts", "turn-extension.ts"]);
+	assert.deepEqual(files({ session: "agent:shop" }), [undefined, undefined]);
+	assert.deepEqual(files(), [undefined, undefined], "no session named");
+});
+
 test("compactOn left out compacts only at the slots: a turn's report of its context use is read and asks nothing", async (t) => {
 	const box = await load(t, {}, "2026-10-18T07:59:00+02:00");
 	await box.start();

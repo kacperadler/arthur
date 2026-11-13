@@ -206,7 +206,7 @@ test("arthur run sends each turn failure the coordinator's agent left as turn fa
 	mkdirSync(failed, { recursive: true });
 	writeFileSync(join(failed, `${Math.floor(performance.timeOrigin) - 60_000}-1-1.txt`), "an old failure");
 	await box.plugin.start?.();
-	const extension = box.fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension").find(({ file }) => file.endsWith("turn-extension.ts"));
+	const extension = box.fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension", { session: "coordinator" }).find(({ file }) => file.endsWith("turn-extension.ts"));
 	assert.ok(extension);
 	const gates = temporaryFolder();
 	const omp = fakeAgent({ steps: [{ message: "", stopReason: "error", error: "529 overloaded\nretry later" }, { end: true }, { waitFor: join(gates, "next") }, { message: "", stopReason: "error", error: "500 internal; password pass-word-sk-live-4f9a8b7c" }, { end: true }, { waitFor: join(gates, "again") }, { message: "Back." }, { end: true }, { waitFor: join(gates, "never") }] });

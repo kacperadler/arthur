@@ -459,3 +459,35 @@ function valueDefaults(table: OptionTable, words: readonly string[]): Record<str
 test("each default the option table writes as a value is the one the code applies with nothing set", () => {
 	assert.deepEqual(valueDefaults(table, ["bots.*.name"]), { apiUrl: API_URL });
 });
+
+// AR0705 (roadmap 85): a project's chat is a topic of a bot's private chat, which needs the bot's topics on.
+test("doctor: one line per bot a project's chat names, ok when getMe says has_topics_enabled, missing when off, failed or no such bot; none without a chat", async (t) => {
+	const api = await botApi(t);
+	const bots = [
+		{ name: "shop", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" },
+		{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" },
+	];
+	const env = { ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: String(CHAT), ARTHUR_TELEGRAM_SECOND_BOT_TOKEN: SECOND, ARTHUR_TELEGRAM_SECOND_CHAT_ID: String(CHAT) };
+	const { fake } = await load(t, { apiUrl: api.url, bots }, { env });
+	type Line = { name: string; check(): Promise<string>; costs: string; fix: string; critical?: boolean };
+	const lines = async () => Promise.all(fake.collect<Line[]>("doctor").flat().map(async (line) => [line.name, await line.check(), line.costs, line.critical]));
+	let chats: unknown[] = [];
+	fake.provide("orchestration.chats", () => chats);
+	assert.deepEqual(await lines(), [], "no chat");
+	chats = [
+		{ project: "blog", plugin: "telegram", place: "4" },
+		{ project: "shop", plugin: "telegram", instance: "shop", place: "5" },
+		{ project: "web", plugin: "discord", place: "7" },
+		{ project: "news", plugin: "telegram", place: "8" },
+		{ project: "docs", plugin: "telegram", instance: "docs", place: "6" },
+	];
+	const off = "missing: getMe.has_topics_enabled is false: topics are off in the bot's private chat";
+	assert.deepEqual(await lines(), [
+		["bot (unnamed) topics", off, "the agents of blog, news have no topic to talk in", undefined],
+		["bot shop topics", "ok", "the agents of shop have no topic to talk in", undefined],
+		["bot docs topics", "missing: no bot named docs in bots", "the agents of docs have no topic to talk in", undefined],
+	]);
+	assert.equal(fake.collect<Line[]>("doctor").flat()[0]?.fix, "turn on topics for the bot's private chats in @BotFather, then run arthur doctor");
+	api.fail("getMe", 502, "Bad Gateway");
+	assert.equal(await fake.collect<Line[]>("doctor").flat()[0]?.check(), "missing: telegram bot (unnamed): getMe: 502: Bad Gateway");
+});

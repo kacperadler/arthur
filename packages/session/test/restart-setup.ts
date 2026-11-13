@@ -71,7 +71,7 @@ export async function load(t: TestContext, options: SessionOptions, now: string,
 		// A coordinator: the fake agent playing `run` with the extension the plugin gives orchestration, started with `args`.
 		coordinator(run: AgentRun, args: readonly string[] = ["--continue"]) {
 			const agent = fakeAgent(run);
-			const [extension] = fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension");
+			const [extension] = fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension", { session: "coordinator" });
 			assert.ok(extension);
 			const child = spawn(agent, [...args, "-e", extension.file], { env: { ...process.env, ...extension.env }, stdio: "ignore" });
 			agents.push(child);

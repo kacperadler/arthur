@@ -13,10 +13,9 @@ type ExtensionApi = {
 	on(event: "agent_end", handler: (event: { readonly messages?: readonly Said[]; readonly willContinue?: boolean }, ctx: { readonly hasUI: boolean }) => void): void;
 };
 
-// The coordinator's; a project agent's own name waits for its variable (roadmap 85).
-const SESSION = "coordinator";
-
 export default function sessionStats(pi: ExtensionApi): void {
+	// The session's name orchestration sets for a project agent, `agent:<project>`; the coordinator's sets none.
+	const SESSION = process.env.ARTHUR_ORCHESTRATION_SESSION || "coordinator";
 	const folder = process.env.ARTHUR_STATS_FOLDER ?? "";
 	if (folder === "") return;
 	const file = join(folder, "sessions", `${SESSION}.jsonl`);

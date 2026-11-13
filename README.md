@@ -29,7 +29,7 @@ Arthur lets one human direct many coding agents through one coordinator: the hum
 One line per package; each links the pages with the detail. `arthur help` lists every command, and `arthur <command> --help` prints its page.
 
 - **core**, built: the config and the env file, the plugin host and its event log, `arthur run`, jobs in worktrees with time, money, CPU and memory limits, here or over SSH, the ticket board, the env guard, worktree guard and sandbox of every job, `arthur doctor` and `arthur setup` ([commands](packages/core/docs/commands/), [plugin API](docs/plugin-api.md), [threat model](docs/deploy.md#threat-model)).
-- **orchestration**, built: the coordinator, `arthur attach`, `/board`, `/task`, planning, autopilot, the decision log, silent mode and the morning report ([commands](packages/orchestration/docs/commands/)).
+- **orchestration**, built: the coordinator, `arthur attach`, `/board`, `/task`, planning, autopilot, the decision log, silent mode and the morning report; partly built: a project agent per project with a chat, supervised beside the coordinator, whose chat routing, context and session follow ([commands](packages/orchestration/docs/commands/)).
 - **projects**, built: the project list, each worktree's install, `arthur init` and onboarding ([projects](packages/projects/docs/commands/projects.md), [init](packages/projects/docs/commands/init.md)).
 - **session**, built: compaction, a fresh start at night, `/restart` and the restart guard ([session](packages/session/docs/session.md)).
 - **schedule**, built: messages and jobs at set times, and entries other plugins register ([schedule](packages/schedule/docs/commands/schedule.md)).
@@ -55,7 +55,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **activity**, built: one file per day of who did what, each logged event with its actor and the messages it acted on, kept 90 days; `arthur log` and `/log` read it by day, user, actor, ticket or job ([activity](packages/activity/docs/activity.md)).
 - **docker**, partly built: what a job creates with Docker labelled with its id, its own compose project, all of it removed with its worktree, Docker's data root counted for the disk floor, and a daily sweep of leftovers with `arthur docker`; a project's own Docker service (`docker.project({ service })`) is held out ([docker](packages/docker/docs/docker.md)).
 - **herdr**, built: each job a tab in [herdr](https://herdr.dev) on the server, streaming its run with `arthur jobs --follow`, its state in herdr's sidebar, and a tab for `arthur attach` ([herdr](packages/herdr/docs/herdr.md)).
-- Planned: project agents; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- Planned: the rest of project agents (roadmap 86 to 88); later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 

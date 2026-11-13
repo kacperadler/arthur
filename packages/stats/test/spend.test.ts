@@ -33,7 +33,8 @@ async function load(t: TestContext, runs: readonly string[] = RUNS, turns: reado
 	const root = temporaryFolder();
 	const board = (id: string, status: string, updated: string) => ({ id, title: id, status, path: `spec/features/${id}-x/ticket.md`, updated });
 	mkdirSync(join(root, "acme", "spec"), { recursive: true });
-	writeFileSync(join(root, "acme", "spec", "build.json"), JSON.stringify([board("AC0012", "merged", "2026-11-12T12:00:00Z"), board("AC0013", "dropped", "2026-11-11T09:00:00Z"), board("AC0014", "in-progress", "2026-11-11T09:00:00Z")]));
+	const tickets = [board("AC0012", "merged", "2026-11-12T12:00:00Z"), board("AC0013", "dropped", "2026-11-11T09:00:00Z"), board("AC0014", "in-progress", "2026-11-11T09:00:00Z"), board("AC0015", "merged", "2026-11-01T09:00:00Z")];
+	writeFileSync(join(root, "acme", "spec", "build.json"), JSON.stringify(tickets));
 	mkdirSync(join(root, "other", "spec"), { recursive: true });
 	writeFileSync(join(root, "other", "spec", "build.json"), "not JSON");
 	const fake = fakeHost({ name: "stats", timeZone: "Europe/Warsaw", now: NOW, ...(job === undefined ? {} : { job }) });
@@ -124,6 +125,35 @@ test("the 5 most expensive tickets, the most expensive first", async (t) => {
 	assert.deepEqual((await cli()).out.split("\n").filter((line) => /^- AC/.test(line)), [6, 5, 4, 3, 2].map((n) => `- AC000${n} (status unknown): $${n}.00: worker $${n}.00`));
 });
 
+test("whether it pays: a ticket merged before the span is not merged in it, none merged is $0.00 a ticket; a run stopped at a limit was stopped", async (t) => {
+	const runs = [
+		run("2026-11-12T09:00:00Z", "worker", "acme", ["AC0015"], "limit: budget: $2.00 spent of $2.00", 600, 2, { [OPUS]: used(2) }),
+		run("2026-11-12T10:00:00Z", "review", "acme", [], "finished", 0, 0, {}, { missing: true }),
+	];
+	const { cli } = await load(t, runs, []);
+	assert.deepEqual((await cli()).out.split("\n"), [
+		`Spend ${SINCE}, every project: $2.00 at list price, 2 runs (1 failed or stopped), 0h10m`,
+		"Tokens: 0 in, 0 out, 0 cache read, 0 cache write",
+		"By role:",
+		"- worker: $2.00 (100%), 1 run (1 failed or stopped)",
+		"- review: $0.00 (0%), 1 run (0 failed or stopped)",
+		"By project:",
+		"- acme: $2.00 (100%), 2 runs (1 failed or stopped)",
+		"By model:",
+		`- ${OPUS}: $2.00 (100%), 0 in, 0 out, 0 cache read, 0 cache write`,
+		"By day:",
+		"- 2026-11-12: $2.00 (100%), 2 runs (1 failed or stopped)",
+		"Most expensive tickets:",
+		"- AC0015 (merged): $2.00: worker $2.00",
+		"Whether it pays:",
+		`- on 0 tickets merged ${SINCE}: $0.00, $0.00 per ticket`,
+		"- on dropped tickets: $0.00",
+		"- on runs that failed or were stopped: $2.00 in 1 run",
+		"- on work with no ticket (the coordinator, audits): $0.00",
+		"Unknown: 1 run whose record was gone, 0 lines not read",
+	]);
+});
+
 test("--since: today, yesterday and a date from the local day's start in core.timeZone, <n>d from now; anything else is wrong usage", async (t) => {
 	// Each at a limit, in Warsaw (UTC+1): its cost one bit, so a total names the lines it holds.
 	const at = ["2026-11-12T10:00:00.000Z", "2026-11-12T09:59:59.999Z", "2026-11-11T23:00:00.000Z", "2026-11-11T22:59:59.999Z", "2026-11-12T23:00:00.000Z", "2026-11-12T22:59:59.999Z"];
@@ -151,7 +181,12 @@ test("/stats answers the total, by role and the top 3 tickets, or a ticket's run
 	assert.equal(await fake.host.commands.route("/stats"), [...TOTAL, ...ROLES, ...TICKETS].join("\n"));
 	assert.deepEqual(fake.host.commands.phone().map((entry) => entry.name), ["stats"]);
 	const thirty = await fake.host.commands.route("/stats AC0012 30d");
-	assert.match(thirty, /^Runs of AC0012 since 2026-10-14 12:00 \(30 days\), every project: \$108\.00 at list price, 3 runs\n/, "summer time then");
+	assert.deepEqual(thirty.split("\n"), [
+		"Runs of AC0012 since 2026-10-14 12:00 (30 days), every project: $108.00 at list price, 3 runs",
+		`- 2026-11-01 11:00 worker, ${OPUS}, ended: finished, $100.00, 0 in, 0 out, 0 cache read, 0 cache write, 0h01m`,
+		`- 2026-11-12 10:00 worker, ${OPUS}, ended: finished, $6.00, 100 in, 2K out, 1M cache read, 50K cache write, 0h21m`,
+		`- 2026-11-12 12:00 review, ${OPUS}, ended: finished, $2.00, 50 in, 500 out, 200K cache read, 0 cache write, 0h02m`,
+	], "the oldest first, though the file holds the oldest last; summer time then");
 	// Since yesterday: two tickets, AC0012 and OT0001.
 	const full = (await cli("--since", "yesterday")).out.split("\n");
 	const top = full.indexOf("Most expensive tickets:");
@@ -164,5 +199,5 @@ test("inside a job the spend view and /stats say the home is hidden, arthur stat
 	const hidden = "the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here";
 	assert.deepEqual(await cli(), { code: 1, out: "", err: `arthur stats: ${hidden}` });
 	assert.equal(await fake.host.commands.route("/stats"), hidden);
-	assert.match((await cli("tickets")).out, /^Stats of acme: 1 merged ticket\n/);
+	assert.match((await cli("tickets")).out, /^Stats of acme: 2 merged tickets\n/);
 });

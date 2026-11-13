@@ -2,10 +2,10 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host, Ticket } from "@arthur/core/plugin";
 
-// `arthur stats` (spec/roadmap.md, entries 61 and 110), and `stats.tickets`, the `### Stats` section of manage's audit and retro
-// prompts: per merged ticket of a project its review rounds, verdicts, cost and days, then the mean rounds, the share of
-// first-round PASS, the share of autopilot, the 3 most expensive and the first line of each finding of a FAIL review. Read only,
-// from the board and the files in each ticket's folder. docs/commands/stats.md.
+// `arthur stats tickets` (spec/roadmap.md, entries 61, 110 and 111), and `stats.tickets`, the `### Stats` section of manage's
+// audit and retro prompts: per merged ticket of a project its review rounds, verdicts, cost and days, then the mean rounds, the
+// share of first-round PASS, the share of autopilot, the 3 most expensive and the first line of each finding of a FAIL review.
+// Read only, from the board and the files in each ticket's folder. docs/commands/stats-tickets.md.
 
 const REVIEW = /^review-(\d+)\.md$/;
 const DAY_MS = 86_400_000;

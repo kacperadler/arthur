@@ -82,7 +82,7 @@ flowchart TD
       subgraph SELF[Arthur itself]
         manage[manage<br/>arthur health, /health, the daily prune<br/>the audit, the retro, arthur retro-due, /retro<br/>arthur repeats, /repeats]
         develop[develop<br/>arthur plugin new, arthur eval<br/>and its scenarios]
-        stats[stats<br/>the tokens, cost and time of each job run<br/>and coordinator turn; arthur stats,<br/>the merged tickets; its spend views planned]
+        stats[stats<br/>the tokens, cost and time of each job run<br/>and coordinator turn; arthur stats, /stats,<br/>arthur stats tickets; usage windows planned]
         activity[activity<br/>who did what, one file per day<br/>its actor and the messages acted on<br/>arthur log, /log planned]
         manage ~~~ develop ~~~ stats ~~~ activity
       end

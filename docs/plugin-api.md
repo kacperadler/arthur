@@ -269,7 +269,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `delivery.ciEnded` | delivery | github (its poll, as a run ends) | `{ project, branch, below, run }`: whether a CI wait counts the run and delivery woke the coordinator for it (above, "Changes since entry 51"). |
 | `delivery.merging` | delivery | session (the fresh start's try, `/restart`, the restart due) | `{ project, job }` of each merge in a run; none while no `merge.lock` names a live process (above, "Changes since entry 51"). |
 | `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
-| `stats.tickets` | stats | manage (an audit's and a retro's prompt) | `(project, since?)`: the merged tickets' report `arthur stats` prints, of the tickets merged at `since` or later (`arthur stats --help`). |
+| `stats.tickets` | stats | manage (an audit's and a retro's prompt) | `(project, since?)`: the merged tickets' report `arthur stats tickets` prints, of the tickets merged at `since` or later (`arthur stats tickets --help`). |
 
 ## Option tables and `./options`
 

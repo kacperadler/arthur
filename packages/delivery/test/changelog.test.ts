@@ -164,6 +164,11 @@ test("a v<x.y.z> tag on the first-parent line, lightweight or annotated, is that
 	git("tag", "v0.3.0", `${s3}^2`);
 	for (const tag of ["v0.4.0", "v1.0", "v1.0.0-rc.1", "vnext", "v1.0.0x"]) git("tag", tag, s5);
 	for (const [id, step, day] of [["AC0001", s1, "02"], ["AC0002", s2, "03"], ["AC0003", s3, "04"], ["AC0004", s4, "05"], ["AC0005", s5, "06"]]) outcome(acme, id ?? "", `2026-03-${day}, \`${step}`);
+	// `arthur changelog` counts the tags the checkout has; only a merge fetches origin's: its v0.9.0 is no release here.
+	const origin = join(temporaryFolder(), "origin.git");
+	git("init", "--quiet", "--bare", origin);
+	git("push", "--quiet", origin, "main", `${s5}:refs/tags/v0.9.0`);
+	git("remote", "add", "origin", origin);
 	const run = await load(t, acme);
 	assert.deepEqual(await run(), { code: 0, out: "wrote CHANGELOG.md: 5 merged tickets", err: "" });
 	const fixed = (id: string, step: string, day: string) => `### 2026-03-${day}\n\n#### Fixed\n\n- ${id} Title of ${id} (${step})\n`;

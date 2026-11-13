@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeAgent, type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
@@ -201,4 +201,9 @@ test("the extension counts nothing twice across a resume and a restart; a subage
 		{ time: at(17_000), session: "coordinator", seconds: 1, until: 16_500, cost: 1.125, usage: m1(2, 1.125) },
 		{ time: at(18_000), session: "coordinator", seconds: 0, until: 16_500, cost: 0, usage: {} },
 	]);
+	// A file edited by hand whose last lines are no object: they are skipped, and the `until` before them holds.
+	appendFileSync(file, "null\n[1]\n");
+	now = 19_000;
+	agent().end(conversation);
+	assert.deepEqual(lines(file).at(-1), { time: at(19_000), session: "coordinator", seconds: 0, until: 16_500, cost: 0, usage: {} });
 });

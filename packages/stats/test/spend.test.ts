@@ -103,7 +103,10 @@ test("each filter narrows every section: project, role, model, ticket; a run of 
 	const { cli } = await load(t);
 	const first = async (...args: string[]) => (await cli(...args)).out.split("\n").slice(0, 2);
 	assert.deepEqual(await first("--role", "coordinator"), [`Spend ${SINCE}, every project, role coordinator: $4.50 at list price, 1 turn, 0h01m`, "Tokens: 2 in, 20 out, 0 cache read, 0 cache write"]);
-	assert.deepEqual(await first("--model", "ollama/qwen"), [`Spend ${SINCE}, every project, model ollama/qwen: $0.00 at list price, 1 run (1 failed or stopped), 0h10m`, "Tokens: 40 in, 4 out, 0 cache read, 0 cache write"]);
+	const free = (await cli("--model", "ollama/qwen")).out.split("\n");
+	assert.deepEqual(free.slice(0, 2), [`Spend ${SINCE}, every project, model ollama/qwen: $0.00 at list price, 1 run (1 failed or stopped), 0h10m`, "Tokens: 40 in, 4 out, 0 cache read, 0 cache write"]);
+	assert.deepEqual(free.slice(2, 4), ["By role:", "- worker: $0.00 (0%), 1 run (1 failed or stopped)"], "no share of a total of 0");
+	assert.ok((await cli("--role", "coordinator")).out.split("\n").includes("Most expensive tickets: none"));
 	assert.deepEqual(await first("--model", OPUS, "--role", "worker"), [`Spend ${SINCE}, every project, role worker, model ${OPUS}: $9.00 at list price, 2 runs (1 failed or stopped), 0h31m`, "Tokens: 110 in, 2.1K out, 1M cache read, 50K cache write"]);
 	assert.deepEqual(await first("--role", "tester"), [`No job run or coordinator turn ${SINCE}, every project, role tester.`, "Unknown: 0 runs whose record was gone, 2 lines not read"]);
 	assert.deepEqual(await first("--project", "other"), [`Spend ${SINCE}, project other: $1.50 at list price, 2 runs (1 failed or stopped), 0h01m`, "Tokens: 0 in, 0 out, 0 cache read, 0 cache write"]);
@@ -138,7 +141,7 @@ test("--since: today, yesterday and a date from the local day's start in core.ti
 
 test("an empty folder says so in one line; a folder of unread lines adds the count", async (t) => {
 	assert.deepEqual(await (await load(t, [], [])).cli(), { code: 0, out: `No job run or coordinator turn ${SINCE}, every project.`, err: "" });
-	assert.deepEqual((await (await load(t, ["{", "[1]", "nope"], [])).cli()).out, `No job run or coordinator turn ${SINCE}, every project.\nUnknown: 0 runs whose record was gone, 3 lines not read`);
+	assert.deepEqual((await (await load(t, ["{", "[1]", "null", "nope"], [])).cli()).out, `No job run or coordinator turn ${SINCE}, every project.\nUnknown: 0 runs whose record was gone, 4 lines not read`);
 });
 
 test("/stats answers the total, by role and the top 3 tickets, or a ticket's runs, without the model; other words are its usage", async (t) => {
@@ -151,7 +154,7 @@ test("/stats answers the total, by role and the top 3 tickets, or a ticket's run
 	const full = (await cli("--since", "yesterday")).out.split("\n");
 	const top = full.indexOf("Most expensive tickets:");
 	assert.equal(await fake.host.commands.route("/stats  yesterday "), [...full.slice(0, full.indexOf("By project:")), ...full.slice(top, top + 3)].join("\n"));
-	for (const text of ["/stats 7d 30d", "/stats nope", "/stats AC0012 AC0013", "/stats ac0012"]) assert.equal(await fake.host.commands.route(text), "usage: /stats [today|yesterday|<n>d|YYYY-MM-DD] [<ticket id>]", text);
+	for (const text of ["/stats 7d 30d", "/stats nope", "/stats AC0012 AC0013", "/stats ac0012", "/stats AC012"]) assert.equal(await fake.host.commands.route(text), "usage: /stats [today|yesterday|<n>d|YYYY-MM-DD] [<ticket id>]", text);
 });
 
 test("inside a job the spend view and /stats say the home is hidden, arthur stats exiting 1; arthur stats tickets still runs", async (t) => {

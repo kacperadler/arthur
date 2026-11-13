@@ -14,8 +14,8 @@ const money = (usd: number) => `$${usd.toFixed(2)}`;
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 const percent = (part: number, whole: number) => `${whole > 0 ? Math.round((part / whole) * 100) : 0}%`;
 const cost = (rows: readonly { readonly cost: number }[]) => rows.reduce((sum, row) => sum + row.cost, 0);
-// A run that failed, was stopped, or was stopped at a limit (`arthur spawn --help`, the end's reasons).
-const failed = (row: Spent) => !row.turn && /^(?:failed|stopped|limit:)/.test(row.reason);
+// A run that failed, was stopped, or was stopped at a limit (`arthur spawn --help`, the end's reasons); a turn has no reason.
+const failed = (row: Spent) => /^(?:failed|stopped|limit:)/.test(row.reason);
 
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.floor(seconds / 60) % 60).padStart(2, "0")}m`;
 

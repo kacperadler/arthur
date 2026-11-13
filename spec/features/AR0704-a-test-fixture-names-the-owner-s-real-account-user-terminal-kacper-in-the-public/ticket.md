@@ -32,4 +32,5 @@ Out:
 - No code change.
 
 ## Decisions
+- 2026-11-13: AR0704 approved: the activity test fixture uses a made-up account name; the owner: "AR-D668: approve" (AR-D668)
 

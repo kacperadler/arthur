@@ -1342,3 +1342,4 @@
 {"record":"answer","id":"AR-D666","time":"2026-11-13T08:09:25+01:00","decided":"The owner approved raising the AR0699 worker budget from $2 to $5","picked":1,"words":"AR-D666 merge","message":16120}
 {"record":"answer","id":"AR-D667","time":"2026-11-13T08:13:24+01:00","decided":"AR0700 approved: load the stats plugin in the owner config","picked":1,"words":"AR-D667 approve","message":16154}
 {"record":"ask","id":"AR-D668","time":"2026-11-13T10:55:14+01:00","project":"arthur","kind":"plan","question":"Approve AR0704: the activity test that uses your real account name (user:terminal:kacper) gets a made-up one (user:terminal:alice), so the public repository names no real account?","options":["Approve","Not yet"],"ticket":"AR0704"}
+{"record":"answer","id":"AR-D668","time":"2026-11-13T10:59:20+01:00","decided":"AR0704 approved: the activity test fixture uses a made-up account name","picked":1,"words":"AR-D668: approve","message":16520}

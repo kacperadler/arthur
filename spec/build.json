@@ -5687,8 +5687,8 @@
   {
     "id": "AR0704",
     "title": "A test fixture names the owner's real account, user:terminal:kacper, in the public repository",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0704-a-test-fixture-names-the-owner-s-real-account-user-terminal-kacper-in-the-public/ticket.md",
-    "updated": "2026-11-13T09:54:42.165Z"
+    "updated": "2026-11-13T09:59:21.548Z"
   }
 ]

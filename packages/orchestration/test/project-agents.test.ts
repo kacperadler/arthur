@@ -288,3 +288,18 @@ test("one at a time: each start begins once the one before it ended, and one tha
 	assert.equal(await second, 3);
 	assert.deepEqual(order, ["first begins", "first ends", "second begins"]);
 });
+
+// A plugin's `piece` and the list of sessions read `collect("projects")` at its setup, so orchestration sets up after projects.
+test("in the shell, with orchestration before projects in the config: the agent of a project's chat is known, a malformed chat refuses the load", () => {
+	const folder = temporaryFolder();
+	const plugin = fileURLToPath(new URL("../src/orchestration.ts", import.meta.url));
+	const config = (piece: unknown) =>
+		`import { orchestration } from ${JSON.stringify(plugin)};\nexport default { plugins: [orchestration({ coordinator: { tmux: { socket: ${JSON.stringify(SOCKET)} } } }), { name: "projects", setup(host) {\n\thost.provide("projects", () => [{ name: "shop", path: import.meta.dirname, prefix: "SH", pieces: { orchestration: ${JSON.stringify(piece)} } }]);\n} }] };\n`;
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+	writeFileSync(join(folder, "arthur.config.ts"), config(chat("telegram", "4")));
+	const other = arthur("attach", "blog");
+	assert.deepEqual([other.status, other.stderr], [1, "arthur attach: project blog has no agent (no orchestration.project({ chat }) in its project file); projects with one: shop\n"]);
+	assert.equal(arthur("coordinator", "stop", "shop").stdout, `arthur coordinator stop: tmux session arthur-shop (socket ${SOCKET}) was not running; it stays stopped until arthur run starts again\n`);
+	writeFileSync(join(folder, "arthur.config.ts"), config({ chat: { plugin: "telegram" } }));
+	assert.match(arthur("attach", "shop").stderr, /plugin orchestration: setup failed: project shop: orchestration\.project\(\.\.\.\): expected \{ chat: \{ plugin, instance\?, place \} \}/);
+});

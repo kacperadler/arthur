@@ -101,7 +101,7 @@ function topics(bot: Bot | undefined, instance: string | undefined, projects: re
 		if (bot === undefined) return `missing: no bot named ${instance} in bots`;
 		const me = await call(bot, "getMe", {}, AbortSignal.timeout(10_000)).catch((error: Error) => error);
 		if (me instanceof Error) return `missing: ${me.message}`;
-		return (me as { readonly has_topics_enabled?: unknown } | null)?.has_topics_enabled === true ? "ok" : "missing: getMe.has_topics_enabled is false: topics are off in the bot's private chat";
+		return (me as { readonly has_topics_enabled?: unknown } | null)?.has_topics_enabled === true ? "ok" : "missing: getMe.has_topics_enabled is not true: topics are off in the bot's private chat";
 	};
 	const costs = `the agents of ${projects.join(", ")} have no topic to talk in`;
 	return { name: `bot ${bot?.label ?? instance} topics`, check, costs, fix: "turn on topics for the bot's private chats in @BotFather, then run arthur doctor" };

@@ -61,9 +61,10 @@ const SENDS = ["sendMessage", "sendPhoto", "sendVideo", "sendDocument", "sendVoi
 // A fake Bot API on a loopback port the OS picks. `getUpdates` answers the updates from `offset` on, or waits, as long polling
 // does, until one is pushed or its `timeout` passes; a send answers the sent Message (`sendMediaGroup`, one per item), a
 // multipart one's files as `Upload`s in its params. `getFile` answers the File a test put with `file`, and
-// `/file/bot<token>/<file_path>` its bytes; `getMe` the bot's User; `setMyCommands` and `deleteMyCommands` True. `fail`
-// scripts the next answers of a method in the documented error shape (`ok: false`, `error_code`, `description`), with its
-// HTTP status. `sent` is every sendMessage call, `took` those it answered, `menus` every menu call.
+// `/file/bot<token>/<file_path>` its bytes; `getMe` the bot's User, without the Optional fields `omit` names (as an older Bot
+// API leaves them out); `setMyCommands` and `deleteMyCommands` True. `fail` scripts the next answers of a method in the
+// documented error shape (`ok: false`, `error_code`, `description`), with its HTTP status. `sent` is every sendMessage call,
+// `took` those it answered, `menus` every menu call.
 export async function botApi(t: TestContext) {
 	const calls: Call[] = [];
 	const taken: Call[] = [];
@@ -71,6 +72,7 @@ export async function botApi(t: TestContext) {
 	const files = new Map<string, { readonly file_path: string; readonly bytes: Buffer }>();
 	const failures: { method: string; code: number; description: string; parameters?: { retry_after: number } }[] = [];
 	const waiting = new Set<() => void>();
+	const omitted = new Set<string>();
 	let next = 100;
 	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
 	const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
@@ -116,7 +118,7 @@ export async function botApi(t: TestContext) {
 			if (file === undefined) return send(response, 400, { ok: false, error_code: 400, description: "Bad Request: invalid file_id" });
 			return send(response, 200, { ok: true, result: { file_id: params.file_id, file_unique_id: `${String(params.file_id)}-unique`, file_size: file.bytes.length, file_path: file.file_path } });
 		}
-		if (method === "getMe") return send(response, 200, { ok: true, result: ME(token) });
+		if (method === "getMe") return send(response, 200, { ok: true, result: Object.fromEntries(Object.entries(ME(token)).filter(([key]) => !omitted.has(key))) });
 		if (method === "setMyCommands" || method === "deleteMyCommands") return send(response, 200, { ok: true, result: true });
 		if (method !== "getUpdates") return send(response, 404, { ok: false, error_code: 404, description: "Not Found" });
 		const ready = () => (updates.get(token) ?? []).filter((update) => update.update_id >= Number(params.offset ?? 0));
@@ -161,6 +163,7 @@ export async function botApi(t: TestContext) {
 		},
 		file: (fileId: string, filePath: string, bytes: Buffer) => void files.set(fileId, { file_path: filePath, bytes }),
 		fail: (method: string, code: number, description: string, parameters?: { retry_after: number }) => void failures.push({ method, code, description, parameters }),
+		omit: (field: string) => void omitted.add(field),
 	};
 }
 

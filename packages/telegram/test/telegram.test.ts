@@ -481,7 +481,7 @@ test("doctor: one line per bot a project's chat names, ok when getMe says has_to
 		{ project: "news", plugin: "telegram", place: "8" },
 		{ project: "docs", plugin: "telegram", instance: "docs", place: "6" },
 	];
-	const off = "missing: getMe.has_topics_enabled is false: topics are off in the bot's private chat";
+	const off = "missing: getMe.has_topics_enabled is not true: topics are off in the bot's private chat";
 	assert.deepEqual(await lines(), [
 		["bot (unnamed) topics", off, "the agents of blog, news have no topic to talk in", undefined],
 		["bot shop topics", "ok", "the agents of shop have no topic to talk in", undefined],
@@ -490,4 +490,7 @@ test("doctor: one line per bot a project's chat names, ok when getMe says has_to
 	assert.equal(fake.collect<Line[]>("doctor").flat()[0]?.fix, "turn on topics for the bot's private chats in @BotFather, then run arthur doctor");
 	api.fail("getMe", 502, "Bad Gateway");
 	assert.equal(await fake.collect<Line[]>("doctor").flat()[0]?.check(), "missing: telegram bot (unnamed): getMe: 502: Bad Gateway");
+	// The field is Optional in the documentation: a bot whose getMe leaves it out has no topics either.
+	api.omit("has_topics_enabled");
+	assert.equal(await fake.collect<Line[]>("doctor").flat()[1]?.check(), off, "the shop bot, topics on, without the field");
 });

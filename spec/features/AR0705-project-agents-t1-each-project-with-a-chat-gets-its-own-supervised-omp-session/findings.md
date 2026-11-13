@@ -19,6 +19,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-13-review-714b3bf6 (review), 2026-11-13
 - Where: `packages/orchestration/src/sessions.ts:34`
 - What: the shared-chat refusal compares `instance` as written. `{ plugin: "telegram", instance: "main", place: "4" }` and `{ plugin: "telegram", place: "4" }` pass when the bot named `main` is also the plugin's main one, so both chats are one topic; once AR0706 routes messages, each agent hears the other's.
+- Also: `packages/telegram/src/telegram.ts:74` then gives two `arthur doctor` lines for the one bot, one per spelling (review 2026-11-13-review-04099ada).
 - Suggestion: in AR0706, which routes by `instance`, resolve both to the channel's bot (a `channel.instances`-style answer from each channel plugin, or refuse a chat that names the main bot by name) before comparing; orchestration alone cannot know which named bot is the main one.
 - Status: open
 
@@ -38,4 +39,13 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:66`
 - What: the orchestration row reads "Later, an agent per project with a `chat`, and the routing of that chat to it (roadmap 85 to 88)". After this branch, entry 85 is built; the line is the owner's, so the branch leaves it.
 - Suggestion: the owner may say partly built (85 merged, 86 to 88 to come), or leave it until AR0708 merges.
+- Status: open
+
+## F5. npm run mutate leaves a test job's wrapper and fake agent running
+
+- Kind: test
+- Found by: 2026-11-13-worker-fa1b7778 (worker), 2026-11-13; seen again by 2026-11-13-review-04099ada
+- Where: `test/mutate.ts`
+- What: after `npm run mutate` ended, a job wrapper (`packages/core/src/wrapper.ts <tmp home> 2026-01-01-worker-… omp acme …`) and its fake agent were still running, about 4 minutes old; both the worker and the review had to kill them by hand. Which mutant's test run started them was not traced.
+- Suggestion: have each mutant's test run end every process left in its own kit folder (as the test kit's exit hook does for `npm test`), or kill the run's process group when a mutant's run ends or times out.
 - Status: open

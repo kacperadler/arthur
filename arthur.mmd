@@ -55,8 +55,7 @@ flowchart TD
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>morning report, decision log, decision classes]
         session[session<br/>compaction, fresh start, restart guard<br/>start notice, LLM probe]
         schedule[schedule<br/>actions, jobs at set times<br/>registered entries, arthur schedule]
-        agents[project agents<br/>one per project with a chat, supervised<br/>arthur attach project; 1 of 4 entries merged]
-        orchestration ~~~ agents ~~~ session ~~~ schedule
+        orchestration ~~~ session ~~~ schedule
       end
       subgraph PROJ[Projects]
         projects[projects<br/>project list, install<br/>arthur init, onboarding]
@@ -90,6 +89,7 @@ flowchart TD
     end
 
     subgraph LATER[Later plugins]
+      agents[project agents<br/>one per project with a chat, supervised<br/>arthur attach project; 1 of 4 entries merged]
       signal[signal<br/>a channel, signal-cli]
       slack[slack<br/>a channel, Socket Mode]
       whatsapp[whatsapp<br/>a channel, local bridge]
@@ -97,7 +97,7 @@ flowchart TD
       apps[own apps<br/>web panel, mobile app in Expo<br/>by Tailscale name, no public port]
       knowledge[knowledge base<br/>search, chat with sources]
       company[company edition<br/>business roles as agents]
-      signal ~~~ slack ~~~ whatsapp ~~~ server ~~~ apps ~~~ knowledge ~~~ company
+      agents ~~~ signal ~~~ slack ~~~ whatsapp ~~~ server ~~~ apps ~~~ knowledge ~~~ company
       apps -.->|Tailscale| server
     end
   end

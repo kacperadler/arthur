@@ -20,10 +20,11 @@ const MERGED = /^- Merged: (\d{4}-\d{2}-\d{2}), `([0-9a-f]+)`/m;
 type Line = { readonly day: string; readonly heading: string | undefined; readonly line: string; readonly hash: string };
 type Release = { readonly version: string; readonly date: string; readonly at: number };
 
-// Writes `project`'s CHANGELOG.md, the main one when undefined, whole or not at all; returns the line that says so. A ticket's
-// day and hash come from its outcome.md's `- Merged:` line; without one (merged before `arthur merge` wrote outcomes) the day
-// of its last move on the board, no hash. Ids of one project share a prefix, so they sort by number: AR9999 before AR10000.
-export function writeChangelog(host: Pick<Host, "board" | "clock">, project: string | undefined): string {
+// Writes `project`'s CHANGELOG.md, the main one when undefined, whole or not at all, after origin's tags with `fetch` (a merge);
+// returns the lines that say so. A ticket's day and hash come from its outcome.md's `- Merged:` line; without one (merged before
+// `arthur merge` wrote outcomes) the day of its last move on the board, no hash. Ids of one project share a prefix, so they sort by
+// number: AR9999 before AR10000.
+export function writeChangelog(host: Pick<Host, "board" | "clock">, project: string | undefined, fetch = false): string {
 	const merged = host.board
 		.list(project)
 		.filter((ticket) => ticket.status === "merged")
@@ -31,6 +32,7 @@ export function writeChangelog(host: Pick<Host, "board" | "clock">, project: str
 	const projects = host.board.projects();
 	// `host.board.list` refuses an unknown project, so `root` is found.
 	const root = (project === undefined ? projects[0] : projects.find((each) => each.name === project))?.path ?? "";
+	const fetched = fetch ? fetchTags(root) : "";
 	const lines = merged.map((ticket) => {
 		const [outcomePath, ticketPath] = [join(root, dirname(ticket.path), "outcome.md"), join(root, ticket.path)];
 		const outcome = MERGED.exec(existsSync(outcomePath) ? readFileSync(outcomePath, "utf8") : "");
@@ -63,7 +65,7 @@ export function writeChangelog(host: Pick<Host, "board" | "clock">, project: str
 	const draft = join(root, `.${FILE}.${process.pid}`);
 	writeFileSync(draft, text);
 	renameSync(draft, join(root, FILE));
-	return `wrote ${FILE}: ${merged.length} merged ticket${merged.length === 1 ? "" : "s"}`;
+	return `${fetched && `${fetched}\n`}wrote ${FILE}: ${merged.length} merged ticket${merged.length === 1 ? "" : "s"}`;
 }
 
 // One `<level> <day>` section per day, newest first, and under it a heading one level deeper per kind, in ORDER.
@@ -117,15 +119,16 @@ function releasesOf(root: string, clock: Host["clock"]): { readonly line: readon
 // Origin's `v*` tags fetched into `root` before a merge rebuilds the changelog, so a release tagged there counts (AR0699); a line
 // when they could not be, the merge going on with the tags `root` has. No prompt, program or hook (as github's calls to origin);
 // only the refspec given, so no `remote.origin.fetch` a job wrote, and no prune; a tag `root` holds elsewhere is not moved.
-export function fetchTags(root: string): string {
+function fetchTags(root: string): string {
 	if (spawnSync("git", ["-C", root, "remote", "get-url", "origin"], { stdio: "ignore" }).status !== 0) return "";
 	const { refusal, pins } = checkConfig(root);
 	if (refusal !== "") return `tags not fetched from origin: ${refusal}`;
 	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never", GIT_PROTOCOL_FROM_USER: "0" };
-	const words = ["fetch", "--quiet", "--no-tags", "--no-prune", "--refmap=", "origin", "refs/tags/v*:refs/tags/v*"];
-	const ran = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...words], { env, stdio: "ignore", timeout: FETCH_MS });
+	const words = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, "fetch", "--quiet", "--no-tags", "--no-prune", "--refmap="];
+	const ran = spawnSync("git", ["--no-replace-objects", ...words, "origin", "refs/tags/v*:refs/tags/v*"], { env, stdio: "ignore", timeout: FETCH_MS });
 	if (ran.status === 0) return "";
-	return `tags not fetched from origin: git fetch ${ran.error === undefined ? `exited ${ran.status}` : `timed out after ${FETCH_MS / 1000} s`}; CHANGELOG.md counts the tags of ${root}`;
+	const why = ran.error === undefined ? `exited ${ran.status}` : `timed out after ${FETCH_MS / 1000} s`;
+	return `tags not fetched from origin: git fetch ${why}; CHANGELOG.md counts the tags of ${root}`;
 }
 
 export function changelogCommand(host: Host): Command {

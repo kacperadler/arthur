@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { temporaryFolder } from "@arthur/core/testing";
 import { FOLDER, load, OWNER, PACKAGE, TICKET } from "./merge-setup.ts";
 
 // arthur merge (merge-setup.ts): what a merge writes after it went in: outcome.md, the review costs, CHANGELOG.md, the findings.
@@ -88,6 +89,52 @@ test("a release ticket's own merge writes its release's section, its ticket and 
 	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
 	assert.equal((await merge(pay.id, "--unreviewed", "--decision", OWNER)).err, "");
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\\.\n\n## Unreleased\n\n### ${day}\n\n#### Other\n\n- AC0003 Pay \\([0-9a-f]+\\)\n\n## 0\\.2\\.0 \\(${day}\\)\n`));
+});
+
+// AR0699: release.yml tags v<version> on origin, and one made by hand may be there only; the merge fetches them before the changelog.
+test("a merge fetches origin's v* tags before it rebuilds CHANGELOG.md: one only origin had is a release; a tag held here at another commit, or one a prune would drop, stays; origin out of reach is said, the merge in", async (t) => {
+	// Origin is a folder here, which the fetch takes only where the owner's config allows it, as github's calls to origin do.
+	const global = join(temporaryFolder(), "gitconfig");
+	writeFileSync(global, '[user]\n\tname = t\n\temail = t@example.com\n[protocol "file"]\n\tallow = always\n');
+	const was = process.env.GIT_CONFIG_GLOBAL;
+	process.env.GIT_CONFIG_GLOBAL = global;
+	t.after(() => void (process.env.GIT_CONFIG_GLOBAL = was));
+	const { root, git, commit, take, worker, merge } = await load(t);
+	commit(root, { "package.json": JSON.stringify({ ...JSON.parse(PACKAGE), version: "0.1.0" }) });
+	await take();
+	const origin = join(temporaryFolder(), "origin.git");
+	git(root, "init", "--quiet", "--bare", origin);
+	git(root, "remote", "add", "origin", origin);
+	const first = await worker();
+	const merged = await merge(first.id, "--unreviewed", "--decision", OWNER);
+	assert.deepEqual([merged.err, merged.out.includes("tags not fetched")], ["", false], "origin with no tag yet");
+	git(root, "push", "--quiet", "origin", "main");
+	git(origin, "tag", "v0.1.0", "main");
+	// A local tag off main's line, which a prune of refs/tags/v* would drop, and the prune a job may have turned on.
+	git(root, "tag", "v0.0.9", first.tip);
+	git(root, "config", "fetch.prune", "true");
+	assert.equal(git(root, "tag", "--list", "v0.1.0"), "", "only origin has it");
+	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
+	assert.equal((await merge(cart.id, "--unreviewed", "--decision", OWNER)).err, "");
+	const day = "\\d{4}-\\d{2}-\\d{2}";
+	const released = `\\.\n\n## Unreleased\n\n### ${day}\n\n#### Other\n\n- AC0002 Cart \\([0-9a-f]+\\)\n\n## 0\\.1\\.0 \\(${day}\\)\n\n### ${day}\n\n#### Other\n\n- AC0001 Shop \\([0-9a-f]+\\)$`;
+	assert.match(git(root, "show", "HEAD:CHANGELOG.md"), new RegExp(released), "committed in spec: AC0002 merged");
+	assert.deepEqual(git(root, "tag", "--list", "v*").split("\n"), ["v0.0.9", "v0.1.0"]);
+	// Origin's v0.2.0 where the checkout has its own: not moved, said.
+	git(root, "push", "--quiet", "origin", "main");
+	git(origin, "tag", "v0.2.0", "main^");
+	git(root, "tag", "v0.2.0", "main");
+	const mine = git(root, "rev-parse", "v0.2.0");
+	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
+	const paid = await merge(pay.id, "--unreviewed", "--decision", OWNER);
+	assert.equal(paid.err, "");
+	assert.match(paid.out, new RegExp(`\ntags not fetched from origin: git fetch exited 1; CHANGELOG\\.md counts the tags of ${root}\nwrote CHANGELOG\\.md: 3 merged tickets\n`));
+	assert.equal(git(root, "rev-parse", "v0.2.0"), mine);
+	git(root, "remote", "set-url", "origin", join(origin, "gone"));
+	const aside = await worker({ "aside.ts": "export const aside = 1;\n" }, "No ticket here.");
+	const away = await merge(aside.id, "--unreviewed", "--decision", OWNER);
+	assert.equal(away.err, "");
+	assert.match(away.out, new RegExp(`\nno ticket: no outcome\\.md, nothing moved\ntags not fetched from origin: git fetch exited 128; CHANGELOG\\.md counts the tags of ${root}\nwrote CHANGELOG\\.md: 3 merged tickets\n`));
 });
 
 test("findings go to findings.onMerge: none open makes no ticket, an open one's ticket gets the next id; without a provider they stay open, said once", async (t) => {

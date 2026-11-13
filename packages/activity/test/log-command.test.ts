@@ -214,7 +214,8 @@ test("what arthur run wrote reads back: the owner's message and the reply on his
 	const message = fake.emit("message-received", { channel: "telegram", parts: [{ kind: "text", text: "Merge AC0012 now" }] });
 	fake.emit("notice", { text: "Restarted." });
 	const reply = fake.emit("coordinator-replied", { text: "On it.", answers: [message.seq], channels: ["telegram"] });
-	const at = (time: string) => fake.host.clock.local(new Date(time)).time;
-	const lines = [`${at(message.time)}  user:telegram  message-received  Merge… (16 chars, event ${message.seq})`, `${at(reply.time)}  ${reply.by?.actor}  coordinator-replied  On it… (6 chars, event ${reply.seq})`];
-	assert.deepEqual(await cli(["--user", "telegram"]), ok(lines.join("\n")));
+	// The bus stamps events with the real time, not the fake's `now`: read back the day they were filed under in core.timeZone.
+	const at = (time: string) => fake.host.clock.local(new Date(time));
+	const lines = [`${at(message.time).time}  user:telegram  message-received  Merge… (16 chars, event ${message.seq})`, `${at(reply.time).time}  ${reply.by?.actor}  coordinator-replied  On it… (6 chars, event ${reply.seq})`];
+	assert.deepEqual(await cli(["--user", "telegram", "--day", at(message.time).date]), ok(lines.join("\n")));
 });

@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0530 `arthur log` and `/log`: read the activity log by day, user, actor, ticket or job (56514cf4)
 - AR0652 Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111) (46655571)
 - AR0653 Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112) (234b6360)
 

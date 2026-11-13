@@ -4212,9 +4212,9 @@
   {
     "id": "AR0530",
     "title": "`arthur log` and `/log`: read the activity log by day, user, actor, ticket or job",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0530-arthur-log-and-log-read-the-activity-log-by-day-user-actor-ticket-or-job/ticket.md",
-    "updated": "2026-11-06T08:17:08.705Z",
+    "updated": "2026-11-13T09:53:57.369Z",
     "after": [
       "AR0653"
     ]

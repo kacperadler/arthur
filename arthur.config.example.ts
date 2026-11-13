@@ -399,8 +399,8 @@ export default defineConfig({
 		}),
 
 		// Who did what: `<home>/activity/days/YYYY-MM-DD.jsonl` in core.timeZone, one line per logged event with its actor and
-		// the messages it acted on (`on`), written by arthur run alone. Media without paths, forwarded words left out.
-		// packages/activity/docs/activity.md.
+		// the messages it acted on (`on`), written by arthur run alone, read with `arthur log` and `/log`. Media without paths,
+		// forwarded words left out. packages/activity/docs/activity.md.
 		activity({
 			keepDays: 90, // a day file more than this many days old is removed at arthur run's start and at each new day
 			textChars: 300, // the characters of an event's text a line keeps, its full length as `cut`; 0 keeps none

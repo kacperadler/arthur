@@ -20,7 +20,7 @@ Found by the AR0530 review (2026-11-13-review-017fcc52, note 4). The vision: wha
 
 ## Done means
 
-- `user:terminal:kacper` is `user:terminal:alice` in that test; `grep -rn kacper packages/*/test` finds nothing.
+- `user:terminal:kacper` is `user:terminal:alice` in that test; every test fixture and the spawn docs example use made-up names; `grep -rni kacper packages docs test arthur.config.example.ts .agents` finds only Arthur's own repository URL, which stays (AR-D669).
 - The activity tests pass.
 
 ## Scope

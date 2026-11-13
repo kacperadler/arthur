@@ -48,6 +48,20 @@ test("a plugin's command runs with its arguments and exits with its code; --proj
 	assert.deepEqual([arthur(folder, "quiet").status, arthur(folder, "quiet").stdout], [0, ""]);
 });
 
+// AR0705: a project agent's session sets ARTHUR_PROJECT, so its commands act on its project unless --project names another.
+test("ARTHUR_PROJECT is the default of --project: a command gets it, --project wins over it, an empty one is none, an unknown one is refused", () => {
+	const folder = project();
+	const run = (value: string, ...args: string[]) => {
+		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
+		return spawnSync(process.execPath, [CLI, "echo", ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_PROJECT: value } });
+	};
+	assert.deepEqual([run("shop").status, run("shop").stdout], [3, `${JSON.stringify({ args: [], project: "shop" })}\n`]);
+	assert.equal(run("shop", "--project", "acme").stdout, `${JSON.stringify({ args: [], project: "acme" })}\n`);
+	assert.equal(run("").stdout, `${JSON.stringify({ args: [] })}\n`);
+	const unknown = run("blog");
+	assert.deepEqual([unknown.status, unknown.stdout, unknown.stderr], [1, "", "arthur echo: unknown project blog; projects: acme, shop\n"]);
+});
+
 // AR0528: who ran what, after it returned; the config's plugin answers `actor` as the coordinator once `coordinator.md` exists.
 test("each command run logs command-ran with its arguments, --project and exit code, stamped with who ran it; an unknown command, --help and a config that does not load log none", () => {
 	const folder = project(CONFIG.replace("import { rmSync }", "import { existsSync, rmSync }").replace('rmSync(doc("gone"));', 'rmSync(doc("gone"));\n\thost.provide("actor", () => (existsSync(doc("coordinator")) ? { actor: "coordinator", on: [7, 9] } : undefined));'));

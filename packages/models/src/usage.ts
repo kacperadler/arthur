@@ -5,7 +5,7 @@ import type { Host } from "@arthur/core/plugin";
 // Each authenticated account's limit windows from the agent's own report, `<agent> usage --json` (spec/roadmap.md, entry 82),
 // kept in `<folder>/usage.json` so every process reads the last one: docs/commands/usage.md.
 
-export type Window = { readonly label: string; readonly used: number; readonly resetsAt?: number; readonly tier: boolean };
+export type Window = { readonly label: string; readonly used: number; readonly resetsAt?: number; readonly durationMs?: number; readonly tier: boolean };
 export type Account = { readonly provider: string; readonly email?: string; readonly windows: readonly Window[] };
 // The last report and when it came (`at`); `failed`, a fetch that failed after it, or with none before.
 export type Kept = { readonly at?: number; readonly accounts?: readonly Account[]; readonly failed?: { readonly at: number; readonly reason: string } };
@@ -23,15 +23,16 @@ function accountsOf(stdout: string): Account[] | string {
 		return "its report is not JSON";
 	}
 	if (!Array.isArray(report.reports)) return "its report has no reports list";
-	type Limit = { readonly label?: unknown; readonly scope?: { readonly tier?: unknown }; readonly window?: { readonly resetsAt?: unknown }; readonly amount?: { readonly usedFraction?: unknown } } | null;
+	type Limit = { readonly label?: unknown; readonly scope?: { readonly tier?: unknown }; readonly window?: { readonly resetsAt?: unknown; readonly durationMs?: unknown }; readonly amount?: { readonly usedFraction?: unknown } } | null;
 	type Report = { readonly provider?: unknown; readonly limits?: unknown; readonly metadata?: { readonly email?: unknown } } | null;
 	const accounts = report.reports.map((entry: Report): Account => ({
 		provider: String(entry?.provider ?? "unknown"),
 		...(typeof entry?.metadata?.email === "string" ? { email: entry.metadata.email } : {}),
 		windows: (Array.isArray(entry?.limits) ? entry.limits : []).flatMap((limit: Limit) => {
-			const [used, resetsAt] = [limit?.amount?.usedFraction, limit?.window?.resetsAt];
+			const [used, resetsAt, durationMs] = [limit?.amount?.usedFraction, limit?.window?.resetsAt, limit?.window?.durationMs];
 			if (typeof used !== "number" || !Number.isFinite(used)) return [];
-			return [{ label: String(limit?.label ?? "a window"), used, ...(typeof resetsAt === "number" ? { resetsAt } : {}), tier: limit?.scope?.tier !== undefined }];
+			const span = typeof durationMs === "number" && durationMs > 0 ? { durationMs } : {};
+			return [{ label: String(limit?.label ?? "a window"), used, ...(typeof resetsAt === "number" ? { resetsAt } : {}), ...span, tier: limit?.scope?.tier !== undefined }];
 		}),
 	}));
 	const without = Array.isArray(report.accountsWithoutUsage) ? report.accountsWithoutUsage : [];

@@ -201,3 +201,51 @@ test("inside a job the spend view and /stats say the home is hidden, arthur stat
 	assert.equal(await fake.host.commands.route("/stats"), hidden);
 	assert.match((await cli("tickets")).out, /^Stats of acme: 2 merged tickets\n/);
 });
+
+// What the models plugin answers as `models.windows`: each window of the report with its provider, or why there is none.
+const window = (provider: string, label: string, used: number, more: object = {}) => ({ provider, label, used, tier: false, ...more });
+const WEEK = 604_800_000;
+const WINDOWS_HEAD = "Usage windows, each beside Arthur's spend at list price on its provider's models in its span; by role, its share ≈ its part of the window, at most: the account's use outside Arthur counts too.";
+
+test("stats windows: each window beside its provider's spend in its span by role, ≈ used × the share, ties by name; without resetsAt the span before now; no span", async (t) => {
+	const runs = [
+		run("2026-11-12T09:00:00Z", "worker", "acme", [], "finished", 60, 16, { [OPUS]: used(6), "openai-codex/gpt-5": used(10) }),
+		run("2026-11-12T11:00:00Z", "review", "acme", [], "finished", 60, 12, { [OPUS]: used(2), "openai-codex/gpt-5": used(10) }),
+		run("2026-11-12T12:00:00Z", "audit", "acme", [], "finished", 60, 1, {}, { backfill: true }),
+		run("2026-11-07T09:59:59.999Z", "worker", "acme", [], "finished", 60, 100, { [OPUS]: used(100) }),
+		run("2026-11-07T10:00:00.000Z", "plan", "acme", [], "finished", 60, 0.5, { [OPUS]: used(0.5) }),
+	];
+	const { fake, cli } = await load(t, runs);
+	const day = NOW.getTime() + 86_400_000;
+	fake.provide("models.windows", async () => [
+		window("anthropic", "Claude 7 Day", 0.4, { resetsAt: day, durationMs: WEEK }),
+		window("anthropic", "Claude 5 Hour", 0.13, { durationMs: 18_000_000 }),
+		window("anthropic", "Claude 7 Day (fable)", 0.9, { resetsAt: day, tier: true }),
+		window("openai-codex", "Codex 7 Day", 0.05, { resetsAt: day, durationMs: WEEK }),
+	]);
+	assert.deepEqual(await cli("windows"), {
+		code: 0,
+		out: [
+			WINDOWS_HEAD,
+			"- anthropic Claude 7 Day 40% used, since 2026-11-07 11:00: $13.00; worker 46% ≈ 18%, coordinator 35% ≈ 14%, review 15% ≈ 6%, plan 4% ≈ 2%",
+			"- anthropic Claude 5 Hour 13% used, since 2026-11-13 06:00: $0.00",
+			"- anthropic Claude 7 Day (fable) 90% used: the report gives no span",
+			"- openai-codex Codex 7 Day 5% used, since 2026-11-07 11:00: $20.00; review 50% ≈ 3%, worker 50% ≈ 3%",
+		].join("\n"),
+		err: "",
+	});
+});
+
+test("stats windows: no report, no window, no models plugin, each one line; wrong usage exits 2; inside a job exits 1", async (t) => {
+	const { fake, cli } = await load(t);
+	assert.deepEqual(await cli("windows"), { code: 0, out: "no usage windows: the models plugin is not loaded", err: "" });
+	let answer: unknown = "the agent has no usage report (omp usage --json: network down)";
+	fake.provide("models.windows", async () => answer);
+	assert.equal((await cli("windows")).out, "no usage windows: the agent has no usage report (omp usage --json: network down)");
+	answer = [];
+	assert.equal((await cli("windows")).out, "no usage windows: no account reports one");
+	assert.deepEqual(await cli("windows", "extra"), { code: 2, out: "", err: "usage: arthur stats windows" });
+	const inJob = await load(t, RUNS, TURNS, { id: "2026-11-13-worker-0000000f", project: "acme" });
+	inJob.fake.provide("models.windows", async () => [window("anthropic", "Claude 7 Day", 0.4, { durationMs: WEEK })]);
+	assert.deepEqual(await inJob.cli("windows"), { code: 1, out: "", err: "arthur stats: the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here" });
+});

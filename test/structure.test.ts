@@ -39,7 +39,7 @@ const BUDGETS = {
 
 	manage: 1476,
 
-	models: 537,
+	models: 546,
 
 	nvm: 98,
 
@@ -55,7 +55,7 @@ const BUDGETS = {
 
 	speak: 248,
 
-	stats: 531,
+	stats: 575,
 
 	telegram: 682,
 

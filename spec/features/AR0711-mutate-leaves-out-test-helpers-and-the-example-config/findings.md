@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/activity/test/log-command.test.ts:211`
 - What: "what arthur run wrote reads back: the owner's message and the reply on his word, each cut at textChars" mixes two clocks. `load` gives the fake host a fixed `now` of 2026-11-13T10:00Z (line 12, 82), so `arthur log`'s default day is 2026-11-13; but `fake.emit` stamps the events with the real time, and `activity.ts:53` files them under that time's date in Europe/Warsaw. Once the real date in Warsaw is no longer 2026-11-13 the events go to another day file and the command prints `no activity to show on 2026-11-13`. Seen at 2026-11-13 23:22 UTC (00:22 in Warsaw): `node --import @arthur/core/testing --test packages/activity/test/log-command.test.ts` gives 10 pass, 1 fail, and `npm test` fails with it; from this day on it fails every day, on main too.
 - Suggestion: have the test read back the day the events were filed under (`--day` with `fake.host.clock.local(new Date(message.time)).date`), or emit the events at the fake's `now`. Nothing in `src/` changes.
-- Status: open
+- Status: fixed in d9c8a727

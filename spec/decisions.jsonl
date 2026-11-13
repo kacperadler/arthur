@@ -1339,3 +1339,4 @@
 {"record":"ask","id":"AR-D667","time":"2026-11-13T07:57:03+01:00","project":"arthur","kind":"plan","question":"Approve AR0700: load the stats plugin in your arthur.config.ts (one import, one line), so arthur stats and the Stats of audits and tonight retro come back?","options":["Approve","Not yet"],"ticket":"AR0700"}
 {"record":"answer","id":"AR-D665","time":"2026-11-13T08:08:28+01:00","decided":"Merge AR0652","picked":1,"words":"AR-D665 merge","message":16120}
 {"record":"answer","id":"AR-D666","time":"2026-11-13T08:08:28+01:00","decided":"AR0699 worker budget $2 -> $5","picked":1,"words":"AR-D666 merge","message":16120}
+{"record":"answer","id":"AR-D666","time":"2026-11-13T08:09:25+01:00","decided":"The owner approved raising the AR0699 worker budget from $2 to $5","picked":1,"words":"AR-D666 merge","message":16120}

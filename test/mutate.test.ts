@@ -233,6 +233,26 @@ test("a capped run takes its mutants round-robin, the files' first, then each fi
 	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
 });
 
+test("a capped run takes a new file's mutants in an order their text fixes, its revert first, so they spread over all its lines", () => {
+	// Package c has no tests, so each of wide.ts's mutants survives and is named; limit.ts's 12 take the cap's other half.
+	const root = repo({ ...TESTS, "packages/c/package.json": "{}\n", "packages/c/src/keep.ts": "export const keep = 1;\n" });
+	const size = 45;
+	writeFileSync(join(root, "packages/c/src/wide.ts"), Array.from({ length: size }, (_, n) => `export const v${n} = ${n} > 3;\n`).join(""));
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "wide");
+	const first = mutate(root, "--max", "24");
+	const again = mutate(root, "--max", "24");
+	assert.equal(first.stderr, "");
+	assert.equal(again.stdout, first.stdout);
+	const named = first.stdout.split("\n").filter((line) => line.startsWith("survived: packages/c/src/wide.ts:"));
+	assert.equal(named[0], "survived: packages/c/src/wide.ts:1: hunk reverted to the base");
+	assert.equal(named.length, 12);
+	const lines = named.slice(1).map((line) => Number(/^survived: packages\/c\/src\/wide\.ts:(\d+): /.exec(line)?.[1]));
+	assert.ok(lines.some((line) => line <= size / 3), `a mutant of the first third: ${lines.join(", ")}`);
+	assert.ok(lines.some((line) => line > (2 * size) / 3), `a mutant of the last third: ${lines.join(", ")}`);
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
+});
+
 test("a signal mid-run writes the file's bytes back and stops the running tests", async () => {
 	const blocks = `${HEAD}test("blocks", async () => {\n\twriteFileSync(new URL("../../../blocked.pid", import.meta.url), String(process.pid));\n\tawait new Promise(() => setInterval(() => {}, 1000));\n});\n`;
 	const root = repo({ ...TESTS, "packages/a/test/limit.test.ts": blocks });

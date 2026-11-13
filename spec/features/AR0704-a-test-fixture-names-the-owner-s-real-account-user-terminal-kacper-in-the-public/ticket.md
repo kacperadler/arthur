@@ -33,4 +33,5 @@ Out:
 
 ## Decisions
 - 2026-11-13: AR0704 approved: the activity test fixture uses a made-up account name; the owner: "AR-D668: approve" (AR-D668)
+- 2026-11-13: AR0704 widens: every test fixture and the spawn docs example that name kacper get made-up names; the repository URL stays and leaves the grep; the owner: "AR-D669 1" (AR-D669)
 

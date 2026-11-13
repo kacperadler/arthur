@@ -77,6 +77,19 @@ test("a mutant no test catches is named, a caught one is not; the tests run tier
 	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
 });
 
+test("a package's test helper and the example config are not mutated, only the branch's own code is", () => {
+	// Nothing reads `extra` or the example config here, so a mutant of either would survive and be named.
+	const root = repo();
+	appendFileSync(join(root, "packages/a/test/helper.ts"), "export const extra = 2 > 1;\n");
+	writeFileSync(join(root, "arthur.config.example.ts"), "export default { most: 5 > 1 };\n");
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "helper and example");
+	const run = mutate(root);
+	assert.equal(run.stderr, "");
+	assert.equal(run.stdout.split("\n").filter((line) => !line.startsWith("survived: packages/a/src/limit.ts:")).join("\n"), "mutate: 12 mutants, 9 caught, 3 survived\n");
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "");
+});
+
 test("--max caps the mutants run and says how many were not, 100 without it; a wrong argument is the usage", () => {
 	const root = repo();
 	const capped = mutate(root, "--max", "2");

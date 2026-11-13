@@ -12,7 +12,8 @@ import { type ActivityOptions, activity, checkOptions, KEEP_DAYS, TEXT_CHARS, ta
 
 const notice = (seq: number, time = "2026-01-01T10:00:00.000Z", by: Event["by"] = { actor: "arthur" }): Event => ({ seq, time, plugin: "core", by, name: "notice", data: { text: `n${seq}` } });
 
-// The plugin set up on `fake`, its subscriptions kept so the test delivers each event; `reads` counts its reads of the log.
+// The plugin set up on `fake`, its subscriptions kept so the test delivers each event; `reads` counts its reads of the log. Each
+// load is a process of its own, whose `arthur log` its own registry holds, so a second load on `fake` registers none there.
 function load(fake: FakeHost, options: ActivityOptions = {}) {
 	const plugin = activity(options);
 	const handlers: [string, (event: Event) => unknown][] = [];
@@ -21,7 +22,7 @@ function load(fake: FakeHost, options: ActivityOptions = {}) {
 		reads += 1;
 		return fake.host.events.read(from);
 	};
-	void plugin.setup({ ...fake.host, events: { ...fake.host.events, on: (name, fn) => void handlers.push([name, fn]), read } });
+	void plugin.setup({ ...fake.host, commands: { ...fake.host.commands, register: () => {} }, events: { ...fake.host.events, on: (name, fn) => void handlers.push([name, fn]), read } });
 	return {
 		start: () => plugin.start?.(),
 		deliver: (...events: Event[]) => events.forEach((event) => handlers.filter(([name]) => name === event.name).forEach(([, fn]) => fn(event))),

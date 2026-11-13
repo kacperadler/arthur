@@ -3,9 +3,10 @@ import type { Check, OptionTable, Tool } from "@arthur/core/option-table";
 import type { Event, Host, OptionProblem, Options, Plugin } from "@arthur/core/plugin";
 import { type JobInfo, LOGGED, line } from "./activity-line.ts";
 import { append, lastSeq, prune } from "./day-files.ts";
+import { logCommand } from "./log-command.ts";
 
-// The activity plugin (spec/roadmap.md, entry 100): who did what, one file per day in `core.timeZone`, built from the logged
-// events by `arthur run` alone. A command process never calls `start`, so it never writes. docs/activity.md.
+// The activity plugin (spec/roadmap.md, entries 100 and 101): who did what, one file per day in `core.timeZone`, built from the logged
+// events by `arthur run` alone, read by `arthur log` and `/log`. A command process never calls `start`, so it never writes. docs/activity.md.
 
 export type ActivityOptions = { readonly enabled?: boolean; readonly keepDays?: number; readonly textChars?: number };
 
@@ -61,6 +62,7 @@ export function activity(options: ActivityOptions = {}): Plugin {
 		check: checkOptions,
 		setup(host) {
 			at = host;
+			host.commands.register(logCommand(host));
 			for (const name of LOGGED) host.events.on(name, (event) => (held === undefined ? write(host, event) : void held.push(event)));
 		},
 		start() {

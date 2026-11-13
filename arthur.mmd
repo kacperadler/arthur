@@ -83,7 +83,7 @@ flowchart TD
         manage[manage<br/>arthur health, /health, the daily prune<br/>the audit, the retro, arthur retro-due, /retro<br/>arthur repeats, /repeats]
         develop[develop<br/>arthur plugin new, arthur eval<br/>and its scenarios]
         stats[stats<br/>the tokens, cost and time of each job run<br/>and coordinator turn; arthur stats, /stats,<br/>arthur stats tickets, arthur stats windows]
-        activity[activity<br/>who did what, one file per day<br/>its actor and the messages acted on<br/>arthur log, /log planned]
+        activity[activity<br/>who did what, one file per day<br/>its actor and the messages acted on<br/>arthur log, /log]
         manage ~~~ develop ~~~ stats ~~~ activity
       end
     end
@@ -152,7 +152,7 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   %% One class line per node, in name order, a blank line after each: branches that change two nodes merge without a conflict, as do two that each add one when an existing node sorts between theirs.
-  class activity partial;
+  class activity built;
 
   class agents planned;
 

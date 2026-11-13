@@ -1,6 +1,6 @@
 # The activity plugin
 
-Who did what: roadmap entry 100, from the approved plan of AR0527 (AR-D203). One file per day, `<home>/activity/days/YYYY-MM-DD.jsonl`, one line per logged event, saying who acted, what, and on whose message. Built from the events the core and the plugins already log (`<home>/events.jsonl`), with their `by` stamp (docs/plugin-api.md, "Who acted"). Optional; the views (`arthur log`, `/log`) are entry 101.
+Who did what: roadmap entry 100, from the approved plan of AR0527 (AR-D203). One file per day, `<home>/activity/days/YYYY-MM-DD.jsonl`, one line per logged event, saying who acted, what, and on whose message. Built from the events the core and the plugins already log (`<home>/events.jsonl`), with their `by` stamp (docs/plugin-api.md, "Who acted"). Optional. Read with `arthur log` and `/log` (entry 101, `arthur log --help`).
 
 ```ts
 plugins: [orchestration({}), activity({ keepDays: 90, textChars: 300 })],

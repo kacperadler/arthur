@@ -146,6 +146,40 @@ test("releases: a commit of main's first-parent line that changes the root versi
 	assert.equal(readFileSync(join(acme, "CHANGELOG.md"), "utf8"), [HEAD, unreleased, ...releases].join("\n"));
 });
 
+// AR0699: release 0.1.0 was tagged by hand on the merge where package.json first got a version, which no version change counts.
+test("a v<x.y.z> tag on the first-parent line, lightweight or annotated, is that version's release at its commit; a version a change made, a tag off the line or of another name, is not", async (t) => {
+	const acme = project(["AC0001", "AC0002", "AC0003", "AC0004", "AC0005"].map((id) => ({ id, status: "merged", kind: "fix" })));
+	const steps = history(acme, [
+		{ at: "2026-03-01T00:00:00Z", files: { "README.md": "# acme\n" } },
+		{ at: "2026-03-02T00:00:00Z", files: { "package.json": pkg("0.1.0") }, branch: true },
+		{ at: "2026-03-03T00:00:00Z", files: { "a.ts": "1\n" } },
+		{ at: "2026-03-04T00:00:00Z", files: { "b.ts": "1\n" }, branch: true },
+		{ at: "2026-03-05T00:00:00Z", files: { "package.json": pkg("0.4.0") } },
+		{ at: "2026-03-06T00:00:00Z", files: { "c.ts": "1\n" } },
+	]);
+	const [, s1 = "", s2 = "", s3 = "", s4 = "", s5 = ""] = steps;
+	const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", acme, ...args], { encoding: "utf8" }).trim();
+	git("tag", "v0.1.0", s1);
+	git("tag", "--annotate", "--message", "0.2.0", "v0.2.0", s2);
+	git("tag", "v0.3.0", `${s3}^2`);
+	for (const tag of ["v0.4.0", "v1.0", "v1.0.0-rc.1", "vnext", "v1.0.0x"]) git("tag", tag, s5);
+	for (const [id, step, day] of [["AC0001", s1, "02"], ["AC0002", s2, "03"], ["AC0003", s3, "04"], ["AC0004", s4, "05"], ["AC0005", s5, "06"]]) outcome(acme, id ?? "", `2026-03-${day}, \`${step}`);
+	const run = await load(t, acme);
+	assert.deepEqual(await run(), { code: 0, out: "wrote CHANGELOG.md: 5 merged tickets", err: "" });
+	const fixed = (id: string, step: string, day: string) => `### 2026-03-${day}\n\n#### Fixed\n\n- ${id} Title of ${id} (${step})\n`;
+	assert.equal(
+		readFileSync(join(acme, "CHANGELOG.md"), "utf8"),
+		[
+			HEAD,
+			`## Unreleased\n\n${fixed("AC0005", s5, "06")}`,
+			// The tag off the line counts as none: AC0003 goes to the next release; the tag v0.4.0 is not a second 0.4.0.
+			`## 0.4.0 (2026-03-05)\n\n${fixed("AC0004", s4, "05")}\n${fixed("AC0003", s3, "04")}`,
+			`## 0.2.0 (2026-03-03)\n\n${fixed("AC0002", s2, "03")}`,
+			`## 0.1.0 (2026-03-02)\n\n${fixed("AC0001", s1, "02")}`,
+		].join("\n"),
+	);
+});
+
 test("a project whose root version never changed gets the CHANGELOG.md it got without Git, byte for byte; so does a package.json broken by hand, and a commit replaced (refs/replace)", async (t) => {
 	const acme = project([{ id: "AC0001", status: "merged", kind: "feat", merged: "2026-02-02, `aaa1111" }, { id: "AC0002", status: "merged", kind: "fix", updated: "2026-02-03T00:00:00Z" }]);
 	const run = await load(t, acme);

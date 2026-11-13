@@ -1,13 +1,16 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { checkConfig } from "@arthur/core/git-config";
 import type { Command, Host } from "@arthur/core/plugin";
 
 // `arthur changelog` (spec/roadmap.md, entries 56 and 105), and the rebuild after each merge that went in: a project's CHANGELOG.md
-// from its merged tickets, a `## <day>` per merge day, newest first, and under it a heading per kind; once the root package.json's
-// version has changed, the days go under `## Unreleased` and a `## <version> (<date>)` per release. docs/commands/changelog.md.
+// from its merged tickets, a `## <day>` per merge day, newest first, and under it a heading per kind; once there is a release (the
+// root package.json's version changed, or a `v<x.y.z>` tag), the days go under `## Unreleased` and a `## <version> (<date>)` per release.
+// docs/commands/changelog.md.
 
 const FILE = "CHANGELOG.md";
+const FETCH_MS = 60_000;
 // The heading of each ticket kind (`- Kind:` under the ticket's `## Goal`), in Keep a Changelog's words; any other of the
 // board's kinds goes under Changed, a kind the board does not know, or none, under Other. ORDER is the order they print.
 const HEADING: Readonly<Record<string, string>> = { feat: "Added", fix: "Fixed", security: "Fixed" };
@@ -77,8 +80,9 @@ function days(lines: readonly Line[], level: string): string[] {
 		});
 }
 
-// HEAD's first-parent line, oldest first, and on it each commit whose root package.json `version` differs from its first
-// parent's, both having one: a version that appears (a project's first package.json) is no release. Outside a Git checkout, none.
+// HEAD's first-parent line, oldest first, and on it each release: a commit whose root package.json `version` differs from its
+// first parent's, both having one (a version that appears, a project's first package.json, is none), and a `v<x.y.z>` tag of a
+// version no such commit made, at the commit it names (AR0699: v0.1.0 was tagged where the version appeared). Outside Git, none.
 function releasesOf(root: string, clock: Host["clock"]): { readonly line: readonly string[]; readonly releases: readonly Release[] } {
 	const git = (...words: string[]) => spawnSync("git", ["--no-replace-objects", "-C", root, ...words], { encoding: "utf8" }).stdout.trim();
 	const version = (commit: string) => {
@@ -89,15 +93,39 @@ function releasesOf(root: string, clock: Host["clock"]): { readonly line: readon
 			return undefined; // No package.json there, no parent, or one broken by hand.
 		}
 	};
-	const line = git("log", "--first-parent", "--reverse", "--format=%H", "HEAD").split("\n").filter(Boolean);
-	const releases = git("log", "--first-parent", "--reverse", "--format=%H %cI", "HEAD", "--", "package.json")
+	const log = git("log", "--first-parent", "--reverse", "--format=%H %cI", "HEAD").split("\n").filter(Boolean).map((entry) => entry.split(" "));
+	const line = log.map(([commit = ""]) => commit);
+	const changed = git("log", "--first-parent", "--reverse", "--format=%H %cI", "HEAD", "--", "package.json")
 		.split("\n")
 		.flatMap((entry): Release[] => {
 			const [commit = "", time = ""] = entry.split(" ");
 			const [now, before] = [version(commit), version(`${commit}^`)];
 			return now === undefined || before === undefined || now === before ? [] : [{ version: now, date: clock.local(new Date(time)).date, at: line.indexOf(commit) }];
 		});
-	return { line, releases };
+	// `<object> <commit an annotated tag names, else nothing> <name>` per tag.
+	const tagged = git("for-each-ref", "--format=%(objectname) %(*objectname) %(refname:strip=2)", "refs/tags/v*")
+		.split("\n")
+		.flatMap((entry): Release[] => {
+			const [own = "", peeled = "", name = ""] = entry.split(" ");
+			const [tag, at] = [/^v(\d+\.\d+\.\d+)$/.exec(name)?.[1], line.indexOf(peeled || own)];
+			if (tag === undefined || at === -1 || changed.some((each) => each.version === tag)) return [];
+			return [{ version: tag, date: clock.local(new Date(log[at]?.[1] ?? "")).date, at }];
+		});
+	return { line, releases: [...changed, ...tagged].sort((a, b) => a.at - b.at) };
+}
+
+// Origin's `v*` tags fetched into `root` before a merge rebuilds the changelog, so a release tagged there counts (AR0699); a line
+// when they could not be, the merge going on with the tags `root` has. No prompt, program or hook (as github's calls to origin);
+// only the refspec given, so no `remote.origin.fetch` a job wrote, and no prune; a tag `root` holds elsewhere is not moved.
+export function fetchTags(root: string): string {
+	if (spawnSync("git", ["-C", root, "remote", "get-url", "origin"], { stdio: "ignore" }).status !== 0) return "";
+	const { refusal, pins } = checkConfig(root);
+	if (refusal !== "") return `tags not fetched from origin: ${refusal}`;
+	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never", GIT_PROTOCOL_FROM_USER: "0" };
+	const words = ["fetch", "--quiet", "--no-tags", "--no-prune", "--refmap=", "origin", "refs/tags/v*:refs/tags/v*"];
+	const ran = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...words], { env, stdio: "ignore", timeout: FETCH_MS });
+	if (ran.status === 0) return "";
+	return `tags not fetched from origin: git fetch ${ran.error === undefined ? `exited ${ran.status}` : `timed out after ${FETCH_MS / 1000} s`}; CHANGELOG.md counts the tags of ${root}`;
 }
 
 export function changelogCommand(host: Host): Command {

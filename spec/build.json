@@ -5260,9 +5260,9 @@
   {
     "id": "AR0652",
     "title": "Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0652-stats-s5-arthur-stats-stats-and-the-morning-report-s-spend-roadmap-111/ticket.md",
-    "updated": "2026-11-06T08:46:56.937Z",
+    "updated": "2026-11-13T00:37:15.721Z",
     "after": [
       "AR0651"
     ]
@@ -5645,5 +5645,43 @@
     "after": [
       "AR0641"
     ]
+  },
+  {
+    "id": "AR0699",
+    "title": "The changelog counts the v0.1.0 tag as a release, so the next release lists only its own tickets",
+    "status": "planned",
+    "path": "spec/features/AR0699-the-changelog-counts-the-v0-1-0-tag-as-a-release-so-the-next-release-lists-only/ticket.md",
+    "updated": "2026-11-13T01:05:39.821Z"
+  },
+  {
+    "id": "AR0700",
+    "title": "The owner's config loads the stats plugin again, so arthur stats and the Stats of audits and retros come back",
+    "status": "planning",
+    "path": "spec/features/AR0700-the-owner-s-config-loads-the-stats-plugin-again-so-arthur-stats-and-the-stats-of/ticket.md",
+    "updated": "2026-11-13T01:04:36.734Z"
+  },
+  {
+    "id": "AR0701",
+    "title": "A job's prune and the sweep take only containers the job made, never the owner's container from a job's image",
+    "status": "planning",
+    "path": "spec/features/AR0701-a-job-s-prune-and-the-sweep-take-only-containers-the-job-made-never-the-owner-s/ticket.md",
+    "updated": "2026-11-13T01:04:37.477Z"
+  },
+  {
+    "id": "AR0702",
+    "title": "An image a job built with several tags is removed by each tag",
+    "status": "planning",
+    "path": "spec/features/AR0702-an-image-a-job-built-with-several-tags-is-removed-by-each-tag/ticket.md",
+    "updated": "2026-11-13T01:04:38.184Z",
+    "after": [
+      "AR0701"
+    ]
+  },
+  {
+    "id": "AR0703",
+    "title": "herdr in the architecture diagrams, and the vision's sweep text to the AR-D520 limit",
+    "status": "planning",
+    "path": "spec/features/AR0703-herdr-in-the-architecture-diagrams-and-the-vision-s-sweep-text-to-the-ar-d520/ticket.md",
+    "updated": "2026-11-13T01:04:38.907Z"
   }
 ]

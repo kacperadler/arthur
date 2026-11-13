@@ -27,4 +27,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-11-review-7afc2635 (review), 2026-11-11
 - Where: `packages/docker/src/docker-cleanup.ts:86`
 - What: An image the job built with two tags (`build -t shop:latest -t shop:1`) is refused by Docker ("image is referenced in multiple repositories", must be forced), so it is kept and named at every prune and waits for the sweep [INFERENCE from Docker's documented behaviour; not exercised by the fake].
-- Status: deferred (client summary)
+- Status: ticket AR0702

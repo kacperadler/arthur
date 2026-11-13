@@ -20,4 +20,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `arthur.mmd:44`, `docs/architecture/core-and-plugins.mmd:67`, `docs/architecture/versions.mmd:9`
 - What: herdr (roadmap 115, AR0670, merged) is a first-version row of the vision's plugin table, but none of the three diagrams has a `herdr` node or names it; this ticket added only activity and uptime, as its Scope says.
 - Suggestion: a `herdr` node, built, in `arthur.mmd`'s SELF or COORD subgraph with its class line in name order, and in `core-and-plugins.mmd`'s SELF subgraph and class list; `herdr` in `versions.mmd`'s `p3`.
-- Status: deferred (client summary)
+- Status: ticket AR0703

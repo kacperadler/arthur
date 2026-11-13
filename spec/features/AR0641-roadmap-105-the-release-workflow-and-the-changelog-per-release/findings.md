@@ -35,4 +35,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-12-review-c5df69e3 (review), 2026-11-12
 - Where: `packages/delivery/src/changelog.ts:43-58`
 - What: The first release the workflow makes will therefore list every ticket since the start: 602 tickets, about 61 KB today. GitHub limits a release body to 125,000 characters; at that limit `gh release create` fails.
-- Status: deferred (client summary)
+- Status: ticket AR0699

@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:167`, and `spec/vision.md:161` ("unlabelled and left to the sweep")
 - What: "The sweep" in the vision lists "stopped containers, unused networks, dangling images, unused anonymous volumes, build cache unused that long" as the unlabelled leftovers it removes. The owner approved AR0604's plan with every recommendation (AR-D520), which limits the unlabelled part to dangling images, unused networks and the build cache, so his own stopped stacks keep their containers and data; this branch builds that limit and states it in `packages/docker/docs/docker.md`, the roadmap's entry 72 and `arthur.config.example.ts`. The vision is the owner's, so the worker leaves its line as it is.
 - Suggestion: the owner rewords the vision's sentence to the approved limit, for example "unlabelled leftovers older than `leftoverHours`: unused networks, dangling images, build cache unused that long; the owner's own stopped containers and volumes stay", and line 161's "left to the sweep" as roadmap entry 70 now says it: of what a job made unlabelled, the sweep takes only dangling images, unused networks and old build cache. Nothing else changes.
-- Status: deferred (client summary)
+- Status: ticket AR0703
 
 ## F2. herdr's start-up test fails under a loaded machine, against the 5 s limit of each herdr call
 
@@ -38,7 +38,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-look.ts:69`, `packages/docker/src/docker-cleanup.ts:68`
 - What: `docker image ls` prints one row per tag, all with the same ID, so a gone job's image tagged twice gives the word `image:<id>` twice, and `docker image rm <id>` is refused as referenced in multiple repositories: the sweep and the cleanup at each prune name it as kept, every time.
 - Suggestion: remove a tagged image by each `<repository>:<tag>` (the last untag deletes it), and a dangling one by its ID; count it once in `arthur docker`.
-- Status: deferred (client summary)
+- Status: ticket AR0702
 
 ## F5. A label value with a comma splits into extra keys
 
@@ -56,7 +56,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/docker/src/docker-sweep.ts:55`
 - What: Docker copies an image's labels onto each container made from it, so a container the owner runs from an image a job built carries `arthur.job=<id>`. Once that job's record is gone the sweep, and the job's cleanup at its prune, take the owner's stopped container with its anonymous volumes. [INFERENCE] from Docker's label inheritance; not reproduced against a real daemon.
 - Suggestion: count a container as the job's only when its `arthur.job` label differs from its image's (the docker script adds it on `run` and `create`), or have the script add a second label only containers get, such as `arthur.container=<id>`; the owner can label his own `arthur.keep` meanwhile.
-- Status: deferred (client summary)
+- Status: ticket AR0701
 
 ## F7. Two Arthur homes on one Docker host sweep each other's resources
 

@@ -5694,9 +5694,9 @@
   {
     "id": "AR0705",
     "title": "Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0705-project-agents-t1-each-project-with-a-chat-gets-its-own-supervised-omp-session/ticket.md",
-    "updated": "2026-11-13T19:25:18.740Z"
+    "updated": "2026-11-13T20:35:46.596Z"
   },
   {
     "id": "AR0706",
@@ -5734,5 +5734,22 @@
     "status": "planning",
     "path": "spec/features/AR0709-a-merge-s-checks-on-main-cannot-create-a-new-folder-at-the-checkout-s-top-so-a/ticket.md",
     "updated": "2026-11-13T14:13:10.411Z"
+  },
+  {
+    "id": "AR0710",
+    "title": "Mutate spreads its sample over the whole of a new file, not only its first lines",
+    "status": "planning",
+    "path": "spec/features/AR0710-mutate-spreads-its-sample-over-the-whole-of-a-new-file-not-only-its-first-lines/ticket.md",
+    "updated": "2026-11-13T21:35:32.819Z"
+  },
+  {
+    "id": "AR0711",
+    "title": "Mutate leaves out test helpers and the example config",
+    "status": "planning",
+    "path": "spec/features/AR0711-mutate-leaves-out-test-helpers-and-the-example-config/ticket.md",
+    "updated": "2026-11-13T21:35:33.859Z",
+    "after": [
+      "AR0710"
+    ]
   }
 ]

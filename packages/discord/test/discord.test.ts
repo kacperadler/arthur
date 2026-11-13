@@ -51,7 +51,7 @@ test("a variable missing, or a token or an id Discord could not take, refuses th
 	const { ARTHUR_DISCORD_GUILD_ID: _, ...noGuild } = ENV;
 	assert.equal(await refused(noGuild), "bots[0].guildIdEnv: ARTHUR_DISCORD_GUILD_ID does not hold a server id: a positive whole number below 2^64, as Copy ID gives it");
 	const user = "bots[0].userIdEnv: ARTHUR_DISCORD_USER_ID does not hold a user id: a positive whole number below 2^64, as Copy ID gives it";
-	for (const id of ["0", "-1", "1.5", "012", "@kacper", "18446744073709551616"]) assert.equal(await refused({ ...ENV, ARTHUR_DISCORD_USER_ID: id }), user, id);
+	for (const id of ["0", "-1", "1.5", "012", "@alice", "18446744073709551616"]) assert.equal(await refused({ ...ENV, ARTHUR_DISCORD_USER_ID: id }), user, id);
 	assert.equal(await refused({ ...ENV, ARTHUR_DISCORD_CHANNEL_ID: "1e5" }), "bots[0].channelIdEnv: ARTHUR_DISCORD_CHANNEL_ID does not hold a channel id: a positive whole number below 2^64, as Copy ID gives it");
 	assert.equal(await refused({ ...ENV, ARTHUR_DISCORD_USER_ID: "18446744073709551615", ARTHUR_DISCORD_CHANNEL_ID: "1" }), undefined, "2^64 - 1 and 1 are ids");
 });

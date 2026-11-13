@@ -176,7 +176,7 @@ test("another user, server or channel, a DM, or one before the server is known g
 		api.interaction("jobs", "x", { member: { ...owner, user: user(STRANGER, "stranger") } }),
 		api.interaction("jobs", "x", { guild_id: "1100000000000000999" }),
 		api.interaction("jobs", "x", { channel_id: THREAD }),
-		api.interaction("jobs", "x", { guild_id: undefined, member: undefined, user: user(OWNER, "kacper"), context: 1 }),
+		api.interaction("jobs", "x", { guild_id: undefined, member: undefined, user: user(OWNER, "alice"), context: 1 }),
 	];
 	api.interaction("jobs", "x", { type: 3 });
 	api.interaction("jobs", "x", { type: 4 });

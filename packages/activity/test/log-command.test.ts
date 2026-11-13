@@ -33,7 +33,7 @@ const TODAY: Line[] = [
 	line(14, 3, "user:telegram/bot2", "phone-command", "/jobs"),
 	line(15, 4, `job:${J}`, "ticket-moved", "in-review -> done", { job: J, kind: "review", ticket: "AC0012" }),
 	line(16, 5, "arthur", "job-ended", "ended: finished", { job: J, kind: "review", ticket: "AC0012", project: "acme" }),
-	line(17, 6, "user:terminal:kacper", "command ticket", "status AC0013 planned (exit 0)", { project: "shop" }),
+	line(17, 6, "user:terminal:alice", "command ticket", "status AC0013 planned (exit 0)", { project: "shop" }),
 	line(18, 7, "coordinator", "command steer", `${J2} Fix it (exit 0)`, { on: [9] }),
 	line(19, 8, "plugin:schedule", "schedule-fired", "audit: job"),
 	line(20, 9, "user:telegram/bot2", "phone-command", "/stopall"),
@@ -41,8 +41,8 @@ const TODAY: Line[] = [
 	line(22, 11, "coordinator", "coordinator-replied", "Done", { on: [10], cut: 450 }),
 	line(23, 12, "arthur", "job-state", "working -> blocked: a question", { job: J2, kind: "plan", ticket: "AC0013", project: "acme" }),
 	line(24, 13, "user:discord", "message-received", "hi"),
-	line(25, 14, "user:terminal:kacper", "command log", "--all (exit 0)"),
-	line(26, 15, "user:terminal:kacper", "command config", "check (exit 0)"),
+	line(25, 14, "user:terminal:alice", "command log", "--all (exit 0)"),
+	line(26, 15, "user:terminal:alice", "command config", "check (exit 0)"),
 ];
 // What `arthur log` prints of each line of TODAY, by its seq.
 const SHOWN: Readonly<Record<number, string>> = {
@@ -53,7 +53,7 @@ const SHOWN: Readonly<Record<number, string>> = {
 	14: "09:03  user:telegram/bot2  phone-command  /jobs",
 	15: `09:04  job:${J}  ticket-moved  in-review -> done`,
 	16: "09:05  arthur  job-ended  ended: finished",
-	17: "09:06  user:terminal:kacper  command ticket  status AC0013 planned (exit 0)",
+	17: "09:06  user:terminal:alice  command ticket  status AC0013 planned (exit 0)",
 	18: `09:07  coordinator  command steer  ${J2} Fix it (exit 0)`,
 	19: "09:08  plugin:schedule  schedule-fired  audit: job",
 	20: "09:09  user:telegram/bot2  phone-command  /stopall",
@@ -61,8 +61,8 @@ const SHOWN: Readonly<Record<number, string>> = {
 	22: "09:11  coordinator  coordinator-replied  Done… (450 chars, event 22)",
 	23: "09:12  arthur  job-state  working -> blocked: a question",
 	24: "09:13  user:discord  message-received  hi",
-	25: "09:14  user:terminal:kacper  command log  --all (exit 0)",
-	26: "09:15  user:terminal:kacper  command config  check (exit 0)",
+	25: "09:14  user:terminal:alice  command log  --all (exit 0)",
+	26: "09:15  user:terminal:alice  command config  check (exit 0)",
 };
 const READ_ONLY = [13, 14, 25, 26];
 const shown = (...seqs: number[]) => seqs.map((seq) => SHOWN[seq]).join("\n");
@@ -138,7 +138,7 @@ test("--user: his own lines, those on one of his messages, and a job's lines who
 	assert.deepEqual(await cli(["--user", "telegram/bot2"]), ok(shown(20)), "one instance: its own lines alone");
 	assert.deepEqual(await cli(["--user", "telegram", "--all"]), ok(shown(10, 11, 12, 14, 15, 16, 18, 20, 22, 23)));
 	assert.deepEqual(await cli(["--user", "terminal"]), ok(shown(17)));
-	assert.deepEqual(await cli(["--user", "terminal:kacper", "--all"]), ok(shown(17, 25, 26)));
+	assert.deepEqual(await cli(["--user", "terminal:alice", "--all"]), ok(shown(17, 25, 26)));
 	assert.deepEqual(await cli(["--user", "discord"]), ok(shown(24)));
 	assert.deepEqual(await cli(["--user", "tele"]), ok("no activity to show on 2026-11-13"), "a name's start is no user");
 	assert.deepEqual(await cli(["--user", "telegram", "--day", "yesterday"]), ok(["21:00  user:telegram  message-received  Plan AC0013", "21:01  coordinator  job-started  plan on AC0013, machine local", "23:59  user:telegram  message-received  Steer the plan"].join("\n")));

@@ -33,8 +33,8 @@ export type Call = { readonly token: string; readonly method: string; readonly p
 // replaces some (`text: undefined` with a `sticker` is a sticker). `age` is how many seconds before NOW it was sent.
 export const message = (id: number, fields: Readonly<Record<string, unknown>> = {}, age = 5) => ({
 	message_id: id,
-	from: { id: CHAT, is_bot: false, first_name: "Kacper", username: "kacper", language_code: "en" },
-	chat: { id: CHAT, first_name: "Kacper", username: "kacper", type: "private" },
+	from: { id: CHAT, is_bot: false, first_name: "Alice", username: "alice", language_code: "en" },
+	chat: { id: CHAT, first_name: "Alice", username: "alice", type: "private" },
 	date: Math.floor(NOW.getTime() / 1000) - age,
 	text: `message ${id}`,
 	...fields,
@@ -101,7 +101,7 @@ export async function botApi(t: TestContext) {
 		if (SENDS.includes(method)) {
 			taken.push({ token, method, params, at: Date.now() });
 			const { chat_id, text, caption, message_thread_id } = params;
-			const sent = (fields: Readonly<Record<string, unknown>>) => ({ message_id: next++, from: BOT, chat: { id: Number(chat_id), first_name: "Kacper", type: "private" }, date: 1, ...(message_thread_id === undefined ? {} : { message_thread_id: Number(message_thread_id), is_topic_message: true }), ...fields });
+			const sent = (fields: Readonly<Record<string, unknown>>) => ({ message_id: next++, from: BOT, chat: { id: Number(chat_id), first_name: "Alice", type: "private" }, date: 1, ...(message_thread_id === undefined ? {} : { message_thread_id: Number(message_thread_id), is_topic_message: true }), ...fields });
 			const photo = [{ file_id: "AgAC-small", file_unique_id: "AQAD-small", file_size: 1000, width: 90, height: 60 }];
 			const file = (type: string) => ({ file_id: `${type}-id`, file_unique_id: `${type}-unique`, file_name: "upload", mime_type: "application/octet-stream", file_size: 10, ...(type === "video" ? { width: 640, height: 360, duration: 5 } : {}) });
 			const voice = { file_id: "voice-id", file_unique_id: "voice-unique", duration: 3, mime_type: "audio/ogg", file_size: 10 };

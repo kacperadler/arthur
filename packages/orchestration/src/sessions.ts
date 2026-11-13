@@ -12,7 +12,8 @@ export type Chat = { readonly plugin: string; readonly instance?: string; readon
 export type Session = { readonly name: string; readonly project?: string; readonly chat?: Chat; readonly folder: string; readonly coordinator: Coordinator };
 type Listed = { readonly name: string; readonly pieces?: { readonly orchestration?: { readonly chat: Chat } } };
 
-const fields = (value: unknown) => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Readonly<Record<string, unknown>>) : {});
+// An array is an object here too: its keys are indices, which no piece and no chat takes.
+const fields = (value: unknown) => (typeof value === "object" && value !== null ? (value as Readonly<Record<string, unknown>>) : {});
 const text = (value: unknown) => typeof value === "string" && value !== "";
 
 // A project's piece, `orchestration.project({ chat: { plugin, instance?, place } })`, checked before the plugin's setup.

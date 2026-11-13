@@ -178,16 +178,21 @@ test("an agent crashing in a loop restarts never faster than restartDelaySeconds
 	assert.ok(out.some((line) => line.text.startsWith("orchestration: project agent blog started: omp (pid ") && line.text.endsWith(" in tmux session coord-blog")));
 });
 
-test("the starts of every session go one at a time: an agent's waits for the coordinator's wait for its previous omp", async (t) => {
-	const box = await load(t, { shop: chat("telegram", "4") });
-	// The coordinator's previous omp still alive: this process, as `ps` gives its start time.
+test("the starts of every session go one at a time: an agent's waits for the coordinator's wait for its previous omp; an agent's refused or failed start is its own line", async (t) => {
+	const box = await load(t, { shop: chat("telegram", "4"), blog: chat("telegram", "5"), docs: chat("telegram", "6") });
+	// The previous omp of the coordinator and of blog still alive: this process, as `ps` gives its start time.
 	const since = spawnSync("ps", ["-o", "lstart=", "-p", String(process.pid)], { encoding: "utf8" }).stdout.trim();
-	writeFileSync(join(box.fake.host.folder, "coordinator.pid"), `${process.pid} ${since}\n`);
+	mkdirSync(box.folder("blog"), { recursive: true });
+	for (const folder of [box.fake.host.folder, box.folder("blog")]) writeFileSync(join(folder, "coordinator.pid"), `${process.pid} ${since}\n`);
+	box.tmux.refuse("coord-docs");
 	await box.plugin.start?.();
-	await until("the agent's start", () => box.of("shop").length === 1);
-	const refused = box.err.find((line) => line.text.startsWith(`orchestration: coordinator start refused: the previous omp (pid ${process.pid}) is still running`));
+	const line = (text: string) => box.err.find((each) => each.text.startsWith(text));
+	const still = `start refused: the previous omp (pid ${process.pid}) is still running`;
+	await until("docs' start failed", () => line("orchestration: project agent docs start failed: tmux new-session: stub tmux: refused; trying again in 1 s"));
+	const refused = line(`orchestration: coordinator ${still}`);
 	assert.ok(refused !== undefined && refused.at <= (box.of("shop")[0]?.at ?? 0), "the agent started only once the coordinator's start was over");
-	assert.equal(box.of(null).length, 0);
+	assert.ok(line(`orchestration: project agent blog ${still}`));
+	assert.deepEqual([box.of(null).length, box.of("shop").length, box.of("blog").length, box.of("docs").length], [0, 1, 0, 0]);
 });
 
 test("arthur attach and arthur coordinator context name a project's agent; a project without one is refused, naming those with one", async (t) => {
@@ -211,6 +216,12 @@ test("arthur attach and arthur coordinator context name a project's agent; a pro
 	assert.match(out[0] ?? "", /\n\n## Warnings\n\n- criteria file \.agents\/arthur\/criteria\/styleguide\.md is missing; the project goes without it\n/);
 	assert.match(out[0] ?? "", /\n\n## Time\n\n00:00 on thu 2026-01-01 \(UTC\), day: outside the owner's quiet hours\.$/);
 	assert.doesNotMatch(out[0] ?? "", /^# Coordinator/m);
+	const criteria = join(root, ".agents", "arthur", "criteria");
+	mkdirSync(criteria, { recursive: true });
+	for (const name of ["styleguide", "autopilot", "report"]) writeFileSync(join(criteria, `${name}.md`), `# ${name}\n`);
+	const whole = (await box.command("coordinator", ["context", "shop"])).out[0] ?? "";
+	assert.match(whole, /\n\n# report\n\n## Time\n\n/, "no warning: no Warnings part");
+	assert.doesNotMatch(whole, /## Warnings/);
 	// A stop before arthur run ever started the agent leaves its mark in a folder made for it; the next start lifts it.
 	assert.deepEqual(await box.command("coordinator", ["stop", "shop"]), { code: 0, out: [`arthur coordinator stop: ${where} was not running; it stays stopped until arthur run starts again`], err: [] });
 	assert.deepEqual((await box.command("attach", ["shop"])).err, [`arthur attach: no agent of project shop: ${where} is not running; arthur coordinator stop shop stopped it until arthur run starts again`]);

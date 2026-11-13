@@ -9,7 +9,8 @@ import { temporaryFolder } from "@arthur/core/testing";
 // with those variables added to its own, prints its pid and keeps it as `sessions/<name>`; a session lives while its process
 // does, as tmux ends one whose only pane exited. `display-message -t =<name>:` prints `<name> 0` for a live one, `kill-session`
 // and `attach-session` exit 1 without one, and `kill-session` ends it with a hangup, as tmux does; any other call does nothing.
-// Each call's arguments, its socket's left out, go to `calls.jsonl`.
+// `refuse(name)` makes each `new-session` of that name fail, `stub tmux: refused`. Each call's arguments, its socket's left
+// out, go to `calls.jsonl`.
 //
 // omp: notes each start in `starts.jsonl`, with its time, arguments and the variables a supervisor sets, then exits 1 when
 // `ARTHUR_PROJECT` is `crash`, else stays until `end()`; as a job's agent, outside every session, until `releaseJobs()`.
@@ -30,6 +31,7 @@ if (args[0] === "new-session") {
 		else if (args[at] in given) given[args[at]] = args[++at];
 	}
 	if (live(pidOf(given["-s"]))) { console.error("duplicate session: " + given["-s"]); process.exit(1); }
+	if (fs.existsSync(path.join(${JSON.stringify(join(folder, "refused"))}, given["-s"]))) { console.error("stub tmux: refused"); process.exit(1); }
 	const child = spawn(args[at], args.slice(at + 1), { cwd: given["-c"], env: { ...process.env, ...env }, detached: true, stdio: "ignore" });
 	fs.writeFileSync(named(given["-s"]), String(child.pid));
 	child.unref();
@@ -72,8 +74,10 @@ export function fakeTmux() {
 	const bin = temporaryFolder();
 	writeFileSync(join(bin, "tmux"), TMUX(bin), { mode: 0o755 });
 	writeFileSync(join(bin, "omp"), OMP(bin), { mode: 0o755 });
-	const sessions = join(bin, "sessions");
-	mkdirSync(sessions);
+	const [sessions, refused] = [join(bin, "sessions"), join(bin, "refused")];
+	for (const folder of [sessions, refused]) mkdirSync(folder);
+	// A session's pid, 0 for none: never a signal to pid 0, the test's own process group.
+	const pid = (name: string) => Number(readFileSync(join(sessions, name), "utf8")) || 0;
 	return {
 		bin,
 		// The starts of a session's agent, a job's left out.
@@ -83,18 +87,19 @@ export function fakeTmux() {
 		live: () =>
 			readdirSync(sessions).filter((name) => {
 				try {
-					return process.kill(Number(readFileSync(join(sessions, name), "utf8")), 0);
+					return pid(name) > 0 && process.kill(pid(name), 0);
 				} catch {
 					return false;
 				}
 			}),
+		refuse: (name: string) => writeFileSync(join(refused, name), ""),
 		releaseJobs: () => writeFileSync(join(bin, "release-jobs"), ""),
 		// Every agent a session or a job started, ended, also when a check failed before its supervisor's stop.
 		end() {
 			for (const gate of ["release", "release-jobs"]) writeFileSync(join(bin, gate), "");
 			for (const name of readdirSync(sessions))
 				try {
-					process.kill(Number(readFileSync(join(sessions, name), "utf8")), "SIGKILL");
+					if (pid(name) > 0) process.kill(pid(name), "SIGKILL");
 				} catch {}
 		},
 	};

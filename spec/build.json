@@ -5270,9 +5270,9 @@
   {
     "id": "AR0653",
     "title": "Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112)",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0653-stats-s6-claude-usage-windows-beside-the-costs-an-estimate-marked-roadmap-112/ticket.md",
-    "updated": "2026-11-13T07:13:40.011Z",
+    "updated": "2026-11-13T08:02:52.333Z",
     "after": [
       "AR0652"
     ]

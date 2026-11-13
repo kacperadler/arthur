@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0652 Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111) (46655571)
+- AR0653 Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112) (234b6360)
 
 ### Changed
 

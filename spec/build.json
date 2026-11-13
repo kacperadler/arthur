@@ -5738,9 +5738,9 @@
   {
     "id": "AR0710",
     "title": "Mutate spreads its sample over the whole of a new file, not only its first lines",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0710-mutate-spreads-its-sample-over-the-whole-of-a-new-file-not-only-its-first-lines/ticket.md",
-    "updated": "2026-11-13T22:10:50.043Z"
+    "updated": "2026-11-13T22:43:59.553Z"
   },
   {
     "id": "AR0711",

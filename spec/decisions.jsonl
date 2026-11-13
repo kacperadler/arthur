@@ -1340,3 +1340,4 @@
 {"record":"answer","id":"AR-D665","time":"2026-11-13T08:08:28+01:00","decided":"Merge AR0652","picked":1,"words":"AR-D665 merge","message":16120}
 {"record":"answer","id":"AR-D666","time":"2026-11-13T08:08:28+01:00","decided":"AR0699 worker budget $2 -> $5","picked":1,"words":"AR-D666 merge","message":16120}
 {"record":"answer","id":"AR-D666","time":"2026-11-13T08:09:25+01:00","decided":"The owner approved raising the AR0699 worker budget from $2 to $5","picked":1,"words":"AR-D666 merge","message":16120}
+{"record":"answer","id":"AR-D667","time":"2026-11-13T08:13:24+01:00","decided":"AR0700 approved: load the stats plugin in the owner config","picked":1,"words":"AR-D667 approve","message":16154}

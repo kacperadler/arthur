@@ -5656,9 +5656,9 @@
   {
     "id": "AR0700",
     "title": "The owner's config loads the stats plugin again, so arthur stats and the Stats of audits and retros come back",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0700-the-owner-s-config-loads-the-stats-plugin-again-so-arthur-stats-and-the-stats-of/ticket.md",
-    "updated": "2026-11-13T01:04:36.734Z"
+    "updated": "2026-11-13T07:13:24.765Z"
   },
   {
     "id": "AR0701",

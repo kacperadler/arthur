@@ -5260,9 +5260,9 @@
   {
     "id": "AR0652",
     "title": "Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111)",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0652-stats-s5-arthur-stats-stats-and-the-morning-report-s-spend-roadmap-111/ticket.md",
-    "updated": "2026-11-13T01:39:40.225Z",
+    "updated": "2026-11-13T02:09:08.430Z",
     "after": [
       "AR0651"
     ]

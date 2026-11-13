@@ -773,7 +773,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 - Depends on: 54.
 - Size: half a day.
 - Covers: M2.
-- Moved: entry 110 moves this report, its test and its doc page into the stats plugin, unchanged, and 111 puts it under `arthur stats tickets`; manage keeps `mergedSince`, which the audit uses.
+- Moved: entry 110 moved this report, its test and its doc page into the stats plugin, unchanged, and 111 puts it under `arthur stats tickets`; manage keeps the filter of the tickets merged since the last audit, which the audit's deferred findings use.
 
 ### 62. The audit
 
@@ -1008,7 +1008,7 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 ### 110. The merged-ticket report moves to stats
 
 - Package: stats, manage.
-- Delivers (AR0480 plan, Approach, section 3): entry 61's report, its test and its doc page move from manage into stats as they are: `arthur stats` prints exactly what it prints today. Stats provides `stats.tickets`, through which manage's audit and retro prompts get their `### Stats` section; manage keeps `mergedSince` for the audit's deferred findings, and its line budget drops by what moves.
+- Delivers (AR0480 plan, Approach, section 3): entry 61's report, its test and its doc page move from manage into stats as they are: `arthur stats` prints exactly what it prints today. Stats provides `stats.tickets`, through which manage's audit and retro prompts get their `### Stats` section; manage keeps the filter of the tickets merged since the last audit (`mergedSince` in the plan, one call site, inlined) for the audit's deferred findings, and its line budget drops by what moves.
 - Done means: the moved test passes unchanged. Edge cases: without the stats plugin, the audit's and the retro's section reads `none: the stats plugin is not loaded`.
 - Depends on: 109, 61, 62, 63.
 - Size: half a day.

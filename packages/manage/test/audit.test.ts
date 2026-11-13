@@ -26,7 +26,8 @@ const findings = [
 	"## F4. Deferred on a ticket not merged\n\n- Kind: security\n- Where: `src/b.ts:2`\n- Status: deferred (client summary)\n",
 ].join("\n");
 
-async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:00" } }, run: AgentRun = { steps: [{ message: "## 1. A bug\nKind: bug\n\nNO PROPOSALS is not this." }] }) {
+// `stats`: whether the test answers `stats.tickets` as the stats plugin would, naming the project and window it was asked for.
+async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:00" } }, run: AgentRun = { steps: [{ message: "## 1. A bug\nKind: bug\n\nNO PROPOSALS is not this." }] }, stats = true) {
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(join(root, FOUND), { recursive: true });
 	writeFileSync(join(root, "spec/vision.md"), "# Vision\n");
@@ -61,6 +62,7 @@ async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:
 	const entries: Record<string, unknown>[] = [];
 	// The release notice's entry, which every load registers, is release-notice.test.ts's.
 	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.flatMap((each) => (each.id === "release" ? [] : [{ plugin, ...each }]))));
+	if (stats) fake.provide("stats.tickets", (project: string, since?: Date) => `the merged tickets of ${project} since ${since?.toISOString() ?? "ever"}`);
 	await fake.setup(manage(options));
 	const printed: string[] = [];
 	t.mock.method(console, "log", (line: string) => printed.push(line));
@@ -108,7 +110,7 @@ test("the night's audit is a read-only job with its budget and model, its prompt
 	assert.match(section, new RegExp(`^## This audit\n\nYou audit project acme at ${head}; your worktree is a detached checkout of that commit\\.\n\n`));
 	assert.match(section, /### Commits of the last 24 hours \(no report in spec\/quality\/ names an audited commit\)\n\n[0-9a-f]+ second\n[0-9a-f]+ first\n\n/);
 	assert.ok(section.includes("### Board\n\nAC0001 in-progress"), section);
-	assert.ok(section.includes("### Stats\n\nStats of acme: 2 merged tickets\n"), "no audit before: every merged ticket");
+	assert.ok(section.includes("### Stats\n\nthe merged tickets of acme since ever\n\n### Open findings"), "no audit before: every merged ticket");
 	assert.ok(section.includes(`### Open findings\n\n- AC0001 F1: The prune skips a link. Where: \`src/prune.ts:12\`\n- AC0001 F3: No where\n\n`), section);
 	assert.ok(section.includes("### Deferred findings\n\n- AC0002 F1 (risk): Old risk. Where: `src/old.ts:3`\n- AC0003 F1 (security): Token in a log. Where: `src/log.ts:9`\n- AC0003 F3: No kind, no where\n\n### Vision"), "no audit before: every merged ticket's");
 	assert.ok(section.endsWith("### Vision\n\n`spec/vision.md`: read it first, and rank each proposal by how far it moves the project there.\n"), section);
@@ -116,7 +118,7 @@ test("the night's audit is a read-only job with its budget and model, its prompt
 });
 
 test("filed as spec/quality/<date>.md with the commit audited; a second audit the same day is -2.md and starts from the first's commit", async (t) => {
-	const { night, jobs, ended, root, commit, read } = await load(t);
+	const { night, jobs, ended, root, commit, read, git } = await load(t);
 	const first = await night();
 	assert.ok(first !== undefined);
 	await ended(first.id);
@@ -125,18 +127,31 @@ test("filed as spec/quality/<date>.md with the commit audited; a second audit th
 	const report = readFileSync(join(root, "spec/quality/2026-10-21.md"), "utf8");
 	assert.equal(report, `# Audit 2026-10-21\n\n- Job: ${first.id}\n- Commit audited: ${base}\n\n## Final message\n\n## 1. A bug\nKind: bug\n\nNO PROPOSALS is not this.`);
 	assert.throws(() => jobs.file(undefined, first.id), { message: `${first.id} is already filed as spec/quality/2026-10-21.md` });
+	// AC0004 merged at the very second the audited commit was made: in the window.
+	const made = new Date(git("show", "-s", "--format=%cI", base)).toISOString();
+	mkdirSync(join(root, "spec/features/AC0004-one"));
+	writeFileSync(join(root, "spec/features/AC0004-one/findings.md"), "# AC0004 - Findings\n\n## F1. At the edge\n\n- Kind: bug\n- Status: deferred (client summary)\n");
+	const board = JSON.parse(readFileSync(join(root, "spec/build.json"), "utf8"));
+	writeFileSync(join(root, "spec/build.json"), JSON.stringify([...board, { id: "AC0004", title: "Ticket AC0004", status: "merged", path: "spec/features/AC0004-one/ticket.md", updated: made }]));
 	commit("the report", null);
 	const third = commit("third");
 	const second = await night();
 	assert.ok(second !== undefined);
 	const section = read(second.id, "prompt");
 	assert.match(section, new RegExp(`### Commits since the last audit, ${base.slice(0, 12)} \\(spec/quality/2026-10-21\\.md\\)\n\n${third.slice(0, 7)}[0-9a-f]* third\n\n`), "the report's own commit is not listed");
-	assert.ok(section.includes("### Stats\n\nStats of acme: 1 merged ticket\nAC0003 "), "only the tickets merged since the last audited commit");
-	assert.ok(section.includes("### Deferred findings\n\n- AC0003 F1 (security): Token in a log. Where: `src/log.ts:9`\n- AC0003 F3: No kind, no where\n\n"), "only the tickets merged since the last audited commit");
+	assert.ok(section.includes(`### Stats\n\nthe merged tickets of acme since ${made}\n\n`), "only the tickets merged since the last audited commit");
+	assert.ok(section.includes("### Deferred findings\n\n- AC0003 F1 (security): Token in a log. Where: `src/log.ts:9`\n- AC0003 F3: No kind, no where\n- AC0004 F1 (bug): At the edge\n\n"), "only the tickets merged since the last audited commit");
 	await ended(second.id);
 	assert.equal(jobs.file(undefined, second.id), "spec/quality/2026-10-21-2.md");
 	assert.match(readFileSync(join(root, "spec/quality/2026-10-21-2.md"), "utf8"), new RegExp(`^# Audit 2026-10-21\n\n- Job: ${second.id}\n- Commit audited: ${third}\n`));
 	assert.equal(readFileSync(join(root, "spec/quality/2026-10-21.md"), "utf8"), report, "the first report is left as it was");
+});
+
+test("without the stats plugin the audit's ### Stats says so in one line", async (t) => {
+	const { night, read } = await load(t, undefined, undefined, false);
+	const job = await night();
+	assert.ok(job !== undefined);
+	assert.ok(read(job.id, "prompt").includes("### Stats\n\nnone: the stats plugin is not loaded\n\n### Open findings"));
 });
 
 test("no commit since the last audit's, or only the reports' and the board's, makes no job; a commit with any other file, or an audited commit Git lacks, makes one", async (t) => {

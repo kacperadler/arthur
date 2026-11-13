@@ -6,13 +6,13 @@ import { fileReport, newest } from "./report-file.ts";
 import { period, RETROS, retroDue } from "./retro-due.ts";
 import { repeats } from "./repeats.ts";
 import { scheduleKind } from "./scheduled-kind.ts";
-import { stats } from "./stats.ts";
 
 // The retro (spec/roadmap.md, entry 63): the kind `retro`, read-only, with the retro role and the retro criteria; every retro's
-// prompt gets the FAIL reviews, findings and outcomes of the merges since the last retro (retro-due.ts), the stats, the digest
-// of `arthur repeats` (repeats.ts), the jobs' corrections, the board, and the roles and criteria; `arthur retro-due`, also the coordinator's context
-// line; the schedule entry of `retro.day` and `retro.at`, which starts none while no retro is due; the filing with its phone page
-// (report-file.ts), `/retro` sending the newest page, and the procedure its end brings. docs/manage.md, "The retro".
+// prompt gets the FAIL reviews, findings and outcomes of the merges since the last retro (retro-due.ts), the stats (`stats.tickets`,
+// the stats plugin's), the digest of `arthur repeats` (repeats.ts), the jobs' corrections, the board, and the roles and
+// criteria; `arthur retro-due`, also the coordinator's context line; the schedule entry of `retro.day` and `retro.at`, which
+// starts none while no retro is due; the filing with its phone page (report-file.ts), `/retro` sending the newest page, and the
+// procedure its end brings. docs/manage.md, "The retro".
 
 const KIND = "retro";
 export const RETRO_TASK = "Look back on the merges since the last retro, as your role and the retro criteria say.";
@@ -117,7 +117,7 @@ function context(host: Host, job: Job): string {
 	return [
 		`## This retro\n\nYou look back on project ${job.project} at ${job.base}; your worktree is a detached checkout of that commit.`,
 		`### Merges since ${look.since}\n\n${retroDue(look).line}\n\n${merged.join("\n") || "none"}`,
-		`### Stats\n\n${stats(host, job.project, look.made)}`,
+		`### Stats\n\n${host.collect<string>("stats.tickets", job.project, look.made).join("\n\n") || "none: the stats plugin is not loaded"}`,
 		repeatsOf(host, job.project, look.made),
 		corrections(host, job.project, look.made),
 		`### Board\n\n${host.board.digest(job.project)}`,

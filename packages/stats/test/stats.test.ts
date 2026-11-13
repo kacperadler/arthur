@@ -29,11 +29,13 @@ function job(fake: FakeHost, id: string, files: Readonly<Record<string, string>>
 	for (const [name, text] of Object.entries(record)) writeFileSync(join(folder, name), text);
 }
 
-// The plugin set up on `fake` (a new one by default), with `runs.jsonl` already there unless `fresh`.
+// The plugin set up on `fake` (a new one by default), with `runs.jsonl` already there unless `fresh`. A second load on `fake` is
+// another process on the same home, which has a command registry of its own.
 async function load(fake = fakeHost({ name: "stats" }), fresh = false) {
 	if (!fresh && !existsSync(join(fake.host.folder, "runs.jsonl"))) writeFileSync(join(fake.host.folder, "runs.jsonl"), "");
 	const plugin = stats();
-	await fake.setup(plugin);
+	if (fake.commands.length === 0) await fake.setup(plugin);
+	else await plugin.setup({ ...fake.host, commands: { ...fake.host.commands, register: () => {} } });
 	return { fake, plugin, runs: () => lines(join(fake.host.folder, "runs.jsonl")), end: (id: string, state = "ended") => fake.emit("job-ended", { id, kind: "worker", project: "acme", state, reason: "finished" }) };
 }
 

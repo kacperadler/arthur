@@ -13,10 +13,10 @@ const PACKAGES = join(import.meta.dirname, "..", "packages");
 const CLI = join(PACKAGES, "core", "src", "cli.ts");
 const RECORD = "/home/arthur/.arthur/jobs/2026-10-23-worker-0a1b2c3d";
 const REFUSAL = "refused inside a job 2026-10-23-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message";
-const PLUGINS = ["orchestration", "projects", "delivery", "develop", "dokploy", "findings", "github", "machines", "manage", "models", "resources", "schedule", "session", "youtrack"];
+const PLUGINS = ["orchestration", "projects", "delivery", "develop", "dokploy", "findings", "github", "machines", "manage", "models", "resources", "schedule", "session", "stats", "youtrack"];
 const CONFIG = `${PLUGINS.map((name) => `import { ${name} } from ${JSON.stringify(join(PACKAGES, name, "src", `${name}.ts`))};`).join("\n")}
 export default { plugins: [orchestration({}), projects({ folders: ["projects/shop"] }), delivery({}), develop({}), dokploy({ instances: [{ url: "http://127.0.0.1:9", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }] }), findings({}),
-	github({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }] }), machines({}), manage({}), models({}), resources({}), schedule({ file: "spec/schedule.json" }), session({}),
+	github({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }] }), machines({}), manage({}), models({}), resources({}), schedule({ file: "spec/schedule.json" }), session({}), stats(),
 	youtrack({ instances: [{ urlEnv: "ARTHUR_YOUTRACK_URL", tokenEnv: "ARTHUR_YOUTRACK_TOKEN" }] })] };
 `;
 

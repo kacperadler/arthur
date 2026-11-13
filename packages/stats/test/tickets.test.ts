@@ -3,10 +3,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
-import { manage } from "../src/manage.ts";
-import { findingLines } from "../src/stats.ts";
+import { stats } from "../src/stats.ts";
+import { findingLines } from "../src/tickets.ts";
 
-// `arthur stats` against the fake host, over the project acme, whose board and ticket folders the test writes as the core,
+// `arthur stats` and `stats.tickets` against the fake host, over the project acme, whose board and ticket folders the test writes as the core,
 // delivery's reviews and `arthur merge`'s outcome leave them.
 
 type Ticket = { readonly id: string; readonly title: string; readonly status: string; readonly updated: string; readonly files: Readonly<Record<string, string>> };
@@ -28,18 +28,20 @@ async function load(t: TestContext, tickets: readonly Ticket[]) {
 		}
 	mkdirSync(join(root, "spec"), { recursive: true });
 	writeFileSync(join(root, "spec/build.json"), JSON.stringify(board));
-	const fake = fakeHost({ name: "manage", timeZone: "Europe/Warsaw", now: new Date("2026-01-05T12:00:00Z") });
+	const fake = fakeHost({ name: "stats", timeZone: "Europe/Warsaw", now: new Date("2026-01-05T12:00:00Z") });
 	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }, { name: "other", path: join(root, "missing"), prefix: "OT" }]);
-	const plugin = manage();
+	const plugin = stats();
 	await fake.setup(plugin);
 	const command = fake.commands.find((each) => each.name === "stats");
-	return async (args: readonly string[] = [], project?: string) => {
+	const run = async (args: readonly string[] = [], project?: string) => {
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (text: string) => out.push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
 		const code = await Promise.try(() => command?.run({ args, project })).finally(() => t.mock.restoreAll());
 		return { code: code ?? 0, out: out.join("\n"), err: err.join("\n") };
 	};
+	// `stats.tickets` as manage's audit and retro ask it for their prompt's `### Stats`.
+	return Object.assign(run, { section: (project: string, since?: Date) => fake.collect<string>("stats.tickets", project, since) });
 }
 
 const FAIL_NUMBERED = "Clean.\n\n**Findings**\n\n1. `src/shop.ts:12` - the total ignores the discount.\n   It is 10%.\n2. `test/shop.test.ts:4` - no test of an empty cart.\n\n**Notes (non-blocking)**\n- a note\n\n**Checks run**\n- 3. npm test";
@@ -123,4 +125,35 @@ test("the first line of each finding: by the section's first line's kind, up to 
 	assert.deepEqual(findingLines(message("Findings:\nThe cache is never cleared.\n1. not a second finding")), ["The cache is never cleared."]);
 	assert.deepEqual(findingLines(message("\nThe branch breaks the build.\n\nMore.")), ["The branch breaks the build."]);
 	assert.deepEqual(findingLines(message("## Findings\n\n## Notes\n- a note")), []);
+});
+
+test("stats.tickets: the report of the project asked, of the tickets merged at `since` or later; none merged since says when", async (t) => {
+	const merged = (id: string, updated: string) => ({ id, title: id, status: "merged", updated, files: { "ticket.md": ticket(id, "2026-01-01"), "review-1.md": review(id, 1, "PASS", "Fine.") } });
+	const run = await load(t, [merged("AC0001", "2026-01-02T10:00:00Z"), merged("AC0002", "2026-01-04T08:00:00Z")]);
+	assert.deepEqual(run.section("acme"), [(await run()).out], "no since: every merged ticket, as `arthur stats` prints it");
+	const since = new Date("2026-01-04T08:00:00Z");
+	const [section = ""] = run.section("acme", since);
+	assert.match(section, /^Stats of acme: 1 merged ticket\nAC0002 AC0002: /, "merged at since counts");
+	assert.match(section, /\nFirst-round PASS: 1 of 1 \(100%\) reviewed\n/);
+	assert.deepEqual(run.section("acme", new Date(since.getTime() + 1)), ["No merged ticket in acme since 2026-01-04 09:00."], "in core.timeZone");
+	assert.deepEqual(run.section("other"), ["No merged ticket in other yet."], "the project asked, not the main one");
+});
+
+test("a finding's first line: a heading at any level from 1 to 6, a section's end of either kind, each way a finding opens", () => {
+	// The final message right under its heading, no blank line between.
+	const final = (text: string) => `# AC0001 - Review 1\n\n- Verdict: FAIL\n\n## Final message\n${text}`;
+	const rows: [string, string[]][] = [
+		["## Findings\n- a\n- b", ["- a", "- b"]],
+		["# Findings\n- a\n- b\n# Notes\n- c", ["- a", "- b"]],
+		["###### Findings\n- a\n###### Notes\n- c", ["- a"]],
+		["####### Findings\n- a\n- b", ["####### Findings"]],
+		["## Findings\n- a\n####### b\n- c", ["- a", "- c"]],
+		["## Findings\n- a\n**Notes**\n- n", ["- a"]],
+		["## Findings\n- a\n**Checks run**\n- c", ["- a"]],
+		["## Findings\n1) a\n2) b", ["1) a", "2) b"]],
+		["## Findings\n* a\n* b", ["* a", "* b"]],
+		["- a\n- b", ["- a"]],
+		["## Findings\n## Notes\n- x", []],
+	];
+	for (const [text, expected] of rows) assert.deepEqual(findingLines(final(text)), expected, text);
 });

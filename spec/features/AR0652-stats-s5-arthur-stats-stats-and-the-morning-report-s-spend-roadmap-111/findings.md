@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/uptime/test/uptime.test.ts:343`
 - What: `npm test` on 2c686df3 failed this one test after 20014 ms (its time limit) while every other of 1813 tests passed; run alone, `node --import @arthur/core/testing --test packages/uptime/test/uptime.test.ts` passed 25 of 25. The branch does not touch uptime. Its rounds of real time (AR0671's F2 measured 3 to 14 s) leave little room under a loaded machine.
 - Suggestion: drive the plugin's check rounds with faked timers or a shorter `limitSeconds` in the test, so it waits on no real seconds; nothing else of uptime changes.
-- Status: open
+- Status: deferred (client summary)

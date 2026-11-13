@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-13
 
+### Added
+
+- AR0652 Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111) (46655571)
+
 ### Changed
 
 - AR0651 Stats S4: the merged-ticket report moves from manage to stats (roadmap 110) (a27b618c)

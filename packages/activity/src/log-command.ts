@@ -20,7 +20,8 @@ function day(word: string, clock: Host["clock"]): string | undefined {
 	const today = clock.local().date;
 	if (word === "today") return today;
 	if (word === "yesterday") return new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-	return /^\d{4}-\d{2}-\d{2}$/.test(word) && new Date(Date.parse(`${word}T00:00:00Z`) || 0).toISOString().startsWith(word) ? word : undefined;
+	const at = new Date(`${word}T00:00:00Z`);
+	return /^\d{4}-\d{2}-\d{2}$/.test(word) && !Number.isNaN(at.getTime()) && at.toISOString().startsWith(word) ? word : undefined;
 }
 
 // `actor` is `who` or one of its own: `user:telegram` takes in `user:telegram/<instance>`, `job` every `job:<id>`.

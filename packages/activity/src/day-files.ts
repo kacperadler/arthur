@@ -12,12 +12,11 @@ function days(dir: string): string[] {
 	return existsSync(dir) ? readdirSync(dir).flatMap((name) => DAY.exec(name)?.[1] ?? []).sort() : [];
 }
 
-// Each JSON object of the file of `date`, in file order; a line a crash cut, or no object, is skipped.
+// Each JSON value of the file of `date`, in file order, as an object: one that is none (a hand edit) has no fields; a line a crash cut is skipped.
 function objects(dir: string, date: string): Readonly<Record<string, unknown>>[] {
 	return readFileSync(join(dir, `${date}.jsonl`), "utf8").split("\n").flatMap((text) => {
 		try {
-			const value: unknown = JSON.parse(text);
-			return typeof value === "object" && value !== null && !Array.isArray(value) ? [value as Record<string, unknown>] : [];
+			return [Object(JSON.parse(text)) as Record<string, unknown>];
 		} catch {
 			return [];
 		}

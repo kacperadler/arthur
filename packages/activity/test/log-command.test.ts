@@ -105,6 +105,20 @@ test("the default is today in core.timeZone, one line each, the commands that on
 	assert.deepEqual(await cli(["--all"]), ok(shown(...TODAY.map((each) => each.seq))));
 });
 
+// Every command the doc page names as one that only reads, as a command-ran and as a channel's `/name`; beside each, one that acts.
+const ONLY_READ = ["board", "config check", "coordinator context", "decisions", "doctor", "findings", "health", "help", "jobs", "log", "plan", "projects", "resources", "retro-due", "review-needed", "roles", "stats", "task", "usage", "version"];
+test("each command that only reads is hidden, run in a shell or sent on a channel; config and coordinator otherwise, and every action, show", async (t) => {
+	const { fake, cli } = await load(t, true);
+	const acting = ["config", "coordinator stop", "merge", "steer", "stopall", "ticket"];
+	const ran = (seq: number, words: string) => line(seq, 0, "coordinator", `command ${words.split(" ")[0]}`, `${words.split(" ").slice(1).join(" ")} AC0012 (exit 0)`.trim());
+	const sent = (seq: number, words: string) => line(seq, 0, "user:telegram", "phone-command", `/${words} AC0012`);
+	const lines = [...ONLY_READ, ...acting].flatMap((words, index) => [ran(2 * index + 1, words), sent(2 * index + 2, words)]);
+	day(fake, "2026-11-13", jsonl(lines));
+	const printed = (kept: readonly Line[]) => kept.map((each) => `09:00  ${each.actor}  ${each.what}  ${each.text}`).join("\n");
+	assert.deepEqual(await cli([]), ok(printed(lines.slice(2 * ONLY_READ.length))));
+	assert.deepEqual(await cli(["--all"]), ok(printed(lines)));
+});
+
 test("--day: yesterday and a real date by the day file of that date in core.timeZone; a day with no file says so", async (t) => {
 	const { cli } = await load(t);
 	const yesterday = ["21:00  user:telegram  message-received  Plan AC0013", "21:01  coordinator  job-started  plan on AC0013, machine local", "23:59  user:telegram  message-received  Steer the plan"].join("\n");
@@ -157,14 +171,14 @@ test("--ticket, --job by its full or short id, --project; the filters combine", 
 
 test("wrong usage prints the usage line and exits 2", async (t) => {
 	const { cli } = await load(t);
-	for (const args of [["today"], ["--day"], ["--day", "tomorrow"], ["--day", "2026-02-30"], ["--day", "2026-11-1"], ["--since", "1d"], ["--all=yes"], ["--user"]])
+	for (const args of [["today"], ["--day"], ["--day", "tomorrow"], ["--day", "2026-02-30"], ["--day", "2026-13-01"], ["--day", "2026-11-1"], ["--day", "2026-11"], ["--since", "1d"], ["--all=yes"], ["--user"]])
 		assert.deepEqual(await cli(args), { code: 2, out: "", err: USAGE }, args.join(" "));
 });
 
 test("a line cut by a crash, or edited into one it cannot show, is skipped; the rest still show", async (t) => {
 	const { fake, cli } = await load(t, true);
 	const good = TODAY[0];
-	const bad = [[], "text", null, { ...good, seq: "10" }, { ...good, seq: 1.5 }, { ...good, time: "nope" }, { ...good, actor: 1 }, { ...good, what: null }, { ...good, text: undefined }];
+	const bad = [[], "text", 7, null, { ...good, seq: "10" }, { ...good, seq: 1.5 }, { ...good, time: "nope" }, { ...good, time: 0 }, { ...good, actor: 1 }, { ...good, what: null }, { ...good, text: undefined }];
 	day(fake, "2026-11-13", `${jsonl(bad)}${jsonl([{ ...good, seq: 30, on: "10", job: 5 }])}${jsonl([good])}{"seq":31,"ti`);
 	assert.deepEqual(await cli([]), ok(`${SHOWN[10]}\n${SHOWN[10]}`));
 	assert.deepEqual(await cli(["--user", "discord"]), ok("no activity to show on 2026-11-13"), "an on that is no list names no message");
@@ -181,7 +195,7 @@ test("/log on a channel: today's last 30 lines by default, a day, a ticket, a jo
 	assert.equal(await route("/log job 0000000b today"), shown(12, 15, 16));
 	assert.equal(await route("/log AC0013 job 0000000b"), "no activity to show on 2026-11-13");
 	assert.equal(await route("/log 2026-11-11"), "no activity to show on 2026-11-11");
-	for (const text of ["/log job", "/log nope", "/log today yesterday", "/log AC0012 AC0013", "/log ac0012", "/log --all", "/log 2026-02-30"]) assert.equal(await route(text), PHONE_USAGE, text);
+	for (const text of ["/log job", "/log nope", "/log today yesterday", "/log AC0012 AC0013", "/log ac0012", "/log AC012", "/log --all", "/log 2026-02-30", "/log 2026-11"]) assert.equal(await route(text), PHONE_USAGE, text);
 });
 
 test("/log keeps the last 30 lines, a first line saying how many there were; 30 exactly has none", async (t) => {

@@ -78,3 +78,4 @@ Out:
 ## Decisions
 
 - 2026-11-13: Source: retro spec/retro/2026-11-13.md
+- 2026-11-13: AR0710 approved; the owner: "AR-D676 1, AR-D677 1" (AR-D676)

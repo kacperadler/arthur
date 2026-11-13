@@ -5738,16 +5738,16 @@
   {
     "id": "AR0710",
     "title": "Mutate spreads its sample over the whole of a new file, not only its first lines",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0710-mutate-spreads-its-sample-over-the-whole-of-a-new-file-not-only-its-first-lines/ticket.md",
-    "updated": "2026-11-13T21:35:32.819Z"
+    "updated": "2026-11-13T22:10:50.043Z"
   },
   {
     "id": "AR0711",
     "title": "Mutate leaves out test helpers and the example config",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0711-mutate-leaves-out-test-helpers-and-the-example-config/ticket.md",
-    "updated": "2026-11-13T21:35:33.859Z",
+    "updated": "2026-11-13T22:10:50.709Z",
     "after": [
       "AR0710"
     ]

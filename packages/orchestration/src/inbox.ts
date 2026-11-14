@@ -31,7 +31,9 @@ const seen = (home: string, name: string, boxes: readonly string[]) => folders(h
 
 export function inbox(host: Host, sessions: readonly Box[]): { start(): void; stop(): void } {
 	const { folder } = host;
-	const to = (data: Readonly<Record<string, unknown>>) => sessionFor(sessions, data).folder;
+	const to = (data: Readonly<Record<string, unknown>>, main?: Readonly<Record<string, unknown>>) => sessionFor(sessions, data, main).folder;
+	// Each channel's main bot by its name (`channel.main`), asked as a message is routed: a channel may set up after this plugin.
+	const main = () => Object.fromEntries(host.collectEach("channel.main").flatMap((each) => ("error" in each ? [] : [[each.plugin, each.value]])));
 	const waiting = join(folder, "inbox", "received");
 	const next = () => (existsSync(waiting) ? readdirSync(waiting).filter((name) => /^\d+-\d+$/.test(name)).sort((a, b) => parseInt(a) - parseInt(b))[0] : undefined);
 	// `resolving` is the last pass over `received/`, `scheduled` whether one more waits behind it; passes run only once started.
@@ -57,7 +59,7 @@ export function inbox(host: Host, sessions: readonly Box[]): { start(): void; st
 					const logged = own?.seq === seq && Date.parse(own.time) === ms ? after.filter((event) => event.name === "coordinator-replied" && JSON.stringify(((event.data ?? {}) as Readonly<Record<string, unknown>>).answers) === `[${seq}]`) : [];
 					const events = { ...host.events, emit: (event: string, data: unknown) => (event === "coordinator-replied" ? logged.shift() : undefined) ?? host.events.emit(event, data) };
 					const said = await turnText({ collectEach: host.collectEach, events }, seq, message);
-					queue(folder, to(message), { seq, time: new Date(ms).toISOString() }, { channel: message.channel, text: said });
+					queue(folder, to(message, main()), { seq, time: new Date(ms).toISOString() }, { channel: message.channel, text: said });
 					rmSync(file);
 				}
 			})
@@ -92,12 +94,13 @@ export function inbox(host: Host, sessions: readonly Box[]): { start(): void; st
 	const voice = voiceReplies(host);
 	return {
 		start() {
-			// A removed agent's messages not yet answered go to the coordinator's queue, so none is lost.
+			// A removed agent's messages not yet answered go to the coordinator's queue, and its replies and notices not yet sent
+			// to the coordinator's outbox, so none is lost.
 			for (const each of folders(folder).slice(1).filter((one) => !sessions.some((session) => session.folder === one)))
-				for (const box of ["queued", "turn"])
-					for (const name of list(join(each, "inbox", box))) {
-						mkdirSync(join(folder, "inbox", "queued"), { recursive: true });
-						renameSync(join(each, "inbox", box, name), join(folder, "inbox", "queued", name));
+				for (const [from, into] of [["inbox/queued", "inbox/queued"], ["inbox/turn", "inbox/queued"], ["outbox", "outbox"]] as const)
+					for (const name of list(join(each, from)).filter((one) => from !== "outbox" || one.endsWith(".json"))) {
+						mkdirSync(join(folder, into), { recursive: true });
+						renameSync(join(each, from, name), join(folder, into, name));
 					}
 			footer(host, sessions);
 			timer = setInterval(() => sweep(host, sessions, voice), SWEEP_MS);

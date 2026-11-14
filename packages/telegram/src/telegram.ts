@@ -71,6 +71,8 @@ export function telegram(options: TelegramOptions): Plugin {
 			};
 			idle = box.idle;
 			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
+			// The main bot's name, none for the unnamed one: a project's chat that names no bot is its (orchestration's routing).
+			host.provide("channel.main", () => main.name);
 			// Each bot a project's chat names (orchestration's `orchestration.chats`, roadmap 85) talks in topics of its private chat.
 			host.provide("doctor", () => {
 				const chats = host.collect<readonly { readonly project: string; readonly plugin: string; readonly instance?: string }[]>("orchestration.chats").flat().filter((chat) => chat.plugin === "telegram");

@@ -45,9 +45,10 @@ export function sessionList(host: Host, coordinator: Coordinator): Session[] {
 export const sessionOf = (list: readonly Session[], env: NodeJS.ProcessEnv = process.env): Session | undefined => list.find((each) => each.folder === env.ARTHUR_ORCHESTRATION_FOLDER);
 
 // The session a message goes to: the agent whose chat is the channel, bot and place it came from, or, for Arthur's own (no
-// channel), the agent of the project it names; else the coordinator, first in the list (spec/roadmap.md, entry 86).
-export function sessionFor<T extends Pick<Session, "project" | "chat">>(list: readonly T[], to: Readonly<Record<string, unknown>>): T {
-	const found = list.find(({ project, chat }) => chat !== undefined && (to.channel === undefined ? project === to.project : chat.plugin === to.channel && chat.instance === to.instance && chat.place === to.place));
+// channel), the agent of the project it names; else the coordinator, first in the list (spec/roadmap.md, entry 86). A chat
+// that names no bot is its channel's main one, whose name `main` holds by channel (`channel.main`), none for an unnamed one.
+export function sessionFor<T extends Pick<Session, "project" | "chat">>(list: readonly T[], to: Readonly<Record<string, unknown>>, main: Readonly<Record<string, unknown>> = {}): T {
+	const found = list.find(({ project, chat }) => chat !== undefined && (to.channel === undefined ? project === to.project : chat.plugin === to.channel && (chat.instance ?? main[chat.plugin]) === to.instance && chat.place === to.place));
 	return found ?? (list[0] as T);
 }
 

@@ -168,3 +168,33 @@ test("coordinator.turn, on wake.ts: an owner's text message is its marked quote;
 	assert.equal(await turn("message-received", said("Merge it.", { channel: "telegram" })), "[via telegram]\n> Merge it.");
 	await assert.rejects(turn("message-received", { parts: said("Hi.").parts }), { message: "coordinator.turn: message-received: expected channel, non-empty text, got nothing" });
 });
+
+test("an agent's reply to a turn of Arthur's messages alone names its chat's channel, so no other channel sends it; a removed agent's unsent reply goes out at the start", (t) => {
+	const box = routed(t, { blog: BLOG });
+	const write = (session: string, name: string, entry: object) => {
+		mkdirSync(join(box.folder(session), "outbox"), { recursive: true });
+		writeFileSync(join(box.folder(session), "outbox", `${name}.json`), JSON.stringify(entry));
+	};
+	write("blog", "1000-000001", { text: "Blog's job ended.", answers: ["6-1000"], channels: [] });
+	// Shop's agent removed since it wrote these.
+	write("shop", "1000-000002", { text: "Shop's last reply.", answers: ["7-1000"], channels: ["telegram"] });
+	write("shop", "1000-000003", { notice: "shop's notice" });
+	box.run.start();
+	box.run.stop();
+	const emitted = (name: string) => box.fake.emitted.filter((event) => event.name === name).map((event) => event.data);
+	assert.deepEqual(emitted("coordinator-replied"), [
+		{ text: "Shop's last reply.", answers: [7], channels: ["telegram"] },
+		{ text: "Blog's job ended.", answers: [6], channels: ["discord"], place: "7" },
+	]);
+	assert.deepEqual([emitted("notice"), list(join(box.folder("shop"), "outbox"))], [[{ text: "shop's notice" }], []]);
+});
+
+test("a chat that names no bot is its channel's main one, by the name channel.main answers, whose messages there reach the agent; another bot's go to the coordinator", async (t) => {
+	const box = routed(t, { shop: { plugin: "test", place: "9" }, blog: { plugin: "test", instance: "second", place: "9" } });
+	box.fake.provide("channel.main", () => "first");
+	box.run.start();
+	const say = (instance: string | undefined, text: string) => box.fake.emit("message-received", said(text, { channel: "test", place: "9", ...(instance === undefined ? {} : { instance }) }));
+	const [first, second, unnamed] = [say("first", "By the main bot."), say("second", "By the second."), say(undefined, "By no bot of that name.")];
+	await until("every message queued", () => list(join(box.folder(), "inbox", "received")).length === 0 && Object.keys(box.inbox()).length === 1);
+	assert.deepEqual([Object.keys(box.inbox("shop")), Object.keys(box.inbox("blog")), Object.keys(box.inbox())], [[box.name(first)], [box.name(second)], [box.name(unnamed)]]);
+});

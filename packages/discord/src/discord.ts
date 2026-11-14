@@ -89,6 +89,8 @@ export function discord(options: DiscordOptions, closeMs?: number): Plugin {
 			};
 			host.provide("doctor", () => bots.flatMap((each) => requirements(each, () => menuCommands(host), join(host.folder, "commands.json"))));
 			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
+			// The main bot's name, none for the unnamed one: a project's chat that names no bot is its (orchestration's routing).
+			host.provide("channel.main", () => main.name);
 		},
 		start() {
 			connections = begin();

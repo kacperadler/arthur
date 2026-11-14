@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-14
 
+### Added
+
+- AR0705 Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85) (da1ed4ed)
+
 ### Changed
 
 - AR0711 Mutate leaves out test helpers and the example config (392de77e)

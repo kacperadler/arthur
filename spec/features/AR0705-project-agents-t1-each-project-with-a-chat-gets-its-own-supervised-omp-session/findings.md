@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/test/project-agents.test.ts:1`, `packages/orchestration/test/unix-socket.ts:5`
 - What: the job sandbox refuses every new Unix socket (`NO_UNIX_SOCKET`: `this host refuses a Unix socket (EACCES)`), so the 14 real-tmux tests of `coordinator.test.ts` are skipped in a job, and the project agents' tests run on the fake tmux of `test/fake-tmux.ts` instead. Roadmap 85's Done means says "a tmux socket in the test's folder"; what a real tmux does with a session named `<session>-<project>`, `-e` variables and `kill-session` of one session among several on one server is checked only against the fake's reading of tmux.
 - Suggestion: one real-tmux test (skipped under `NO_UNIX_SOCKET`, as the others) that starts the coordinator and two agents on a socket in the test's folder and checks `tmux list-sessions`, each session's `show-environment ARTHUR_PROJECT` and that `arthur coordinator stop <project>` ends that session alone; written and run where sockets are allowed, so it is not added unrun.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. Two projects can share one place when one names the main bot and the other leaves instance out
 
@@ -21,7 +21,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: the shared-chat refusal compares `instance` as written. `{ plugin: "telegram", instance: "main", place: "4" }` and `{ plugin: "telegram", place: "4" }` pass when the bot named `main` is also the plugin's main one, so both chats are one topic; once AR0706 routes messages, each agent hears the other's.
 - Also: `packages/telegram/src/telegram.ts:74` then gives two `arthur doctor` lines for the one bot, one per spelling (review 2026-11-13-review-04099ada).
 - Suggestion: in AR0706, which routes by `instance`, resolve both to the channel's bot (a `channel.instances`-style answer from each channel plugin, or refuse a chat that names the main bot by name) before comparing; orchestration alone cannot know which named bot is the main one.
-- Status: open
+- Status: deferred (client summary)
 
 ## F3. One SIGTERM and SIGINT listener per supervised session
 
@@ -30,7 +30,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/coordinator.ts:76`
 - What: each `supervise` adds its own `SIGTERM` and `SIGINT` listener; with about ten sessions plus the other plugins' listeners Node prints `MaxListenersExceededWarning` in `arthur run`'s output [INFERENCE: not run].
 - Suggestion: one listener for all supervisors of a run (the shared start chain already exists per `arthur run`), aborting every session's controller.
-- Status: open
+- Status: deferred (client summary)
 
 ## F4. The vision still says an agent per project comes later
 
@@ -39,7 +39,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:66`
 - What: the orchestration row reads "Later, an agent per project with a `chat`, and the routing of that chat to it (roadmap 85 to 88)". After this branch, entry 85 is built; the line is the owner's, so the branch leaves it.
 - Suggestion: the owner may say partly built (85 merged, 86 to 88 to come), or leave it until AR0708 merges.
-- Status: open
+- Status: deferred (client summary)
 
 ## F5. npm run mutate leaves a test job's wrapper and fake agent running
 
@@ -48,4 +48,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `test/mutate.ts`
 - What: after `npm run mutate` ended, a job wrapper (`packages/core/src/wrapper.ts <tmp home> 2026-01-01-worker-… omp acme …`) and its fake agent were still running, about 4 minutes old; both the worker and the review had to kill them by hand. Which mutant's test run started them was not traced.
 - Suggestion: have each mutant's test run end every process left in its own kit folder (as the test kit's exit hook does for `npm test`), or kill the run's process group when a mutant's run ends or times out.
-- Status: open
+- Status: deferred (client summary)
+
+## F6. the role says the agent's reply is sent when its turn ends
+
+- Kind: fix
+- Found by: 2026-11-13-review-b5f03d43 (review), 2026-11-14
+- Where: `packages/orchestration/roles/project.md:56`
+- What: In T1 nothing collects a project agent's outbox until AR0706 (roadmap 86), so a reply typed through `arthur attach` goes nowhere and nothing says so.
+- Status: deferred (client summary)

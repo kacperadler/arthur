@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-14
+
+### Changed
+
+- AR0711 Mutate leaves out test helpers and the example config (392de77e)
+
 ## 2026-11-13
 
 ### Added

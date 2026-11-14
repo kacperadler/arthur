@@ -5751,5 +5751,12 @@
     "after": [
       "AR0710"
     ]
+  },
+  {
+    "id": "AR0712",
+    "title": "A Dokploy upload of a folder sends its dotfiles too, such as a .dev.vars.example that holds a token",
+    "status": "planning",
+    "path": "spec/features/AR0712-a-dokploy-upload-of-a-folder-sends-its-dotfiles-too-such-as-a-dev-vars-example/ticket.md",
+    "updated": "2026-11-14T00:31:24.054Z"
   }
 ]

@@ -5745,9 +5745,9 @@
   {
     "id": "AR0711",
     "title": "Mutate leaves out test helpers and the example config",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0711-mutate-leaves-out-test-helpers-and-the-example-config/ticket.md",
-    "updated": "2026-11-13T22:10:50.709Z",
+    "updated": "2026-11-14T00:20:34.660Z",
     "after": [
       "AR0710"
     ]

@@ -122,7 +122,8 @@ export function fakeMerge(t: TestContext) {
 	t.after(() => process.chdir(cwd));
 	return {
 		answer: (out: string, err: string, code: number, gate?: string) => writeFileSync(answer, JSON.stringify({ out, err, code, gate })),
-		asked: () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []),
+		// Whole lines only: a line the merge is still appending has no line break yet.
+		asked: () => (existsSync(log) ? readFileSync(log, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []),
 	};
 }
 

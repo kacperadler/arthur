@@ -302,6 +302,32 @@ test("upload zips a folder's regular files at the zip's root, sends the zip to d
 	assert.deepEqual(readZip(built.zip).map(({ name, data }) => [name, data.toString()]), [["page.html", "<p>hi</p>"]]);
 });
 
+test("upload leaves out of a folder every path with a part that starts with a dot and says how many files it left out; a dotfile named on purpose goes", async (t) => {
+	const { main, run } = await writes(t);
+	const sent = (out: string, zip: Buffer, what: string) => assert.equal(out, `Shop web (kXx3shopWeb01) on instance (unnamed): sent ${what.replace("<zip>", `${zip.length}`)}; Dokploy queued a deployment; to follow it: arthur dokploy status`);
+	const site = folder(t, { ".dev.vars.example": "TOKEN=x", ".git/config": "[core]", "index.html": "<p>hi</p>", "assets/.cache/a.js": "a", "app.env.ts": "e", "assets/a.b.js": "b" });
+	mkdirSync(join(site, ".empty"));
+	const whole = await run(undefined, "upload", site);
+	assert.deepEqual(readZip(dropped(main.seen).zip).map(({ name }) => name), ["app.env.ts", "assets/a.b.js", "index.html"]);
+	sent(whole.out, dropped(main.seen).zip, "3 files, 11 bytes, as a zip of <zip> bytes, leaving out 3 dot-path files");
+	// A symlink in a dot-folder is left out with it, not refused: it is never read.
+	symlinkSync("../index.html", join(site, ".git", "HEAD"));
+	sent((await run(undefined, "upload", site)).out, dropped(main.seen).zip, "3 files, 11 bytes, as a zip of <zip> bytes, leaving out 4 dot-path files");
+	const one = await run(undefined, "upload", folder(t, { ".env": "A=1", "index.html": "x" }));
+	sent(one.out, dropped(main.seen).zip, "1 file, 1 bytes, as a zip of <zip> bytes, leaving out 1 dot-path file");
+	// The folder given may itself start with a dot; a dotfile given by its own path goes, as a ready zip does.
+	const built = join(folder(t, { ".output/index.html": "<p>built</p>" }), ".output");
+	sent((await run(undefined, "upload", built)).out, dropped(main.seen).zip, "1 file, 12 bytes, as a zip of <zip> bytes");
+	assert.deepEqual(readZip(dropped(main.seen).zip).map(({ name }) => name), ["index.html"]);
+	sent((await run(undefined, "upload", join(site, ".dev.vars.example"))).out, dropped(main.seen).zip, "1 file, 7 bytes, as a zip of <zip> bytes");
+	assert.deepEqual(readZip(dropped(main.seen).zip).map(({ name, data }) => [name, data.toString()]), [[".dev.vars.example", "TOKEN=x"]]);
+	// A folder of dot-paths only has nothing to send.
+	const hidden = folder(t, { ".env": "A=1", ".git/config": "[core]" });
+	const before = main.seen.length;
+	assert.equal(await refusal(run(undefined, "upload", hidden)), `${hidden}: is a folder without any file but its 2 dot-path files, which an upload leaves out; ${NOTHING}`);
+	assert.equal(main.seen.length, before);
+});
+
 test("upload sends a ready .zip as it is; a .zip that is no zip, or a zip by another name, goes inside a zip as a file", async (t) => {
 	const { main, client, run } = await writes(t);
 	assert.equal((await run(undefined, "upload", folder(t, { "a.txt": "a" }))).code, 0);

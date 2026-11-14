@@ -35,4 +35,5 @@ Out:
 
 ## Decisions
 - 2026-11-13: AR0705 approved; the owner: "AR-D671 yes" (AR-D671)
+- 2026-11-14: Merge AR0705 (project agents T1); the owner: "AR-D678 1" (AR-D678)
 

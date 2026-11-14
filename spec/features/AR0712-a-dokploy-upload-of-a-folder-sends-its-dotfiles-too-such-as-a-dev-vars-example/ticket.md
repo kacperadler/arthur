@@ -20,7 +20,7 @@ A token in a dotfile beside the code reaches the Dokploy server and every build 
 
 ## Done means
 
-- A folder upload leaves out what the owner's decision below names (open: every dot-path; or only `.git/`, `.env*` and `.dev.vars*`; or a refusal naming the file), and its `said` line names how many files it left out.
+- A folder upload leaves out every path with a segment that starts with a dot (a dotfile or anything under a dot-folder), as the owner decided below, and its `said` line names how many files it left out.
 - A test in `packages/dokploy/test/dokploy.test.ts`, beside "upload zips a folder's regular files at the zip's root", uploads a folder holding `.dev.vars.example`, `.git/config` and `index.html`, and fails before the change because the zip holds the dotfiles.
 - A file upload of one dotfile named on purpose, and a ready `.zip`, are sent as before.
 - `npm run check`, `npm test` and `npm run mutate` pass.
@@ -37,4 +37,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-11-14: AR0712 approved: an upload of a folder leaves out every dot-path (option a); the owner: "AR-D679 1 a" (AR-D679)

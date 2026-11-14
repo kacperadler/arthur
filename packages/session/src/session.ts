@@ -53,7 +53,8 @@ export function session(options: SessionOptions = {}, tickMs = 500): Plugin {
 		doctor: serviceRequirements,
 		setup(given) {
 			host = given;
-			for (const file of EXTENSIONS) given.provide("coordinator.extension", () => ({ file, env: { ARTHUR_SESSION_FOLDER: given.folder, ARTHUR_SESSION_TICK_MS: String(tickMs) } }));
+			// The coordinator's session only: a project agent's handoff would write the coordinator's files (roadmap 88 gives it its own).
+			for (const file of EXTENSIONS) given.provide("coordinator.extension", (asked?: { readonly session?: unknown }) => (asked?.session === "coordinator" ? { file, env: { ARTHUR_SESSION_FOLDER: given.folder, ARTHUR_SESSION_TICK_MS: String(tickMs) } } : undefined));
 			given.events.on("doctor", ({ data }) => {
 				const lines = typeof data === "object" && data !== null && "lines" in data ? data.lines : undefined;
 				missing = Array.isArray(lines) ? lines.filter((line) => typeof line === "string") : [];

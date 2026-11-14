@@ -64,10 +64,7 @@ export function coordinatorContext(host: Host, checkout?: { readonly root: strin
 	}
 	const open = checkout === undefined ? decisionContext(host) : "";
 	if (open !== "") parts.push(`### Open decisions\n\n${quote(open)}`);
-	const at = checkout?.at ?? host.clock.now();
-	const { date, time, day } = host.clock.local(at);
-	const night = host.clock.isQuiet(at) ? "night: within the owner's quiet hours" : "day: outside the owner's quiet hours";
-	parts.push(`## Time\n\n${time} on ${day} ${date} (${host.clock.timeZone}), ${night}.`);
+	parts.push(timeContext(host, checkout?.at ?? host.clock.now()));
 	const silent = checkout === undefined ? silentContext(host) : "";
 	if (silent !== "") parts.push(`## Silent\n\n${silent}`);
 	const answers = host.collectEach("coordinator.context");
@@ -80,4 +77,17 @@ export function coordinatorContext(host: Host, checkout?: { readonly root: strin
 		else if (said !== undefined && said.trim() !== "") parts.push(`## ${answer.plugin}\n\n${said.trim()}`);
 	}
 	return parts.join("\n\n");
+}
+
+// A project agent's context (entry 85): its role, read in its project as every role is, a warning per file missing, and the time.
+export function projectContext(host: Host, project: string): string {
+	const { prompt, warnings } = host.jobs.prompt("project", project);
+	const warned = warnings.length === 0 ? [] : [`## Warnings\n\n${warnings.map((warning) => `- ${warning}`).join("\n")}`];
+	return [prompt.trim(), ...warned, timeContext(host, host.clock.now())].join("\n\n");
+}
+
+function timeContext(host: Host, at: Date): string {
+	const { date, time, day } = host.clock.local(at);
+	const night = host.clock.isQuiet(at) ? "night: within the owner's quiet hours" : "day: outside the owner's quiet hours";
+	return `## Time\n\n${time} on ${day} ${date} (${host.clock.timeZone}), ${night}.`;
 }

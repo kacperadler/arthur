@@ -7,8 +7,8 @@ import { pathToFileURL } from "node:url";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 
 // AR0350, AR0584: every job's prompt says once, in the core's `## Every job` section, which text instructs it and that
-// everything else it reads is data, beside the rules on ending a turn; no job role file restates them. The coordinator, which no
-// spawn starts, keeps the rule in its own role. The role files are every package's `roles/*.md`, the coordinator's procedures
+// everything else it reads is data, beside the rules on ending a turn; no job role file restates them. The coordinator and the
+// project agents, which no spawn starts, keep the rule in their own roles. The role files are every package's `roles/*.md`, the coordinator's procedures
 // (`roles/coordinator/`) aside, which reach it inside a wake under the coordinator's own rule, and the section's own file aside,
 // `packages/core/roles/every-job.md`.
 
@@ -23,7 +23,7 @@ const roles = readdirSync(join(ROOT, "packages")).flatMap((name) => {
 	const files = readdirSync(join(ROOT, folder), { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".md") && entry.name !== "every-job.md");
 	return files.map((entry) => join(folder, entry.name));
 });
-const jobRoles = roles.filter((path) => basename(path) !== "coordinator.md");
+const jobRoles = roles.filter((path) => !["coordinator.md", "project.md"].includes(basename(path)));
 
 test("every job's assembled prompt holds the rule and the ending rules once; no job role file does", async () => {
 	const root = join(temporaryFolder(), "acme");

@@ -1,20 +1,22 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import type { Answer } from "@arthur/core/plugin";
 import { type Servers, writeMcp } from "./mcp.ts";
 import type { Coordinator } from "./orchestration-options.ts";
+import type { Turns } from "./sessions.ts";
 
 // The coordinator's process (spec/roadmap.md, entry 23): one interactive agent in its own tmux session, started again after
-// it ends, never beside a previous one still alive: docs/commands/coordinator.md.
+// it ends, never beside a previous one still alive; a project agent's likewise (entry 85): docs/commands/coordinator.md.
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
 const INBOX = fileURLToPath(new URL("inbox-extension.ts", import.meta.url));
 const CONTEXT = fileURLToPath(new URL("context-extension.ts", import.meta.url));
-// What the context extension runs before each turn: this node, the core's CLI, in the folder `arthur run` runs in.
-const CONTEXT_COMMAND = JSON.stringify([process.execPath, fileURLToPath(import.meta.resolve("@arthur/core/cli")), "coordinator", "context"]);
+// What the context extension runs before each turn: this node, the core's CLI, in the folder `arthur run` runs in; a project
+// agent's names its project.
+const CONTEXT_COMMAND = [process.execPath, fileURLToPath(import.meta.resolve("@arthur/core/cli")), "coordinator", "context"];
 // How often the session is looked at, and how often a previous agent still alive is.
 const POLL_MS = 500;
 const EXIT_POLL_MS = 200;
@@ -47,11 +49,12 @@ export function pane(coordinator: Coordinator): "none" | "alive" | "dead" {
 // The start time `ps` gives a live process, empty for a gone one: with the pid it names one process, whatever reuses the pid.
 const startTime = (pid: string): string => (/^\d+$/.test(pid) ? String(spawnSync("ps", ["-o", "lstart=", "-p", pid], { encoding: "utf8" }).stdout ?? "").trim() : "");
 
-// What another plugin adds to the coordinator's agent through `collect("coordinator.extension")`: an OMP extension it loads
-// with `-e` after orchestration's own, and the variables it reads. An answer of another shape is left out, named.
+// What another plugin adds to a session's agent through `collect("coordinator.extension", { session })`: an OMP extension it
+// loads with `-e` after orchestration's own, and the variables it reads. No answer adds nothing; one of another shape is left out, named.
 export type Extension = { readonly file: string; readonly env: Readonly<Record<string, string>> };
 export function extensions(answers: readonly Answer<unknown>[]): Extension[] {
 	return answers.flatMap((answer) => {
+		if ("value" in answer && answer.value === undefined) return [];
 		const { file, env } = ("value" in answer ? (answer.value ?? {}) : {}) as { readonly file?: unknown; readonly env?: unknown };
 		const variables = typeof env === "object" && env !== null ? Object.entries(env) : undefined;
 		if (typeof file === "string" && isAbsolute(file) && existsSync(file) && variables?.every(([key, value]) => /^ARTHUR_[A-Z0-9_]+$/.test(key) && typeof value === "string"))
@@ -64,8 +67,12 @@ export function extensions(answers: readonly Answer<unknown>[]): Extension[] {
 
 // Keeps the coordinator running until `stop`, which ends its session; a stop mark left by `arthur coordinator stop` is lifted
 // first, since a new `arthur run` starts it again. Its MCP servers, `<folder>/mcp/` for `--plugin-dir`, are written once here
-// (removed when it has none). Its lines go to `arthur run`'s output.
-export function supervise(coordinator: Coordinator, folder: string, agent: string, added: readonly Extension[] = [], servers?: Servers): { stop(): Promise<void> } {
+// (removed when it has none). Its lines go to `arthur run`'s output. With `project`, it is that project's agent: its context
+// command names the project, its conversations are in `<folder>/sessions`, and it holds ARTHUR_ORCHESTRATION_SESSION and ARTHUR_PROJECT.
+export function supervise(coordinator: Coordinator, folder: string, agent: string, added: readonly Extension[] = [], servers?: Servers, more: { readonly project?: string; readonly turns?: Turns } = {}): { stop(): Promise<void> } {
+	const { project, turns = (start) => start() } = more;
+	const who = project === undefined ? "coordinator" : `project agent ${project}`;
+	mkdirSync(folder, { recursive: true });
 	rmSync(join(folder, STOPPED), { force: true });
 	writeMcp(folder, servers);
 	const quit = new AbortController();
@@ -85,11 +92,12 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 				if (now === "dead") tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);
 				const stopped = existsSync(join(folder, STOPPED));
 				if (up) {
-					console.log(`orchestration: the coordinator ended; ${stopped ? "arthur coordinator stop asked, so it stays stopped until arthur run starts again" : `starting it again in ${delay} s`}`);
+					const stop = `arthur coordinator stop${project === undefined ? "" : ` ${project}`}`;
+					console.log(`orchestration: the ${who} ended; ${stopped ? `${stop} asked, so it stays stopped until arthur run starts again` : `starting it again in ${delay} s`}`);
 					[up, next] = [false, Date.now() + delay * 1000];
 				}
 				if (!stopped && Date.now() >= next) {
-					up = await start();
+					up = await turns(start);
 					if (!up) next = Date.now() + delay * 1000;
 				}
 			}
@@ -116,30 +124,33 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		const waited = ((Date.now() - began) / 1000).toFixed(1);
 		const refusal = alive() ? `the previous ${agent} (pid ${pid}) is still running ${waited} s later` : openFolder(coordinator.socket);
 		if (refusal !== undefined) {
-			console.error(`orchestration: coordinator start refused: ${refusal}; trying again in ${delay} s`);
+			console.error(`orchestration: ${who} start refused: ${refusal}; trying again in ${delay} s`);
 			return false;
 		}
 		if (Date.now() - began >= EXIT_POLL_MS) console.log(`orchestration: the previous ${agent} (pid ${pid}) exited after ${waited} s`);
 		const { model, thinking, quick, session } = coordinator;
 		const fresh = existsSync(join(folder, FRESH));
 		const command = [agent, ...(fresh ? [] : ["--continue"]), "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : []), ...(quick ? ["--smol", quick] : [])];
+		if (project !== undefined) command.push("--session-dir", join(folder, "sessions"));
 		command.push("-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, ...added.flatMap((extension) => ["-e", extension.file]));
 		if (servers !== undefined) command.push("--plugin-dir", join(folder, "mcp"));
 		const { restore, refused } = own(coordinator);
-		const variables = [`ARTHUR_ORCHESTRATION_FOLDER=${folder}`, `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`, ...added.flatMap((extension) => Object.entries(extension.env).map(([key, value]) => `${key}=${value}`))];
+		const context = JSON.stringify([...CONTEXT_COMMAND, ...(project === undefined ? [] : [project])]);
+		const named = project === undefined ? [] : [`ARTHUR_ORCHESTRATION_SESSION=agent:${project}`, `ARTHUR_PROJECT=${project}`];
+		const variables = [`ARTHUR_ORCHESTRATION_FOLDER=${folder}`, `ARTHUR_ORCHESTRATION_CONTEXT=${context}`, ...named, ...added.flatMap((extension) => Object.entries(extension.env).map(([key, value]) => `${key}=${value}`))];
 		const env = variables.flatMap((variable) => ["-e", variable]);
 		const made = refused ?? tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command].map(literal));
 		if (restore.length > 0) tmux(coordinator, restore);
 		if (made.status !== 0) {
 			const why = made.error?.message ?? String(made.stderr).trim().split("\n").at(-1);
-			console.error(`orchestration: coordinator start failed: tmux ${refused ? "set-environment, set-option" : "new-session"}: ${why}; trying again in ${delay} s`);
+			console.error(`orchestration: ${who} start failed: tmux ${refused ? "set-environment, set-option" : "new-session"}: ${why}; trying again in ${delay} s`);
 			return false;
 		}
 		const started = String(made.stdout).trim();
 		writeFileSync(`${file}.new`, `${started} ${startTime(started)}\n`);
 		renameSync(`${file}.new`, file);
 		if (fresh) rmSync(join(folder, FRESH), { force: true });
-		console.log(`orchestration: coordinator started: ${agent} (pid ${started}) in tmux session ${session}${fresh ? ", a fresh conversation" : ""}`);
+		console.log(`orchestration: ${who} started: ${agent} (pid ${started}) in tmux session ${session}${fresh ? ", a fresh conversation" : ""}`);
 		return true;
 	}
 }

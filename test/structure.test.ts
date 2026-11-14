@@ -21,7 +21,7 @@ const BUDGETS = {
 
 	develop: 760,
 
-	discord: 981,
+	discord: 983,
 
 	docker: 694,
 
@@ -43,7 +43,7 @@ const BUDGETS = {
 
 	nvm: 98,
 
-	orchestration: 3183,
+	orchestration: 3188,
 
 	projects: 595,
 
@@ -57,7 +57,7 @@ const BUDGETS = {
 
 	stats: 575,
 
-	telegram: 705,
+	telegram: 707,
 
 	uptime: 383,
 

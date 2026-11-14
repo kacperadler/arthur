@@ -275,6 +275,9 @@ test("every bot hears its own server; a reply goes by each bot the messages it a
 	const api = await fakeDiscord(t);
 	const bots = [{ ...BOT_OPTIONS, name: "second", tokenEnv: "ARTHUR_DISCORD_SECOND_BOT_TOKEN" }, BOT_OPTIONS];
 	const { fake, plugin, received } = await load(t, { apiUrl: api.url, bots }, { env: { ...ENV, ARTHUR_DISCORD_SECOND_BOT_TOKEN: SECOND } });
+	// The main bot's name for orchestration's routing of a chat that names no bot: none for the unnamed one; the first when every bot has a name.
+	const named = await load(t, { apiUrl: api.url, bots: bots.map((each) => ({ name: "first", ...each })) }, { env: { ...ENV, ARTHUR_DISCORD_SECOND_BOT_TOKEN: SECOND } });
+	assert.deepEqual([fake.call("channel.main"), named.fake.call("channel.main")], [undefined, "second"]);
 	await plugin.start?.();
 	await until("both identified", () => api.sent(2).length === 2);
 	const to = (token: string) => api.connections.find((each) => each.got.some((payload) => payload.op === 2 && (payload.d as { token?: unknown }).token === token));

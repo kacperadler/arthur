@@ -232,6 +232,9 @@ test("every bot polls its own chat; a reply goes by each bot the messages it ans
 	];
 	const env = { ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: String(CHAT), ARTHUR_TELEGRAM_SECOND_BOT_TOKEN: SECOND, ARTHUR_TELEGRAM_SECOND_CHAT_ID: String(CHAT) };
 	const { fake, plugin, received } = await load(t, { apiUrl: api.url, bots }, { env });
+	// The main bot's name for orchestration's routing of a chat that names no bot: none for the unnamed one; the first when every bot has a name.
+	const named = await load(t, { apiUrl: api.url, bots: bots.map((each) => ({ name: "first", ...each })) }, { env });
+	assert.deepEqual([fake.call("channel.main"), named.fake.call("channel.main")], [undefined, "second"]);
 	await plugin.start?.();
 	api.push({ text: "To the second bot." }, 5, SECOND);
 	api.push({ text: "To the unnamed bot." }, 5, TOKEN);

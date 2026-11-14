@@ -50,7 +50,9 @@ const max = args.length === 0 ? 100 : args.length === 2 && args[0] === "--max" &
 const root = git(process.cwd(), "rev-parse", "--show-toplevel").trim();
 if (git(root, "status", "--porcelain", "--untracked-files=no") !== "") refuse("refused: the tree has uncommitted changes to tracked files; commit them first");
 const base = git(root, "merge-base", "main", "HEAD").trim();
-const files = git(root, "diff", "--name-only", "--diff-filter=d", base, "HEAD", "--", "*.ts").split("\n").filter((file) => file !== "" && !/\.(test|d)\.ts$/.test(file));
+// The branch's own code: no test, declaration or package test helper (a fake, a setup: mutating it tests the tests), and not
+// the example config, which package tests check and its root tier never runs (AR0553 review-1).
+const files = git(root, "diff", "--name-only", "--diff-filter=d", base, "HEAD", "--", "*.ts").split("\n").filter((file) => file !== "" && !/\.(test|d)\.ts$/.test(file) && !/^packages\/[^/]+\/test\//.test(file) && file !== "arthur.config.example.ts");
 const changes = files.map((file) => ({ file, lines: readFileSync(join(root, file), "utf8").split("\n"), hunks: hunks(git(root, "diff", "--unified=0", "--no-color", base, "HEAD", "--", file)) }));
 // Round-robin, so a capped run reaches every changed file and as many of its hunks as it can: each file's first mutant, then
 // each one's second; a file's own taken the same way from its hunks, each hunk's revert to the base first, then its lines' in

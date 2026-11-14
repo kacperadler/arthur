@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { type AgentRun, temporaryFolder, until } from "@arthur/core/testing";
@@ -213,8 +213,13 @@ test("stop-all cancels the hand-back: between the worker's end and its review, b
 });
 
 test("a hand-back that cannot go on stops and tells the coordinator: the worker's worktree gone", async (t) => {
-	const { fake, worker, review, field, step } = await load(t, { start: true });
+	const { fake, worker, review, field, step, home } = await load(t, { start: true });
 	const job = await worker();
+	// A newer job record of another project: the message names the worker's project, never another job's.
+	const other = join(home, "jobs", "2026-01-01-worker-ffffffff");
+	mkdirSync(other, { recursive: true });
+	for (const [key, value] of Object.entries({ kind: "worker", project: "other", branch: "arthur/other", state: "ended", reason: "finished" })) writeFileSync(join(other, key), value);
+	utimesSync(join(other, "kind"), new Date(Date.now() + 3_600_000), new Date(Date.now() + 3_600_000));
 	rmSync(field(job.id, "worktree") ?? "", { recursive: true });
 	const failed = await review("Missing test.\n\nFAIL", job.id);
 	await until("the coordinator told", () => fake.emitted.some((event) => event.name === "coordinator-message"));

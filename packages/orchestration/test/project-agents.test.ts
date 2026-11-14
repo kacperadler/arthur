@@ -363,6 +363,9 @@ test("from a project agent's session a decision is answered only from the owner'
 	await assert.rejects(autopilot(), { message: `${ticket.id} is project blog's; the agent of project shop pre-approves only shop's tickets` });
 	// A ticket on no board is no other project's: the refusal is that it is not on the board.
 	await assert.rejects(box.fake.call<Promise<string>>("ticket.autopilot", { id: "SH0099" }), { message: "SH0099 is not on the board" });
+	// Its own project's ticket goes on to autopilot's own rules.
+	const own = box.fake.host.board.create("Fix the logo", "shop");
+	await assert.rejects(box.fake.call<Promise<string>>("ticket.autopilot", { id: own.id }), new RegExp(`^Error: ${own.id}: not pre-approved: `));
 });
 
 test("roles.project.model is one model name: a list is refused, naming the path", () => {

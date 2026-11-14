@@ -160,3 +160,11 @@ test("a turn's text marks a tell [from <session>]: Arthur's line only beside Art
 	assert.equal(handOver([{ text: "Job ended." }, { from: "coordinator", text: "Go." }]), `[Arthur]\n> Job ended.\n\n[from coordinator]\n> Go.\n\n${ARTHUR}\n\n${FROM}`);
 	assert.equal(handOver([{ plugin: "github", text: "CI failed." }]), `[Arthur: github]\n> CI failed.\n\n${ARTHUR}`);
 });
+
+// The inbox.test.ts test of `coordinator.turn` needs a tmux server; this one holds where none can start.
+test("coordinator.turn, on wake.ts: an owner's text message is its marked quote; a malformed one is refused", async (t) => {
+	const box = routed(t);
+	const turn = (...asked: unknown[]) => box.fake.call<Promise<string>>("coordinator.turn", ...asked);
+	assert.equal(await turn("message-received", said("Merge it.", { channel: "telegram" })), "[via telegram]\n> Merge it.");
+	await assert.rejects(turn("message-received", { parts: said("Hi.").parts }), { message: "coordinator.turn: message-received: expected channel, non-empty text, got nothing" });
+});

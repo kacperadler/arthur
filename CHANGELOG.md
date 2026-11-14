@@ -8,6 +8,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0705 Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85) (da1ed4ed)
 
+### Fixed
+
+- AR0712 A Dokploy upload of a folder sends its dotfiles too, such as a .dev.vars.example that holds a token (08e52551)
+
 ### Changed
 
 - AR0711 Mutate leaves out test helpers and the example config (392de77e)

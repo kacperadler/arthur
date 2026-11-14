@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/dokploy/src/dokploy-zip.ts:24`
 - What: the folder is listed with `readdirSync(path, { recursive: true })`, which also descends into dot-folders before they are left out, so a dot-folder the owner cannot read (say `.cache/` at mode 000) refuses the whole upload with `cannot be read (EACCES)`, though none of it would be sent. Nothing leaks; the upload is refused where it could go. Inferred from the test of an unreadable sub-folder in `packages/dokploy/test/dokploy.test.ts` (`chmodSync(join(root, "site", "sub"), 0)` refuses with `EACCES`), not run against a dot-folder.
 - Suggestion: list the folder one level at a time and skip a dot-named folder without reading it; keep the refusal for an unreadable folder that is not a dot-path.
-- Status: open
+- Status: deferred (client summary)

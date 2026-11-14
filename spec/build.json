@@ -5701,9 +5701,9 @@
   {
     "id": "AR0706",
     "title": "Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0706-project-agents-t2-a-project-chat-s-messages-and-its-jobs-ends-go-to-its-agent/ticket.md",
-    "updated": "2026-11-13T10:36:26.450Z",
+    "updated": "2026-11-14T14:04:32.383Z",
     "after": [
       "AR0705"
     ]
@@ -5755,8 +5755,8 @@
   {
     "id": "AR0712",
     "title": "A Dokploy upload of a folder sends its dotfiles too, such as a .dev.vars.example that holds a token",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0712-a-dokploy-upload-of-a-folder-sends-its-dotfiles-too-such-as-a-dev-vars-example/ticket.md",
-    "updated": "2026-11-14T13:58:52.459Z"
+    "updated": "2026-11-14T15:28:21.739Z"
   }
 ]

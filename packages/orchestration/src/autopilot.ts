@@ -18,10 +18,14 @@ const AUDIT = /^- \d{4}-\d\d-\d\d: Source: (audit (spec\/quality\/[\w.-]+\.md))\
 // A line number after a path in Scope (`file.ts:42`) is not part of it.
 const LINE = /:\d+(-\d+)?$/;
 
-export function autopilot(host: Host): void {
+// `own`: the project of the project agent's session this process runs in, undefined in any other (sessions.ts, which imports this file's constants).
+export function autopilot(host: Host, own: () => string | undefined): void {
 	const options = (host.options.autopilot ?? {}) as { readonly budgetUsd?: number; readonly budgetMaxUsd?: number };
 	const cap = options.budgetMaxUsd ?? AUTOPILOT_CAP;
 	host.provide("ticket.autopilot", async ({ id, budgetUsd }: { readonly id: string; readonly budgetUsd?: number }) => {
+		// From a project agent's session only its own project's tickets (entry 86).
+		const [agent, project] = [own(), host.board.get(id)?.project];
+		if (agent !== undefined && project !== undefined && project !== agent) throw new Error(`${id} is project ${project}'s; the agent of project ${agent} pre-approves only ${agent}'s tickets`);
 		// One pre-approval of a ticket at a time, across processes: the check, the record and the move are one step.
 		const release = await queueLock(join(host.folder, `autopilot-${id.replace(/[^\w-]/g, "_")}.lock`));
 		try {

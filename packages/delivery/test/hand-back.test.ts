@@ -221,6 +221,7 @@ test("a hand-back that cannot go on stops and tells the coordinator: the worker'
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data), [
 		{
 			text: `Delivery's hand-back of ${job.branch} after FAIL ${failed.id} stopped: ${job.id}: its worktree was pruned; spawn a new job on its branch ${job.branch}. Hand it back yourself: arthur continue ${job.id} '<the findings of ${failed.id}>', then arthur review ${job.id} once it ends.`,
+			project: "acme",
 		},
 	]);
 	assert.equal(step(job.id), undefined);

@@ -49,6 +49,7 @@ export function handBack(host: Host): HandBack {
 		drop(record.worker);
 		host.events.emit("coordinator-message", {
 			text: `Delivery's hand-back of arthur/${record.worker} after FAIL ${record.review} stopped: ${why}. Hand it back yourself: arthur continue ${record.worker} '<the findings of ${record.review}>', then arthur review ${record.worker} once it ends.`,
+			project: host.jobs.list().find((each) => each.id === record.worker)?.project,
 		});
 	};
 	// Each step waits in `queue`, which `start` opens: `arthur run` replays the log's events from before it at its start, and
@@ -133,7 +134,7 @@ export function handBack(host: Host): HandBack {
 		try {
 			host.jobs.file(review.ticket, review.id);
 		} catch (error) {
-			host.events.emit("coordinator-message", { text: `Delivery could not file FAIL ${review.id}: ${(error as Error).message}; file it with arthur ticket file ${review.ticket} ${review.id}.` });
+			host.events.emit("coordinator-message", { text: `Delivery could not file FAIL ${review.id}: ${(error as Error).message}; file it with arthur ticket file ${review.ticket} ${review.id}.`, project: host.board.get(review.ticket)?.project });
 		}
 	}
 }

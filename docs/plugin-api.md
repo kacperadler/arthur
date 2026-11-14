@@ -206,10 +206,11 @@ The events plugins share, which channels and the coordinator keep (`arthur send 
 | Event | Fields | Emitted by |
 | --- | --- | --- |
 | `message-received` | `channel`, `parts` (each `Part`), `place?`, `instance?` | A channel, once per owner's message. |
-| `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule, github). |
-| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn, and after it `voice note not sent: <why>` when the reply's voice note could not go (AR0553); a claimed part's `reply`. |
+| `coordinator-message` | `text`, `project?` | A plugin with a message for the coordinator (schedule, github); one that names a project with an agent goes to that agent instead (`arthur coordinator --help`, "Project agents"). |
+| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?`, `instance?` | Orchestration, after a turn, and after it `voice note not sent: <why>` when the reply's voice note could not go (AR0553); a claimed part's `reply`. A project agent's names its chat's channel alone, its place and its bot. |
+| `agent-told` | `to`, `from` (sessions: `coordinator`, `agent:<project>`), `text` | Orchestration's `arthur agent tell`, from one session to another. |
 | `schedule-fired` | `id`, `slot` (ISO time), `late`, `does` (`action`, `job` or `run`) | Schedule, once an entry's slot is claimed, before it runs. |
-| `notice` | `text`, `place?` | Any plugin; every channel sends it unless `coordinator.silent` holds it. |
+| `notice` | `text`, `place?`, `channel?`, `instance?` | Any plugin; every channel sends it unless `coordinator.silent` holds it, at its place by the bot `instance` names when `channel` is none or its own, else at its main place. |
 
 ### Who acted
 

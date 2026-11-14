@@ -1126,7 +1126,7 @@ test("a continue by policy that is refused leaves the job blocked and tells the 
 	for (const event of job.logged("job-state")) fake.emit("job-state", event.data);
 	const told = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data);
 	await until("the coordinator told", () => told().length === 1);
-	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): refused by test: no slot for it; arthur continue ${job.id} 'Drop the table' continues it with that decision.` }]);
+	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): refused by test: no slot for it; arthur continue ${job.id} 'Drop the table' continues it with that decision.`, project: "acme" }]);
 	assert.deepEqual([job.record("state"), job.record("continue")], ["blocked", ""]);
 });
 
@@ -1144,7 +1144,7 @@ test("a continue by policy whose wrapper does not start tells the coordinator wh
 	const told = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data);
 	await until("the coordinator told", () => told().length === 1);
 	const why = "systemd-run: Failed to start transient scope unit: Access denied";
-	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): ${why}; arthur continue ${job.id} 'Drop the table' continues it with that decision.` }]);
+	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): ${why}; arthur continue ${job.id} 'Drop the table' continues it with that decision.`, project: "acme" }]);
 	assert.deepEqual([job.record("state"), job.record("reason")], ["ended", `failed: ${why}`]);
 });
 

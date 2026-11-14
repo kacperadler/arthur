@@ -6,6 +6,7 @@ import { described } from "./decision-classes.ts";
 import { DECISION_ID, type Decision, decisions, KINDS, readLog } from "./decision-log.ts";
 import { answer, ask, close } from "./decision-writes.ts";
 import { line, whole } from "./decision-views.ts";
+import { type Session, sessionOf } from "./sessions.ts";
 
 // `arthur decision ask|answer|close|class`, the one writer of the decision log besides the plugin itself, refused inside a
 // job, and `arthur decisions`, which lists, searches and prints it (spec/roadmap.md, entries 96 and 97):
@@ -47,17 +48,20 @@ function projectNamed(host: Host, name: string | undefined): Project {
 	return found;
 }
 
-// The project a decision id's prefix names; decision-use.ts reads it too.
-export function projectOf(host: Host, id: string): Project {
+// The project a decision id's prefix names; decision-use.ts reads it too. From a project agent's session only its own project's
+// (entry 86), so every answer, close and use of another project's decision is refused there.
+export function projectOf(host: Host, id: string, sessions: readonly Session[]): Project {
 	const prefix = DECISION_ID.exec(id)?.[1];
 	if (prefix === undefined) throw new Error(`${id} is no decision id: <prefix>-D<number>, as arthur decision ask printed it`);
 	const projects = host.board.projects();
 	const found = projects.find((each) => each.prefix === prefix);
 	if (found === undefined) throw new Error(`${id}: no project has the prefix ${prefix}; prefixes: ${projects.map((each) => each.prefix).join(", ")}`);
+	const own = sessionOf(sessions)?.project;
+	if (own !== undefined && found.name !== own) throw new Error(`${id} is project ${found.name}'s; the agent of project ${own} acts only on ${own}'s decisions, the coordinator on ${found.name}'s`);
 	return found;
 }
 
-export function decisionCommands(host: Host): Command[] {
+export function decisionCommands(host: Host, sessions: readonly Session[]): Command[] {
 	const decision: Command = {
 		name: "decision",
 		doc: new URL("../docs/commands/decision.md", import.meta.url),
@@ -100,11 +104,11 @@ export function decisionCommands(host: Host): Command[] {
 					return done(`${id}\n${described(proposed.class)}; ${evidence(proposed.class)}\nAsk the owner with ${id}; his answer: arthur decision answer ${id} --picked 1 (approve) or 2 (refuse) --decided '<one line>' '<his words>'`, proposed.unwritten);
 				}
 				const id = (read.words[0] ?? "").toUpperCase();
-				const where = projectOf(host, id);
+				const where = projectOf(host, id, sessions);
 				const said = read.words.slice(1).join(" ");
 				if (sub === "revoke") return done(`${id} revoked: its questions go to the owner again`, revoke(host, where, id, said).unwritten);
 				if (verb === "answer") {
-					const { answer: given, ask: asked, unwritten } = answer(host, where, id, { decided: one("--decided"), picked: one("--picked"), words: said });
+					const { answer: given, ask: asked, unwritten } = answer(host, where, id, { decided: one("--decided"), picked: one("--picked"), words: said }, sessionOf(sessions));
 					const note = asked.class !== undefined ? `; the class is ${given.picked === 1 ? "approved: its questions are answered by policy from now on" : "refused: its questions go to the owner"}` : asked.ticket === undefined ? "; a question of no ticket: the log only" : unwritten === undefined ? `; its line is under the Decisions of ${asked.ticket}` : "";
 					return done(`${id} answered: ${given.decided}${note}`, unwritten);
 				}
@@ -139,7 +143,7 @@ export function decisionCommands(host: Host): Command[] {
 				}
 				const id = read.words.length === 1 && Object.keys(read.flags).length === 0 ? (read.words[0] ?? "").toUpperCase() : "";
 				if (DECISION_ID.test(id)) {
-					const where = projectOf(host, id);
+					const where = projectOf(host, id, sessions);
 					const entries = readLog(where);
 					const found = decisions(entries).find((each) => each.ask.id === id);
 					if (found === undefined) throw new Error(`${id} is not in the decision log of project ${where.name}`);

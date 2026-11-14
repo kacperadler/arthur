@@ -128,6 +128,9 @@ export function fakeMerge(t: TestContext) {
 
 export const told = (fake: { readonly emitted: readonly { readonly name: string; readonly data: unknown }[] }) =>
 	fake.emitted.flatMap(({ name, data }) => (name === "coordinator-message" && typeof data === "object" && data !== null && "text" in data ? [String(data.text)] : []));
+// The project each coordinator-message names, so a project agent's inbox gets it (orchestration, roadmap 86).
+export const toldProjects = (fake: { readonly emitted: readonly { readonly name: string; readonly data: unknown }[] }) =>
+	fake.emitted.flatMap(({ name, data }) => (name === "coordinator-message" && typeof data === "object" && data !== null ? [(data as { readonly project?: unknown }).project] : []));
 
 // The causes delivery forwarded for a job, as `<folder>/<job>/forwarded` keeps them; read once the event's handler has run.
 export const forwarded = async (folder: string, id: string) => {

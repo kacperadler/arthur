@@ -68,7 +68,7 @@ export function passForward(host: Host): PassForward {
 			if (code === "" && rerun(started.project)) continue;
 			const ran = `${started.why} ${started.project} merges on its own (autoMerge), so delivery ran arthur merge --auto ${started.job}`;
 			const end = code === "0" ? "it went in; follow the procedure it printed last" : `${code === "" ? "killed before its end" : `exit ${code}`}, it did not go in; act on its last line as arthur merge --help, "What the coordinator does with the result", says`;
-			host.events.emit("coordinator-message", { text: `${ran}: ${end}. What it printed:\n\n${printed}` });
+			host.events.emit("coordinator-message", { text: `${ran}: ${end}. What it printed:\n\n${printed}`, project: started.project });
 		}
 	}
 	const forward: Forward = (project, job, why, key) => {
@@ -80,7 +80,7 @@ export function passForward(host: Host): PassForward {
 	const rerun = (project: string) => {
 		const dead = recoverMerge(host, project);
 		if (dead !== undefined && !forward(project, dead.job, dead.why, `rerun ${dead.hash}`))
-			host.events.emit("coordinator-message", { text: `${dead.why} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${dead.job} --decision <the owner's decision id>` });
+			host.events.emit("coordinator-message", { text: `${dead.why} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${dead.job} --decision <the owner's decision id>`, project });
 		return dead !== undefined;
 	};
 	// `arthur review-needed`'s `no review`, emitted in its own process (review-needed.ts) and delivered here from the log.

@@ -271,7 +271,7 @@ test("Discord unreachable: the slices wait in the outbox through a restart, then
 	assert.ok(back.errors[0]?.startsWith(`discord: ${join(down.folder, "outbox", "0-broken.json")} is not a slice { bot, text, place? }`));
 });
 
-test("every bot hears its own server; a reply goes by each bot the messages it answers came through, the rest by the unnamed one", async (t) => {
+test("every bot hears its own server; a reply goes by each bot the messages it answers came through, the rest by the bot its instance names, else the unnamed one", async (t) => {
 	const api = await fakeDiscord(t);
 	const bots = [{ ...BOT_OPTIONS, name: "second", tokenEnv: "ARTHUR_DISCORD_SECOND_BOT_TOKEN" }, BOT_OPTIONS];
 	const { fake, plugin, received } = await load(t, { apiUrl: api.url, bots }, { env: { ...ENV, ARTHUR_DISCORD_SECOND_BOT_TOKEN: SECOND } });
@@ -287,10 +287,16 @@ test("every bot hears its own server; a reply goes by each bot the messages it a
 	fake.emit("coordinator-replied", { text: "To the second.", answers: [seq("To the second bot.")], channels: ["discord"] });
 	fake.emit("coordinator-replied", { text: "To both.", answers: [seq("To the unnamed bot."), seq("To the second bot.")], channels: ["discord"] });
 	fake.emit("notice", { text: "A notice." });
-	await until("four sends", () => api.took.length === 4);
+	// A project agent's (orchestration, roadmap 86): by the bot its instance names when no answered message names one.
+	fake.emit("coordinator-replied", { text: "Blog's wake.", answers: [], channels: ["discord"], instance: "second" });
+	fake.emit("notice", { text: "Blog asks.", channel: "discord", instance: "second" });
+	// Another channel's notice: its place and bot are not Discord's, so it goes by the unnamed bot to the main channel.
+	fake.emit("notice", { text: "Shop asks.", channel: "telegram", instance: "second", place: PROJECT });
+	await until("seven sends", () => api.took.length === 7);
 	const by = (token: string) => api.calls.filter((call) => call.method === "POST" && call.headers.authorization === `Bot ${token}`).map((call) => (call.body as { content: string }).content);
-	assert.deepEqual(by(SECOND), ["To the second.", "To both."]);
-	assert.deepEqual(by(TOKEN), ["To both.", "A notice."]);
+	assert.deepEqual(by(SECOND), ["To the second.", "To both.", "Blog's wake.", "Blog asks."]);
+	assert.deepEqual(by(TOKEN), ["To both.", "A notice.", "Shop asks."]);
+	assert.deepEqual(api.took.at(-1), sent(MAIN, "Shop asks."));
 });
 
 // Each requirement the plugin provides to `arthur doctor`: its name, its check's line and whether it is critical.

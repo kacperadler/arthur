@@ -538,7 +538,7 @@ export default defineConfig({
 //			{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
 //		], { runbook: "site-down.md" }), // optional: projects/acme-shop/site-down.md, the steps the coordinator works through when a site is down
 //		dokploy.project({ instance: "client", app: "kXx3shopWeb01" }), // the application `arthur dokploy app`, `status`, `upload` and `deploy` take without an id
-//		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // its own agent, in topic 12 of the bot's chat (its messages reach it from roadmap 86 on)
+//		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // its own agent, in topic 12 of the bot's chat: your messages there, its replies and the project's job ends
 //	];
 //
 // projects/acme-site/project.config.ts

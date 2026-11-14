@@ -324,7 +324,7 @@ test("upload leaves out of a folder every path with a part that starts with a do
 	// A folder of dot-paths only has nothing to send.
 	const hidden = folder(t, { ".env": "A=1", ".git/config": "[core]" });
 	const before = main.seen.length;
-	assert.equal(await refusal(run(undefined, "upload", hidden)), `${hidden}: is a folder without any file but its 2 dot-path files, which an upload leaves out; ${NOTHING}`);
+	assert.equal(await refusal(run(undefined, "upload", hidden)), `${hidden}: is a folder without any file, leaving out 2 dot-path files; ${NOTHING}`);
 	assert.equal(main.seen.length, before);
 });
 

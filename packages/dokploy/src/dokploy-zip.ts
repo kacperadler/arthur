@@ -1,5 +1,5 @@
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
-import { basename, join, relative, sep } from "node:path";
+import { basename, join, relative } from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
 import { NOTHING, text } from "./dokploy-api.ts";
 
@@ -22,13 +22,12 @@ export function zipOf(path: string): Upload {
 	}
 	if (!top.isFile() && !top.isDirectory()) throw refuse(`is ${top.isSymbolicLink() ? "a symlink; give the path it points to" : "no file or folder"}`);
 	const listed = top.isFile() ? [] : look(() => readdirSync(path, { withFileTypes: true, recursive: true })).map((entry) => ({ entry, each: relative(path, join(entry.parentPath, entry.name)) }));
-	const { found = [], dotted = [] } = Object.groupBy(listed, ({ each }) => (each.split(sep).some((part) => part.startsWith(".")) ? "dotted" : "found"));
-	const left = dotted.filter(({ entry }) => !entry.isDirectory()).length;
-	const leftOut = `${left} dot-path ${left === 1 ? "file" : "files"}`;
+	const { found = [], dotted = [] } = Object.groupBy(listed, ({ each, entry }) => !/(^|\/)\./.test(each) ? "found" : entry.isDirectory() ? "folder" : "dotted");
+	const leftOut = dotted.length === 0 ? "" : `, leaving out ${dotted.length} dot-path ${dotted.length === 1 ? "file" : "files"}`;
 	const odd = found.find(({ entry }) => !entry.isFile() && !entry.isDirectory());
 	if (odd !== undefined) throw refuse(`${text(odd.each)} is ${odd.entry.isSymbolicLink() ? "a symlink" : "a special file"}, not a regular file`);
 	const names = top.isFile() ? [basename(path)] : found.filter(({ entry }) => entry.isFile()).map(({ each }) => each).sort();
-	if (names.length === 0) throw refuse(`is a folder without any file${left === 0 ? "" : ` but its ${leftOut}, which an upload leaves out`}`);
+	if (names.length === 0) throw refuse(`is a folder without any file${leftOut}`);
 	if (names.length > ENTRIES) throw refuse(`holds ${names.length} files, more than the ${ENTRIES} a zip holds`);
 	const files = names.map((each) => ({ each, file: top.isFile() ? path : join(path, each) })).map((one) => ({ ...one, stat: look(() => lstatSync(one.file)) }));
 	// The largest the zip can come to, every file stored as it is: a header of 30 and 46 bytes and the name twice each, then 22.
@@ -52,7 +51,7 @@ export function zipOf(path: string): Upload {
 	}
 	const dir = Buffer.concat(central);
 	const zip = Buffer.concat([...parts, dir, le([0x06054b50, 4], [0, 2], [0, 2], [names.length, 2], [names.length, 2], [dir.length, 4], [offset, 4], [0, 2])]);
-	return { zip, said: `${names.length} ${names.length === 1 ? "file" : "files"}, ${bytes} bytes, as a zip of ${zip.length} bytes${left === 0 ? "" : `, leaving out ${leftOut}`}` };
+	return { zip, said: `${names.length} ${names.length === 1 ? "file" : "files"}, ${bytes} bytes, as a zip of ${zip.length} bytes${leftOut}` };
 }
 
 // Little-endian fields, each [value, bytes].

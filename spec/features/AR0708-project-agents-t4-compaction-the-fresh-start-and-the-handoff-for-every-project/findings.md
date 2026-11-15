@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/session/src/restart-command.ts:46`
 - What: `arthur restart --project acme`, acme having no project agent (no `orchestration.project({ chat })`, or a typo), falls back to the coordinator's session and restarts it; the reply names the coordinator but not why. `packages/session/docs/commands/restart.md` says "else the coordinator", so it is documented, but a typo ends the coordinator's conversation.
 - Suggestion: refuse a `--project` that names a project without an agent, naming those with one (as `arthur attach <project>` does), with exit code 1; keep no `--project` meaning the coordinator. The phone command `/restart` stays as it is.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. nothing tells a project agent to write `after-restart.md` in its own folder
+
+- Kind: fix
+- Found by: 2026-11-15-review-a09688b7 (review), 2026-11-15
+- Where: `packages/orchestration/roles/project.md:9`
+- What: The role says only that it restarts with `--continue`, and never mentions the fresh start or the handoff. The coordinator's role (`coordinator.md:9`) names `.arthur/session/after-restart.md`, so an agent that copies that convention would write into the coordinator's file. As it stands, an agent's `Restarted.` notice never carries steps for the owner. The role file is outside T4's Files list.
+- Status: deferred (client summary)

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { basename, delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
@@ -66,9 +66,16 @@ test("a turn's report in one session while another's compaction is asked for wai
 	rmSync(box.file);
 	await until("shop's request", () => request() !== undefined);
 	assert.deepEqual({ ...request(), asked: 0 }, { then: "compact", slot: "context 85%", asked: 0, waitSeconds: 600 }, "asked once, for its first report");
+	box.report("10");
+	await box.consumed();
 	box.report("95");
 	await box.consumed();
 	assert.equal(box.request(), undefined, "the coordinator's next waits for shop's in turn");
+	const done = "compact: done; the handoff is empty, so nothing is read back";
+	writeFileSync(join(folder, "request.json.new"), JSON.stringify({ ...request(), line: done }));
+	renameSync(join(folder, "request.json.new"), join(folder, "request.json"));
+	await until("the coordinator's request", () => box.request() !== undefined);
+	assert.deepEqual([box.out, box.request()?.slot, request()], [[`session: agent:shop: ${done}`], "context 95%", undefined], "shop's asked once");
 });
 
 test("a project agent's fresh start waits only for its project's jobs and merges; the coordinator's for every one", async (t) => {
@@ -172,6 +179,29 @@ test("a project agent that ends while its /restart waits for the handoff restart
 	shop.end();
 	await until("the restart", () => box.restarted.length === 1);
 	assert.deepEqual(box.out, ["session: agent:shop: restart: done; the project agent of shop restarts, with no handoff (handoff not written: the project agent of shop ended)"]);
+});
+
+test("an agent's restart that is not done is told in its chat: a job of its project started meanwhile, or a restart that throws", async (t) => {
+	const box = await loaded(t, {}, "2026-10-18T12:00:00+02:00", [], ["shop"]);
+	const failing = (gate: string) => [{ prompt: true }, { waitFor: box.gate(gate) }, { message: "", stopReason: "error", error: "529 overloaded" }, { end: true }] as const;
+	const shop = box.coordinator({ steps: [...failing("one"), ...failing("two"), { waitFor: box.gate("never") }] }, ["--continue"], "shop");
+	await shop.up();
+	await box.start();
+	const from = { channel: "test", place: "shop" };
+	await box.route("/restart", from);
+	await until("the first handoff request", () => shop.messages().length === 1);
+	const job = box.job("2026-10-18-worker-0000000c", "worker", "shop");
+	box.open("one");
+	await until("the first notice", () => box.notices("shop").length === 1);
+	job.end();
+	const blocked = join(box.folder, "agents", "shop", `restarted.json.${process.pid}`);
+	mkdirSync(blocked);
+	await box.route("/restart", from);
+	await until("the second handoff request", () => shop.messages().length === 2);
+	box.open("two");
+	await until("the second notice", () => box.notices("shop").length === 2);
+	const failed = `restart: not done: EISDIR: illegal operation on a directory, open '${blocked}'`;
+	assert.deepEqual([box.notices("shop"), box.notices(), box.restarted], [["restart: not done, 1 job running: 0000000c; run /stopall first", failed], [], []]);
 });
 
 test("each session's start notice, probed on its role's model in turn, and its turn failures go to its own chat; the doctor's missing lines only to the coordinator's", async (t) => {

@@ -205,6 +205,11 @@ test("orchestration.sessions lists each session; coordinator.restart with projec
 	assert.deepEqual([box.of("shop").length, box.of("blog").length], [3, 1]);
 });
 
+test("coordinator.restart with no project agent names none in its refusal", async (t) => {
+	const { fake } = await load(t, { docs: undefined });
+	assert.throws(() => fake.call("coordinator.restart", { fresh: true, project: "docs" }), { message: 'coordinator.restart: expected { fresh: true | false, project?: one with an agent (none) }, got {"fresh":true,"project":"docs"}' });
+});
+
 test("the starts of every session go one at a time: an agent's waits for the coordinator's wait for its previous omp; an agent's refused or failed start is its own line", async (t) => {
 	const box = await load(t, { shop: chat("telegram", "4"), blog: chat("telegram", "5"), docs: chat("telegram", "6") });
 	// The previous omp of the coordinator and of blog still alive: this process, as `ps` gives its start time.

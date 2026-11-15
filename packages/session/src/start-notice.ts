@@ -4,11 +4,13 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 import { redact } from "./credential.ts";
+import { noticeAt, type Session, who } from "./sessions.ts";
 
-// The start notice and the LLM probe (spec/roadmap.md, entry 38): at every start of `arthur run`, one word asked of the
-// coordinator's model first, then one notice, `coordinator up on <host>` or `no LLM access on <host>: <reason>; run omp login`;
-// and a notice for each coordinator turn that failed before any text, which the turn extension (turn-extension.ts) leaves in
-// `turn-failed/`: docs/session.md, "The start notice".
+// The start notice and the LLM probe (spec/roadmap.md, entries 38 and 88): at every start of `arthur run`, for each session in
+// turn, one word asked of its model first (the coordinator's, or `roles.project`'s for a project agent), then one notice to its
+// chat, `coordinator up on <host>` or `no LLM access on <host>: <reason>; run omp login`; and a notice for each turn that failed
+// before any text, which the turn extension (turn-extension.ts) leaves in the session's `turn-failed/`: docs/session.md, "The
+// start notice".
 
 const TURN_FAILED = "turn-failed";
 const PROBE_SECONDS = 60;
@@ -59,30 +61,32 @@ export function probe(agent: string, model: string | undefined, ms: number, secr
 	return promise;
 }
 
-// At `arthur run`'s start: the probe unless `probeLlm` is false, then the start notice, opening with the lines `arthur doctor`
-// found missing that this start sends. Returns what stops the probe.
-export function startNotice(host: Host, probeLlm: boolean, missing: readonly string[]): () => void {
+// At `arthur run`'s start: for each session, one after another so no two agents refresh the shared login at once, the probe
+// unless `probeLlm` is false, then its start notice, the coordinator's opening with the lines `arthur doctor` found missing
+// that this start sends. Returns what stops the probes.
+export function startNotice(host: Host, sessions: readonly Session[], probeLlm: boolean, missing: readonly string[]): () => void {
 	const here = hostname();
 	const quit = new AbortController();
-	const asked = async () => {
+	const asked = async ({ project }: Session) => {
 		if (!probeLlm) return undefined;
-		const [answer] = host.collect<{ readonly model?: unknown } | undefined>("roles.model", "coordinator");
+		const [answer] = host.collect<{ readonly model?: unknown } | undefined>("roles.model", project === undefined ? "coordinator" : "project");
 		return probe(host.agent, typeof answer?.model === "string" ? answer.model : undefined, PROBE_SECONDS * 1000, host.secrets, quit.signal);
 	};
-	asked()
-		.catch((error: Error) => line(error.message, host.secrets))
-		.then((reason) => {
+	void (async () => {
+		for (const session of sessions) {
+			const reason = await asked(session).catch((error: Error) => line(error.message, host.secrets));
 			if (quit.signal.aborted) return;
-			const text = reason === undefined ? `coordinator up on ${here}` : `no LLM access on ${here}: ${reason}; run omp login`;
-			host.events.emit("notice", { text: [...missing, text].join("\n") });
-		});
+			const text = reason === undefined ? `${who(session)} up on ${here}` : `no LLM access on ${here}: ${reason}; run omp login`;
+			host.events.emit("notice", { text: [...(session.project === undefined ? missing : []), text].join("\n"), ...noticeAt(session) });
+		}
+	})();
 	return () => quit.abort();
 }
 
-// Every 500 ms in `arthur run`: one notice per turn failure the turn extension left, oldest first, and one for each mark that
-// turns work again after one told. One left before this `arthur run` started is dropped, not told late.
-export function turnFailures(host: Host): () => void {
-	const [folder, began, here] = [join(host.folder, TURN_FAILED), Math.floor(performance.timeOrigin), hostname()];
+// Every 500 ms in `arthur run`, for one session: one notice to its chat per turn failure the turn extension left, oldest first,
+// and one for each mark that turns work again after one told. One left before this `arthur run` started is dropped, not told late.
+export function turnFailures(host: Host, session: Session): () => void {
+	const [folder, began, here] = [join(session.folder, TURN_FAILED), Math.floor(performance.timeOrigin), hostname()];
 	return () => {
 		if (!existsSync(folder)) return;
 		const names = readdirSync(folder)
@@ -93,7 +97,7 @@ export function turnFailures(host: Host): () => void {
 			const reason = readFileSync(file, "utf8").trim();
 			rmSync(file, { force: true });
 			if (Number(name.split("-")[0]) < began) continue;
-			host.events.emit("notice", { text: name.endsWith(".ok") ? `turns work again on ${here}` : `turn failed on ${here}: ${line(reason, host.secrets) || "no reason given"}` });
+			host.events.emit("notice", { text: name.endsWith(".ok") ? `turns work again on ${here}` : `turn failed on ${here}: ${line(reason, host.secrets) || "no reason given"}`, ...noticeAt(session) });
 		}
 	};
 }

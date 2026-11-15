@@ -32,7 +32,8 @@ import { spawnRules } from "./spawn-rules.ts";
 // report (entry 65): with `morningReport.at`, an action schedule sends the coordinator with roles/coordinator/morning-report.md;
 // and the decision log (entry 96, decision-log.ts), `arthur decision` and `arthur decisions`, with what only the owner's decision lets through (decision-use.ts); the merge's check of a worker's branch (paper-check.ts); `actor`, who acts in a session (entry 99, actor.ts);
 // and a project agent per project whose file holds `orchestration.project({ chat })`, its `arthur doctor` line that its chat's plugin sends (entry 85, sessions.ts);
-// its chat's messages and its project's job ends and plugin messages in its inbox, and `arthur agent tell` (entry 86, inbox.ts, agent-command.ts).
+// its chat's messages and its project's job ends and plugin messages in its inbox, and `arthur agent tell` (entry 86, inbox.ts, agent-command.ts);
+// and for the session plugin, the list of sessions and the restart of each (entry 88).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -84,7 +85,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 		],
 		setup(host) {
 			const coordinator = coordinatorOptions(host.options);
-			const { folder, agent } = host;
+			const { agent } = host;
 			const sessions = sessionList(host, coordinator);
 			place = { sessions, agent, host };
 			messages = inbox(host, sessions);
@@ -120,12 +121,16 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 					})),
 				);
 			for (const command of [...coordinatorCommands(host, sessions), agentCommand(host, sessions)]) host.commands.register(command);
-			// For another plugin (session's /restart and fresh start): ends the coordinator's session, which `arthur run` starts
-			// again; a fresh one, without `--continue`, after the mark. Running jobs are the caller's to check.
-			host.provide("coordinator.restart", (asked: { readonly fresh?: unknown } = {}) => {
-				if (typeof asked.fresh !== "boolean") throw new Error(`coordinator.restart: expected { fresh: true | false }, got ${JSON.stringify(asked)}`);
-				if (asked.fresh) writeFileSync(join(folder, FRESH), "");
-				tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);
+			// For the session plugin (roadmap 88): each session `arthur run` keeps, the coordinator's first, `{ name, project?, chat?, folder }`.
+			host.provide("orchestration.sessions", () => sessions.map(({ name, project, chat, folder }) => ({ name, project, chat, folder })));
+			// For another plugin (session's /restart and fresh start): ends the session of `project`'s agent, the coordinator's without
+			// one, which `arthur run` starts again; a fresh one, without `--continue`, after the mark. Running jobs are the caller's to check.
+			host.provide("coordinator.restart", (asked: { readonly fresh?: unknown; readonly project?: unknown } = {}) => {
+				const session = sessions.find((each) => each.project === asked.project);
+				if (typeof asked.fresh !== "boolean" || session === undefined)
+					throw new Error(`coordinator.restart: expected { fresh: true | false, project?: one with an agent (${sessions.flatMap((each) => each.project ?? []).join(", ") || "none"}) }, got ${JSON.stringify(asked)}`);
+				if (asked.fresh) writeFileSync(join(session.folder, FRESH), "");
+				tmux(session.coordinator, ["kill-session", "-t", `=${session.coordinator.session}`]);
 			});
 			// For develop's `arthur eval`: the context in a copy of the main project's repository, at an instant, with a scenario's plugin lines (context.ts).
 			host.provide("coordinator.checkoutContext", (asked: { readonly root?: unknown; readonly at?: unknown; readonly context?: unknown } = {}) => {

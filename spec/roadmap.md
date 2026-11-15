@@ -1112,6 +1112,7 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 ### 88. Session: every session
 
 - Package: session; it asks orchestration for the list of sessions through `provide`.
+- Tickets: AR0708
 - Delivers: entries 35 to 38 for each session, the coordinator's and each project agent's: each has its own handoff; a compaction at each `compactAt` runs for the sessions one after another, never in parallel; the coordinator's fresh start waits for every job, as today, and a project agent's only for its project's jobs; `/restart` restarts the session of the chat it was sent from (50); the restart guard holds until every session that loaded the merged code has restarted; each session sends its own start notice to its own chat. The morning report (65) stays with the coordinator.
 - Done means: edge cases: a project agent's fresh start is not held back by another project's job; `/restart` from the main chat restarts the coordinator only; one session's failed handoff withdraws only its own compaction; with no project agent, everything behaves as in 35 to 38.
 - Depends on: 87, 35, 36, 37, 38.

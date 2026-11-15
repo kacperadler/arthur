@@ -22,27 +22,31 @@ export const read = (handoff: string) => `[Arthur] The coordinator just started 
 const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);
 
 // The plugin on a fake host in Warsaw at `now`, started as `arthur run` starts it, its printed lines caught; the test provides
-// orchestration's `coordinator.restart`, which notes `fresh` and ends every coordinator started, as killing its session does.
+// orchestration's `orchestration.sessions`, the coordinator's and one project agent per name in `agents`, in a chat of the
+// channel `test` at the place of its name, and its `coordinator.restart`, which notes `fresh` (and in `restarted` the project,
+// `coordinator` for none) and ends every agent started in that session, as killing its session does.
 // No LLM probe, and `notices` leaves out the start notice (start-notice.test.ts). `code` is what its restart guard watches;
 // `ended` notes each SIGTERM `arthur run` sends itself, with how many coordinator restarts were asked before it. Its tick, and its
 // handoff extension's, is 100 ms, not 500: a test's 250 ms sleep is two of them.
-export async function load(t: TestContext, options: SessionOptions, now: string, code: readonly string[] = []) {
+export async function load(t: TestContext, options: SessionOptions, now: string, code: readonly string[] = [], agents: readonly string[] = []) {
 	const [out, err] = [[] as string[], [] as string[]];
 	t.mock.method(console, "log", (text: string) => void out.push(text));
 	t.mock.method(console, "error", (text: string) => void err.push(text));
 	const fake = fakeHost({ name: "session", options: { compactAt: [], ...options }, timeZone: "Europe/Warsaw", now: new Date(now), code });
+	fake.provide("orchestration.sessions", () => sessions(agents));
 	const plugin = session({ probeLlm: false, ...options }, 100);
 	await fake.setup(plugin);
-	const [restarts, agents, gates, ended] = [[] as boolean[], [] as ChildProcess[], temporaryFolder(), [] as number[]];
+	const [restarts, restarted, agentsUp, gates, ended] = [[] as boolean[], [] as string[], [] as { child: ChildProcess; project: string }[], temporaryFolder(), [] as number[]];
 	const kill = process.kill.bind(process);
 	t.mock.method(process, "kill", (pid: number, signal?: string | number) => (pid === process.pid && signal === "SIGTERM" ? ended.push(restarts.length) > 0 : kill(pid, signal)));
-	fake.provide("coordinator.restart", (asked: { fresh: boolean }) => {
+	fake.provide("coordinator.restart", (asked: { fresh: boolean; project?: string }) => {
 		restarts.push(asked.fresh);
-		for (const child of agents) child.kill();
+		restarted.push(asked.project ?? "coordinator");
+		for (const { child, project } of agentsUp) if (project === (asked.project ?? "coordinator")) child.kill();
 	});
 	t.after(() => {
 		plugin.stop?.();
-		for (const child of agents) child.kill();
+		for (const { child } of agentsUp) child.kill();
 	});
 	const { folder } = fake.host;
 	const jobs = join(dirname(folder), "jobs");
@@ -51,6 +55,7 @@ export async function load(t: TestContext, options: SessionOptions, now: string,
 		out,
 		err,
 		restarts,
+		restarted,
 		ended,
 		folder,
 		handoff: join(folder, "handoff.md"),
@@ -58,31 +63,44 @@ export async function load(t: TestContext, options: SessionOptions, now: string,
 		stop: () => plugin.stop?.(),
 		at: (when: string) => fake.setNow(new Date(when)),
 		request: () => (existsSync(join(folder, "request.json")) ? (JSON.parse(readFileSync(join(folder, "request.json"), "utf8")) as Record<string, unknown>) : undefined),
-		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text).filter((text) => !text.startsWith("coordinator up on ")),
-		route: (text: string) => fake.host.commands.route(text),
+		// The notices to the place of `project`'s chat, the coordinator's (no place) when none, the start notices left out.
+		notices: (project?: string) =>
+			fake.emitted
+				.filter((event) => event.name === "notice" && (event.data as { place?: string }).place === project)
+				.map((event) => (event.data as { text: string }).text)
+				.filter((text) => !/^(coordinator|project agent of \S+) up on /.test(text)),
+		route: (text: string, from?: { readonly channel?: string; readonly place?: string; readonly instance?: string }) => fake.host.commands.route(text, from),
 		gate: (name: string) => join(gates, name),
 		open: (name: string) => writeFileSync(join(gates, name), ""),
-		// A job in a run of the kind given, as its record says, until `end`.
-		job(id: string, kind = "worker") {
+		// A job of `project` in a run of the kind given, as its record says, until `end`.
+		job(id: string, kind = "worker", project = "acme") {
 			mkdirSync(join(jobs, id), { recursive: true });
-			for (const [key, value] of Object.entries({ kind, project: "acme", task: "Go.", state: "working", since: new Date().toISOString() })) writeFileSync(join(jobs, id, key), value);
+			for (const [key, value] of Object.entries({ kind, project, task: "Go.", state: "working", since: new Date().toISOString() })) writeFileSync(join(jobs, id, key), value);
 			return { end: () => writeFileSync(join(jobs, id, "state"), "ended") };
 		},
-		// A coordinator: the fake agent playing `run` with the extension the plugin gives orchestration, started with `args`.
-		coordinator(run: AgentRun, args: readonly string[] = ["--continue"]) {
+		// A session's agent, the coordinator's or `project`'s: the fake agent playing `run` with the extension the plugin gives
+		// orchestration for that session, started with `args`.
+		coordinator(run: AgentRun, args: readonly string[] = ["--continue"], project?: string) {
 			const agent = fakeAgent(run);
-			const [extension] = fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension", { session: "coordinator" });
+			const [extension] = fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension", { session: project === undefined ? "coordinator" : `agent:${project}` });
 			assert.ok(extension);
 			const child = spawn(agent, [...args, "-e", extension.file], { env: { ...process.env, ...extension.env }, stdio: "ignore" });
-			agents.push(child);
-			const noted = join(folder, "agent");
+			agentsUp.push({ child, project: project ?? "coordinator" });
+			const noted = join(project === undefined ? folder : join(folder, "agents", project), "agent");
 			return {
 				messages: () => lines(join(dirname(agent), "messages.jsonl")),
-				up: () => until("the coordinator's start", () => existsSync(noted) && readFileSync(noted, "utf8") === String(child.pid)),
+				up: () => until("the agent's start", () => existsSync(noted) && readFileSync(noted, "utf8") === String(child.pid)),
+				end: () => child.kill(),
 			};
 		},
 	};
 }
+
+// orchestration's answer to `orchestration.sessions`: the coordinator's, then each of `agents` in its chat of the channel `test`.
+export const sessions = (agents: readonly string[]) => [
+	{ name: "coordinator", folder: "/home/arthur/orchestration" },
+	...agents.map((project) => ({ name: `agent:${project}`, project, chat: { plugin: "test", place: project }, folder: `/home/arthur/orchestration/agents/${project}` })),
+];
 
 // Arthur's checkout for the restart guard: the session package's code, committed; `code` for `load`; `merge` commits a change
 // to that code as `h merge` names it, which makes a restart due.

@@ -248,7 +248,8 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
 | `coordinator.extension` | session, stats | orchestration | `{ file, env }`: an OMP extension the agent of a session loads, asked once per session with `{ session }`, `coordinator` or `agent:<project>`; undefined adds none. |
 | `orchestration.chats` | orchestration | telegram (its `arthur doctor` line on topics) | Each project agent's chat, `{ project, plugin, instance?, place }`, from its `orchestration.project({ chat })`. |
-| `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
+| `orchestration.sessions` | orchestration | session | Each session `arthur run` keeps, the coordinator's first, then each project agent's, `{ name, project?, chat?, folder }`. |
+| `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`, or a project's agent, `{ fresh, project }`. |
 | `actor` | orchestration | the core, `collect` at each event it logs | Who acts in this process, `{ actor, on? }`, or undefined (above, "Who acted"). |
 | `coordinator.silent` | orchestration | discord, telegram | Whether the silent mode holds a notice. |
 | `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |

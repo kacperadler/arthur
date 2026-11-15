@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-15
+
+### Added
+
+- AR0706 Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86) (046a2fee)
+
 ## 2026-11-14
 
 ### Added

@@ -461,6 +461,31 @@ test("models.usage reads the highest used percent of the last report's windows, 
 	assert.deepEqual(fake.collect("models.usage"), [undefined], "the last fetch failed: the reading is unknown");
 });
 
+test("models.windows gives each window with its provider, durationMs and resetsAt as reported; a span missing, not a number or 0 is none; no report, a failed fetch or a report without accounts, why", async () => {
+	agent({ steps: [{ stderr: "error: unknown command usage" }], exitCode: 2 });
+	const { fake } = await load({});
+	assert.equal(await fake.call("models.windows"), "the agent has no usage report (omp usage --json: error: unknown command usage)");
+	const given = report([0.13, 0.76, 0.5, 0.2, 0.1, 0.3].map((used, at) => ({ id: [0, 5].includes(at) ? "5h" : "7d", used, resetsIn: 600, ...(at === 2 ? { tier: "fable" } : {}) })));
+	// Each limit's span as given, the last one 1 ms and without resetsAt; JSON leaves an undefined one out.
+	const spans: unknown[] = [18000000, 604800000, 0, "604800000", undefined, 1];
+	const limits = given.reports[0]?.limits.map((limit, at) => ({ ...limit, window: { id: limit.window.id, label: limit.window.label, ...(at === 5 ? {} : { resetsAt: limit.window.resetsAt }), durationMs: spans[at] } }));
+	says({ ...given, reports: [{ ...given.reports[0], limits }] });
+	fake.setNow(new Date(after(11)));
+	assert.deepEqual(await fake.call("models.windows"), [
+		{ provider: "anthropic", label: "Claude 5 Hour", used: 0.13, resetsAt: after(600), durationMs: 18000000, tier: false },
+		{ provider: "anthropic", label: "Claude 7 Day", used: 0.76, resetsAt: after(600), durationMs: 604800000, tier: false },
+		{ provider: "anthropic", label: "Claude 7 Day (fable)", used: 0.5, resetsAt: after(600), tier: true },
+		{ provider: "anthropic", label: "Claude 7 Day", used: 0.2, resetsAt: after(600), tier: false },
+		{ provider: "anthropic", label: "Claude 7 Day", used: 0.1, resetsAt: after(600), tier: false },
+		{ provider: "anthropic", label: "Claude 5 Hour", used: 0.3, durationMs: 1, tier: false },
+	]);
+	agent({ steps: [{ stderr: "network down" }], exitCode: 1 });
+	fake.setNow(new Date(after(22)));
+	assert.equal(await fake.call("models.windows"), "the agent has no usage report (omp usage --json: network down)", "the last fetch failed");
+	writeFileSync(join(fake.host.folder, "usage.json"), JSON.stringify({ at: after(22) }));
+	assert.equal(await fake.call("models.windows"), "the agent has no usage report", "a report edited by hand without its accounts");
+});
+
 test("a list skips a built-in model whose provider's window is at or over limits.stopAt; a window over limits.warnAt is on the spawn line and in the context", async () => {
 	says(report([{ id: "5h", used: 0.82, resetsIn: 60 }, { id: "7d", used: 0.96, resetsIn: 600 }, { id: "7d", used: 0.99, tier: "fable", resetsIn: 600 }]));
 	const { fake, pick } = await load({});

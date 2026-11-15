@@ -2,11 +2,40 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-15
+
+### Added
+
+- AR0706 Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86) (046a2fee)
+- AR0707 Project agents T3: a project agent's context holds only its own project (roadmap 87) (d7b3b8ff)
+
+## 2026-11-14
+
+### Added
+
+- AR0705 Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85) (da1ed4ed)
+
+### Fixed
+
+- AR0712 A Dokploy upload of a folder sends its dotfiles too, such as a .dev.vars.example that holds a token (08e52551)
+
+### Changed
+
+- AR0711 Mutate leaves out test helpers and the example config (392de77e)
+
 ## 2026-11-13
+
+### Added
+
+- AR0530 `arthur log` and `/log`: read the activity log by day, user, actor, ticket or job (56514cf4)
+- AR0652 Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111) (46655571)
+- AR0653 Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112) (234b6360)
 
 ### Changed
 
 - AR0651 Stats S4: the merged-ticket report moves from manage to stats (roadmap 110) (a27b618c)
+- AR0704 A test fixture names the owner's real account, user:terminal:kacper, in the public repository (254c2011)
+- AR0710 Mutate spreads its sample over the whole of a new file, not only its first lines (0812b4e6)
 
 ## 2026-11-12
 

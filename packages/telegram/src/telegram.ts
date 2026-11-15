@@ -1,5 +1,5 @@
-import type { Plugin } from "@arthur/core/plugin";
-import { type Bot, topic } from "./bot-api.ts";
+import type { Plugin, Requirement } from "@arthur/core/plugin";
+import { type Bot, call, topic } from "./bot-api.ts";
 import { outgoing } from "./media-out.ts";
 import { menu } from "./menu.ts";
 import { enqueue, outbox } from "./outbox.ts";
@@ -8,11 +8,12 @@ import { checkOptions } from "./telegram-options.ts";
 
 // The telegram plugin (spec/roadmap.md, entries 47 to 50): bots as instances, named and unnamed, each polling its one chat
 // (poll.ts), where `/name text` is a phone command; the coordinator's replies by the bot the messages they answer came
-// through, the notices by the unnamed bot, else the first, through the outbox (outbox.ts), without a notification in quiet
-// hours, and a notice only when `call("coordinator.silent", notice)` does not hold it; files by `channel.send` (media-out.ts),
-// which `arthur send` asks; each bot's command menu at the start (menu.ts): packages/telegram/docs/telegram.md. Only `arthur
-// run` starts the plugin, so only it polls and sends texts; what comes before the start, as the replay of the event log, is
-// queued at the start.
+// through, else the bot their `instance` names (a project agent's, entry 86), the notices by the bot their `instance` names,
+// else the unnamed bot, else the first, and to their place only when their `channel` is none or telegram; through the outbox
+// (outbox.ts), without a notification in quiet hours, and a notice only when `call("coordinator.silent", notice)` does not
+// hold it; files by `channel.send` (media-out.ts), which `arthur send` asks; each bot's command menu at the start (menu.ts):
+// packages/telegram/docs/telegram.md. Only `arthur run` starts the plugin, so only it polls and sends texts; what comes
+// before the start, as the replay of the event log, is queued at the start.
 
 export type BotOptions = { readonly name?: string; readonly botTokenEnv: string; readonly chatIdEnv: string };
 
@@ -45,20 +46,22 @@ export function telegram(options: TelegramOptions): Plugin {
 				enqueue(host.folder, to, text, place);
 				box.flush();
 			};
-			// The bots the messages a reply answers came through (their `instance`), each once; the main bot when none did.
-			const through = (answers: unknown) => {
+			// The bot `instance` names, else the main one.
+			const named = (instance: unknown) => bots.find((each) => each.name === instance) ?? main;
+			// The bots the messages a reply answers came through (their `instance`), each once; the bot `instance` names when none did.
+			const through = (answers: unknown, instance: unknown) => {
 				const seqs = Array.isArray(answers) ? answers.filter((seq): seq is number => Number.isSafeInteger(seq) && seq > 0) : [];
 				const messages = bots.length > 1 && seqs.length > 0 ? host.events.read(Math.min(...seqs)).filter((event) => seqs.includes(event.seq) && event.name === "message-received") : [];
-				const found = messages.filter((event) => asRecord(event.data).channel === "telegram").map((event) => bots.find((each) => each.name === asRecord(event.data).instance) ?? main);
-				return found.length > 0 ? [...new Set(found)] : [main];
+				const found = messages.filter((event) => asRecord(event.data).channel === "telegram").map((event) => named(asRecord(event.data).instance));
+				return found.length > 0 ? [...new Set(found)] : [named(instance)];
 			};
 			host.events.on("coordinator-replied", (event) => {
-				const { text, channels, place, answers } = asRecord(event.data);
-				if (typeof text === "string" && (!Array.isArray(channels) || channels.length === 0 || channels.includes("telegram"))) for (const each of through(answers)) send(each, text, topic(place));
+				const { text, channels, place, answers, instance } = asRecord(event.data);
+				if (typeof text === "string" && (!Array.isArray(channels) || channels.length === 0 || channels.includes("telegram"))) for (const each of through(answers, instance)) send(each, text, topic(place));
 			});
 			host.events.on("notice", (event) => {
-				const { text, place } = asRecord(event.data);
-				if (typeof text === "string" && host.call<boolean>("coordinator.silent", event.data) !== true) send(main, text, topic(place));
+				const { text, place, channel = "telegram", instance } = asRecord(event.data);
+				if (typeof text === "string" && host.call<boolean>("coordinator.silent", event.data) !== true) send(channel === "telegram" ? named(instance) : main, text, channel === "telegram" ? topic(place) : undefined);
 			});
 			begin = () => {
 				ready = true;
@@ -68,6 +71,13 @@ export function telegram(options: TelegramOptions): Plugin {
 			};
 			idle = box.idle;
 			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
+			// The main bot's name, none for the unnamed one: a project's chat that names no bot is its (orchestration's routing).
+			host.provide("channel.main", () => main.name);
+			// Each bot a project's chat names (orchestration's `orchestration.chats`, roadmap 85) talks in topics of its private chat.
+			host.provide("doctor", () => {
+				const chats = host.collect<readonly { readonly project: string; readonly plugin: string; readonly instance?: string }[]>("orchestration.chats").flat().filter((chat) => chat.plugin === "telegram");
+				return [...new Set(chats.map((chat) => chat.instance))].map((instance) => topics(instance === undefined ? main : bots.find((each) => each.name === instance), instance, chats.filter((chat) => chat.instance === instance).map((chat) => chat.project)));
+			});
 		},
 		start() {
 			polls = begin();
@@ -88,4 +98,16 @@ function bot(env: Readonly<Record<string, string>>, { name, botTokenEnv, chatIdE
 	const id = env[chatIdEnv] ?? "";
 	if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) throw new Error(`bots[${index}].chatIdEnv: ${chatIdEnv} does not hold a chat id: the owner's private chat with the bot, a positive whole number`);
 	return { ...(name === undefined ? {} : { name }), label: name ?? "(unnamed)", token, chat: Number(id), apiUrl };
+}
+
+// `bot` undefined: no bot of that name. getMe's `has_topics_enabled` is true once topics are on for the bot's private chats.
+function topics(bot: Bot | undefined, instance: string | undefined, projects: readonly string[]): Requirement {
+	const check = async () => {
+		if (bot === undefined) return `missing: no bot named ${instance} in bots`;
+		const me = await call(bot, "getMe", {}, AbortSignal.timeout(10_000)).catch((error: Error) => error);
+		if (me instanceof Error) return `missing: ${me.message}`;
+		return (me as { readonly has_topics_enabled?: unknown } | null)?.has_topics_enabled === true ? "ok" : "missing: getMe.has_topics_enabled is not true: topics are off in the bot's private chat";
+	};
+	const costs = `the agents of ${projects.join(", ")} have no topic to talk in`;
+	return { name: `bot ${bot?.label ?? instance} topics`, check, costs, fix: "turn on topics for the bot's private chats in @BotFather, then run arthur doctor" };
 }

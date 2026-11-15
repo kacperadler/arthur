@@ -4212,9 +4212,9 @@
   {
     "id": "AR0530",
     "title": "`arthur log` and `/log`: read the activity log by day, user, actor, ticket or job",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0530-arthur-log-and-log-read-the-activity-log-by-day-user-actor-ticket-or-job/ticket.md",
-    "updated": "2026-11-06T08:17:08.705Z",
+    "updated": "2026-11-13T09:53:57.369Z",
     "after": [
       "AR0653"
     ]
@@ -5260,9 +5260,9 @@
   {
     "id": "AR0652",
     "title": "Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111)",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0652-stats-s5-arthur-stats-stats-and-the-morning-report-s-spend-roadmap-111/ticket.md",
-    "updated": "2026-11-13T00:37:15.721Z",
+    "updated": "2026-11-13T07:12:59.566Z",
     "after": [
       "AR0651"
     ]
@@ -5270,9 +5270,9 @@
   {
     "id": "AR0653",
     "title": "Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0653-stats-s6-claude-usage-windows-beside-the-costs-an-estimate-marked-roadmap-112/ticket.md",
-    "updated": "2026-11-06T08:46:58.977Z",
+    "updated": "2026-11-13T08:02:52.333Z",
     "after": [
       "AR0652"
     ]
@@ -5649,16 +5649,16 @@
   {
     "id": "AR0699",
     "title": "The changelog counts the v0.1.0 tag as a release, so the next release lists only its own tickets",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0699-the-changelog-counts-the-v0-1-0-tag-as-a-release-so-the-next-release-lists-only/ticket.md",
-    "updated": "2026-11-13T01:05:39.821Z"
+    "updated": "2026-11-13T01:05:49.399Z"
   },
   {
     "id": "AR0700",
     "title": "The owner's config loads the stats plugin again, so arthur stats and the Stats of audits and retros come back",
-    "status": "planning",
+    "status": "done",
     "path": "spec/features/AR0700-the-owner-s-config-loads-the-stats-plugin-again-so-arthur-stats-and-the-stats-of/ticket.md",
-    "updated": "2026-11-13T01:04:36.734Z"
+    "updated": "2026-11-13T07:13:48.449Z"
   },
   {
     "id": "AR0701",
@@ -5683,5 +5683,80 @@
     "status": "planning",
     "path": "spec/features/AR0703-herdr-in-the-architecture-diagrams-and-the-vision-s-sweep-text-to-the-ar-d520/ticket.md",
     "updated": "2026-11-13T01:04:38.907Z"
+  },
+  {
+    "id": "AR0704",
+    "title": "A test fixture names the owner's real account, user:terminal:kacper, in the public repository",
+    "status": "merged",
+    "path": "spec/features/AR0704-a-test-fixture-names-the-owner-s-real-account-user-terminal-kacper-in-the-public/ticket.md",
+    "updated": "2026-11-13T12:01:36.223Z"
+  },
+  {
+    "id": "AR0705",
+    "title": "Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85)",
+    "status": "merged",
+    "path": "spec/features/AR0705-project-agents-t1-each-project-with-a-chat-gets-its-own-supervised-omp-session/ticket.md",
+    "updated": "2026-11-14T14:03:33.744Z"
+  },
+  {
+    "id": "AR0706",
+    "title": "Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86)",
+    "status": "merged",
+    "path": "spec/features/AR0706-project-agents-t2-a-project-chat-s-messages-and-its-jobs-ends-go-to-its-agent/ticket.md",
+    "updated": "2026-11-15T12:04:41.439Z",
+    "after": [
+      "AR0705"
+    ]
+  },
+  {
+    "id": "AR0707",
+    "title": "Project agents T3: a project agent's context holds only its own project (roadmap 87)",
+    "status": "merged",
+    "path": "spec/features/AR0707-project-agents-t3-a-project-agent-s-context-holds-only-its-own-project-roadmap/ticket.md",
+    "updated": "2026-11-15T14:06:34.726Z",
+    "after": [
+      "AR0706"
+    ]
+  },
+  {
+    "id": "AR0708",
+    "title": "Project agents T4: compaction, the fresh start and the handoff for every project agent (roadmap 88)",
+    "status": "review",
+    "path": "spec/features/AR0708-project-agents-t4-compaction-the-fresh-start-and-the-handoff-for-every-project/ticket.md",
+    "updated": "2026-11-15T19:23:43.863Z",
+    "after": [
+      "AR0707"
+    ]
+  },
+  {
+    "id": "AR0709",
+    "title": "A merge's checks on main cannot create a new folder at the checkout's top, so a test runner's output folder (Playwright's test-results) fails npm test",
+    "status": "planning",
+    "path": "spec/features/AR0709-a-merge-s-checks-on-main-cannot-create-a-new-folder-at-the-checkout-s-top-so-a/ticket.md",
+    "updated": "2026-11-13T14:13:10.411Z"
+  },
+  {
+    "id": "AR0710",
+    "title": "Mutate spreads its sample over the whole of a new file, not only its first lines",
+    "status": "merged",
+    "path": "spec/features/AR0710-mutate-spreads-its-sample-over-the-whole-of-a-new-file-not-only-its-first-lines/ticket.md",
+    "updated": "2026-11-13T22:43:59.553Z"
+  },
+  {
+    "id": "AR0711",
+    "title": "Mutate leaves out test helpers and the example config",
+    "status": "merged",
+    "path": "spec/features/AR0711-mutate-leaves-out-test-helpers-and-the-example-config/ticket.md",
+    "updated": "2026-11-14T00:24:28.828Z",
+    "after": [
+      "AR0710"
+    ]
+  },
+  {
+    "id": "AR0712",
+    "title": "A Dokploy upload of a folder sends its dotfiles too, such as a .dev.vars.example that holds a token",
+    "status": "merged",
+    "path": "spec/features/AR0712-a-dokploy-upload-of-a-folder-sends-its-dotfiles-too-such-as-a-dev-vars-example/ticket.md",
+    "updated": "2026-11-14T15:28:21.739Z"
   }
 ]

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { temporaryFolder, until } from "@arthur/core/testing";
 import { startWait } from "../src/ci-wait.ts";
-import { fakeMerge, forwarded, load, OTHER, told } from "./review-setup.ts";
+import { fakeMerge, forwarded, load, OTHER, told, toldProjects } from "./review-setup.ts";
 
 // A PASS forwarded in arthur run (review-setup.ts): the merge it starts, and a merge that died half done.
 
@@ -124,6 +124,7 @@ test("arthur run looks for the end of a merge an earlier one started every 5 sec
 	assert.deepEqual(told(fake), []);
 	t.mock.timers.tick(1);
 	assert.deepEqual(told(fake), ["Why. acme merges on its own (autoMerge), so delivery ran arthur merge --auto one: it went in; follow the procedure it printed last. What it printed:\n\nmerged"]);
+	assert.deepEqual(toldProjects(fake), ["acme"]);
 	await plugin.stop?.();
 	ended("two");
 	t.mock.timers.tick(5000);
@@ -174,6 +175,7 @@ test("arthur run's start rolls back a merge that died half done, keeping the boa
 	assert.deepEqual([git(root, "rev-parse", "HEAD"), merge.asked()], [merged, []], "refused: main and the change as they were");
 	assert.equal(readFileSync(file, "utf8"), "export const shop = 2;\n");
 	assert.match(told(fake)[0] ?? "", new RegExp(`^The merge of ${job.id} on acme died half done, its process gone: main still holds its merge commit ${merged.slice(0, 7)}, as git read-tree -m -u ${merged.slice(0, 7)} ${before.slice(0, 7)} refused: .+; reset main to ${before.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}$`));
+	assert.deepEqual(toldProjects(fake), ["acme"]);
 	git(root, "checkout", "--", `${job.id}.ts`);
 	holder(dead);
 	// The merge's own run folder, as a reboot leaves it: no exit status, its process gone. Its end is the rerun, not a wake of its own.
@@ -210,5 +212,6 @@ test("a merge that died half done in a project whose autoMerge is off since is r
 	assert.equal(git(root, "rev-parse", "HEAD"), before);
 	const why = `The merge of ${job.id} on acme died half done, its process gone: main went back from its merge commit ${merged.slice(0, 7)} to ${before.slice(0, 7)}, the board kept.`;
 	assert.deepEqual(told(fake), [`${why} acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`]);
+	assert.deepEqual(toldProjects(fake), ["acme"]);
 	assert.deepEqual(merge.asked(), []);
 });

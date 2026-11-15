@@ -33,11 +33,11 @@ A failed call is said once until a call answers again, and polling goes on after
 
 ## Sending
 
-A reply goes by the bot each message it answers came through (its `answers`, the numbers of their `message-received` events, read in the event log; each bot once), to that bot's chat; a reply that answers no message of a bot, and every notice, goes by the unnamed bot, else the first in the list:
+A reply goes by the bot each message it answers came through (its `answers`, the numbers of their `message-received` events, read in the event log; each bot once), to that bot's chat; a reply that answers no message of a bot, and every notice, goes by the bot its `instance` names (a project agent's, `arthur coordinator --help`, "Project agents"), else by the unnamed bot, else the first in the list:
 
 - `coordinator-replied` whose `channels` hold `telegram`, and a reply with no `channels` (from a turn of only messages from Arthur, `[Arthur]` or `[Arthur: <plugin>]`), as a notice is; a reply only for another channel is not sent.
 - `notice`, unless `call("coordinator.silent", notice)` answers `true`: the silent mode holds every notice but the one of a job blocked on the owner (`arthur silent --help`).
-- A `place` that is a topic's number goes as `message_thread_id`; without one, or with any other, the message goes to the chat itself.
+- A `place` that is a topic's number goes as `message_thread_id`; without one, or with any other, the message goes to the chat itself. A notice whose `channel` is another plugin's (a project agent's chat on Discord) goes by the unnamed bot, else the first, to its chat itself: its `place` and `instance` are that channel's.
 - A text longer than one message goes in slices of at most 4096 UTF-16 units, each cut at its last line break; a line longer than a slice is cut inside it, never through a character of two units. A blank text sends nothing.
 - In quiet hours (`core.quietHours`, across midnight when `from` is the later time) every send goes with `disable_notification`, as the clock says when it goes.
 
@@ -70,6 +70,12 @@ A text message that starts with `/name` (1 to 32 letters, digits and underscores
 At every start of `arthur run`, each bot's menu is set to the phone commands the enabled plugins registered, sorted by name, each with its `about` line (`setMyCommands`; `deleteMyCommands` when there is none), but only when they differ from what `.arthur/telegram/menu.json` records as set for that bot: a start with the same commands calls nothing. The record is keyed by the bot's id, the part of its token before the colon, never the token. A refused or failed call is one line on stderr, `telegram bot <name>: setMyCommands: <code>: <description>; the command menu is set again at the next start`, and the record stays as it was, so the next start tries again; a record that does not parse records nothing. Delete the file to set every menu again.
 
 The session's start notice (`coordinator up on <host>`, or `no LLM access on <host>: ...`, after the lines `arthur doctor` found missing) is a `notice`, sent as it comes, as one text, unless the silent mode holds it, as it holds every notice but a blocked job's.
+
+## Project chats
+
+A project whose file holds `orchestration.project({ chat: { plugin: "telegram", instance?, place } })` has its own agent (`arthur coordinator --help`, "Project agents"), whose chat is the topic `place` (its `message_thread_id`) of the private chat of the bot `instance` names, else of the unnamed bot (the first when every bot has a name). Topics there need the bot's topics turned on, so for each bot some project's chat names the plugin gives `arthur doctor` one line, never critical, `telegram bot <name> topics`: `ok` when `getMe` answers `has_topics_enabled: true`; else `missing: getMe.has_topics_enabled is not true: topics are off in the bot's private chat`, `missing: <the getMe failure>`, or `missing: no bot named <instance> in bots`, costing those projects' agents their topics; its fix is `turn on topics for the bot's private chats in @BotFather, then run arthur doctor`. The chats are read from orchestration's `orchestration.chats`, never from its piece; without a chat on Telegram there is no line.
+
+Its messages in that topic, `message-received` with that `place` and `instance`, reach that agent; its replies come back to the topic by that bot, and so do its notices and the notice of a job of its project blocked on the owner, which every other bot's chat does not get. For a chat that names no bot, the plugin answers `channel.main` with the main bot's name (none for the unnamed bot), so its messages, which carry that name as `instance` when every bot has a name, reach the agent too.
 
 ## Setting it up
 

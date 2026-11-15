@@ -12,11 +12,13 @@ import type { Bot } from "./rest.ts";
 // The discord plugin (spec/roadmap.md, entries 89 and 90): bots as instances, named and unnamed, each on its one server through
 // the gateway (gateway.ts), where the owner's messages become `message-received` and `/name text` is a phone command
 // (receive.ts), the phone commands also listed in Discord's `/` menu (menu.ts) and run when picked there (interaction.ts); the
-// coordinator's replies by the bot the messages they answer came through, the notices by the unnamed bot, else the first,
-// through the outbox (outbox.ts), without a notification in quiet hours, and a notice only when
-// `call("coordinator.silent", notice)` does not hold it; files by `channel.send` (media-out.ts), which `arthur send` asks; each
-// bot's requirements for `arthur doctor` (discord-doctor.ts): packages/discord/docs/discord.md. Only `arthur run` starts the
-// plugin, so only it connects and sends texts; what comes before the start, as the replay of the event log, is queued at the start.
+// coordinator's replies by the bot the messages they answer came through, else the bot their `instance` names (a project
+// agent's, entry 86), the notices by the bot their `instance` names, else the unnamed bot, else the first, and to their place
+// only when their `channel` is none or discord; through the outbox (outbox.ts), without a notification in quiet hours, and a
+// notice only when `call("coordinator.silent", notice)` does not hold it; files by `channel.send` (media-out.ts), which
+// `arthur send` asks; each bot's requirements for `arthur doctor` (discord-doctor.ts): packages/discord/docs/discord.md. Only
+// `arthur run` starts the plugin, so only it connects and sends texts; what comes before the start, as the replay of the event
+// log, is queued at the start.
 
 export type BotOptions = { readonly name?: string; readonly tokenEnv: string; readonly guildIdEnv: string; readonly userIdEnv: string; readonly channelIdEnv: string };
 
@@ -52,20 +54,22 @@ export function discord(options: DiscordOptions, closeMs?: number): Plugin {
 				box.flush();
 			};
 			for (const each of bots) ears.set(each, receiver(host, each, send, box.flush, stopping.signal));
-			// The bots the messages a reply answers came through (their `instance`), each once; the main bot when none did.
-			const through = (answers: unknown) => {
+			// The bot `instance` names, else the main one.
+			const named = (instance: unknown) => bots.find((each) => each.name === instance) ?? main;
+			// The bots the messages a reply answers came through (their `instance`), each once; the bot `instance` names when none did.
+			const through = (answers: unknown, instance: unknown) => {
 				const seqs = Array.isArray(answers) ? answers.filter((seq): seq is number => Number.isSafeInteger(seq) && seq > 0) : [];
 				const messages = bots.length > 1 && seqs.length > 0 ? host.events.read(Math.min(...seqs)).filter((event) => seqs.includes(event.seq) && event.name === "message-received") : [];
-				const found = messages.filter((event) => asRecord(event.data).channel === "discord").map((event) => bots.find((each) => each.name === asRecord(event.data).instance) ?? main);
-				return found.length > 0 ? [...new Set(found)] : [main];
+				const found = messages.filter((event) => asRecord(event.data).channel === "discord").map((event) => named(asRecord(event.data).instance));
+				return found.length > 0 ? [...new Set(found)] : [named(instance)];
 			};
 			host.events.on("coordinator-replied", (event) => {
-				const { text, channels, place, answers } = asRecord(event.data);
-				if (typeof text === "string" && (!Array.isArray(channels) || channels.length === 0 || channels.includes("discord"))) for (const each of through(answers)) send(each, text, channelId(place));
+				const { text, channels, place, answers, instance } = asRecord(event.data);
+				if (typeof text === "string" && (!Array.isArray(channels) || channels.length === 0 || channels.includes("discord"))) for (const each of through(answers, instance)) send(each, text, channelId(place));
 			});
 			host.events.on("notice", (event) => {
-				const { text, place } = asRecord(event.data);
-				if (typeof text === "string" && host.call<boolean>("coordinator.silent", event.data) !== true) send(main, text, channelId(place));
+				const { text, place, channel = "discord", instance } = asRecord(event.data);
+				if (typeof text === "string" && host.call<boolean>("coordinator.silent", event.data) !== true) send(channel === "discord" ? named(instance) : main, text, channel === "discord" ? channelId(place) : undefined);
 			});
 			// A connection Discord ended for good is said on stderr and in a notice, which another channel or the terminal shows.
 			const fatal = (line: string) => {
@@ -85,6 +89,8 @@ export function discord(options: DiscordOptions, closeMs?: number): Plugin {
 			};
 			host.provide("doctor", () => bots.flatMap((each) => requirements(each, () => menuCommands(host), join(host.folder, "commands.json"))));
 			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
+			// The main bot's name, none for the unnamed one: a project's chat that names no bot is its (orchestration's routing).
+			host.provide("channel.main", () => main.name);
 		},
 		start() {
 			connections = begin();

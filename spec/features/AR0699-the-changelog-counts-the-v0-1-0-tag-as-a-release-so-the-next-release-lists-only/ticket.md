@@ -48,3 +48,6 @@ Out:
 - 2026-11-13: Source: audit spec/quality/2026-11-13.md
 - 2026-11-13: Source: F4 of AR0641
 - 2026-11-13: Pre-approved by policy: fix from audit spec/quality/2026-11-13.md, 3 Scope files, budget $2 of the $3 cap
+- 2026-11-13: AR0699 worker budget $2 -> $5; the owner: "AR-D666 merge" (AR-D666)
+- 2026-11-13: The owner approved raising the AR0699 worker budget from $2 to $5; the owner: "AR-D666 merge" (AR-D666)
+- 2026-11-15: AR0699 worker budget raised from $5 to $7 to finish its checks; the owner: "AR-D682: raise" (AR-D682)

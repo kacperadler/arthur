@@ -137,6 +137,7 @@ Each decided in the ticket that made it.
 - AR0645 (AR0604's approved plan, W2, Not available directly 2, Option 1; the owner on 2026-11-06, AR-D520): the provided name `machines.labels`, by machines, `(machine)` to that machine's labels, which no member gave a plugin: `host.jobs.machines()` names machines only, and `local`'s `tools` live in the machines plugin's options. The docker plugin asks it for `tools: docker`, so without the machines plugin it acts on no machine. No host member changed.
 - AR0691 (the owner on 2026-11-11, AR-D639): the provided name `delivery.merging`, by delivery, asked by session with `collect` before each restart it makes or is asked for: `()` to `{ project, job }` of each merge in a run, a project whose `merge.lock` names a live process (`job` the one its `merging` names, `""` before the merge wrote it), so no restart ends a merge between its first look at main and its `spec:` commit, its checks on main included; the lock goes before the merge's push and its prune, which a restart may still end; a lock its process left names none. No host member changed.
 - AR0651 (AR0480's approved plan, ticket 4, roadmap 110; the owner approved it on 2026-11-06, AR-D523): the provided name `stats.tickets`, by stats, asked by manage with `collect` for the `### Stats` section of an audit's and a retro's prompt: `(project, since?)` to the merged tickets' report `arthur stats` prints, of the tickets merged at `since` or later; none answering is the stats plugin not loaded, which the section then says. `arthur stats` moved from manage to stats with it. No host member changed.
+- AR0653 (AR0480's approved plan, ticket 6, roadmap 112; the owner approved it on 2026-11-06, AR-D523): the provided name `models.windows`, by models, asked by stats with `collect` for `arthur stats windows`: a promise of each usage window of the agent's report with its provider, `durationMs` included, or one line saying why there is none; none answering is the models plugin not loaded, which the command then says. No host member changed.
 
 ### Project pieces
 
@@ -205,10 +206,11 @@ The events plugins share, which channels and the coordinator keep (`arthur send 
 | Event | Fields | Emitted by |
 | --- | --- | --- |
 | `message-received` | `channel`, `parts` (each `Part`), `place?`, `instance?` | A channel, once per owner's message. |
-| `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule, github). |
-| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn, and after it `voice note not sent: <why>` when the reply's voice note could not go (AR0553); a claimed part's `reply`. |
+| `coordinator-message` | `text`, `project?` | A plugin with a message for the coordinator (schedule, github); one that names a project with an agent goes to that agent instead (`arthur coordinator --help`, "Project agents"). |
+| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?`, `instance?` | Orchestration, after a turn, and after it `voice note not sent: <why>` when the reply's voice note could not go (AR0553); a claimed part's `reply`. A project agent's names its chat's channel alone, its place and its bot. |
+| `agent-told` | `to`, `from` (sessions: `coordinator`, `agent:<project>`), `text` | Orchestration's `arthur agent tell`, from one session to another. |
 | `schedule-fired` | `id`, `slot` (ISO time), `late`, `does` (`action`, `job` or `run`) | Schedule, once an entry's slot is claimed, before it runs. |
-| `notice` | `text`, `place?` | Any plugin; every channel sends it unless `coordinator.silent` holds it. |
+| `notice` | `text`, `place?`, `channel?`, `instance?` | Any plugin; every channel sends it unless `coordinator.silent` holds it, at its place by the bot `instance` names when `channel` is none or its own, else at its main place. |
 
 ### Who acted
 
@@ -216,7 +218,7 @@ Every event carries `by: { actor, on? }`, set by the core as it logs the event (
 
 1. Inside a job: `job:<id>`; the job's wrapper stamps its own events so too.
 2. A channel's `message-received` or `phone-command`: `user:<channel>[/<instance>]`, the owner on that channel.
-3. The first answer `{ actor, on? }` a plugin provides as `actor`: orchestration's `coordinator` in the coordinator's session, `on` the messages of its turn in progress.
+3. The first answer `{ actor, on? }` a plugin provides as `actor`: orchestration's `coordinator` in the coordinator's session and `agent:<project>` in a project agent's, `on` the messages of its turn in progress.
 4. In the process that holds `<home>/run.pid` (`arthur run`): `arthur` for the core's own events, `plugin:<name>` for a plugin's.
 5. Else `user:terminal:<OS user>`, someone typing in a shell.
 
@@ -230,7 +232,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout, a plugin's `piece`, `arthur doctor`), plugins | The projects, inside a job only the job's own (`host.job`), each with its `folder`, the real path of its project folder, and its `pieces`, every other plugin's piece of its file by plugin name (above, "Project pieces"). |
 | `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
-| `doctor` | delivery, discord, docker, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
+| `doctor` | delivery, discord, docker, machines, models, nvm, orchestration, projects, telegram | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
 | `jobs.keep` | github, delivery | the core (`arthur prune`) | Whether an ended job's record is kept; asked once its worktree and branch are freed, so a provider also frees what it holds of the job: github deletes its branch on origin, delivery its folder of the job (AR0555). |
@@ -239,11 +241,13 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `message.part` | listen, video | the core (`turnText`) | A `Claim` for a part it handles. |
 | `listen.transcribe` | listen | listen (`arthur transcribe`), video (a video's sound track, through `collect`: none answering is the listen plugin not enabled), any plugin | A promise of `{ seconds, text, segments }` for a file's path, each segment `{ start, end, text }` in seconds; rejects with why it was not transcribed (`docs/listen.md`). |
 | `speak.say` | speak | speak (`arthur say`), orchestration (a reply to a voice note, through `collectEach`: none answering is the speak plugin not enabled), any plugin | A promise of the absolute path of an OGG/Opus voice note in `.arthur/speak/` for a text, spoken by Piper with the voice of its language; rejects with why it was not spoken (`packages/speak/docs/speak.md`). |
-| `channel.send` | discord, telegram | the core (`arthur send`), manage (`/retro`, `/repeats`, only the channel the command came from), orchestration (the voice note of a reply, only the channel the voice note came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
+| `channel.send` | discord, telegram | the core (`arthur send`), manage (`/retro`, `/repeats`, only the channel the command came from), orchestration (the voice note of a reply, only the channel the voice note came from; with `{ files: [] }`, never sent, its `arthur doctor` line that a project's chat has a channel) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
+| `channel.main` | discord, telegram | orchestration (`collectEach`, as it routes an owner's message to a project agent) | The name of the channel's main bot, the one a project's chat that names no `instance` talks through; undefined for an unnamed one. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
-| `coordinator.context` | develop, findings, manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
+| `coordinator.context` | develop, findings, manage, models, projects, resources, session | orchestration | Lines of the coordinator's context, and of each project agent's, unchanged. |
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
-| `coordinator.extension` | session, stats | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
+| `coordinator.extension` | session, stats | orchestration | `{ file, env }`: an OMP extension the agent of a session loads, asked once per session with `{ session }`, `coordinator` or `agent:<project>`; undefined adds none. |
+| `orchestration.chats` | orchestration | telegram (its `arthur doctor` line on topics) | Each project agent's chat, `{ project, plugin, instance?, place }`, from its `orchestration.project({ chat })`. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `actor` | orchestration | the core, `collect` at each event it logs | Who acts in this process, `{ actor, on? }`, or undefined (above, "Who acted"). |
 | `coordinator.silent` | orchestration | discord, telegram | Whether the silent mode holds a notice. |
@@ -269,7 +273,8 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `delivery.ciEnded` | delivery | github (its poll, as a run ends) | `{ project, branch, below, run }`: whether a CI wait counts the run and delivery woke the coordinator for it (above, "Changes since entry 51"). |
 | `delivery.merging` | delivery | session (the fresh start's try, `/restart`, the restart due) | `{ project, job }` of each merge in a run; none while no `merge.lock` names a live process (above, "Changes since entry 51"). |
 | `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
-| `stats.tickets` | stats | manage (an audit's and a retro's prompt) | `(project, since?)`: the merged tickets' report `arthur stats` prints, of the tickets merged at `since` or later (`arthur stats --help`). |
+| `stats.tickets` | stats | manage (an audit's and a retro's prompt) | `(project, since?)`: the merged tickets' report `arthur stats tickets` prints, of the tickets merged at `since` or later (`arthur stats tickets --help`). |
+| `models.windows` | models | stats (`arthur stats windows`) | A promise of each window of the agent's usage report, fetched again once 10 minutes old, `{ provider, label, used, resetsAt?, durationMs?, tier }`, or one line, `the agent has no usage report (<why>)`, without a report or when the last fetch failed (`packages/models/docs/models.md`). |
 
 ## Option tables and `./options`
 

@@ -34,4 +34,5 @@ Out:
 - The activity log (AR0527), budgets, `arthur usage`.
 
 ## Decisions
+- 2026-11-13: Merge AR0652; the owner: "AR-D665 merge" (AR-D665)
 

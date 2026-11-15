@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { constants } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -49,16 +50,20 @@ const max = args.length === 0 ? 100 : args.length === 2 && args[0] === "--max" &
 const root = git(process.cwd(), "rev-parse", "--show-toplevel").trim();
 if (git(root, "status", "--porcelain", "--untracked-files=no") !== "") refuse("refused: the tree has uncommitted changes to tracked files; commit them first");
 const base = git(root, "merge-base", "main", "HEAD").trim();
-const files = git(root, "diff", "--name-only", "--diff-filter=d", base, "HEAD", "--", "*.ts").split("\n").filter((file) => file !== "" && !/\.(test|d)\.ts$/.test(file));
+// The branch's own code: no test, declaration or package test helper (a fake, a setup: mutating it tests the tests), and not
+// the example config, which package tests check and its root tier never runs (AR0553 review-1).
+const files = git(root, "diff", "--name-only", "--diff-filter=d", base, "HEAD", "--", "*.ts").split("\n").filter((file) => file !== "" && !/\.(test|d)\.ts$/.test(file) && !/^packages\/[^/]+\/test\//.test(file) && file !== "arthur.config.example.ts");
 const changes = files.map((file) => ({ file, lines: readFileSync(join(root, file), "utf8").split("\n"), hunks: hunks(git(root, "diff", "--unified=0", "--no-color", base, "HEAD", "--", file)) }));
 // Round-robin, so a capped run reaches every changed file and as many of its hunks as it can: each file's first mutant, then
-// each one's second; a file's own taken the same way from its hunks, each hunk's revert to the base first, then its lines'.
+// each one's second; a file's own taken the same way from its hunks, each hunk's revert to the base first, then its lines' in
+// an order their text fixes, not top to bottom, so a capped run's share of a new file (one hunk) spreads over all its lines.
+const spread = (mutant: Mutant) => createHash("sha1").update(`${mutant.line}\0${mutant.what}`).digest("hex");
 const mutants = interleave(
 	changes.map(({ file, lines, hunks }) =>
 		interleave(
 			hunks.map(({ at, size, old }) => [
 				...([...lines.slice(at, at + size), ...old].some((line) => !INERT.test(line.trim())) ? [{ file, line: at + 1, what: "hunk reverted to the base", text: [...lines.slice(0, at), ...old, ...lines.slice(at + size)].join("\n") }] : []),
-				...lines.slice(at, at + size).flatMap((line, index) => lineMutants(line).map((mutated): Mutant => ({ file, line: at + index + 1, what: `${line.trim()} => ${mutated.trim() || "(deleted)"}`, text: [...lines.slice(0, at + index), mutated, ...lines.slice(at + index + 1)].join("\n") }))),
+				...lines.slice(at, at + size).flatMap((line, index) => lineMutants(line).map((mutated): Mutant => ({ file, line: at + index + 1, what: `${line.trim()} => ${mutated.trim() || "(deleted)"}`, text: [...lines.slice(0, at + index), mutated, ...lines.slice(at + index + 1)].join("\n") }))).toSorted((a, b) => spread(a).localeCompare(spread(b))),
 			]),
 		),
 	),

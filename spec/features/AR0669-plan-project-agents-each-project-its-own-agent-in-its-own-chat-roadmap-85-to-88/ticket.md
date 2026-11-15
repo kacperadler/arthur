@@ -35,3 +35,4 @@ Out:
 
 ## Decisions
 - 2026-11-09: Approve AR0669; its plan runs after the queue; the owner: "AR-D585 - 1" (AR-D585)
+- 2026-11-13: Plan approved by the owner: plan.md at 8ead6d4c; the owner: "AR-D670 yes" (AR-D670)

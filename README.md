@@ -29,7 +29,7 @@ Arthur lets one human direct many coding agents through one coordinator: the hum
 One line per package; each links the pages with the detail. `arthur help` lists every command, and `arthur <command> --help` prints its page.
 
 - **core**, built: the config and the env file, the plugin host and its event log, `arthur run`, jobs in worktrees with time, money, CPU and memory limits, here or over SSH, the ticket board, the env guard, worktree guard and sandbox of every job, `arthur doctor` and `arthur setup` ([commands](packages/core/docs/commands/), [plugin API](docs/plugin-api.md), [threat model](docs/deploy.md#threat-model)).
-- **orchestration**, built: the coordinator, `arthur attach`, `/board`, `/task`, planning, autopilot, the decision log, silent mode and the morning report ([commands](packages/orchestration/docs/commands/)).
+- **orchestration**, built: the coordinator, `arthur attach`, `/board`, `/task`, planning, autopilot, the decision log, silent mode and the morning report; partly built: a project agent per project with a chat, supervised beside the coordinator, which gets that chat's messages and its project's job ends, its own project's context, and `arthur agent tell` between it and the coordinator, whose session follows ([commands](packages/orchestration/docs/commands/)).
 - **projects**, built: the project list, each worktree's install, `arthur init` and onboarding ([projects](packages/projects/docs/commands/projects.md), [init](packages/projects/docs/commands/init.md)).
 - **session**, built: compaction, a fresh start at night, `/restart` and the restart guard ([session](packages/session/docs/session.md)).
 - **schedule**, built: messages and jobs at set times, and entries other plugins register ([schedule](packages/schedule/docs/commands/schedule.md)).
@@ -48,14 +48,14 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **dokploy**, built: `arthur dokploy` reads the projects, applications and deployments of your Dokploy servers, uploads a file or folder to an app or starts its deploy, creates an app and sets its build type, domain, volume and environment, connects an app to its GitHub repository so a push deploys it, makes a Postgres beside an app with its URL in the app's env, and schedules its backups to an S3 destination, on your word, each server's API key in a variable, for the coordinator only ([dokploy](packages/dokploy/docs/dokploy.md)).
 - **manage**, built: health, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
-- **stats**, built: the tokens, cost at list price and time of every job run and coordinator turn, kept in its own folder, and `arthur stats`, how a project's merged tickets went; its spend views come next ([stats](packages/stats/docs/stats.md)).
+- **stats**, built: the tokens, cost at list price and time of every job run and coordinator turn, kept in its own folder; `arthur stats`, `/stats` and the morning report's Spend show them by role, project, model, day and ticket, `arthur stats tickets` how a project's merged tickets went, and `arthur stats windows` each Claude usage window beside what each role spent in its span, an estimate marked `≈` ([stats](packages/stats/docs/stats.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).
 - **speak**, built: the coordinator's reply to a voice note also sent as a voice note, spoken on this server by Piper, and `arthur say` ([speak](packages/speak/docs/speak.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
-- **activity**, built: one file per day of who did what, each logged event with its actor and the messages it acted on, kept 90 days ([activity](packages/activity/docs/activity.md)).
+- **activity**, built: one file per day of who did what, each logged event with its actor and the messages it acted on, kept 90 days; `arthur log` and `/log` read it by day, user, actor, ticket or job ([activity](packages/activity/docs/activity.md)).
 - **docker**, partly built: what a job creates with Docker labelled with its id, its own compose project, all of it removed with its worktree, Docker's data root counted for the disk floor, and a daily sweep of leftovers with `arthur docker`; a project's own Docker service (`docker.project({ service })`) is held out ([docker](packages/docker/docs/docker.md)).
 - **herdr**, built: each job a tab in [herdr](https://herdr.dev) on the server, streaming its run with `arthur jobs --follow`, its state in herdr's sidebar, and a tab for `arthur attach` ([herdr](packages/herdr/docs/herdr.md)).
-- Planned: project agents; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- Planned: the rest of project agents (roadmap 88); later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 
@@ -74,7 +74,7 @@ flowchart TD
     deliv[delivery and trackers<br/>delivery, github, youtrack, dokploy]
     self[Arthur itself<br/>manage, develop, stats]
   end
-  later[later plugins<br/>project agents, signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
+  later[later plugins<br/>project agents partly built, signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
   core <-->|events, commands| FIRST
   core <-.->|events, commands| later
   core -->|a worktree and an omp agent per job| repos[(project repositories)]

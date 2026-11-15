@@ -1,30 +1,39 @@
 import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe } from "@arthur/core";
 import { type Received, received, turnText } from "@arthur/core/parts";
 import type { Event, Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
-import { redact, redactValues } from "./credential.ts";
-import { handOver } from "./hand-over.ts";
+import { redact } from "./credential.ts";
+import { type Box, noticeAt, sessionFor } from "./sessions.ts";
 import { held } from "./silent.ts";
 import { voiceReplies } from "./voice-reply.ts";
+import { turn, wake } from "./wake.ts";
 
-// The coordinator's inbox, the plugin's side (spec/roadmap.md, entries 24 and 49): every message for the coordinator becomes one
-// file `<folder>/inbox/queued/<event's number>-<its time in ms>`, which the inbox extension (inbox-extension.ts) hands to the
-// coordinator's agent; an owner's message waits in `inbox/received/` until its parts are resolved (`turnText`), one message at a
-// time in the order of their numbers, so none overtakes one before it and a restart resolves what it cut. The replies the
-// extension writes to `<folder>/outbox/` are emitted here: docs/commands/coordinator.md, "The coordinator's inbox".
+// Each session's inbox, the plugin's side (spec/roadmap.md, entries 24, 49 and 86): every message for a session becomes one
+// file `<its folder>/inbox/queued/<event's number>-<its time in ms>`, which the inbox extension (inbox-extension.ts) hands to
+// its agent; the coordinator's, unless it came from a project agent's chat, names that agent's project, or is told to it
+// (`agent-told`, agent-command.ts). An owner's message waits in the coordinator's `inbox/received/` until its parts are
+// resolved (`turnText`), one message at a time in the order of their numbers, so none overtakes one before it and a restart
+// resolves what it cut. The replies the extension writes to `<folder>/outbox/` are emitted here: docs/commands/coordinator.md,
+// "The coordinator's inbox".
 
-// A queued message: a human's from a channel, or Arthur's own without one: a job's end, or a plugin's, which names it.
-export type Message = { readonly channel?: string; readonly plugin?: string; readonly text: string };
+// A queued message: a human's from a channel, another session's (`from`), or Arthur's own: a job's end, or a plugin's, which names it.
+export type Message = { readonly channel?: string; readonly plugin?: string; readonly from?: string; readonly text: string };
 
 const SWEEP_MS = 500;
-const RESULT_LINES = 15;
 
 const text = (value: unknown): value is string => typeof value === "string" && value.trim() !== "";
+const list = (dir: string) => (existsSync(dir) ? readdirSync(dir) : []);
+// Every session's folder: the coordinator's, then each agent's under `agents/`, a removed agent's too.
+const folders = (home: string) => [home, ...list(join(home, "agents")).map((name) => join(home, "agents", name))];
+// Whether event file `name` is in one of `boxes` of any session's inbox, so a replayed event is never queued twice.
+const seen = (home: string, name: string, boxes: readonly string[]) => folders(home).some((each) => boxes.some((box) => existsSync(join(each, "inbox", box, name))));
 
-export function inbox(host: Host): { start(): void; stop(): void } {
+export function inbox(host: Host, sessions: readonly Box[]): { start(): void; stop(): void } {
 	const { folder } = host;
+	const to = (data: Readonly<Record<string, unknown>>, main?: Readonly<Record<string, unknown>>) => sessionFor(sessions, data, main).folder;
+	// Each channel's main bot by its name (`channel.main`), asked as a message is routed: a channel may set up after this plugin.
+	const main = () => Object.fromEntries(host.collectEach("channel.main").flatMap((each) => ("error" in each ? [] : [[each.plugin, each.value]])));
 	const waiting = join(folder, "inbox", "received");
 	const next = () => (existsSync(waiting) ? readdirSync(waiting).filter((name) => /^\d+-\d+$/.test(name)).sort((a, b) => parseInt(a) - parseInt(b))[0] : undefined);
 	// `resolving` is the last pass over `received/`, `scheduled` whether one more waits behind it; passes run only once started.
@@ -50,7 +59,7 @@ export function inbox(host: Host): { start(): void; stop(): void } {
 					const logged = own?.seq === seq && Date.parse(own.time) === ms ? after.filter((event) => event.name === "coordinator-replied" && JSON.stringify(((event.data ?? {}) as Readonly<Record<string, unknown>>).answers) === `[${seq}]`) : [];
 					const events = { ...host.events, emit: (event: string, data: unknown) => (event === "coordinator-replied" ? logged.shift() : undefined) ?? host.events.emit(event, data) };
 					const said = await turnText({ collectEach: host.collectEach, events }, seq, message);
-					queue(folder, { seq, time: new Date(ms).toISOString() }, { channel: message.channel, text: said });
+					queue(folder, to(message, main()), { seq, time: new Date(ms).toISOString() }, { channel: message.channel, text: said });
 					rmSync(file);
 				}
 			})
@@ -60,33 +69,52 @@ export function inbox(host: Host): { start(): void; stop(): void } {
 		const message = received(event.data);
 		if (typeof message === "string") return console.error(`orchestration: message-received (event ${event.seq}) ignored: ${message}`);
 		const name = `${event.seq}-${Date.parse(event.time)}`;
-		if (["inbox/received", "inbox/queued", "inbox/turn", "inbox/answered"].some((box) => existsSync(join(folder, box, name)))) return;
+		if (seen(folder, name, ["received", "queued", "turn", "answered"])) return;
 		mkdirSync(waiting, { recursive: true });
 		writeFileSync(join(waiting, `.${name}`), JSON.stringify(message));
 		renameSync(join(waiting, `.${name}`), join(waiting, name));
 		resolve();
 	});
 	host.events.on("coordinator-message", (event) => {
-		const said = ((event.data ?? {}) as Readonly<Record<string, unknown>>).text;
-		if (text(said)) queue(folder, event, { plugin: event.plugin, text: said });
+		const data = (event.data ?? {}) as Readonly<Record<string, unknown>>;
+		if (text(data.text)) queue(folder, to({ project: data.project }), event, { plugin: event.plugin, text: data.text });
 		else console.error(`orchestration: coordinator-message (event ${event.seq}) ignored: expected { text }, non-empty text`);
 	});
-	host.events.on("job-ended", (event) => queue(folder, event, { text: wake(host, event.data) }));
+	host.events.on("job-ended", (event) => queue(folder, to({ project: (event.data as { project?: unknown } | null)?.project }), event, { text: wake(host, event.data) }));
+	// `arthur agent tell`'s message, to the session it names; one removed since goes to the coordinator.
+	host.events.on("agent-told", (event) => {
+		const { to: name, from, text: said } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
+		const target = sessions.find((each) => each.name === name) ?? sessions[0];
+		if (target !== undefined && text(from) && text(said)) queue(folder, target.folder, event, { from, text: said });
+		else console.error(`orchestration: agent-told (event ${event.seq}) ignored: expected { to, from, text }, non-empty text`);
+	});
 	host.provide("coordinator.turn", (name: unknown, data: unknown, more: unknown) => turn(host, name, data, more));
-	for (const name of ["job-started", "job-state", "job-ended"]) host.events.on(name, () => footer(host));
+	for (const name of ["job-started", "job-state", "job-ended"]) host.events.on(name, () => footer(host, sessions));
 	let timer: NodeJS.Timeout | undefined;
 	const voice = voiceReplies(host);
 	return {
 		start() {
-			footer(host);
-			timer = setInterval(() => sweep(host, voice), SWEEP_MS);
+			// A removed agent's messages not yet answered go to the coordinator's queue, and its replies and notices not yet sent
+			// (`.json` files, not its drafts nor `sent/` and `held/`) to the coordinator's outbox, so none is lost. A message of its
+			// turn that a reply it wrote answers stays, as its own restart would take it as answered (inbox-extension.ts).
+			for (const each of folders(folder).slice(1).filter((one) => !sessions.some((session) => session.folder === one))) {
+				const replies = ["outbox", "outbox/sent", "outbox/held"].flatMap((box) => list(join(each, box)).filter((one) => one.endsWith(".json")).map((one) => join(each, box, one)));
+				const answered = new Set(replies.flatMap((file) => ((JSON.parse(readFileSync(file, "utf8")) as { answers?: unknown[] }).answers ?? []).map(String)));
+				for (const [from, into] of [["inbox/queued", "inbox/queued"], ["inbox/turn", "inbox/queued"], ["outbox", "outbox"]] as const)
+					for (const name of list(join(each, from)).filter((one) => (from !== "outbox" || one.endsWith(".json")) && !(from === "inbox/turn" && answered.has(one)))) {
+						mkdirSync(join(folder, into), { recursive: true });
+						renameSync(join(each, from, name), join(folder, into, name));
+					}
+			}
+			footer(host, sessions);
+			timer = setInterval(() => sweep(host, sessions, voice), SWEEP_MS);
 			started = true;
 			resolve();
 		},
 		stop() {
 			started = false;
 			clearInterval(timer);
-			sweep(host, voice);
+			sweep(host, sessions, voice);
 		},
 	};
 }
@@ -100,13 +128,14 @@ function parse(file: string): Received | string {
 	}
 }
 
-// One file per event, written whole and linked in; skipped when that event is queued, handed over or answered already, looked
-// for in the order the extension moves files, so a file moving meanwhile is still found. Its name holds the event's time too,
-// so a log cut by hand, whose numbers start again, never matches an old event's file.
-export function queue(folder: string, event: { readonly seq: number; readonly time: string }, message: Message): void {
-	const box = join(folder, "inbox");
+// One file per event in the inbox of the session folder `to`, written whole and linked in; skipped when that event is queued,
+// handed over or answered already in any session under `home`, looked for in the order the extension moves files, so a file
+// moving meanwhile is still found. Its name holds the event's time too, so a log cut by hand, whose numbers start again, never
+// matches an old event's file.
+export function queue(home: string, to: string, event: { readonly seq: number; readonly time: string }, message: Message): void {
+	const box = join(to, "inbox");
 	const name = `${event.seq}-${Date.parse(event.time)}`;
-	if (["queued", "turn", "answered"].some((step) => existsSync(join(box, step, name)))) return;
+	if (seen(home, name, ["queued", "turn", "answered"])) return;
 	mkdirSync(join(box, "queued"), { recursive: true });
 	const draft = join(box, `.draft-${process.pid}-${name}`);
 	writeFileSync(draft, JSON.stringify(message));
@@ -119,76 +148,36 @@ export function queue(folder: string, event: { readonly seq: number; readonly ti
 	}
 }
 
-// The wake: the state its run ended in (the question, when blocked on the owner), the first lines of its final message (the
-// job's own unless `final` stands for it), its project when not the main one, and what the plugins add for it, asked with the
-// job-ended data and that final message whole; the question redacted, the reason, those lines and the plugins' of the env
-// file's values only, so their job ids, ticket folders and hashes stay readable, but for the line that holds the question.
-function wake(host: Host, data: unknown, final?: string): string {
-	const job = (data ?? {}) as Readonly<Record<string, unknown>>;
-	const id = String(job.id);
-	const asks = job.state === "blocked" && typeof job.reason === "string" && job.reason.startsWith("user: ") ? redact(job.reason.slice("user: ".length), host.secrets) : undefined;
-	const state = `${String(job.state)}${text(job.reason) ? ` (${redactValues(job.reason, host.secrets)})` : ""}`;
-	const lines = [asks === undefined ? `Job ${id} ended its run: ${state}.` : `Job ${id} ended its run blocked on the owner; its question, also sent as a notice: ${asks}`];
-	const main = host.collect("projects").length > 0 ? host.board.projects()[0]?.name : undefined;
-	if (main !== undefined && job.project !== main) lines.push(`Project: ${String(job.project)}.`);
-	const message = final ?? host.jobs.result(id);
-	const result = redactValues(message, host.secrets).trimEnd().split("\n");
-	// Its first line, `Blocked: user <question>`, holds the question: redacted as the question is.
-	if (asks !== undefined) result[0] = redact(result[0] ?? "", host.secrets);
-	if (result.join("") === "") lines.push("Its final message: none.");
-	else {
-		const cut = result.length > RESULT_LINES ? ` (the first ${RESULT_LINES} of ${result.length} lines)` : "";
-		lines.push(`Its final message${cut}:`, ...result.slice(0, RESULT_LINES));
-	}
-	for (const line of host.collect("coordinator.wake", job, message)) if (text(line)) lines.push(redactValues(line, host.secrets));
-	return lines.join("\n");
-}
-
-// What `coordinator.turn` answers (`arthur eval` asks it): the text the coordinator's agent gets for one event the inbox
-// queues, handed over alone while idle; `more` stands for the final message of the job a `job-ended` names, and names the
-// plugin that emitted a `coordinator-message`. A message's parts are text only, which no plugin is asked to resolve, so the
-// answer acts on nothing.
-async function turn(host: Host, name: unknown, data: unknown, more: unknown): Promise<string> {
-	if (name === "job-ended") return handOver([{ text: wake(host, data, typeof more === "string" ? more : "") }]);
-	if (name === "coordinator-message") {
-		const said = ((data ?? {}) as Readonly<Record<string, unknown>>).text;
-		if (!text(said)) throw new Error("coordinator.turn: coordinator-message: expected { text }, non-empty text");
-		if (!text(more)) throw new Error("coordinator.turn: coordinator-message: expected the plugin that emitted it, as text");
-		return handOver([{ plugin: more, text: said }]);
-	}
-	if (name !== "message-received") throw new Error(`coordinator.turn: expected message-received, coordinator-message or job-ended, got ${describe(name)}`);
-	const message = received(data);
-	if (typeof message === "string") throw new Error(`coordinator.turn: message-received: ${message}`);
-	const part = message.parts.find((each) => each.kind !== "text");
-	if (part !== undefined) throw new Error(`coordinator.turn: message-received: text parts only; a ${part.kind} part is resolved by the plugins that claim it`);
-	return handOver([{ channel: message.channel, text: await turnText(host, 0, message) }]);
-}
-
-// `arthur · <n> <state>, …: <short ids>` for the jobs in a run, by state, empty when none runs; the extension shows it in the
-// coordinator's footer.
-function footer(host: Host): void {
+// `arthur · <n> <state>, …: <short ids>` for the jobs in a run, by state, empty when none runs; the extension shows it in each
+// session's footer, an agent's of its project's jobs only.
+function footer(host: Host, sessions: readonly Box[]): void {
 	const running = new Set(host.jobs.running());
-	const jobs = byState(host.jobs.list().filter((job) => running.has(job.id)));
-	const counts = [...jobs].map(([state, each]) => `${each.length} ${state || "no state"}`).join(", ");
-	const ids = [...jobs.values()].flat().map((job) => job.id.split("-").at(-1));
-	const shown = ids.length === 0 ? "" : `arthur · ${counts}: ${ids.join(", ")}`;
-	writeFileSync(join(host.folder, "footer.new"), shown);
-	renameSync(join(host.folder, "footer.new"), join(host.folder, "footer"));
+	const all = host.jobs.list().filter((job) => running.has(job.id));
+	for (const { project, folder } of sessions) {
+		const jobs = byState(all.filter((job) => project === undefined || job.project === project));
+		const counts = [...jobs].map(([state, each]) => `${each.length} ${state || "no state"}`).join(", ");
+		const ids = [...jobs.values()].flat().map((job) => job.id.split("-").at(-1));
+		mkdirSync(folder, { recursive: true });
+		writeFileSync(join(folder, "footer.new"), ids.length === 0 ? "" : `arthur · ${counts}: ${ids.join(", ")}`);
+		renameSync(join(folder, "footer.new"), join(folder, "footer"));
+	}
 }
 
-// Each reply or notice the extension wrote, oldest first, emitted and then moved to `outbox/sent/`, a sent reply then to
-// `voice` (voice-reply.ts); while silent is on, a reply of a turn holding no owner message is not emitted but moved to
-// `outbox/held/` (silent.ts).
-function sweep(host: Host, voice: (reply: Event) => void): void {
-	const outbox = join(host.folder, "outbox");
-	if (!existsSync(outbox)) return;
-	for (const name of readdirSync(outbox).filter((each) => each.endsWith(".json")).sort()) {
-		const file = JSON.parse(readFileSync(join(outbox, name), "utf8")) as { text: string; answers: (string | number)[]; channels: string[] } | { notice: string };
-		const box = "notice" in file || file.channels.length > 0 || !held(host.folder, name) ? "sent" : "held";
-		if ("notice" in file) host.events.emit("notice", { text: redact(file.notice, host.secrets) });
-		// The event names the event numbers its files hold.
-		else if (box === "sent") voice(host.events.emit("coordinator-replied", { text: file.text, answers: file.answers.map((answer) => parseInt(String(answer))), channels: file.channels }));
-		mkdirSync(join(outbox, box), { recursive: true });
-		renameSync(join(outbox, name), join(outbox, box, name));
+// Each reply or notice the extensions wrote, oldest first per session, emitted and then moved to `outbox/sent/`, a sent reply
+// then to `voice` (voice-reply.ts); while silent is on, a reply of a turn holding no owner message is not emitted but moved to
+// `outbox/held/` (silent.ts). An agent's reply and notice go to its chat alone.
+function sweep(host: Host, sessions: readonly Box[], voice: (reply: Event) => void): void {
+	for (const { folder, chat } of sessions) {
+		const outbox = join(folder, "outbox");
+		const { channel, ...spot } = noticeAt(chat);
+		for (const name of list(outbox).filter((each) => each.endsWith(".json")).sort()) {
+			const file = JSON.parse(readFileSync(join(outbox, name), "utf8")) as { text: string; answers: (string | number)[]; channels: string[] } | { notice: string };
+			const box = "notice" in file || file.channels.length > 0 || !held(host.folder, name) ? "sent" : "held";
+			if ("notice" in file) host.events.emit("notice", { text: redact(file.notice, host.secrets), ...noticeAt(chat) });
+			// The event names the event numbers its files hold.
+			else if (box === "sent") voice(host.events.emit("coordinator-replied", { text: file.text, answers: file.answers.map((answer) => parseInt(String(answer))), channels: channel === undefined ? file.channels : [channel], ...spot }));
+			mkdirSync(join(outbox, box), { recursive: true });
+			renameSync(join(outbox, name), join(outbox, box, name));
+		}
 	}
 }

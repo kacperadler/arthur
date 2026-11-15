@@ -28,7 +28,7 @@ const channel = (id: string, type: number, name: string, guild = GUILD) => ({ id
 export const FOREIGN = "1300000000000000088";
 // A message as MESSAGE_CREATE gives one in the server's main channel, by the owner, every field the documentation does not mark optional.
 export const message = (id: string, fields: Readonly<Record<string, unknown>> = {}) => ({
-	id, channel_id: MAIN, guild_id: GUILD, author: user(OWNER, "kacper"), content: `message ${id}`, timestamp: "2026-10-31T09:59:55.000000+00:00", edited_timestamp: null,
+	id, channel_id: MAIN, guild_id: GUILD, author: user(OWNER, "alice"), content: `message ${id}`, timestamp: "2026-10-31T09:59:55.000000+00:00", edited_timestamp: null,
 	tts: false, mention_everyone: false, mentions: [], mention_roles: [], attachments: [], embeds: [], pinned: false, type: 0, ...fields,
 });
 const guild = (members: number, mfa: number) => ({
@@ -258,7 +258,7 @@ export async function fakeDiscord(t: TestContext) {
 			const sent = {
 				id: snowflake(NOW.getTime(), 500 + ++id), application_id: BOT, type: 2, guild_id: GUILD, channel_id: MAIN, token: `aW50ZXJhY3Rpb246${id}${"Q".repeat(40)}`, version: 1,
 				data: { id: snowflake(NOW.getTime(), 900), name, type: 1, guild_id: GUILD, ...(text === undefined ? {} : { options: [{ name: "text", type: 3, value: text }] }) },
-				member: { user: user(OWNER, "kacper"), nick: null, avatar: null, roles: [], joined_at: "2026-10-30T10:00:00.000000+00:00", premium_since: null, deaf: false, mute: false, flags: 0, pending: false, permissions: "2251799813685247" },
+				member: { user: user(OWNER, "alice"), nick: null, avatar: null, roles: [], joined_at: "2026-10-30T10:00:00.000000+00:00", premium_since: null, deaf: false, mute: false, flags: 0, pending: false, permissions: "2251799813685247" },
 				app_permissions: "2251799813685247", locale: "en-US", guild_locale: "en-US", entitlements: [], authorizing_integration_owners: { "0": GUILD }, context: 0, attachment_size_limit: 10_485_760, ...fields,
 			};
 			open.set(sent.id, sent.token);

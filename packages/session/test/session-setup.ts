@@ -53,7 +53,7 @@ export const TRIGGERS: readonly { readonly options: SessionOptions; readonly fir
 export function coordinator(t: TestContext, fake: FakeHost, run: (gate: (name: string) => string) => AgentRun, before: readonly string[] = []) {
 	const gates = temporaryFolder();
 	const agent = fakeAgent(run((name) => join(gates, name)));
-	const [extension] = fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension");
+	const [extension] = fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension", { session: "coordinator" });
 	assert.ok(extension);
 	const child = spawn(agent, [...before.flatMap((file) => ["-e", file]), "-e", extension.file], { env: { ...process.env, ...extension.env }, stdio: "ignore" });
 	t.after(() => {

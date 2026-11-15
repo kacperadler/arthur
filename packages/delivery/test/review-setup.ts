@@ -122,12 +122,16 @@ export function fakeMerge(t: TestContext) {
 	t.after(() => process.chdir(cwd));
 	return {
 		answer: (out: string, err: string, code: number, gate?: string) => writeFileSync(answer, JSON.stringify({ out, err, code, gate })),
-		asked: () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []),
+		// Whole lines only: a line the merge is still appending has no line break yet.
+		asked: () => (existsSync(log) ? readFileSync(log, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []),
 	};
 }
 
 export const told = (fake: { readonly emitted: readonly { readonly name: string; readonly data: unknown }[] }) =>
 	fake.emitted.flatMap(({ name, data }) => (name === "coordinator-message" && typeof data === "object" && data !== null && "text" in data ? [String(data.text)] : []));
+// The project each coordinator-message names, so a project agent's inbox gets it (orchestration, roadmap 86).
+export const toldProjects = (fake: { readonly emitted: readonly { readonly name: string; readonly data: unknown }[] }) =>
+	fake.emitted.flatMap(({ name, data }) => (name === "coordinator-message" && typeof data === "object" && data !== null ? [(data as { readonly project?: unknown }).project] : []));
 
 // The causes delivery forwarded for a job, as `<folder>/<job>/forwarded` keeps them; read once the event's handler has run.
 export const forwarded = async (folder: string, id: string) => {

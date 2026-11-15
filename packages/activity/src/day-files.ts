@@ -12,21 +12,34 @@ function days(dir: string): string[] {
 	return existsSync(dir) ? readdirSync(dir).flatMap((name) => DAY.exec(name)?.[1] ?? []).sort() : [];
 }
 
+// Each JSON value of the file of `date`, in file order, as an object: one that is none (a hand edit) has no fields; a line a crash cut is skipped.
+function objects(dir: string, date: string): Readonly<Record<string, unknown>>[] {
+	return readFileSync(join(dir, `${date}.jsonl`), "utf8").split("\n").flatMap((text) => {
+		try {
+			return [Object(JSON.parse(text)) as Record<string, unknown>];
+		} catch {
+			return [];
+		}
+	});
+}
+
 // The highest number written in the newest day file that holds a line that reads, undefined when none does; a line a crash cut is skipped.
 export function lastSeq(folder: string): number | undefined {
 	const dir = join(folder, "days");
 	for (const date of days(dir).reverse()) {
-		const seqs = readFileSync(join(dir, `${date}.jsonl`), "utf8").split("\n").flatMap((text) => {
-			try {
-				const { seq } = JSON.parse(text) as { readonly seq?: unknown };
-				return Number.isInteger(seq) ? [seq as number] : [];
-			} catch {
-				return [];
-			}
-		});
+		const seqs = objects(dir, date).flatMap(({ seq }) => (Number.isInteger(seq) ? [seq as number] : []));
 		if (seqs.length > 0) return Math.max(...seqs);
 	}
 	return undefined;
+}
+
+// The lines of the day files from `from` (the oldest when undefined) to `to`, in order; a line edited into one a reader cannot show
+// (no whole `seq`, a `time` that is no instant, an `actor`, `what` or `text` that is no string) is skipped.
+export function readLines(folder: string, from: string | undefined, to: string): Line[] {
+	const dir = join(folder, "days");
+	return days(dir).filter((date) => (from === undefined || date >= from) && date <= to).flatMap((date) =>
+		objects(dir, date).filter((line): line is Line => Number.isInteger(line.seq) && ["time", "actor", "what", "text"].every((key) => typeof line[key] === "string") && !Number.isNaN(Date.parse(line.time as string))),
+	);
 }
 
 // Appends `line` to the file of `date`, after a line break when its last line was cut by a crash, so that line stays one skipped line.

@@ -4,6 +4,7 @@ import type { Host } from "@arthur/core/plugin";
 import { projectOf } from "./decision-commands.ts";
 import { policyOf } from "./decision-classes.ts";
 import { type Decision, decisions, readLog } from "./decision-log.ts";
+import type { Session } from "./sessions.ts";
 import { recommendedBy } from "./silent.ts";
 
 // What only the owner's recorded decision lets through (AR0355): `arthur merge`, a plain one (AR0665) or with `--unreviewed` or `--no-ci` (AR0503),
@@ -13,26 +14,26 @@ import { recommendedBy } from "./silent.ts";
 // `what` the flag (`--` first) or the command, `kind` the question's kind, `use` what uses it; `ticket` the job's, `job` the job, none before a spawn.
 export type Use = { readonly id: string; readonly what: string; readonly kind: string; readonly ticket?: string; readonly job?: string; readonly use: string };
 
-export function decisionUse(host: Host): void {
-	host.provide("decision.owner", (asked: Use) => refusal(host, asked));
+export function decisionUse(host: Host, sessions: readonly Session[]): void {
+	host.provide("decision.owner", (asked: Use) => refusal(host, sessions, asked));
 	host.jobs.beforeSpawn(({ decision, tickets, id }) => {
 		if (decision === undefined) return undefined;
 		const [ticket] = tickets.flatMap((path) => /(?:^|\/)spec\/features\/([A-Z]+\d{4,})-/.exec(path)?.[1] ?? []);
-		return refusal(host, { id: decision, what: "--budget 0", kind: "budget", ticket, job: id, use: id === undefined ? "spawn" : `continue ${id}` }) || undefined;
+		return refusal(host, sessions, { id: decision, what: "--budget 0", kind: "budget", ticket, job: id, use: id === undefined ? "spawn" : `continue ${id}` }) || undefined;
 	});
 }
 
 // Why `asked` may not go on, "" when it may: its id names a question of its kind, of its ticket or job, that the owner answered himself, the later
 // answer counting, naming his message (AR0664) and, for a plan or merge, picking option 1, its approval (AR0677); for a merge flag, with `what` among
 // its `--what` (AR0533); no other use took it. A pass marks it used in `<folder>/used/<id>`; only the same merge, or move to planned, passes it again.
-function refusal(host: Host, { id, what, kind, ticket, job, use }: Use): string {
+function refusal(host: Host, sessions: readonly Session[], { id, what, kind, ticket, job, use }: Use): string {
 	const [flag, approves] = [use.startsWith("merge ") && what.startsWith("--"), kind === "plan" || kind === "merge"];
 	const of = `${approves ? " --option '<the approval>'" : ""}${ticket !== undefined ? ` --ticket ${ticket}` : job !== undefined ? ` --job ${job}` : ""}`;
 	if (id === "") return `${what} needs the owner's decision: arthur decision ask --kind ${kind}${flag ? ` --what ${what}` : ""} --question '<what he decides>'${of}, his answer recorded with arthur decision answer${approves ? " <its id> --picked 1" : ""}, then ${what} --decision <its id>`;
 	const upper = id.toUpperCase();
 	let found: Decision | undefined;
 	try {
-		const where = projectOf(host, upper);
+		const where = projectOf(host, upper, sessions);
 		found = decisions(readLog(where)).find((each) => each.ask.id === upper);
 		if (found === undefined) return `${upper} is not in the decision log of project ${where.name}`;
 	} catch (error) {

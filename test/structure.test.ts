@@ -17,11 +17,11 @@ const BUDGETS = {
 
 	"core/testing": 408,
 
-	delivery: 2359,
+	delivery: 2360,
 
 	develop: 760,
 
-	discord: 977,
+	discord: 983,
 
 	docker: 694,
 
@@ -39,11 +39,11 @@ const BUDGETS = {
 
 	manage: 1476,
 
-	models: 537,
+	models: 546,
 
 	nvm: 98,
 
-	orchestration: 2918,
+	orchestration: 3219,
 
 	projects: 595,
 
@@ -51,13 +51,13 @@ const BUDGETS = {
 
 	schedule: 621,
 
-	session: 960,
+	session: 961,
 
 	speak: 248,
 
-	stats: 303,
+	stats: 575,
 
-	telegram: 682,
+	telegram: 707,
 
 	uptime: 383,
 

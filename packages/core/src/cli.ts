@@ -22,7 +22,7 @@ async function main(argv: readonly string[]): Promise<number> {
 	}
 	const parsed = parseFlags(argv, { project: (value, before) => (value === undefined || value.startsWith("-") ? "needs a project name" : before === undefined ? undefined : `given twice: ${before}, ${value}`) }, true);
 	if (typeof parsed === "string") return usage(parsed);
-	const { words: rest, values: { project } } = parsed;
+	const { words: rest, values: { project = process.env.ARTHUR_PROJECT || undefined } } = parsed;
 	const [name = "help", ...args] = rest[0] === "--help" ? [] : rest;
 	const { commands, problem, project: known, home, append } = await load();
 	const command = commands.find(name);

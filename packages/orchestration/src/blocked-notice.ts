@@ -6,11 +6,13 @@ import { MESSAGE } from "./board-commands.ts";
 import { redact } from "./credential.ts";
 import { policyOf } from "./decision-classes.ts";
 import { askOfJob, type JobQuestion } from "./decision-hooks.ts";
+import { type Box, noticeAt, sessionFor } from "./sessions.ts";
 
 // A job blocked on the owner (spec/roadmap.md, entry 27): its `job-state` to `blocked` on `user: <question>` emits one `notice`
 // `{ text: "<id> asks [<decision id>]: <question>", blocked: "<id>" }`, which every channel sends (silently in quiet hours) and
-// silent mode lets through; a question an approved class answered by policy (entry 97) ends it with ` — answered by policy
-// (<class id>): <decided>`. The question, redacted as in the decision log, is asked there first (entry 96, decision-hooks.ts);
+// silent mode lets through, for a project with an agent at its chat's place (entry 86, `channel`, `instance` and `place`); a
+// question an approved class answered by policy (entry 97) ends it with ` — answered by policy (<class id>): <decided>`. The
+// question, redacted as in the decision log, is asked there first (entry 96, decision-hooks.ts);
 // a text longer than one message is cut, saying where the whole question is. Without a log for its project the notice names no
 // decision, and a log broken by hand fails the event after the notice went. Every process that loads the plugin gets the event,
 // and `arthur run` gets it again after a crash, so `<folder>/asked/<event number>-<its time in ms>`, made by the first only,
@@ -22,10 +24,10 @@ import { askOfJob, type JobQuestion } from "./decision-hooks.ts";
 
 const KEEP_MS = 7 * 24 * 3_600_000;
 
-export function blockedNotice(host: Host): () => void {
+export function blockedNotice(host: Host, sessions: readonly Box[]): () => void {
 	const asked = join(host.folder, "asked");
 	const send = (event: Event) => {
-		const { id, to, reason } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
+		const { id, to, reason, project } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
 		if (to !== "blocked" || typeof reason !== "string" || !reason.startsWith("user: ")) return;
 		mkdirSync(asked, { recursive: true });
 		const mark = join(asked, `${event.seq}-${Date.parse(event.time)}`);
@@ -48,7 +50,7 @@ export function blockedNotice(host: Host): () => void {
 			// Never half of a character that takes two UTF-16 units.
 			let end = MESSAGE - tail.length - kept.length;
 			if (/[\uD800-\uDBFF]/.test(text[end - 1] ?? "")) end--;
-			host.events.emit("notice", { text: text.length > MESSAGE ? `${text.slice(0, end)}${tail}${kept}` : text, blocked: String(id) });
+			host.events.emit("notice", { text: text.length > MESSAGE ? `${text.slice(0, end)}${tail}${kept}` : text, blocked: String(id), ...noticeAt(sessionFor(sessions, { project }).chat) });
 			writeFileSync(`${mark}.sent`, "");
 			lock.release();
 		};

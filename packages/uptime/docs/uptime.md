@@ -66,7 +66,7 @@ and with each up notice one more:
 
 `Site <url> of project <project> answers again, after <how long> down since <HH:MM> on <day> <date> (<time zone>). Finish <runbook> with its last step: tell the owner how it ended.`
 
-Each is sent once per change, as the notices are: not for a down site that keeps failing, not after a restart while it stays down, and never while this machine looks offline. `<runbook>` is, looked at when the message is written:
+Each is sent once per change, as the notices are: not for a down site that keeps failing, not after a restart while it stays down, and never while this machine looks offline. Each names the site's project (`project`), so a project with its own agent gets it in that agent's inbox instead of the coordinator's (`arthur coordinator --help`, "Project agents"). `<runbook>` is, looked at when the message is written:
 
 - `the project's runbook <its absolute path>`, when the piece names one and it is a regular file inside the project's folder, reached through no symlink;
 - `the runbook <boilerplate> (the project's own, <its absolute path>, is missing, not a regular file, or reached through a symlink)`, when the piece names one and it is not, so the owner's runbook is the only one a project can give, never a file a link leads to;

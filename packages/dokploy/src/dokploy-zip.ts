@@ -5,10 +5,11 @@ import { NOTHING, text } from "./dokploy-api.ts";
 
 // What `arthur dokploy upload` sends (AR0603): a ready `.zip` as it is, or a zip of a file or folder, written here since Node
 // writes none. A folder's regular files go at the zip's root, as Dokploy's unzipDrop expects; a symlink or special file in it
-// is refused, never followed. No zip64: at most 65535 entries, and the whole zip under 4 GiB.
+// is refused, never followed. No zip64: at most 65535 entries, and the whole zip under 4 GiB. A path in the folder with a part
+// that starts with a dot is left out (AR0712): `.env.local`, `.git/`, a `.dev.vars.example` holding a token stay here.
 
 const [ENTRIES, BYTES] = [0xffff, 0xffffffff];
-// The zip and what it holds, in words: `3 files, 1200 bytes, as a zip of 640 bytes`.
+// The zip and what it holds, in words: `3 files, 1200 bytes, as a zip of 640 bytes, leaving out 2 dot-path files`.
 export type Upload = { readonly zip: Buffer<ArrayBuffer>; readonly said: string };
 
 export function zipOf(path: string): Upload {
@@ -20,11 +21,13 @@ export function zipOf(path: string): Upload {
 		if (zip.subarray(0, 4).equals(Buffer.from("PK\x03\x04"))) return { zip, said: `${text(basename(path))} as it is, ${zip.length} bytes` };
 	}
 	if (!top.isFile() && !top.isDirectory()) throw refuse(`is ${top.isSymbolicLink() ? "a symlink; give the path it points to" : "no file or folder"}`);
-	const found = top.isFile() ? [] : look(() => readdirSync(path, { withFileTypes: true, recursive: true })).map((entry) => ({ entry, each: relative(path, join(entry.parentPath, entry.name)) }));
+	const listed = top.isFile() ? [] : look(() => readdirSync(path, { withFileTypes: true, recursive: true })).map((entry) => ({ entry, each: relative(path, join(entry.parentPath, entry.name)) }));
+	const { found = [], dotted = [] } = Object.groupBy(listed, ({ each, entry }) => !/(^|\/)\./.test(each) ? "found" : entry.isDirectory() ? "folder" : "dotted");
+	const leftOut = dotted.length === 0 ? "" : `, leaving out ${dotted.length} dot-path ${dotted.length === 1 ? "file" : "files"}`;
 	const odd = found.find(({ entry }) => !entry.isFile() && !entry.isDirectory());
 	if (odd !== undefined) throw refuse(`${text(odd.each)} is ${odd.entry.isSymbolicLink() ? "a symlink" : "a special file"}, not a regular file`);
 	const names = top.isFile() ? [basename(path)] : found.filter(({ entry }) => entry.isFile()).map(({ each }) => each).sort();
-	if (names.length === 0) throw refuse("is a folder without any file");
+	if (names.length === 0) throw refuse(`is a folder without any file${leftOut}`);
 	if (names.length > ENTRIES) throw refuse(`holds ${names.length} files, more than the ${ENTRIES} a zip holds`);
 	const files = names.map((each) => ({ each, file: top.isFile() ? path : join(path, each) })).map((one) => ({ ...one, stat: look(() => lstatSync(one.file)) }));
 	// The largest the zip can come to, every file stored as it is: a header of 30 and 46 bytes and the name twice each, then 22.
@@ -48,7 +51,7 @@ export function zipOf(path: string): Upload {
 	}
 	const dir = Buffer.concat(central);
 	const zip = Buffer.concat([...parts, dir, le([0x06054b50, 4], [0, 2], [0, 2], [names.length, 2], [names.length, 2], [dir.length, 4], [offset, 4], [0, 2])]);
-	return { zip, said: `${names.length} ${names.length === 1 ? "file" : "files"}, ${bytes} bytes, as a zip of ${zip.length} bytes` };
+	return { zip, said: `${names.length} ${names.length === 1 ? "file" : "files"}, ${bytes} bytes, as a zip of ${zip.length} bytes${leftOut}` };
 }
 
 // Little-endian fields, each [value, bytes].

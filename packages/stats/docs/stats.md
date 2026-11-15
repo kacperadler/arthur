@@ -1,8 +1,12 @@
 # The stats plugin
 
-Roadmap entry 109: Arthur keeps the tokens, cost and time of every job run and of every coordinator turn, in two append-only files of its own folder, `<home>/stats/`. It calls no model; the views of these files (`arthur stats`, `/stats`, the morning report's Spend) come with roadmap entry 111. Every cost is omp's at list price, what the tokens would cost on the API, not money paid on a subscription.
+Roadmap entry 109: Arthur keeps the tokens, cost and time of every job run and of every coordinator turn, in two append-only files of its own folder, `<home>/stats/`. It calls no model. Every cost is omp's at list price, what the tokens would cost on the API, not money paid on a subscription.
 
-Roadmap entry 110: the merged tickets' report, which came with manage (61), is this plugin's: `arthur stats` prints it as before (`arthur stats --help`), and the provided name `stats.tickets`, `(project, since?)` to the same report of the tickets merged at `since` or later, gives manage's audit and retro prompts their `### Stats` section (`packages/manage/docs/manage.md`).
+Roadmap entry 111: the views of these files. `arthur stats` prints the spend of a span, the last 7 days by default, by role, project, model, day and ticket, with filters; `/stats` answers its total, by role and top 3 tickets on a channel; the morning report's Spend section is the first two lines of `arthur stats --since 1d` (`arthur stats --help`).
+
+Roadmap entry 110: the merged tickets' report, which came with manage (61), is this plugin's: `arthur stats tickets` prints it (`arthur stats tickets --help`), and the provided name `stats.tickets`, `(project, since?)` to the same report of the tickets merged at `since` or later, gives manage's audit and retro prompts their `### Stats` section (`packages/manage/docs/manage.md`).
+
+Roadmap entry 112: `arthur stats windows` puts each usage window of the account, which the models plugin reads from the agent's report and gives as `models.windows`, beside what Arthur spent at list price on that provider's models in the window's span, by role, each role's part of the window an estimate marked `≈` and an upper bound, since the account's use outside Arthur counts in the window too (`arthur stats windows --help`). Without the models plugin it says so in one line.
 
 ```ts
 plugins: [orchestration({}), stats()],
@@ -26,7 +30,7 @@ One line per `job-ended`, what that run added to the job's record (`arthur jobs 
 
 ## Coordinator turns: `sessions/<session>.jsonl`
 
-The plugin gives orchestration an OMP extension, `packages/stats/src/session-extension.ts`, which the coordinator's agent loads (`arthur coordinator --help`, `coordinator.extension`) with `ARTHUR_STATS_FOLDER` naming the plugin's folder. At each real end of a turn (`agent_end` that does not go on) it appends one line to `sessions/coordinator.jsonl`:
+The plugin gives orchestration an OMP extension, `packages/stats/src/session-extension.ts`, which the coordinator's agent and each project agent's load (`arthur coordinator --help`, `coordinator.extension`) with `ARTHUR_STATS_FOLDER` naming the plugin's folder. At each real end of a turn (`agent_end` that does not go on) it appends one line to `sessions/<session>.jsonl`, the session being what `ARTHUR_ORCHESTRATION_SESSION` names, `agent:<project>` in a project agent's (`sessions/agent:shop.jsonl`), else `coordinator` (`sessions/coordinator.jsonl`):
 
 ```json
 {"time":"2026-11-06T10:45:00.000Z","session":"coordinator","seconds":38.2,"until":1794480299512,"cost":0.8125,"usage":{"anthropic/claude-opus-5-5":{"messages":3,"input":9,"output":1400,"cacheRead":310000,"cacheWrite":4200,"cost":0.8125}}}
@@ -35,7 +39,7 @@ The plugin gives orchestration an OMP extension, `packages/stats/src/session-ext
 - The numbers are those of the assistant messages whose `timestamp` is after `until`, the last one counted, which the line keeps; at its start the extension reads it from the file's last line without `sub`. So a turn that goes on after its `agent_end` (`willContinue`) is counted once at its real end, and a restarted coordinator (`--continue`) counts none of the conversation it already counted.
 - `seconds` runs from the turn's first `agent_start`.
 - A session without a UI, a `task` subagent, writes its turns to the same file marked `"sub": true` [INFERENCE: omp loads the coordinator's extensions into its subagents, as the other extensions' `hasUI` guards assume].
-- The coordinator's spend before the plugin is installed is not imported. A project agent (roadmap 85) gets its own session name then; until then every session is `coordinator`.
+- The coordinator's spend before the plugin is installed is not imported.
 
 ## The files
 

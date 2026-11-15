@@ -46,6 +46,8 @@ A provider model costs 0: its job keeps its time limit, its budget is 0 (no limi
 
 `arthur usage` and `/usage` (docs/commands/usage.md) print each account's windows from the agent's report. A list skips a built-in model whose provider has, on every account that reports, a window at or over `limits.stopAt` (default 95%), a window of one model tier (`scope.tier`) aside: `anthropic/claude-opus-5 at its limit: anthropic Claude 7 Day 96% used, resets in 10 h 0 min (limits.stopAt 95%)`. Every window at or over `limits.warnAt` (default 80%) ends the job's `model-why`, and so its spawn line, and is a section of the coordinator's context. An agent without a report skips nothing.
 
+The provided name `models.windows` gives the stats plugin's `arthur stats windows` (`arthur stats windows --help`) each window of the report, fetched again once it is 10 minutes old: `{ provider, label, used, resetsAt?, durationMs?, tier }`, `used` the share used from 0 to 1, `resetsAt` when it resets and `durationMs` its length in milliseconds, each left out when the report gives no number for it (a length of 0 too). Without a report, or when the last fetch failed, it answers one line instead: `the agent has no usage report (<why>)`.
+
 ## arthur doctor
 
 - `curl`: on the PATH here.

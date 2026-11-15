@@ -36,7 +36,7 @@ The handoff read back, after a compaction as after a start, never makes omp read
 
 A `request.json` that is not a request (edited by hand) is dropped: `session: <home>/session/request.json is not a request, so it is dropped: <its first 200 characters>`. A request is replaced by a restart while a compaction is still asked for: the extension drops the compaction, which then prints nothing.
 
-The extension acts only in the coordinator's own session, one with a UI, never in a `task` subagent.
+The extension acts only in the coordinator's own session, one with a UI, never in a `task` subagent. A project agent's session (`arthur coordinator --help`, "Project agents") gets neither of the plugin's extensions: the plugin answers `coordinator.extension` only for the session `coordinator`, so no project agent writes the coordinator's handoff, `agent` pid or reports, until roadmap entry 88 gives each session its own.
 
 ## Compaction during the day
 

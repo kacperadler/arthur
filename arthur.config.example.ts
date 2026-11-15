@@ -230,9 +230,10 @@ export default defineConfig({
 
 		// The tokens, cost at list price and time of every job run (`.arthur/stats/runs.jsonl`, one line per `job-ended`, what
 		// the run added to its record) and of every coordinator turn (`.arthur/stats/sessions/coordinator.jsonl`, through an
-		// extension the coordinator loads); at its first start one line per job record whose run is over. `arthur stats`, how a
-		// project's merged tickets went, and the `### Stats` section of manage's audit and retro prompts. No options but
-		// `enabled`. packages/stats/docs/stats.md.
+		// extension the coordinator loads); at its first start one line per job record whose run is over. `arthur stats` and
+		// `/stats`, the spend by role, project, model, day and ticket; `arthur stats tickets`, how a project's merged tickets
+		// went, and the `### Stats` section of manage's audit and retro prompts; `arthur stats windows`, each usage window the
+		// models plugin reads beside that spend, by role. No options but `enabled`. packages/stats/docs/stats.md.
 		stats(),
 
 		// Actions and jobs at set times (packages/schedule/docs/commands/schedule.md). An entry is a daily "HH:MM" (optionally on
@@ -398,8 +399,8 @@ export default defineConfig({
 		}),
 
 		// Who did what: `<home>/activity/days/YYYY-MM-DD.jsonl` in core.timeZone, one line per logged event with its actor and
-		// the messages it acted on (`on`), written by arthur run alone. Media without paths, forwarded words left out.
-		// packages/activity/docs/activity.md.
+		// the messages it acted on (`on`), written by arthur run alone, read with `arthur log` and `/log`. Media without paths,
+		// forwarded words left out. packages/activity/docs/activity.md.
 		activity({
 			keepDays: 90, // a day file more than this many days old is removed at arthur run's start and at each new day
 			textChars: 300, // the characters of an event's text a line keeps, its full length as `cut`; 0 keeps none
@@ -504,7 +505,8 @@ export default defineConfig({
 // plugin; without it, the unnamed one), what a merge makes of its findings, `docker.project(false)` to leave its jobs'
 // Docker resources unlabelled and uncleaned (default: labelled, and removed with the worktree, while the docker plugin is), and
 // `orchestration.project({ chat })`, the place of a channel (a Telegram topic, a Discord or Slack channel) where the project's
-// own agent talks with you; without it the coordinator handles the project. One repository may be several projects, each
+// own agent talks with you, an `omp` `arthur run` keeps beside the coordinator (`arthur attach <project>`); without it the
+// coordinator handles the project. One repository may be several projects, each
 // checkout its own folder. Each file imports the helpers it uses: `import { projects } from "@arthur/projects";`.
 //
 // projects/arthur/project.config.ts
@@ -536,7 +538,7 @@ export default defineConfig({
 //			{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
 //		], { runbook: "site-down.md" }), // optional: projects/acme-shop/site-down.md, the steps the coordinator works through when a site is down
 //		dokploy.project({ instance: "client", app: "kXx3shopWeb01" }), // the application `arthur dokploy app`, `status`, `upload` and `deploy` take without an id
-//		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // planned: its own agent answers in topic 12 of the bot's chat
+//		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // its own agent, in topic 12 of the bot's chat: your messages there, its replies and the project's job ends
 //	];
 //
 // projects/acme-site/project.config.ts

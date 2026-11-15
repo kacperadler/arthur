@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-11-13: Source: audit spec/quality/2026-11-13.md
+- 2026-11-13: AR0700 approved: load the stats plugin in the owner config; the owner: "AR-D667 approve" (AR-D667)

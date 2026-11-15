@@ -97,7 +97,7 @@ function restarts(t: TestContext, claim: (part: { kind: string }) => unknown) {
 		fake,
 		start() {
 			run?.stop();
-			run = inbox(fake.host);
+			run = inbox(fake.host, [{ name: "coordinator", folder: fake.host.folder }]);
 			run.start();
 		},
 		replies: () => fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data),

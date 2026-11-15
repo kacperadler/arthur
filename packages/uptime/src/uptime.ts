@@ -89,7 +89,7 @@ export function uptime(options: UptimeOptions = {}, second = 1000): Plugin {
 						if (site.down !== undefined) {
 							notice(`${site.url} (project ${site.project}) answers again, after ${lasted(site.down, at)} down since ${when(site.down)}`);
 							host.events.emit("uptime-up", { project: site.project, url: site.url, since: site.down.toISOString(), downSeconds: Math.round((at.getTime() - site.down.getTime()) / 1000) });
-							host.events.emit("coordinator-message", { text: `Site ${site.url} of project ${site.project} answers again, after ${lasted(site.down, at)} down since ${when(site.down)}. Finish ${runbook(site)} with its last step: tell the owner how it ended.` });
+							host.events.emit("coordinator-message", { text: `Site ${site.url} of project ${site.project} answers again, after ${lasted(site.down, at)} down since ${when(site.down)}. Finish ${runbook(site)} with its last step: tell the owner how it ended.`, project: site.project });
 						}
 						[site.fails, site.first, site.down] = [0, undefined, undefined];
 						return;
@@ -99,7 +99,7 @@ export function uptime(options: UptimeOptions = {}, second = 1000): Plugin {
 					[site.down, site.reason] = [site.first, check.reason];
 					notice(`${site.url} (project ${site.project}) is down since ${when(site.down)}: ${check.reason}`);
 					host.events.emit("uptime-down", { project: site.project, url: site.url, reason: check.reason, since: site.down.toISOString() });
-					host.events.emit("coordinator-message", { text: `Site ${site.url} of project ${site.project} is down since ${when(site.down)}: ${check.reason}. Work through ${runbook(site)}, step by step, and report to the owner.` });
+					host.events.emit("coordinator-message", { text: `Site ${site.url} of project ${site.project} is down since ${when(site.down)}: ${check.reason}. Work through ${runbook(site)}, step by step, and report to the owner.`, project: site.project });
 				});
 				save();
 			};

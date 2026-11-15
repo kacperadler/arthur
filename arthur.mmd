@@ -1,7 +1,7 @@
 %% What Arthur is built from, and what of it is built.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
-%% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: the owner's own apps over Tailscale.
+%% Also planned, from the approved plan of AR0098: the rest of project agents in orchestration (session; roadmap 88), and the slack channel; from AR0134: the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TD
   human([Owner])
@@ -82,14 +82,14 @@ flowchart TD
       subgraph SELF[Arthur itself]
         manage[manage<br/>arthur health, /health, the daily prune<br/>the audit, the retro, arthur retro-due, /retro<br/>arthur repeats, /repeats]
         develop[develop<br/>arthur plugin new, arthur eval<br/>and its scenarios]
-        stats[stats<br/>the tokens, cost and time of each job run<br/>and coordinator turn; arthur stats,<br/>the merged tickets; its spend views planned]
-        activity[activity<br/>who did what, one file per day<br/>its actor and the messages acted on<br/>arthur log, /log planned]
+        stats[stats<br/>the tokens, cost and time of each job run<br/>and coordinator turn; arthur stats, /stats,<br/>arthur stats tickets, arthur stats windows]
+        activity[activity<br/>who did what, one file per day<br/>its actor and the messages acted on<br/>arthur log, /log]
         manage ~~~ develop ~~~ stats ~~~ activity
       end
     end
 
     subgraph LATER[Later plugins]
-      agents[project agents<br/>one per project, its own chat]
+      agents[project agents<br/>one per project with a chat, supervised, its chat and job ends routed to it<br/>its own project's context, arthur attach project, arthur agent tell; 3 of 4 entries merged]
       signal[signal<br/>a channel, signal-cli]
       slack[slack<br/>a channel, Socket Mode]
       whatsapp[whatsapp<br/>a channel, local bridge]
@@ -152,9 +152,9 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   %% One class line per node, in name order, a blank line after each: branches that change two nodes merge without a conflict, as do two that each add one when an existing node sorts between theirs.
-  class activity partial;
+  class activity built;
 
-  class agents planned;
+  class agents partial;
 
   class api built;
 

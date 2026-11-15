@@ -29,7 +29,7 @@ printf '%s\\n' "$*" >> '${sshLog}'
 machine=$(cat '${join(bin, "machine")}')
 while [ $# -gt 0 ]; do case "$1" in -o|-p|-l) shift 2;; -*) shift;; *) break;; esac; done
 host=$1; shift
-if [ -e "$machine/refuse" ]; then echo "kacper@$host: Permission denied (publickey)." >&2; exit 255; fi
+if [ -e "$machine/refuse" ]; then echo "alice@$host: Permission denied (publickey)." >&2; exit 255; fi
 cd "$machine" && PATH="$machine/bin:${machinePath}" exec sh -c "$*"
 `,
 	{ mode: 0o755 },
@@ -88,7 +88,7 @@ export function plantAfterCheck(t: TestContext, keys: readonly (readonly [string
 export const messages = (agent: string) => (existsSync(join(agent, "..", "messages.jsonl")) ? readFileSync(join(agent, "..", "messages.jsonl"), "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line) as unknown) : []);
 export const starts = (agent: string) => (existsSync(join(agent, "..", "starts.jsonl")) ? readFileSync(join(agent, "..", "starts.jsonl"), "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line) as { readonly cwd: string }) : []);
 export const endedThere = (there: string, id: string) => until("the job's end there", () => existsSync(join(there, "jobs", id, "state")) && read(there, id, "state") === "ended");
-export const UNREACHABLE = "machine gpu: ssh gpu: kacper@gpu: Permission denied (publickey).";
+export const UNREACHABLE = "machine gpu: ssh gpu: alice@gpu: Permission denied (publickey).";
 
 export const MAY_RUN = "which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig";
 

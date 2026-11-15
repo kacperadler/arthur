@@ -90,7 +90,7 @@ test("the coordinator is one interactive omp in its tmux session, with --continu
 	assert.equal(starts().length, 1, "nothing starts it after arthur run stopped");
 });
 
-test("another plugin's coordinator.extension loads after orchestration's own, with its variables; an answer of another shape is left out, named", { skip: NO_UNIX_SOCKET }, async (t) => {
+test("another plugin's coordinator.extension loads after orchestration's own, with its variables; no answer adds nothing, one of another shape is left out, named", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const extension = join(temporaryFolder(), "session-extension.ts");
@@ -109,7 +109,7 @@ test("another plugin's coordinator.extension loads after orchestration's own, wi
 	const shape = "expected { file, env }: the absolute path of an existing file, and ARTHUR_* variables with text values";
 	assert.deepEqual(
 		err.map((line) => line.text),
-		[...Array.from({ length: 4 }, () => `orchestration: the coordinator.extension of test is left out: ${shape}`), "orchestration: the coordinator.extension of test is left out: no folder"],
+		[...Array.from({ length: 3 }, () => `orchestration: the coordinator.extension of test is left out: ${shape}`), "orchestration: the coordinator.extension of test is left out: no folder"],
 	);
 });
 
@@ -305,15 +305,18 @@ test("arthur coordinator stop ends the session and keeps it stopped until arthur
 	await until("the start after arthur run started again", () => starts().length === 2);
 });
 
-test("arthur attach with no session says so; wrong usage of either command exits 2", async (t) => {
+test("arthur attach with no session says so; a project without an agent is refused; wrong usage of either command exits 2", async (t) => {
 	const { fake, out, err } = await load(t, fakeAgent({ steps: [] }));
 	const lines = { out, err };
 	const { code, err: said } = await command(fake, "attach", [], lines);
 	assert.equal(code, 1);
 	assert.match(said[0] ?? "", /^arthur attach: no coordinator: tmux session coord \(socket .*tmux\.sock\) is not running; arthur run starts it$/);
-	assert.deepEqual(await command(fake, "attach", ["now"], lines), { code: 2, out: [], err: ["usage: arthur attach"] });
-	for (const args of [[], ["start"], ["stop", "now"], ["context", "now"]])
-		assert.deepEqual(await command(fake, "coordinator", args, lines), { code: 2, out: [], err: ["usage: arthur coordinator stop|context"] });
+	const none = "has no agent (no orchestration.project({ chat }) in its project file); projects with one: none";
+	assert.deepEqual(await command(fake, "attach", ["now"], lines), { code: 1, out: [], err: [`arthur attach: project now ${none}`] });
+	assert.deepEqual(await command(fake, "coordinator", ["stop", "now"], lines), { code: 1, out: [], err: [`arthur coordinator stop: project now ${none}`] });
+	assert.deepEqual(await command(fake, "attach", ["now", "later"], lines), { code: 2, out: [], err: ["usage: arthur attach [<project>]"] });
+	for (const args of [[], ["start"], ["stop", "now", "later"], ["context", "now", "later"]])
+		assert.deepEqual(await command(fake, "coordinator", args, lines), { code: 2, out: [], err: ["usage: arthur coordinator stop|context [<project>]"] });
 });
 
 // AR0517: tmux makes its socket 0660, so whoever enters its folder in the socket's group reaches the coordinator.

@@ -3,9 +3,9 @@ import type { Event, Host } from "@arthur/core/plugin";
 
 // The coordinator's reply to the owner's voice note goes back as a voice note too (AR0553), after its text and where its text
 // goes: spoken by the plugin that provides `speak.say` (speak), sent by the `channel.send` of each channel a voice note came
-// from, with no place, as the reply has none. When the voice note cannot go, one line on that channel says why; with no plugin
-// providing `speak.say`, the text goes alone and nothing is said. One reply at a time, in the order they were sent:
-// docs/commands/coordinator.md, "The coordinator's inbox".
+// from, to the reply's place (a project agent's chat, entry 86), none for the coordinator's. When the voice note cannot go,
+// one line on that channel says why; with no plugin providing `speak.say`, the text goes alone and nothing is said. One reply
+// at a time, in the order they were sent: docs/commands/coordinator.md, "The coordinator's inbox".
 
 export function voiceReplies(host: Pick<Host, "events" | "collectEach">): (reply: Event) => void {
 	let last = Promise.resolve();
@@ -15,7 +15,8 @@ export function voiceReplies(host: Pick<Host, "events" | "collectEach">): (reply
 }
 
 async function voice(host: Pick<Host, "events" | "collectEach">, reply: Event): Promise<void> {
-	const { text, answers } = (reply.data ?? {}) as { readonly text?: unknown; readonly answers?: unknown };
+	const { text, answers, place } = (reply.data ?? {}) as { readonly text?: unknown; readonly answers?: unknown; readonly place?: unknown };
+	const at = typeof place === "string" ? { place } : {};
 	const seqs = Array.isArray(answers) ? answers.filter((seq): seq is number => Number.isSafeInteger(seq)) : [];
 	if (typeof text !== "string" || seqs.length === 0) return;
 	// Each channel a voice note it answers came from, with the event numbers of those messages.
@@ -28,14 +29,14 @@ async function voice(host: Pick<Host, "events" | "collectEach">, reply: Event): 
 	if (asked === undefined) return;
 	const spoken = "error" in asked ? asked.error : await Promise.resolve(asked.value).catch((error: unknown) => (error instanceof Error ? error : new Error(String(error))));
 	for (const [channel, answered] of channels) {
-		const why = spoken instanceof Error ? spoken.message : await send(host, spoken, channel);
-		if (why !== undefined) host.events.emit("coordinator-replied", { text: `voice note not sent: ${why.split("\n").join("; ")}`, answers: answered, channels: [channel] });
+		const why = spoken instanceof Error ? spoken.message : await send(host, { files: [spoken], ...at }, channel);
+		if (why !== undefined) host.events.emit("coordinator-replied", { text: `voice note not sent: ${why.split("\n").join("; ")}`, answers: answered, channels: [channel], ...at });
 	}
 }
 
-// The voice note at `path` sent by `channel`'s own `channel.send`; why it did not go, or undefined once it went.
-async function send(host: Pick<Host, "collectEach">, path: string, channel: string): Promise<string | undefined> {
-	const [answer] = host.collectEach<unknown>("channel.send", { files: [path] }).filter((each) => each.plugin === channel);
+// The voice note `message` sent by `channel`'s own `channel.send`; why it did not go, or undefined once it went.
+async function send(host: Pick<Host, "collectEach">, message: { readonly files: readonly string[] }, channel: string): Promise<string | undefined> {
+	const [answer] = host.collectEach<unknown>("channel.send", message).filter((each) => each.plugin === channel);
 	if (answer === undefined) return `${channel} provides no channel.send`;
 	if ("error" in answer) return answer.error.message;
 	if (typeof answer.value !== "function") return `${channel}: channel.send answered no send`;

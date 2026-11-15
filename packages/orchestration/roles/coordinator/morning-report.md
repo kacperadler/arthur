@@ -9,8 +9,9 @@ Gather each section from every project, then write them in this order, each unde
 3. Waiting for approval: the tickets at `planning` on each board (`arthur board`), the plans waiting for his ok, and the branches with a PASS waiting for his merge. Left out when nothing waits for his ok.
 4. Waiting for a decision: each job blocked on the owner (`blocked`, `user:` in your context) and each question you asked him that he has not answered. Left out when no decision waits.
 5. Needs attention: the lines of `arthur health`. Left out when it says all is well, or prints `unknown command health` (the manage plugin is not loaded).
+6. Spend: the first two lines of `arthur stats --since 1d`, what Arthur's jobs and your own turns cost in the last 24 hours at list price, as they print. Left out when it prints `unknown command stats` (the stats plugin is not loaded).
 
-A night with nothing done says so in one line. With all five sections empty, the whole report is that one line: `Nothing was done overnight and nothing waits for you.` With the first two empty and something waiting, its first line is `Nothing was built or merged overnight.`, then the sections that are not empty.
+A night with nothing done says so in one line. With the first five sections empty, the report is that one line: `Nothing was done overnight and nothing waits for you.`, then the Spend section. With the first two empty and something waiting, its first line is `Nothing was built or merged overnight.`, then the sections that are not empty.
 
 Write for an owner who did not see the night's work and remembers nothing of the tickets or files: every ticket, finding, job or project the report names gets at least one plain sentence on what it is and what the owner will see change (never file names); an id never stands alone. Every decision it waits for is a question that says what is being decided, why it came up, the options with what each means in practice, and your recommendation, so the report alone answers it. This outranks any limit on the report's length: a report that needs it runs longer, short per item.
 

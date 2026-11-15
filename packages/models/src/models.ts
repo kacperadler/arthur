@@ -7,8 +7,8 @@ import { type Kept, overLimit, overWarning, usageLines, usageReport } from "./us
 
 // The models plugin (spec/roadmap.md, entry 82): named providers, Ollama or OpenAI-compatible servers on the private network;
 // `models.pick`, the first available model of a list, which the core asks at every spawn; a job on a provider model gets the
-// provider in its own environment through `prepare`; each account's limit windows from the agent's report, `arthur usage` and
-// `/usage`, which skip a model at `limits.stopAt` and warn at `limits.warnAt`; its `arthur doctor` lines. docs/models.md.
+// provider in its own environment through `prepare`; each account's limit windows from the agent's report, `arthur usage`,
+// `/usage` and `models.windows`, which skip a model at `limits.stopAt` and warn at `limits.warnAt`; its `arthur doctor` lines. docs/models.md.
 
 export type { ModelsOptions };
 
@@ -87,6 +87,13 @@ export function models(options: ModelsOptions = {}): Plugin {
 				const { accounts = [], failed } = usage.kept();
 				const used = failed === undefined ? accounts.flatMap((account) => account.windows.map((window) => window.used * 100)) : [];
 				return used.length === 0 ? undefined : Math.max(...used);
+			});
+			// Each window of the report, fetched again once 10 minutes old, with its provider, for `arthur stats windows`; why there is
+			// none, one line, without a report or when the last fetch failed.
+			host.provide("models.windows", async () => {
+				const { accounts, failed } = await usage.fresh();
+				if (accounts === undefined || failed !== undefined) return `the agent has no usage report${failed === undefined ? "" : ` (${failed.reason})`}`;
+				return accounts.flatMap((account) => account.windows.map((window) => ({ provider: account.provider, ...window })));
 			});
 			host.commands.register({
 				name: "usage",

@@ -5721,9 +5721,9 @@
   {
     "id": "AR0708",
     "title": "Project agents T4: compaction, the fresh start and the handoff for every project agent (roadmap 88)",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0708-project-agents-t4-compaction-the-fresh-start-and-the-handoff-for-every-project/ticket.md",
-    "updated": "2026-11-13T10:36:31.169Z",
+    "updated": "2026-11-15T19:23:43.863Z",
     "after": [
       "AR0707"
     ]

@@ -182,7 +182,10 @@ test("an agent's reply to a turn of Arthur's messages alone names its chat's cha
 	write("shop", "1000-000002", { text: "Shop's last reply.", answers: ["7-1000"], channels: ["telegram"] });
 	write("shop", "1000-000003", { notice: "shop's notice" });
 	file("shop", "outbox/sent/0999-000001.json", { text: "Shop's reply before.", answers: ["5-1000"], channels: ["telegram"] });
+	// Held while silent: its reply to a job's end alone.
+	file("shop", "outbox/held/0999-000002.json", { text: "Shop's job ended.", answers: ["4-1000"], channels: [] });
 	file("shop", "outbox/.1000-000004", { text: "Half written." });
+	file("shop", "inbox/turn/4-1000", { text: "Job ended." });
 	for (const name of ["5-1000", "7-1000", "8-1000"]) file("shop", `inbox/turn/${name}`, { channel: "telegram", text: `Message ${name}.` });
 	box.run.start();
 	box.run.stop();
@@ -192,8 +195,9 @@ test("an agent's reply to a turn of Arthur's messages alone names its chat's cha
 		{ text: "Blog's job ended.", answers: [6], channels: ["discord"], place: "7" },
 	]);
 	assert.deepEqual(emitted("notice"), [{ text: "shop's notice" }]);
-	// Its draft and its sent replies stay; its answered messages stay in its turn/, only the unanswered one is the coordinator's.
-	assert.deepEqual([list(join(box.folder("shop"), "outbox")), list(join(box.folder("shop"), "outbox", "sent")), list(join(box.folder("shop"), "inbox", "turn"))], [[".1000-000004", "sent"], ["0999-000001.json"], ["5-1000", "7-1000"]]);
+	// Its draft and its sent and held replies stay; its answered messages stay in its turn/, only the unanswered one is the coordinator's.
+	const shop = (...path: string[]) => list(join(box.folder("shop"), ...path));
+	assert.deepEqual([shop("outbox"), shop("outbox", "sent"), shop("outbox", "held"), shop("inbox", "turn")], [[".1000-000004", "held", "sent"], ["0999-000001.json"], ["0999-000002.json"], ["4-1000", "5-1000", "7-1000"]]);
 	assert.deepEqual(box.inbox(), { "8-1000": { channel: "telegram", text: "Message 8-1000." } });
 });
 

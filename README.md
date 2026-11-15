@@ -29,9 +29,9 @@ Arthur lets one human direct many coding agents through one coordinator: the hum
 One line per package; each links the pages with the detail. `arthur help` lists every command, and `arthur <command> --help` prints its page.
 
 - **core**, built: the config and the env file, the plugin host and its event log, `arthur run`, jobs in worktrees with time, money, CPU and memory limits, here or over SSH, the ticket board, the env guard, worktree guard and sandbox of every job, `arthur doctor` and `arthur setup` ([commands](packages/core/docs/commands/), [plugin API](docs/plugin-api.md), [threat model](docs/deploy.md#threat-model)).
-- **orchestration**, built: the coordinator, `arthur attach`, `/board`, `/task`, planning, autopilot, the decision log, silent mode and the morning report; partly built: a project agent per project with a chat, supervised beside the coordinator, which gets that chat's messages and its project's job ends, its own project's context, and `arthur agent tell` between it and the coordinator, whose session follows ([commands](packages/orchestration/docs/commands/)).
+- **orchestration**, built: the coordinator, `arthur attach`, `/board`, `/task`, planning, autopilot, the decision log, silent mode and the morning report, and a project agent per project with a chat, supervised beside the coordinator, which gets that chat's messages and its project's job ends, its own project's context, and `arthur agent tell` between it and the coordinator ([commands](packages/orchestration/docs/commands/)).
 - **projects**, built: the project list, each worktree's install, `arthur init` and onboarding ([projects](packages/projects/docs/commands/projects.md), [init](packages/projects/docs/commands/init.md)).
-- **session**, built: compaction, a fresh start at night, `/restart` and the restart guard ([session](packages/session/docs/session.md)).
+- **session**, built: compaction, a fresh start at night, `/restart` and the restart guard, for the coordinator and each project agent in its own chat ([session](packages/session/docs/session.md)).
 - **schedule**, built: messages and jobs at set times, and entries other plugins register ([schedule](packages/schedule/docs/commands/schedule.md)).
 - **machines**, built: other machines for jobs, their labels and checks, and each job placed by labels ([machines](packages/machines/docs/commands/machines.md)).
 - **resources**, built: caps per job and per feature, and room for a job by free CPU, memory and disk ([resources](packages/resources/docs/resources.md)).
@@ -55,7 +55,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **activity**, built: one file per day of who did what, each logged event with its actor and the messages it acted on, kept 90 days; `arthur log` and `/log` read it by day, user, actor, ticket or job ([activity](packages/activity/docs/activity.md)).
 - **docker**, partly built: what a job creates with Docker labelled with its id, its own compose project, all of it removed with its worktree, Docker's data root counted for the disk floor, and a daily sweep of leftovers with `arthur docker`; a project's own Docker service (`docker.project({ service })`) is held out ([docker](packages/docker/docs/docker.md)).
 - **herdr**, built: each job a tab in [herdr](https://herdr.dev) on the server, streaming its run with `arthur jobs --follow`, its state in herdr's sidebar, and a tab for `arthur attach` ([herdr](packages/herdr/docs/herdr.md)).
-- Planned: the rest of project agents (roadmap 88); later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- Planned: signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 
@@ -68,13 +68,13 @@ flowchart TD
   subgraph FIRST[First-version plugins: each talks only to the core]
     chan[channels<br/>telegram, discord]
     media[media: claim a channel's parts, speak the replies<br/>listen, video, speak]
-    coord[coordinator<br/>orchestration, session, schedule]
+    coord[coordinator<br/>orchestration, session, schedule, project agents]
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker partly built]
     deliv[delivery and trackers<br/>delivery, github, youtrack, dokploy]
     self[Arthur itself<br/>manage, develop, stats]
   end
-  later[later plugins<br/>project agents partly built, signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
+  later[later plugins<br/>signal, slack, whatsapp<br/>server, own apps, knowledge base, company edition]
   core <-->|events, commands| FIRST
   core <-.->|events, commands| later
   core -->|a worktree and an omp agent per job| repos[(project repositories)]

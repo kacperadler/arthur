@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Command, Host } from "@arthur/core/plugin";
-import { coordinatorContext, projectContext } from "./context.ts";
+import { coordinatorContext } from "./context.ts";
 import { pane, STOPPED, tmux } from "./coordinator.ts";
 import type { Session } from "./sessions.ts";
 
@@ -46,7 +46,7 @@ export function coordinatorCommands(host: Host, list: readonly Session[]): Comma
 					return session === undefined ? 2 : 1;
 				}
 				if (verb === "context") {
-					console.log(session.project === undefined ? coordinatorContext(host) : projectContext(host, session.project));
+					console.log(coordinatorContext(host, session.project === undefined ? { sessions: list } : { project: session.project }));
 					return 0;
 				}
 				const records = session.project === undefined ? [] : host.jobs.list();

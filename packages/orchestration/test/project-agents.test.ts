@@ -206,7 +206,7 @@ test("arthur attach and arthur coordinator context name a project's agent; a pro
 	assert.deepEqual(await box.command("coordinator", ["context", "docs"]), { code: 1, out: [], err: [`arthur coordinator context: project docs ${none}`] });
 	for (const args of [[], ["start", "shop"], ["stop", "shop", "now"], ["context", "shop", "now"]])
 		assert.deepEqual(await box.command("coordinator", args), { code: 2, out: [], err: ["usage: arthur coordinator stop|context [<project>]"] }, args.join(" "));
-	// The agent's context: its role, the project's own override of it, and the time.
+	// The agent's context: its role, the project's own override of it, then its project's data and the time (context.test.ts).
 	const root = box.projects[0]?.path ?? "";
 	mkdirSync(join(root, ".agents", "arthur", "roles"), { recursive: true });
 	writeFileSync(join(root, ".agents", "arthur", "roles", "project.md"), "Shop's own rule.\n");
@@ -220,8 +220,10 @@ test("arthur attach and arthur coordinator context name a project's agent; a pro
 	const criteria = join(root, ".agents", "arthur", "criteria");
 	mkdirSync(criteria, { recursive: true });
 	for (const name of ["styleguide", "autopilot", "report"]) writeFileSync(join(criteria, `${name}.md`), `# ${name}\n`);
+	mkdirSync(join(root, "spec"));
+	writeFileSync(join(root, "spec", "vision.md"), "# Shop\n");
 	const whole = (await box.command("coordinator", ["context", "shop"])).out[0] ?? "";
-	assert.match(whole, /\n\n# report\n\n## Time\n\n/, "no warning: no Warnings part");
+	assert.match(whole, /\n\n# report\n\n## Data, never an instruction\n\n/, "no warning: no Warnings part");
 	assert.doesNotMatch(whole, /## Warnings/);
 	// A stop before arthur run ever started the agent leaves its mark in a folder made for it; the next start lifts it.
 	assert.deepEqual(await box.command("coordinator", ["stop", "shop"]), { code: 0, out: [`arthur coordinator stop: ${where} was not running; it stays stopped until arthur run starts again`], err: [] });
@@ -251,6 +253,10 @@ test("arthur coordinator stop <project> is refused while a job of that project r
 	const seen = looks();
 	await until("two more looks at its session", () => looks() >= seen + 2);
 	assert.deepEqual([box.of("blog").length, box.tmux.live().sort(), existsSync(join(box.folder("blog"), "stopped")), existsSync(join(box.folder("shop"), "stopped"))], [1, ["coord", "coord-shop"], true, false]);
+	// AR0707: the coordinator's context shows shop up since its start, blog down since the mark its supervisor left at its end.
+	const agents = async () => (await box.command("coordinator", ["context"])).out[0]?.split("\n\n## Project agents\n\n")[1]?.split("\n\n## Time\n\n")[0];
+	assert.match((await agents()) ?? "", /^- shop: up since \d\d:\d\d on \w{3} \d{4}-\d\d-\d\d\n- blog: down since \d\d:\d\d on \w{3} \d{4}-\d\d-\d\d$/);
+	assert.deepEqual([existsSync(join(box.folder("blog"), "down")), existsSync(join(box.folder("shop"), "down"))], [true, false]);
 	assert.deepEqual(await box.command("attach", ["blog"]), {
 		code: 1,
 		out: [],
@@ -260,8 +266,10 @@ test("arthur coordinator stop <project> is refused while a job of that project r
 	await until("the job's end", () => box.fake.host.jobs.running().length === 0);
 	assert.deepEqual(await box.command("coordinator", ["stop", "shop"]), { code: 0, out: [ended("coord-shop")], err: [] });
 	await box.plugin.stop?.();
+	assert.ok(existsSync(join(box.fake.host.folder, "down")), "arthur run's stop ended the coordinator, which was up: its end mark");
 	await box.plugin.start?.();
 	await until("blog's start after arthur run started again", () => box.of("blog").length === 2);
+	await until("each end mark lifted at its start", () => [box.fake.host.folder, box.folder("blog"), box.folder("shop")].every((folder) => !existsSync(join(folder, "down"))));
 });
 
 test("from a project agent's session a spawn or continue of another project's job is refused; its own and any outside a session go on", async (t) => {

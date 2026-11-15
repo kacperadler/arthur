@@ -21,11 +21,12 @@ const CONTEXT_COMMAND = [process.execPath, fileURLToPath(import.meta.resolve("@a
 const POLL_MS = 500;
 const EXIT_POLL_MS = 200;
 const SIGNALS = ["SIGTERM", "SIGINT"] as const;
-// In the plugin's folder: the last agent started, `<pid> <start time>`; the mark `arthur coordinator stop` leaves; and the mark
-// `coordinator.restart` leaves for a fresh conversation at the next start.
-const PID_FILE = "coordinator.pid";
+// In the plugin's folder: the last agent started, `<pid> <start time>`; the mark `arthur coordinator stop` leaves; the mark
+// `coordinator.restart` leaves for a fresh conversation at the next start; and the mark of the agent's end, its time its own.
+export const PID_FILE = "coordinator.pid";
 export const STOPPED = "stopped";
 export const FRESH = "fresh";
+export const DOWN = "down";
 
 // tmux on the coordinator's own server: a socket with a slash is a path (`-S`), any other a name in tmux's folder (`-L`).
 export function tmux(coordinator: Coordinator, args: readonly string[], inherit = false) {
@@ -47,7 +48,7 @@ export function pane(coordinator: Coordinator): "none" | "alive" | "dead" {
 }
 
 // The start time `ps` gives a live process, empty for a gone one: with the pid it names one process, whatever reuses the pid.
-const startTime = (pid: string): string => (/^\d+$/.test(pid) ? String(spawnSync("ps", ["-o", "lstart=", "-p", pid], { encoding: "utf8" }).stdout ?? "").trim() : "");
+export const startTime = (pid: string): string => (/^\d+$/.test(pid) ? String(spawnSync("ps", ["-o", "lstart=", "-p", pid], { encoding: "utf8" }).stdout ?? "").trim() : "");
 
 // What another plugin adds to a session's agent through `collect("coordinator.extension", { session })`: an OMP extension it
 // loads with `-e` after orchestration's own, and the variables it reads. No answer adds nothing; one of another shape is left out, named.
@@ -92,6 +93,7 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 				if (now === "dead") tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);
 				const stopped = existsSync(join(folder, STOPPED));
 				if (up) {
+					writeFileSync(join(folder, DOWN), "");
 					const stop = `arthur coordinator stop${project === undefined ? "" : ` ${project}`}`;
 					console.log(`orchestration: the ${who} ended; ${stopped ? `${stop} asked, so it stays stopped until arthur run starts again` : `starting it again in ${delay} s`}`);
 					[up, next] = [false, Date.now() + delay * 1000];
@@ -109,7 +111,7 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 			for (const name of SIGNALS) process.off(name, leave);
 			quit.abort();
 			await running;
-			tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);
+			if (tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]).status === 0) writeFileSync(join(folder, DOWN), "");
 		},
 	};
 
@@ -150,6 +152,7 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		writeFileSync(`${file}.new`, `${started} ${startTime(started)}\n`);
 		renameSync(`${file}.new`, file);
 		if (fresh) rmSync(join(folder, FRESH), { force: true });
+		rmSync(join(folder, DOWN), { force: true });
 		console.log(`orchestration: ${who} started: ${agent} (pid ${started}) in tmux session ${session}${fresh ? ", a fresh conversation" : ""}`);
 		return true;
 	}

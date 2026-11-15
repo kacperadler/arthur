@@ -131,7 +131,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			host.provide("coordinator.checkoutContext", (asked: { readonly root?: unknown; readonly at?: unknown; readonly context?: unknown } = {}) => {
 				const { root, at, context } = asked, lines = typeof context === "object" && context !== null && !Array.isArray(context) && Object.values(context).every((text) => typeof text === "string");
 				if (typeof root !== "string" || !(at instanceof Date) || !lines) throw new Error(`coordinator.checkoutContext: expected { root: a folder, at: a Date, context: { <plugin>: <text> } }, got ${JSON.stringify(asked)}`);
-				return coordinatorContext(host, { root, at, context: context as Record<string, string> });
+				return coordinatorContext(host, { checkout: { root, at, context: context as Record<string, string> } });
 			});
 			for (const command of [...boardCommands(host), ...decisionCommands(host, sessions)]) host.commands.register(command);
 		},

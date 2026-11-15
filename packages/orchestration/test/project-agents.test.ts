@@ -179,6 +179,32 @@ test("an agent crashing in a loop restarts never faster than restartDelaySeconds
 	assert.ok(out.some((line) => line.text.startsWith("orchestration: project agent blog started: omp (pid ") && line.text.endsWith(" in tmux session coord-blog")));
 });
 
+test("orchestration.sessions lists each session; coordinator.restart with project ends that agent alone, fresh once, and refuses a project without one", async (t) => {
+	const box = await load(t, { shop: chat("telegram", "4", "shop"), docs: undefined, blog: chat("telegram", "5") });
+	assert.deepEqual(box.fake.collect("orchestration.sessions"), [
+		[
+			{ name: "coordinator", project: undefined, chat: undefined, folder: box.fake.host.folder },
+			{ name: "agent:shop", project: "shop", chat: { plugin: "telegram", place: "4", instance: "shop" }, folder: box.folder("shop") },
+			{ name: "agent:blog", project: "blog", chat: { plugin: "telegram", place: "5" }, folder: box.folder("blog") },
+		],
+	]);
+	await box.plugin.start?.();
+	await until("three starts", () => box.tmux.starts().length === 3);
+	box.fake.call("coordinator.restart", { fresh: true, project: "shop" });
+	await until("shop's fresh start", () => box.of("shop").length === 2);
+	assert.equal(box.of("shop")[1]?.args[0], "--auto-approve", "no --continue");
+	assert.equal(existsSync(join(box.folder("shop"), "fresh")), false, "the mark is gone once the fresh start is made");
+	box.fake.call("coordinator.restart", { fresh: false, project: "shop" });
+	await until("shop's next start", () => box.of("shop").length === 3);
+	assert.equal(box.of("shop")[2]?.args[0], "--continue");
+	assert.deepEqual([box.of(null).length, box.of("blog").length], [1, 1], "the coordinator and blog go on");
+	for (const asked of [{ fresh: true, project: "docs" }, { fresh: true, project: 3 }, { project: "shop" }])
+		assert.throws(() => box.fake.call("coordinator.restart", asked), { message: `coordinator.restart: expected { fresh: true | false, project?: one with an agent (shop, blog) }, got ${JSON.stringify(asked)}` });
+	box.fake.call("coordinator.restart", { fresh: false });
+	await until("the coordinator's next start", () => box.of(null).length === 2);
+	assert.deepEqual([box.of("shop").length, box.of("blog").length], [3, 1]);
+});
+
 test("the starts of every session go one at a time: an agent's waits for the coordinator's wait for its previous omp; an agent's refused or failed start is its own line", async (t) => {
 	const box = await load(t, { shop: chat("telegram", "4"), blog: chat("telegram", "5"), docs: chat("telegram", "6") });
 	// The previous omp of the coordinator and of blog still alive: this process, as `ps` gives its start time.

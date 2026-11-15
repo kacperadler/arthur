@@ -4,19 +4,22 @@ import { fileURLToPath } from "node:url";
 import { describe } from "@arthur/core";
 import type { Host, OptionProblem, Options, Plugin } from "@arthur/core/plugin";
 import { alive, put, REQUEST, type Request, readRequest } from "./request.ts";
-import { registerRestart, restarts } from "./restart.ts";
+import { restarts } from "./restart.ts";
+import { registerRestart } from "./restart-command.ts";
 import { noteLoaded, registerGuard } from "./restart-guard.ts";
 import { noteService, SERVICE, serviceRequirements } from "./service.ts";
 import { DEFAULTS, table, time } from "./session-options.ts";
+import { type Session, sessionList } from "./sessions.ts";
 import { startNotice, turnFailures } from "./start-notice.ts";
 
-// The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, or once
-// a turn ends with it at `compactAtPercent` of its context window (`compactOn`), new at
-// `freshAt` once no job and no merge runs, restarted on `/restart`, each after a handoff the coordinator writes and the next conversation
-// reads first. `arthur run` asks for each in `<home>/session/request.json` and acts on its outcome (restart.ts for restarts);
-// the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part; the restart guard
-// (restart-guard.ts) holds spawns once a commit changed the code `arthur run` loaded; at each start the model is probed and
-// the start notice sent, opening with the lines `arthur doctor` found missing, and a turn that fails before any text is told
+// The session plugin (spec/roadmap.md, entries 35 to 38, and 88 for each session: the coordinator's and each project agent's,
+// sessions.ts): a conversation compacted at each `compactAt`, or once a turn ends with it at `compactAtPercent` of its context
+// window (`compactOn`), one session at a time, new at `freshAt` once no job and no merge runs (of its project, for a project
+// agent), restarted on `/restart`, each after a handoff its agent writes and the next conversation reads first. `arthur run`
+// asks for each in the session's `request.json` and acts on its outcome (restart.ts for restarts); the handoff extension, which
+// orchestration loads into each session's agent, does the agent's part; the restart guard (restart-guard.ts) holds spawns once
+// a commit changed the code `arthur run` loaded; at each start each session's model is probed and its start notice sent, the
+// coordinator's opening with the lines `arthur doctor` found missing, and a turn that fails before any text is told
 // (start-notice.ts); the user service and linger as its `arthur doctor` requirements, and whether this `arthur run` is the
 // service's (service.ts): docs/session.md.
 
@@ -40,6 +43,7 @@ const CONTEXT_USE = "context-use";
 // `tickMs`: how often the plugin and the coordinator's handoff extension look, 500 ms; shorter in a test only.
 export function session(options: SessionOptions = {}, tickMs = 500): Plugin {
 	let host: Host | undefined;
+	let sessions: readonly Session[] = [];
 	let timer: NodeJS.Timeout | undefined;
 	let stopProbe: (() => void) | undefined;
 	// The missing lines of `arthur doctor` this start sends, from the core's `doctor` event before any plugin's start.
@@ -53,23 +57,29 @@ export function session(options: SessionOptions = {}, tickMs = 500): Plugin {
 		doctor: serviceRequirements,
 		setup(given) {
 			host = given;
-			// The coordinator's session only: a project agent's handoff would write the coordinator's files (roadmap 88 gives it its own).
-			for (const file of EXTENSIONS) given.provide("coordinator.extension", (asked?: { readonly session?: unknown }) => (asked?.session === "coordinator" ? { file, env: { ARTHUR_SESSION_FOLDER: given.folder, ARTHUR_SESSION_TICK_MS: String(tickMs) } } : undefined));
+			sessions = sessionList(given);
+			// Each session's agent its own folder, so no project agent writes the coordinator's handoff, request or reports.
+			for (const file of EXTENSIONS)
+				given.provide("coordinator.extension", (asked?: { readonly session?: unknown }) => {
+					const found = sessions.find((each) => each.name === asked?.session);
+					return found === undefined ? undefined : { file, env: { ARTHUR_SESSION_FOLDER: found.folder, ARTHUR_SESSION_TICK_MS: String(tickMs) } };
+				});
 			given.events.on("doctor", ({ data }) => {
 				const lines = typeof data === "object" && data !== null && "lines" in data ? data.lines : undefined;
 				missing = Array.isArray(lines) ? lines.filter((line) => typeof line === "string") : [];
 			});
-			registerRestart(given);
+			registerRestart(given, sessions);
 			if (options.restartGuard ?? DEFAULTS.restartGuard) registerGuard(given);
 		},
 		async start() {
 			if (host === undefined) return;
 			// One left by an `arthur run` before this one is not done late, nor a report it did not read.
-			for (const file of [REQUEST, CONTEXT_USE]) rmSync(join(host.folder, file), { force: true });
+			for (const { folder } of sessions) for (const file of [REQUEST, CONTEXT_USE]) rmSync(join(folder, file), { force: true });
 			if (options.restartGuard ?? DEFAULTS.restartGuard) noteLoaded(host);
 			await noteService(host.folder);
-			stopProbe = startNotice(host, options.probeLlm ?? DEFAULTS.probeLlm, missing);
-			const ticks = [["compaction", compactions(host)], ["restart", restarts(host)], ["turn notice", turnFailures(host)]] as const;
+			stopProbe = startNotice(host, sessions, options.probeLlm ?? DEFAULTS.probeLlm, missing);
+			const at = host;
+			const ticks = sessions.flatMap((one) => [["compaction", compactions(at, one, sessions)], ["restart", restarts(at, one)], ["turn notice", turnFailures(at, one)]] as const);
 			// A tick that throws (a folder made read-only, a disk full) is told once per distinct error and runs again at the next.
 			const told = new Set<string>();
 			timer = setInterval(() => {
@@ -91,31 +101,43 @@ export function session(options: SessionOptions = {}, tickMs = 500): Plugin {
 	};
 }
 
-// Every 500 ms: the outcome of a compaction, printed once its agent wrote it; one no agent took within its wait, or whose agent
-// is gone, dropped without a word (no session ran); and a request, unless one is still there: at a slot, and at a turn's report
-// of `compactAtPercent` or more, read once, which then asks again only after a compaction done or a report below it. The trigger
-// reads only its conversation's folder and the options, so another conversation can run its own on its own folder.
-function compactions(host: Host): () => void {
+// Every 500 ms, for one session: the outcome of a compaction, printed once its agent wrote it; one no agent took within its
+// wait, or whose agent is gone, dropped without a word (no session ran); and a request, unless one is still there: at a slot,
+// and at a turn's report of `compactAtPercent` or more, read once, which then asks again only after a compaction done or a
+// report below it. One session compacts at a time (roadmap 88): a request while another session's compaction is asked for
+// waits, and is made once none is.
+function compactions(host: Host, session: Session, sessions: readonly Session[]): () => void {
 	const { compactOn = DEFAULTS.compactOn, compactAtPercent = DEFAULTS.compactAtPercent, compactWaitSeconds = DEFAULTS.compactWaitSeconds } = host.options as SessionOptions;
 	const compactAt = compactOn === "context" ? [] : ((host.options as SessionOptions).compactAt ?? DEFAULTS.compactAt);
-	const [file, use] = [join(host.folder, REQUEST), join(host.folder, CONTEXT_USE)];
+	const [file, use, tag] = [join(session.folder, REQUEST), join(session.folder, CONTEXT_USE), session.project === undefined ? "session" : `session: ${session.name}`];
 	const upcoming = () => compactAt.map((time) => ({ time, at: host.clock.next(time) })).sort((a, b) => a.at.getTime() - b.at.getTime())[0];
 	let next = upcoming();
 	let armed = true;
+	// The slot of a request waiting for another session's compaction to end.
+	let waiting: string | undefined;
 	// Slots passed together, or a trigger while a compaction or a restart is still asked for, ask for one, never queue a second.
 	const ask = (slot: string) => {
-		if (existsSync(file)) return false;
-		const asked: Request = { then: "compact", slot, asked: Date.now(), waitSeconds: compactWaitSeconds };
+		if (existsSync(file)) {
+			waiting = undefined;
+			return false;
+		}
+		if (sessions.some((other) => other !== session && readRequest(other.folder)?.then === "compact")) {
+			waiting ??= slot;
+			return true;
+		}
+		const asked: Request = { then: "compact", slot: waiting ?? slot, asked: Date.now(), waitSeconds: compactWaitSeconds };
 		put(file, JSON.stringify(asked));
+		waiting = undefined;
 		return true;
 	};
 	return () => {
-		const request = readRequest(host.folder);
+		const request = readRequest(session.folder);
 		if (request?.then === "compact" && (request.line !== undefined || (request.pid === undefined ? Date.now() - request.asked >= request.waitSeconds * 1000 : !alive(request.pid)))) {
 			rmSync(file, { force: true });
-			if (request.line !== undefined) console.log(`session: ${request.line}`);
+			if (request.line !== undefined) console.log(`${tag}: ${request.line}`);
 			if (request.line?.startsWith("compact: done")) armed = true;
 		}
+		if (waiting !== undefined) ask(waiting);
 		const percent = existsSync(use) ? Number(readFileSync(use, "utf8")) : Number.NaN;
 		rmSync(use, { force: true });
 		if (compactOn !== "schedule" && Number.isFinite(percent)) {

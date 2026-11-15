@@ -246,7 +246,7 @@ test("coordinator.restart ends the session; the next start is a fresh conversati
 	fake.call("coordinator.restart", { fresh: false });
 	await until("the next start", () => starts().length === 3);
 	assert.equal(starts()[2]?.args[0], "--continue");
-	assert.throws(() => fake.call("coordinator.restart", { fresh: "yes" }), { message: 'coordinator.restart: expected { fresh: true | false }, got {"fresh":"yes"}' });
+	assert.throws(() => fake.call("coordinator.restart", { fresh: "yes" }), { message: 'coordinator.restart: expected { fresh: true | false, project?: one with an agent (none) }, got {"fresh":"yes"}' });
 	await sleep(1500);
 	assert.equal(starts().length, 3, "a refused call ends nothing");
 });

@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0706 Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86) (046a2fee)
+- AR0707 Project agents T3: a project agent's context holds only its own project (roadmap 87) (d7b3b8ff)
 
 ## 2026-11-14
 

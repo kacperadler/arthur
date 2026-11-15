@@ -5711,9 +5711,9 @@
   {
     "id": "AR0707",
     "title": "Project agents T3: a project agent's context holds only its own project (roadmap 87)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0707-project-agents-t3-a-project-agent-s-context-holds-only-its-own-project-roadmap/ticket.md",
-    "updated": "2026-11-15T13:53:44.880Z",
+    "updated": "2026-11-15T14:06:34.726Z",
     "after": [
       "AR0706"
     ]

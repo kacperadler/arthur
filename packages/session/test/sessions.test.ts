@@ -48,11 +48,14 @@ test("at a slot the sessions compact one after another, never together; one sess
 	assert.equal(existsSync(box.handoff), false, "nothing written in the coordinator's folder");
 });
 
-test("a turn's report in one session while another's compaction is asked for waits for it, then asks with its own slot", async (t) => {
+test("a turn's report in one session while another's compaction is asked for waits for it, then asks with its own slot; a request or report left in an agent's folder by the last run is dropped at the start", async (t) => {
 	const box = await load(t, { compactOn: "context", compactAtPercent: 80, compactWaitSeconds: 600 }, "2026-10-18T12:59:00+02:00", ["shop"]);
 	const folder = join(box.fake.host.folder, "agents", "shop");
 	const request = () => (existsSync(join(folder, "request.json")) ? JSON.parse(readFileSync(join(folder, "request.json"), "utf8")) : undefined);
+	writeFileSync(join(folder, "request.json"), JSON.stringify({ then: "compact", slot: "08:00", asked: Date.now(), waitSeconds: 600 }));
+	writeFileSync(join(folder, "context-use"), "95");
 	await box.start();
+	assert.deepEqual([request(), existsSync(join(folder, "context-use"))], [undefined, false]);
 	box.report("80");
 	await until("the coordinator's request", () => box.request() !== undefined);
 	writeFileSync(join(folder, "context-use"), "85");
@@ -75,6 +78,8 @@ test("a project agent's fresh start waits only for its project's jobs and merges
 		[undefined, "shop", ["session: fresh: skipped, 1 merge running at 23:00", "session: agent:shop: fresh: skipped, 1 merge running at 23:00"]],
 	] as const) {
 		const box = await loaded(t, { freshAt: "23:00", freshUntil: "23:00" }, "2026-10-18T22:59:00+02:00", [], ["shop"]);
+		// The coordinator's agent up, shop's not: shop's restart is made at once, with no handoff to wait for.
+		await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }).up();
 		if (job !== undefined) box.job("2026-10-18-worker-0000000a", "worker", job);
 		box.fake.provide("delivery.merging", () => (merge === undefined ? [] : [{ project: merge, job: "" }]));
 		await box.start();
@@ -109,6 +114,8 @@ test("/restart restarts the session of the chat it came from: shop's from its pl
 		assert.equal(await run?.({ args: [], project }), 0);
 		assert.equal(box.restarted.at(-1), who, String(project));
 	}
+	assert.equal(await run?.({ args: ["fresh"], project: "shop" }), 0);
+	assert.deepEqual([box.restarted.at(-1), box.restarts.at(-1)], ["shop", true]);
 	const [job, shop] = [box.job("2026-10-18-worker-0000000a"), { channel: "test", place: "shop", instance: "first" }];
 	assert.equal(await box.route("/restart", shop), none("project agent of shop"), "acme's job holds only the coordinator's");
 	assert.equal(box.restarted.at(-1), "shop");
@@ -162,7 +169,9 @@ test("each session's start notice, probed on its role's model in turn, and its t
 	t.after(() => void (process.env.PATH = path));
 	const fake = fakeHost({ name: "session", options: { compactAt: [] } });
 	fake.provide("roles.model", (role: string) => ({ model: role === "coordinator" ? "anthropic/claude-opus-4-5" : role === "project" ? "anthropic/claude-sonnet-4-5" : undefined }));
-	fake.provide("orchestration.sessions", () => sessions(["shop"]));
+	// Shop's chat names its bot, which its notices carry.
+	const chat = { plugin: "test", instance: "second", place: "shop" };
+	fake.provide("orchestration.sessions", () => sessions(["shop"]).map((each) => ("project" in each ? { ...each, chat } : each)));
 	const plugin = session({}, 100);
 	await fake.setup(plugin);
 	t.after(() => plugin.stop?.());
@@ -173,7 +182,7 @@ test("each session's start notice, probed on its role's model in turn, and its t
 	await plugin.start?.();
 	const notices = () => fake.emitted.filter((event) => event.name === "notice").map((event) => event.data as Record<string, unknown>);
 	await until("three notices", () => notices().length === 3);
-	const shop = { channel: "test", place: "shop" };
+	const shop = { channel: "test", instance: "second", place: "shop" };
 	assert.deepEqual(
 		notices().toSorted((a, b) => String(a.text).localeCompare(String(b.text))),
 		[{ text: `project agent of shop up on ${HOST}`, ...shop }, { text: `tmux: missing\ncoordinator up on ${HOST}` }, { text: `turn failed on ${HOST}: 529 overloaded`, ...shop }],

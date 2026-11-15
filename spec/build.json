@@ -5703,7 +5703,7 @@
     "title": "Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86)",
     "status": "in-progress",
     "path": "spec/features/AR0706-project-agents-t2-a-project-chat-s-messages-and-its-jobs-ends-go-to-its-agent/ticket.md",
-    "updated": "2026-11-15T00:55:18.422Z",
+    "updated": "2026-11-15T03:56:39.641Z",
     "after": [
       "AR0705"
     ]

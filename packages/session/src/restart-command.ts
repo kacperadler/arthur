@@ -43,7 +43,7 @@ export function registerRestart(host: Host, sessions: readonly Session[]): void 
 		name: "restart",
 		doc: new URL("../docs/commands/restart.md", import.meta.url),
 		run({ args, project }) {
-			const session = sessions.find((each) => each.project !== undefined && each.project === project) ?? (sessions[0] as Session);
+			const session = sessions.find((each) => each.project === project) ?? (sessions[0] as Session);
 			const { code, line } = args.length > 1 || (args.length === 1 && args[0] !== "fresh") ? { code: 2, line: "usage: arthur restart [fresh]" } : answer(args[0] ?? "", session);
 			(code === 0 ? console.log : console.error)(line);
 			return code;

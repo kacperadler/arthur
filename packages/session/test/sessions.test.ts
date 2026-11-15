@@ -162,6 +162,7 @@ test("/restart from shop's chat: shop's agent writes its handoff in its folder, 
 	box.open("written");
 	await until("the restart", () => box.restarted.length === 1);
 	assert.deepEqual([box.restarted, box.out], [["shop"], ["session: agent:shop: restart: done; the project agent of shop restarts, which starts by reading the handoff"]]);
+	assert.deepEqual(box.notices("shop"), [], "the coordinator's agent being up is no next agent of shop's");
 	await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }, [], "shop").up();
 	await until("the notice", () => box.notices("shop").length === 1);
 	assert.deepEqual([box.notices("shop"), box.notices(), main.messages()], [["Restarted."], [], []]);

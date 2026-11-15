@@ -90,6 +90,7 @@ export async function load(t: TestContext, options: SessionOptions, now: string,
 			return {
 				messages: () => lines(join(dirname(agent), "messages.jsonl")),
 				up: () => until("the agent's start", () => existsSync(noted) && readFileSync(noted, "utf8") === String(child.pid)),
+				end: () => child.kill(),
 			};
 		},
 	};

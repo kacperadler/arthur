@@ -162,6 +162,18 @@ test("/restart from shop's chat: shop's agent writes its handoff in its folder, 
 	assert.equal((restarted?.data as { channel?: string } | undefined)?.channel, "test");
 });
 
+test("a project agent that ends while its /restart waits for the handoff restarts without one, the line naming it", async (t) => {
+	const box = await loaded(t, {}, "2026-10-18T12:00:00+02:00", [], ["shop"]);
+	const shop = box.coordinator({ steps: [{ prompt: true }, { waitFor: box.gate("never") }] }, ["--continue"], "shop");
+	await shop.up();
+	await box.start();
+	await box.route("/restart", { channel: "test", place: "shop" });
+	await until("the handoff request", () => shop.messages().length === 1);
+	shop.end();
+	await until("the restart", () => box.restarted.length === 1);
+	assert.deepEqual(box.out, ["session: agent:shop: restart: done; the project agent of shop restarts, with no handoff (handoff not written: the project agent of shop ended)"]);
+});
+
 test("each session's start notice, probed on its role's model in turn, and its turn failures go to its own chat; the doctor's missing lines only to the coordinator's", async (t) => {
 	const omp = fakeAgent({ steps: [{ message: "Ready." }] });
 	const path = process.env.PATH;

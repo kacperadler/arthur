@@ -36,4 +36,4 @@ Only the owner gives it, typing it on his phone (AR0664): `arthur silent on ... 
 
 ## The context
 
-While it is on, the coordinator's context (`arthur coordinator context`) has a `## Silent` section after `## Time`: `On since <HH:MM> on <day> <date>, for: <the work; its stop condition>.`, or `for: nothing named; the owner turned it on.` when no work was given, and with a grant a second line, `While it holds, the owner's grant G<n>: ...`; with a broken state file, `On: <file> does not parse, so it counts as on; arthur silent off removes it.`
+While it is on, the coordinator's context (`arthur coordinator context`) and each project agent's (`arthur coordinator context <project>`) have a `## Silent` section after `## Time`: `On since <HH:MM> on <day> <date>, for: <the work; its stop condition>.`, or `for: nothing named; the owner turned it on.` when no work was given, and with a grant a second line, `While it holds, the owner's grant G<n>: ...`; with a broken state file, `On: <file> does not parse, so it counts as on; arthur silent off removes it.`

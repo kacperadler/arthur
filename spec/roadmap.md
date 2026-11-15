@@ -1102,6 +1102,7 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 ### 87. Project agents: their context
 
 - Package: orchestration.
+- Tickets: AR0707
 - Delivers: entry 25's context for one project, on each of its agent's turns: its vision, a warning per missing criteria file, its board digest, its jobs by state (27), the slots of `maxAgents` in use (`n of maxAgents`, counted across every project), the local time and whether it is night. In the coordinator's context, one line per project agent: up since, or down since.
 - Done means: edge cases: a project without a vision file gets a warning line, not a failure; a job of another project never shows in a project agent's context but counts in its slots; an agent down shows as down in the coordinator's context.
 - Depends on: 86, 25.

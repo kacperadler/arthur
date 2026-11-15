@@ -1,18 +1,19 @@
 import type { Host } from "@arthur/core/plugin";
 import { type Decision, decisions, oneLine, readLog } from "./decision-log.ts";
 
-// The decision log in the coordinator's context (spec/roadmap.md, entry 96): every open question of every project, its id,
-// how long it has been open and the question, and under it up to 5 answered decisions like it: the same kind first, then the
-// most words shared with the question, the newest on a tie. No open question, no section; a log broken by hand is one line.
+// The decision log in the coordinator's context (spec/roadmap.md, entry 96): every open question of every project, or of
+// `only` alone in its agent's (entry 87), its id, how long it has been open and the question, and under it up to 5 answered
+// decisions like it: the same kind first, then the most words shared with the question, the newest on a tie. No open question,
+// no section; a log broken by hand is one line.
 
 const LIKE = 5;
 const words = (text: string) => new Set(text.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) ?? []);
 
-export function decisionContext(host: Host): string {
+export function decisionContext(host: Host, only?: string): string {
 	if (host.collect("projects").length === 0) return "";
 	const now = host.clock.now().getTime();
 	const lines: string[] = [];
-	for (const project of host.board.projects()) {
+	for (const project of host.board.projects().filter(({ name }) => only === undefined || name === only)) {
 		let all: Decision[];
 		try {
 			all = decisions(readLog(project));

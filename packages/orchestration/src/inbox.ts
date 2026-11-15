@@ -95,13 +95,17 @@ export function inbox(host: Host, sessions: readonly Box[]): { start(): void; st
 	return {
 		start() {
 			// A removed agent's messages not yet answered go to the coordinator's queue, and its replies and notices not yet sent
-			// to the coordinator's outbox, so none is lost.
-			for (const each of folders(folder).slice(1).filter((one) => !sessions.some((session) => session.folder === one)))
+			// (`.json` files, not its drafts nor `sent/` and `held/`) to the coordinator's outbox, so none is lost. A message of its
+			// turn that a reply it wrote answers stays, as its own restart would take it as answered (inbox-extension.ts).
+			for (const each of folders(folder).slice(1).filter((one) => !sessions.some((session) => session.folder === one))) {
+				const replies = ["outbox", "outbox/sent", "outbox/held"].flatMap((box) => list(join(each, box)).filter((one) => one.endsWith(".json")).map((one) => join(each, box, one)));
+				const answered = new Set(replies.flatMap((file) => ((JSON.parse(readFileSync(file, "utf8")) as { answers?: unknown[] }).answers ?? []).map(String)));
 				for (const [from, into] of [["inbox/queued", "inbox/queued"], ["inbox/turn", "inbox/queued"], ["outbox", "outbox"]] as const)
-					for (const name of list(join(each, from)).filter((one) => from !== "outbox" || one.endsWith(".json"))) {
+					for (const name of list(join(each, from)).filter((one) => (from !== "outbox" || one.endsWith(".json")) && !(from === "inbox/turn" && answered.has(one)))) {
 						mkdirSync(join(folder, into), { recursive: true });
 						renameSync(join(each, from, name), join(folder, into, name));
 					}
+			}
 			footer(host, sessions);
 			timer = setInterval(() => sweep(host, sessions, voice), SWEEP_MS);
 			started = true;

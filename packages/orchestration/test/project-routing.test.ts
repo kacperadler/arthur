@@ -169,16 +169,21 @@ test("coordinator.turn, on wake.ts: an owner's text message is its marked quote;
 	await assert.rejects(turn("message-received", { parts: said("Hi.").parts }), { message: "coordinator.turn: message-received: expected channel, non-empty text, got nothing" });
 });
 
-test("an agent's reply to a turn of Arthur's messages alone names its chat's channel, so no other channel sends it; a removed agent's unsent reply goes out at the start", (t) => {
+test("an agent's reply to a turn of Arthur's messages alone names its chat's channel, so no other channel sends it; a removed agent's unsent reply goes out at the start, its turn's messages a reply answers stay", (t) => {
 	const box = routed(t, { blog: BLOG });
-	const write = (session: string, name: string, entry: object) => {
-		mkdirSync(join(box.folder(session), "outbox"), { recursive: true });
-		writeFileSync(join(box.folder(session), "outbox", `${name}.json`), JSON.stringify(entry));
+	const file = (session: string, path: string, entry: object) => {
+		mkdirSync(join(box.folder(session), path, ".."), { recursive: true });
+		writeFileSync(join(box.folder(session), path), JSON.stringify(entry));
 	};
+	const write = (session: string, name: string, entry: object) => file(session, `outbox/${name}.json`, entry);
 	write("blog", "1000-000001", { text: "Blog's job ended.", answers: ["6-1000"], channels: [] });
-	// Shop's agent removed since it wrote these.
+	file("coordinator", "outbox/sent/0998-000001.json", { text: "Sent before.", answers: [], channels: [] });
+	// Shop's agent removed since it wrote these: a reply sent and one not, a notice, a draft, and its turn's messages.
 	write("shop", "1000-000002", { text: "Shop's last reply.", answers: ["7-1000"], channels: ["telegram"] });
 	write("shop", "1000-000003", { notice: "shop's notice" });
+	file("shop", "outbox/sent/0999-000001.json", { text: "Shop's reply before.", answers: ["5-1000"], channels: ["telegram"] });
+	file("shop", "outbox/.1000-000004", { text: "Half written." });
+	for (const name of ["5-1000", "7-1000", "8-1000"]) file("shop", `inbox/turn/${name}`, { channel: "telegram", text: `Message ${name}.` });
 	box.run.start();
 	box.run.stop();
 	const emitted = (name: string) => box.fake.emitted.filter((event) => event.name === name).map((event) => event.data);
@@ -186,7 +191,10 @@ test("an agent's reply to a turn of Arthur's messages alone names its chat's cha
 		{ text: "Shop's last reply.", answers: [7], channels: ["telegram"] },
 		{ text: "Blog's job ended.", answers: [6], channels: ["discord"], place: "7" },
 	]);
-	assert.deepEqual([emitted("notice"), list(join(box.folder("shop"), "outbox"))], [[{ text: "shop's notice" }], []]);
+	assert.deepEqual(emitted("notice"), [{ text: "shop's notice" }]);
+	// Its draft and its sent replies stay; its answered messages stay in its turn/, only the unanswered one is the coordinator's.
+	assert.deepEqual([list(join(box.folder("shop"), "outbox")), list(join(box.folder("shop"), "outbox", "sent")), list(join(box.folder("shop"), "inbox", "turn"))], [[".1000-000004", "sent"], ["0999-000001.json"], ["5-1000", "7-1000"]]);
+	assert.deepEqual(box.inbox(), { "8-1000": { channel: "telegram", text: "Message 8-1000." } });
 });
 
 test("a chat that names no bot is its channel's main one, by the name channel.main answers, whose messages there reach the agent; another bot's go to the coordinator", async (t) => {

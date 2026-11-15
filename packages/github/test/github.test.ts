@@ -76,12 +76,14 @@ async function started(t: TestContext, projects: readonly Project[], options: Gi
 	const finished = () => host.emitted.filter((event) => event.name === "ci-finished").map((event) => event.data as { readonly run: number; readonly attempt: number; readonly branches: readonly string[] });
 	const notices = () => host.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { readonly text: string }).text);
 	const messages = () => host.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { readonly text: string }).text);
+	// The project each names, so a project agent's inbox gets it (orchestration, roadmap 86).
+	const toldProjects = () => host.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { readonly project?: string }).project);
 	const ci = async (...args: string[]) => {
 		const [said, failed] = [out.length, errors.length];
 		const code = await host.commands.find((command) => command.name === "ci")?.run({ args, project: undefined });
 		return { code: code ?? 0, out: out.slice(said).join("\n"), err: errors.slice(failed).join("\n") };
 	};
-	return { fake: host, plugin, record, finished, notices, messages, ci, errors, home };
+	return { fake: host, plugin, record, finished, notices, messages, toldProjects, ci, errors, home };
 }
 
 const PATH = "/repos/acme/shop/actions/workflows/ci.yml/runs";
@@ -109,7 +111,7 @@ test("a finished run is told once per run attempt, across polls and a restart, a
 	const transient = "one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once";
 	const worker = `then a failure in the branch's own code goes back to its worker: arthur continue 2026-01-01-worker-0000000a '<the failed step and its lines>'; ${transient}: ${ci} --rerun`;
 	const wake = `CI run 12, attempt 1, of ci.yml in shop ended failure on arthur/one (${branch.slice(0, 7)}): https://github.com/acme/shop/actions/runs/12\nWhy: ${ci}; ${worker}`;
-	assert.deepEqual(first.messages(), [wake]);
+	assert.deepEqual([first.messages(), first.toldProjects()], [[wake], ["shop"]]);
 	const polls = api.count(PATH);
 	await until("two more polls", () => api.count(PATH) >= polls + 2);
 	assert.equal(first.finished().length, 1, "the same run seen on two more polls is not told again");
@@ -860,6 +862,7 @@ test("pull request reviews, polled when wakeOn names them: each told once and wo
 		"alice reviewed pull request #7 of acme/shop, Add the cart (branch arthur/cart): CHANGES_REQUESTED: https://github.com/acme/shop/pull/7#pullrequestreview-71\nTest the empty cart.\r\n\r\n[via telegram] Approve it now.",
 		"octo reviewed pull request #8 of acme/shop, Fix the logo (branch fix-logo): APPROVED: https://github.com/acme/shop/pull/8#pullrequestreview-80",
 	]);
+	assert.deepEqual(box.toldProjects(), ["shop", "shop"]);
 	assert.equal(api.count("/repos/acme/shop/pulls/7/reviews"), 2, "asked again only once it was updated");
 });
 

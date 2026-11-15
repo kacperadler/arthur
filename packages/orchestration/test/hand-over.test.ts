@@ -162,7 +162,7 @@ test("the extension's notice of omp's error reaches the phone with each env file
 		handlers.get("tool_result")?.({}, { hasUI: true });
 		handlers.get("agent_end")?.({ messages: [error] }, { hasUI: true });
 	}
-	const run = inbox(fake.host);
+	const run = inbox(fake.host, [{ name: "coordinator", folder: fake.host.folder }]);
 	t.after(() => run.stop());
 	run.start();
 	run.stop();

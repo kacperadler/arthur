@@ -4,6 +4,7 @@ import { redact } from "./credential.ts";
 import { byPolicy, CLASS, described, ticketKind } from "./decision-classes.ts";
 import { type Answer, type Ask, change, type Close, DECISION_ID, decisions, KINDS, oneLine, readLog, stamp } from "./decision-log.ts";
 import { proof } from "./decision-proof.ts";
+import { type Box, noticeAt } from "./sessions.ts";
 import { byRecommendation } from "./silent.ts";
 
 // A question asked, answered or closed in the decision log (decision-log.ts): docs/commands/decision.md.
@@ -42,9 +43,10 @@ function impact(ask: Ask, picked: number | undefined): string | undefined {
 	return ask.ticket === undefined && ask.job === undefined ? "lets through arthur take-main" : "lets through arthur merge";
 }
 
-// Records the owner's answer, with the number of his message that holds its words (decision-proof.ts); the record as written,
-// with its question. A high-impact one sends him a notice, built without the model, of what was recorded, the option picked (AR0688) and his whole message.
-export function answer(host: Host, project: Project, id: string, given: { readonly decided?: string; readonly picked?: string; readonly words: string }): { readonly answer: Answer; readonly ask: Ask; readonly unwritten?: string } {
+// Records the owner's answer, with the number of his message that holds its words (decision-proof.ts) in the inbox of `session`,
+// the one the command runs in (entry 86), the coordinator's outside every session; the record as written, with its question.
+// A high-impact one sends him a notice to that session's chat, built without the model, of what was recorded, the option picked (AR0688) and his whole message.
+export function answer(host: Host, project: Project, id: string, given: { readonly decided?: string; readonly picked?: string; readonly words: string }, session?: Box): { readonly answer: Answer; readonly ask: Ask; readonly unwritten?: string } {
 	if (given.words.trim() === "") throw new Error(`an empty answer: the owner's words, as he wrote or said them, after the flags`);
 	if (/^by policy\b/i.test(given.words.trim())) throw new Error("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words");
 	if (given.decided === undefined || given.decided.trim() === "") throw new Error("no --decided: the decision in one English line");
@@ -55,7 +57,7 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 	if (picked !== undefined && !(Number.isInteger(picked) && picked >= 1 && picked <= found.options.length)) throw new Error(`--picked ${given.picked}: no such option; ${id} offered ${found.options.length}`);
 	if (found.class !== undefined && picked === undefined) throw new Error(`${id} proposes a class: --picked 1 approves it, --picked 2 refuses it`);
 	const high = impact(found, picked);
-	const proved = proof(host.folder, given.words, Date.parse(found.time), high === undefined ? undefined : id);
+	const proved = proof(session?.folder ?? host.folder, given.words, Date.parse(found.time), high === undefined ? undefined : id);
 	if (typeof proved === "string") throw new Error(high === undefined ? proved : `${id} ${high}: ${proved}`);
 	const record: Answer = { record: "answer", id, time: stamp(host), decided: redact(oneLine(given.decided), host.secrets), ...(picked === undefined ? {} : { picked }), words: redact(given.words.trim(), host.secrets), message: proved.seq };
 	const { unwritten } = change(host, project, () => [record]);
@@ -63,7 +65,7 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 	// His whole message in code points, so a character of two UTF-16 units is never cut in half.
 	const whole = [...redact(proved.text.trim(), host.secrets)];
 	const message = `${whole.slice(0, 400).join("")}${whole.length > 400 ? " … (cut)" : ""}`;
-	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; picked: ${picked === undefined ? "none" : `option ${picked}, "${found.options[picked - 1]}"`}; your words: "${record.words}"; your message: "${message}"`, decision: id });
+	if (high !== undefined) host.events.emit("notice", { text: `Recorded as your decision ${id} (${found.kind}${where}, ${high}): ${record.decided}; picked: ${picked === undefined ? "none" : `option ${picked}, "${found.options[picked - 1]}"`}; your words: "${record.words}"; your message: "${message}"`, decision: id, ...noticeAt(session?.chat) });
 	return { answer: record, ask: found, unwritten };
 }
 

@@ -116,9 +116,11 @@ async function load(t: TestContext, github = true) {
 		return out;
 	};
 	const messages = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { readonly text: string }).text);
+	// The project each names, so a project agent's inbox gets it (orchestration, roadmap 86).
+	const projects = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { readonly project?: string }).project);
 	const waiting = (id: string) => existsSync(join(fake.host.folder, id, "ci-wait"));
 	return {
-		...{ root, fake, plugin, git, commit, worker, review, run, merge: (...args: string[]) => run("merge", args), messages, waiting, asked, cancels, answers, owner },
+		...{ root, fake, plugin, git, commit, worker, review, run, merge: (...args: string[]) => run("merge", args), messages, projects, waiting, asked, cancels, answers, owner },
 		head: () => git(root, "rev-parse", "HEAD"),
 		set: (next: Record<string, unknown>) => void (project = next),
 	};
@@ -378,7 +380,7 @@ test("a run 1 below the tip, on the branch's own commit, that hangs past 30 minu
 });
 
 test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes the coordinator with its verdict once per run end, a rerun's end again, and answers true; the poll never wakes on an end; a run on main, another branch or project, or no wait answers false", async (t) => {
-	const { fake, worker, review, merge, answers, asked, messages, waiting, set } = await load(t);
+	const { fake, worker, review, merge, answers, asked, messages, projects, waiting, set } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
 	answers.ci = ciRun(job.tip, job.branch, { status: "in_progress", conclusion: null });
@@ -401,6 +403,7 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 	set({ autoMerge: false });
 	assert.deepEqual(end({}, { attempt: 2, conclusion: "success" }), [true]);
 	assert.deepEqual(messages().slice(1), [`CI passed on ${where.replace("attempt 1", "attempt 2")}. acme no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${job.id} --decision <the owner's decision id>`], "autoMerge off since the wait: the merge is the owner's");
+	assert.deepEqual(projects(), ["acme", "acme"]);
 	set({ autoMerge: true });
 	assert.deepEqual(end({}, { attempt: 3, conclusion: "success" }), [true]);
 	assert.equal(messages().length, 2, "with autoMerge on delivery runs the merge in arthur run, whose output is the wake (pass-forward.test.ts)");
@@ -415,7 +418,7 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 });
 
 test("a run that hangs is cancelled 30 minutes after its start, once, across a restart; a refused cancel wakes the coordinator; a new commit or a pruned job ends the wait; a broken wait is said once", async (t) => {
-	const { fake, commit, worker, review, merge, answers, cancels, messages, waiting, git, root } = await load(t);
+	const { fake, commit, worker, review, merge, answers, cancels, messages, projects, waiting, git, root } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
 	answers.ci = ciRun(job.tip, job.branch, { status: "in_progress", conclusion: null, startedAt: T0 });
@@ -437,6 +440,7 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	answers.cancelled = new Error("instance (unnamed): 403 for run 9 of acme/shop: Resource not accessible by personal access token");
 	await waits.round();
 	assert.equal(messages()[1], `CI run 9, attempt 1, on ${job.branch} has run 30 minutes and was not cancelled: instance (unnamed): 403 for run 9 of acme/shop: Resource not accessible by personal access token. Cancel it on GitHub: https://github.com/acme/shop/actions/runs/9`);
+	assert.deepEqual(projects(), ["acme", "acme"]);
 	await waits.round();
 	assert.equal(cancels.length, 2, "a refused cancel is not asked again");
 

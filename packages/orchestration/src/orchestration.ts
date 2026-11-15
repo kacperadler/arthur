@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { actor } from "./actor.ts";
+import { agentCommand } from "./agent-command.ts";
 import { autopilot } from "./autopilot.ts";
 import { blockedNotice } from "./blocked-notice.ts";
 import { boardCommands } from "./board-commands.ts";
@@ -18,7 +19,7 @@ import { type McpOptions, mcpServers } from "./mcp.ts";
 import { checkOptions, coordinatorOptions } from "./orchestration-options.ts";
 import { paperCheck } from "./paper-check.ts";
 import { plans } from "./plans.ts";
-import { type Chat, chatProblem, oneAtATime, type Session, sessionList } from "./sessions.ts";
+import { type Chat, chatProblem, oneAtATime, type Session, sessionList, sessionOf } from "./sessions.ts";
 import { silentMode } from "./silent.ts";
 import { spawnRules } from "./spawn-rules.ts";
 
@@ -30,7 +31,8 @@ import { spawnRules } from "./spawn-rules.ts";
 // autopilot.ts); the silent mode (entry 47, silent.ts); tmux as its `arthur doctor` requirement (entry 80); the morning
 // report (entry 65): with `morningReport.at`, an action schedule sends the coordinator with roles/coordinator/morning-report.md;
 // and the decision log (entry 96, decision-log.ts), `arthur decision` and `arthur decisions`, with what only the owner's decision lets through (decision-use.ts); the merge's check of a worker's branch (paper-check.ts); `actor`, who acts in a session (entry 99, actor.ts);
-// and a project agent per project whose file holds `orchestration.project({ chat })`, its `arthur doctor` line that its chat's plugin sends (entry 85, sessions.ts).
+// and a project agent per project whose file holds `orchestration.project({ chat })`, its `arthur doctor` line that its chat's plugin sends (entry 85, sessions.ts);
+// its chat's messages and its project's job ends and plugin messages in its inbox, and `arthur agent tell` (entry 86, inbox.ts, agent-command.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -85,14 +87,14 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			const { folder, agent } = host;
 			const sessions = sessionList(host, coordinator);
 			place = { sessions, agent, host };
-			messages = inbox(host);
-			unsent = blockedNotice(host);
+			messages = inbox(host, sessions);
+			unsent = blockedNotice(host, sessions);
 			spawnRules(host, coordinator, sessions);
 			plans(host);
-			autopilot(host);
+			autopilot(host, () => sessionOf(sessions)?.project);
 			silentMode(host);
 			decisionHooks(host);
-			decisionUse(host);
+			decisionUse(host, sessions);
 			paperCheck(host);
 			host.provide("actor", actor(sessions));
 			const at = (host.options as OrchestrationOptions).morningReport?.at;
@@ -117,7 +119,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 						critical: true,
 					})),
 				);
-			for (const command of coordinatorCommands(host, sessions)) host.commands.register(command);
+			for (const command of [...coordinatorCommands(host, sessions), agentCommand(host, sessions)]) host.commands.register(command);
 			// For another plugin (session's /restart and fresh start): ends the coordinator's session, which `arthur run` starts
 			// again; a fresh one, without `--continue`, after the mark. Running jobs are the caller's to check.
 			host.provide("coordinator.restart", (asked: { readonly fresh?: unknown } = {}) => {
@@ -131,7 +133,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 				if (typeof root !== "string" || !(at instanceof Date) || !lines) throw new Error(`coordinator.checkoutContext: expected { root: a folder, at: a Date, context: { <plugin>: <text> } }, got ${JSON.stringify(asked)}`);
 				return coordinatorContext(host, { root, at, context: context as Record<string, string> });
 			});
-			for (const command of [...boardCommands(host), ...decisionCommands(host)]) host.commands.register(command);
+			for (const command of [...boardCommands(host), ...decisionCommands(host, sessions)]) host.commands.register(command);
 		},
 		start() {
 			unsent?.();

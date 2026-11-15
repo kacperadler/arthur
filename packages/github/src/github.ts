@@ -110,7 +110,7 @@ export function github(options: GithubOptions): Plugin {
 					const fill = (text: string) => text.replace(/\{(\w+)\}/g, (all, key: "branch" | "project" | "job") => ({ branch: rest[0], project, job })[key] ?? all);
 					const why = ["failure", "timed_out", "startup_failure", "cancelled"].includes(run.conclusion ?? "") ? `\n${fill(readFileSync(procedure, "utf8").trim())}` : "";
 					const text = `CI run ${run.id}, attempt ${run.attempt}, of ${workflow} in ${project} ended ${run.conclusion} on ${rest.join(", ")} (${run.sha.slice(0, 7)}): ${run.url}${why}`;
-					host.events.emit("coordinator-message", { text });
+					host.events.emit("coordinator-message", { text, project });
 				}
 				// Only the attempts GitHub still lists are kept: an older run, or an attempt before a rerun, never comes back.
 				save({ ...state, runs: { ...state.runs, [each.project]: runs.flatMap((run) => (told.has(key(run)) ? [key(run)] : [])) } });
@@ -125,7 +125,7 @@ export function github(options: GithubOptions): Plugin {
 				for (const review of answer.reviews) {
 					host.events.emit("pull-request-review", review);
 					const body = review.body.trim() === "" ? "" : `\n${review.body.trim().slice(0, 1000)}`;
-					host.events.emit("coordinator-message", { text: `${review.user} reviewed pull request #${review.pull} of ${review.repo}, ${review.title} (branch ${review.branch}): ${review.state}: ${review.url}${body}` });
+					host.events.emit("coordinator-message", { text: `${review.user} reviewed pull request #${review.pull} of ${review.repo}, ${review.title} (branch ${review.branch}): ${review.state}: ${review.url}${body}`, project: each.project });
 				}
 				save({ ...state, pulls: { ...state.pulls, [each.project]: answer.pulls } });
 			};

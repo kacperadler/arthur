@@ -53,6 +53,8 @@ With `ci-finished` in `wakeOn`, each one that did not end `success` also reaches
 
 The second line's words are the procedure `packages/github/roles/coordinator/ci-failed-worker.md` for a job's branch, `ci-failed-owner.md` beside it for any other, read as the wake is written, `{branch}`, `{project}` and `{job}` filled in.
 
+Each `coordinator-message` the plugin sends, a run's here and a review's below, names its project (`project`), so a project with its own agent gets it in that agent's inbox instead of the coordinator's (`arthur coordinator --help`, "Project agents").
+
 ## Pull request reviews
 
 With `pull-request-review` in `wakeOn`, each poll also asks, per project with a `github.project({ workflow })`, for its repository's 100 open pull requests most recently updated, and for the reviews of each one that is new or whose `updated_at` changed since the poll before (submitting a review updates it). Each submitted review not told before (a pending one is a draft, not submitted) is emitted as `pull-request-review`:

@@ -182,7 +182,7 @@ test("a Blocked: on reason and the lines plugins add to the wake lose the env fi
 test("one notice per block: a second process given the same event sends none; the job's next block is a new notice; a dependency is none", async (t) => {
 	const { fake, notices, blocked } = await setup(t);
 	// A second process that loads the plugin gets the same event, as does `arthur run` again after a crash.
-	blockedNotice(fake.host);
+	blockedNotice(fake.host, [{ name: "coordinator", folder: fake.host.folder }]);
 	blocked(ID, "may I?");
 	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }]);
 	fake.emit("job-state", { id: ID, project: "demo", ticket: null, machine: "local", from: "blocked", to: "working", reason: "" });
@@ -254,7 +254,7 @@ test("a crash before the notice, its question waiting for the log's lock: the ne
 	crashed(f, "May I copy it?", dead, { gone: "time" });
 	crashed(g, "May I paste it?", dead, { gone: "seq" });
 	// `arthur run` started again, after the replay.
-	const start = blockedNotice(fake.host);
+	const start = blockedNotice(fake.host, [{ name: "coordinator", folder: fake.host.folder }]);
 	start();
 	const idOf = (job: string) => asks().findLast((each) => each.job === job)?.id;
 	assert.deepEqual(asks().slice(4).map((each) => [each.kind, each.job, each.question]).toSorted(), [["job", a, "May I drop it?"], ["job", d, "May I move it?"]], "b's question not asked again");

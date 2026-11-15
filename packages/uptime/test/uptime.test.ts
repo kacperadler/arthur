@@ -141,6 +141,8 @@ test("a site is down after 2 failed checks: one notice, uptime-down and one coor
 	const answering = site.seen("/");
 	await until("two more checks", () => site.seen("/") >= answering + 2);
 	assert.deepEqual([notices().length, events("uptime-down").length, events("uptime-up").length, woken().length], [2, 1, 1, 2], "nothing repeats while it answers");
+	// Each names its project, so a project agent's inbox gets it (orchestration, roadmap 86).
+	assert.deepEqual(events("coordinator-message").map((data) => (data as { project?: unknown }).project), ["acme", "acme"]);
 });
 
 test("a project's own runbook is named while it is a regular file inside its folder; missing, a folder, a symlink or under a symlinked folder, the boilerplate", async (t) => {

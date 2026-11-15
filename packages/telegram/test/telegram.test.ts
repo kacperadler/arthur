@@ -224,7 +224,7 @@ test("a 429 while polling waits the seconds Telegram says, and says so once", as
 	assert.deepEqual(errors, ["telegram bot (unnamed): getUpdates: 429: Too Many Requests: retry after 3; polling retries in 3 s"]);
 });
 
-test("every bot polls its own chat; a reply goes by each bot the messages it answers came through, the rest by the unnamed one", async (t) => {
+test("every bot polls its own chat; a reply goes by each bot the messages it answers came through, the rest by the bot its instance names, else the unnamed one", async (t) => {
 	const api = await botApi(t);
 	const bots = [
 		{ name: "second", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" },
@@ -232,6 +232,9 @@ test("every bot polls its own chat; a reply goes by each bot the messages it ans
 	];
 	const env = { ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: String(CHAT), ARTHUR_TELEGRAM_SECOND_BOT_TOKEN: SECOND, ARTHUR_TELEGRAM_SECOND_CHAT_ID: String(CHAT) };
 	const { fake, plugin, received } = await load(t, { apiUrl: api.url, bots }, { env });
+	// The main bot's name for orchestration's routing of a chat that names no bot: none for the unnamed one; the first when every bot has a name.
+	const named = await load(t, { apiUrl: api.url, bots: bots.map((each) => ({ name: "first", ...each })) }, { env });
+	assert.deepEqual([fake.call("channel.main"), named.fake.call("channel.main")], [undefined, "second"]);
 	await plugin.start?.();
 	api.push({ text: "To the second bot." }, 5, SECOND);
 	api.push({ text: "To the unnamed bot." }, 5, TOKEN);
@@ -245,15 +248,21 @@ test("every bot polls its own chat; a reply goes by each bot the messages it ans
 	fake.emit("coordinator-replied", { text: "A job ended.", answers: [], channels: [] });
 	fake.emit("coordinator-replied", { text: "Answers no message of the log.", answers: [10_000], channels: ["telegram"] });
 	fake.emit("notice", { text: "A notice." });
-	await until("the sends", () => api.took(SECOND).length === 2 && api.took(TOKEN).length === 5);
-	assert.deepEqual(
-		api.took(SECOND).map((sent) => sent.text),
-		["To the second.", "To both."],
-	);
+	// A project agent's (orchestration, roadmap 86): by the bot its instance names when no answered message names one, to its topic.
+	fake.emit("coordinator-replied", { text: "Shop's wake.", answers: [], channels: ["telegram"], instance: "second", place: "42" });
+	fake.emit("coordinator-replied", { text: "Shop answers the unnamed.", answers: [unnamed], channels: ["telegram"], instance: "second" });
+	fake.emit("notice", { text: "Shop asks.", channel: "telegram", instance: "second", place: "42" });
+	// Another channel's notice: its place and bot are not Telegram's, so it goes by the unnamed bot to the chat itself.
+	fake.emit("notice", { text: "Blog asks.", channel: "discord", instance: "second", place: "42" });
+	fake.emit("notice", { text: "A bot gone.", channel: "telegram", instance: "gone" });
+	await until("the sends", () => api.took(SECOND).length === 4 && api.took(TOKEN).length === 8);
+	const topics = (token: string) => api.took(token).map((sent) => [sent.text, sent.message_thread_id]);
+	assert.deepEqual(topics(SECOND), [["To the second.", undefined], ["To both.", undefined], ["Shop's wake.", 42], ["Shop asks.", 42]]);
 	assert.deepEqual(
 		api.took(TOKEN).map((sent) => sent.text),
-		["To the unnamed.", "To both.", "A job ended.", "Answers no message of the log.", "A notice."],
+		["To the unnamed.", "To both.", "A job ended.", "Answers no message of the log.", "A notice.", "Shop answers the unnamed.", "Blog asks.", "A bot gone."],
 	);
+	assert.equal(api.took(TOKEN).find((sent) => sent.text === "Blog asks.")?.message_thread_id, undefined);
 	assert.ok(api.polls(SECOND).length >= 1 && api.polls(TOKEN).length >= 1);
 });
 

@@ -10,6 +10,8 @@ import { type Coordinator, roleOptions } from "./orchestration-options.ts";
 // Where a project agent talks: a channel plugin's place, through the bot `instance` names, else that plugin's main one.
 export type Chat = { readonly plugin: string; readonly instance?: string; readonly place: string };
 export type Session = { readonly name: string; readonly project?: string; readonly chat?: Chat; readonly folder: string; readonly coordinator: Coordinator };
+// What the inbox and the notices read of a session; the coordinator's first in a list.
+export type Box = Pick<Session, "name" | "project" | "chat" | "folder">;
 type Listed = { readonly name: string; readonly pieces?: { readonly orchestration?: { readonly chat: Chat } } };
 
 // An array is an object here too: its keys are indices, which no piece and no chat takes.
@@ -41,6 +43,18 @@ export function sessionList(host: Host, coordinator: Coordinator): Session[] {
 
 // The session this process runs in, by the folder its supervisor set; undefined outside every session (a terminal, a job).
 export const sessionOf = (list: readonly Session[], env: NodeJS.ProcessEnv = process.env): Session | undefined => list.find((each) => each.folder === env.ARTHUR_ORCHESTRATION_FOLDER);
+
+// The session a message goes to: the agent whose chat is the channel, bot and place it came from, or, for Arthur's own (no
+// channel), the agent of the project it names; else the coordinator, first in the list (spec/roadmap.md, entry 86). A chat
+// that names no bot is its channel's main one, whose name `main` holds by channel (`channel.main`), none for an unnamed one.
+export function sessionFor<T extends Pick<Session, "project" | "chat">>(list: readonly T[], to: Readonly<Record<string, unknown>>, main: Readonly<Record<string, unknown>> = {}): T {
+	const found = list.find(({ project, chat }) => chat !== undefined && (to.channel === undefined ? project === to.project : chat.plugin === to.channel && (chat.instance ?? main[chat.plugin]) === to.instance && chat.place === to.place));
+	return found ?? (list[0] as T);
+}
+
+// Where a notice of an agent's goes: its chat's channel, bot and place; nothing for the coordinator's, which every channel sends.
+export const noticeAt = (chat: Chat | undefined): { readonly channel?: string; readonly instance?: string; readonly place?: string } =>
+	chat === undefined ? {} : { channel: chat.plugin, ...(chat.instance === undefined ? {} : { instance: chat.instance }), place: chat.place };
 
 // How the starts of every session `arthur run` supervises go: one at a time, each after the one before it ended, so two agents
 // never refresh the shared login at once.

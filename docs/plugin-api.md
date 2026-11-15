@@ -206,10 +206,11 @@ The events plugins share, which channels and the coordinator keep (`arthur send 
 | Event | Fields | Emitted by |
 | --- | --- | --- |
 | `message-received` | `channel`, `parts` (each `Part`), `place?`, `instance?` | A channel, once per owner's message. |
-| `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule, github). |
-| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn, and after it `voice note not sent: <why>` when the reply's voice note could not go (AR0553); a claimed part's `reply`. |
+| `coordinator-message` | `text`, `project?` | A plugin with a message for the coordinator (schedule, github); one that names a project with an agent goes to that agent instead (`arthur coordinator --help`, "Project agents"). |
+| `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?`, `instance?` | Orchestration, after a turn, and after it `voice note not sent: <why>` when the reply's voice note could not go (AR0553); a claimed part's `reply`. A project agent's names its chat's channel alone, its place and its bot. |
+| `agent-told` | `to`, `from` (sessions: `coordinator`, `agent:<project>`), `text` | Orchestration's `arthur agent tell`, from one session to another. |
 | `schedule-fired` | `id`, `slot` (ISO time), `late`, `does` (`action`, `job` or `run`) | Schedule, once an entry's slot is claimed, before it runs. |
-| `notice` | `text`, `place?` | Any plugin; every channel sends it unless `coordinator.silent` holds it. |
+| `notice` | `text`, `place?`, `channel?`, `instance?` | Any plugin; every channel sends it unless `coordinator.silent` holds it, at its place by the bot `instance` names when `channel` is none or its own, else at its main place. |
 
 ### Who acted
 
@@ -241,6 +242,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `listen.transcribe` | listen | listen (`arthur transcribe`), video (a video's sound track, through `collect`: none answering is the listen plugin not enabled), any plugin | A promise of `{ seconds, text, segments }` for a file's path, each segment `{ start, end, text }` in seconds; rejects with why it was not transcribed (`docs/listen.md`). |
 | `speak.say` | speak | speak (`arthur say`), orchestration (a reply to a voice note, through `collectEach`: none answering is the speak plugin not enabled), any plugin | A promise of the absolute path of an OGG/Opus voice note in `.arthur/speak/` for a text, spoken by Piper with the voice of its language; rejects with why it was not spoken (`packages/speak/docs/speak.md`). |
 | `channel.send` | discord, telegram | the core (`arthur send`), manage (`/retro`, `/repeats`, only the channel the command came from), orchestration (the voice note of a reply, only the channel the voice note came from; with `{ files: [] }`, never sent, its `arthur doctor` line that a project's chat has a channel) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
+| `channel.main` | discord, telegram | orchestration (`collectEach`, as it routes an owner's message to a project agent) | The name of the channel's main bot, the one a project's chat that names no `instance` talks through; undefined for an unnamed one. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
 | `coordinator.context` | develop, findings, manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |

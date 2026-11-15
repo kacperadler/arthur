@@ -301,23 +301,31 @@ test("the footer names the running jobs while one runs and is cleared when none 
 	assert.deepEqual(status()[1], ["arthur", null]);
 });
 
-test("one event queued twice, and again after its file moved to turn/ and answered/, leaves one file; a new event of that number after a cut log is queued", () => {
+test("one event queued twice, and again after its file moved to turn/ and answered/ of any session, leaves one file; a new event of that number after a cut log is queued", () => {
 	const folder = temporaryFolder();
-	const inbox = (step: string) => sorted(join(folder, "inbox", step));
+	const inbox = (step: string, at = folder) => sorted(join(at, "inbox", step));
 	const event = { seq: 5, time: "2026-10-18T10:00:00.000Z" };
 	const name = `5-${Date.parse(event.time)}`;
-	queue(folder, event, { channel: "telegram", text: "Hi." });
-	queue(folder, event, { channel: "telegram", text: "Hi." });
+	queue(folder, folder, event, { channel: "telegram", text: "Hi." });
+	queue(folder, folder, event, { channel: "telegram", text: "Hi." });
 	assert.deepEqual([inbox("queued"), readFileSync(join(folder, "inbox", "queued", name), "utf8")], [[name], '{"channel":"telegram","text":"Hi."}']);
 	for (const [from, to] of [["queued", "turn"], ["turn", "answered"]]) {
 		mkdirSync(join(folder, "inbox", to ?? ""));
 		execFileSync("mv", [join(folder, "inbox", from ?? "", name), join(folder, "inbox", to ?? "", name)]);
-		queue(folder, event, { channel: "telegram", text: "Hi." });
+		queue(folder, folder, event, { channel: "telegram", text: "Hi." });
 		assert.deepEqual([inbox("queued"), inbox("turn"), inbox("answered")], [[], to === "turn" ? [name] : [], to === "answered" ? [name] : []]);
 	}
 	assert.deepEqual(readdirSync(join(folder, "inbox")).sort(), ["answered", "queued", "turn"], "no draft left behind");
+	// Seen in the coordinator's answered/, the event is not queued for an agent either, nor, seen in an agent's, for the coordinator.
+	const shop = join(folder, "agents", "shop");
+	queue(folder, shop, event, { channel: "telegram", text: "Hi." });
+	assert.deepEqual(inbox("queued", shop), []);
+	const other = { seq: 6, time: event.time };
+	queue(folder, shop, other, { text: "Job ended." });
+	queue(folder, folder, other, { text: "Job ended." });
+	assert.deepEqual([inbox("queued", shop), inbox("queued")], [[`6-${Date.parse(event.time)}`], []]);
 	// The log cut by hand starts its numbers again: event 5 of the new log is another message.
-	queue(folder, { seq: 5, time: "2026-10-19T08:00:00.000Z" }, { channel: "telegram", text: "New." });
+	queue(folder, folder, { seq: 5, time: "2026-10-19T08:00:00.000Z" }, { channel: "telegram", text: "New." });
 	assert.deepEqual(inbox("queued"), [`5-${Date.parse("2026-10-19T08:00:00.000Z")}`]);
 });
 
@@ -326,12 +334,14 @@ test("a malformed message-received or coordinator-message queues nothing and log
 	const text = { kind: "text", text: "Hi.", mime: "text/plain" };
 	for (const data of [{ parts: [text] }, { channel: "telegram", text: "Hi." }, { channel: "telegram", parts: [{ ...text, text: "  " }] }, null]) box.fake.emit("message-received", data);
 	for (const data of [{}, { text: 3 }]) box.fake.emit("coordinator-message", data);
+	for (const data of [{ to: "coordinator", text: "Hi." }, { to: "coordinator", from: "agent:shop", text: " " }]) box.fake.emit("agent-told", data);
 	assert.deepEqual(box.errors, [
 		"orchestration: message-received (event 1) ignored: expected channel, non-empty text, got nothing",
 		"orchestration: message-received (event 2) ignored: expected parts, a list of at least one part, got nothing",
 		"orchestration: message-received (event 3) ignored: parts[0]: expected { kind: text | photo | video | voice | audio | file, mime, text (a text part) or path (any other), seconds? }",
 		"orchestration: message-received (event 4) ignored: expected channel, non-empty text, got nothing",
 		...[5, 6].map((seq) => `orchestration: coordinator-message (event ${seq}) ignored: expected { text }, non-empty text`),
+		...[7, 8].map((seq) => `orchestration: agent-told (event ${seq}) ignored: expected { to, from, text }, non-empty text`),
 	]);
 	assert.equal(existsSync(join(box.folder, "inbox")), false);
 });

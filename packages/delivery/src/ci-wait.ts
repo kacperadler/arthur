@@ -83,7 +83,7 @@ export function ciEnded(host: Host, { project, branch, below, run }: CiEnd, forw
 		appendFileSync(file, `${key} ended\n`);
 		const text = ended(wait, run, cancelled);
 		if (run.conclusion !== "success" || !forward(project, id, text, `ci ${key}`))
-			host.events.emit("coordinator-message", { text: run.conclusion === "success" ? `${text} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${id} --decision <the owner's decision id>` : text });
+			host.events.emit("coordinator-message", { text: run.conclusion === "success" ? `${text} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${id} --decision <the owner's decision id>` : text, project });
 		return true;
 	}
 	return false;
@@ -125,7 +125,7 @@ export function ciWaits(host: Host): CiWaits {
 			console.log(await host.call<Promise<string>>("github.cancel", { project: wait.project, run: run.id }));
 		} catch (error) {
 			const text = `CI run ${run.id}, attempt ${run.attempt}, on ${wait.branch} has run ${HANG_MINUTES} minutes and was not cancelled: ${(error as Error).message}. Cancel it on GitHub: ${run.url}`;
-			host.events.emit("coordinator-message", { text });
+			host.events.emit("coordinator-message", { text, project: wait.project });
 		}
 	};
 	const round = async () => {

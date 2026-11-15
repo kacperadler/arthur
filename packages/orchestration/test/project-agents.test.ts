@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -10,7 +10,8 @@ import { oneAtATime } from "../src/sessions.ts";
 import { fakeTmux, type Start } from "./fake-tmux.ts";
 
 // AR0705 (roadmap 85): a project agent per project whose file holds `orchestration.project({ chat })`, supervised beside the
-// coordinator on the fake tmux and omp of fake-tmux.ts, since the job sandbox refuses the Unix socket a real tmux needs.
+// coordinator on the fake tmux and omp of fake-tmux.ts, since the job sandbox refuses the Unix socket a real tmux needs; and
+// AR0706 (roadmap 86): `arthur agent tell`, the notices of its project and what its session may do with decisions.
 
 const PATH = process.env.PATH ?? "";
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
@@ -57,9 +58,9 @@ async function load(t: TestContext, pieces: Readonly<Record<string, unknown>>, o
 		}
 	});
 	await fake.setup(plugin);
-	const command = async (name: string, args: string[]) => {
+	const command = async (name: string, args: string[], project?: string) => {
 		const [before, errors] = [out.length, err.length];
-		const code = (await fake.commands.find((each) => each.name === name)?.run({ args, project: undefined })) ?? 0;
+		const code = (await fake.commands.find((each) => each.name === name)?.run({ args, project })) ?? 0;
 		return { code, out: out.slice(before).map((line) => line.text), err: err.slice(errors).map((line) => line.text) };
 	};
 	const of = (project: string | null) => tmux.starts().filter((start) => start.ARTHUR_PROJECT === project);
@@ -276,6 +277,95 @@ test("from a project agent's session a spawn or continue of another project's jo
 	assert.equal((await box.fake.host.jobs.spawn({ task: "Go.", project: "shop" })).project, "shop");
 	process.env.ARTHUR_ORCHESTRATION_FOLDER = box.fake.host.folder;
 	assert.equal((await box.fake.host.jobs.spawn({ task: "Go.", project: "blog" })).project, "blog", "the coordinator's session spawns for every project");
+});
+
+test("arthur agent tell: from one session to another, marked [from]; refused outside a session, to itself and to an unknown agent, naming those that exist", async (t) => {
+	const box = await load(t, { shop: chat("telegram", "4"), blog: chat("discord", "5"), docs: undefined });
+	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	const queued = (folder: string) => {
+		const dir = join(folder, "inbox", "queued");
+		return existsSync(dir) ? readdirSync(dir).map((name) => JSON.parse(readFileSync(join(dir, name), "utf8"))) : [];
+	};
+	const usage = { code: 2, out: [], err: ["usage: arthur agent tell <project|coordinator> '<text>'"] };
+	for (const args of [[], ["tell"], ["tell", "shop"], ["tell", "shop", " "], ["ask", "shop", "Hi."]]) assert.deepEqual(await box.command("agent", args), usage, args.join(" "));
+	const refused = (why: string) => ({ code: 1, out: [], err: [`arthur agent tell: refused: ${why}`] });
+	assert.deepEqual(await box.command("agent", ["tell", "shop", "Ship it."]), refused("only a session of Arthur's tells another: the coordinator or a project agent, in its own omp"));
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = box.fake.host.folder;
+	assert.deepEqual(await box.command("agent", ["tell", "docs", "Hi."]), refused("no agent docs; agents: coordinator, shop, blog"));
+	assert.deepEqual(await box.command("agent", ["tell", "coordinator", "Hi."]), refused("coordinator is this session; tell another: coordinator, shop, blog"));
+	assert.deepEqual(await box.command("agent", ["tell", "shop", "Ship", "the cart."]), { code: 0, out: ["arthur agent tell: queued for agent:shop, marked [from coordinator]"], err: [] });
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = box.folder("shop");
+	assert.deepEqual(await box.command("agent", ["tell", "shop", "Hi."]), refused("shop is this session; tell another: coordinator, shop, blog"));
+	assert.deepEqual(await box.command("agent", ["tell", "coordinator", "Blog needs a fix."]), { code: 0, out: ["arthur agent tell: queued for coordinator, marked [from agent:shop]"], err: [] });
+	assert.deepEqual([queued(box.folder("shop")), queued(box.fake.host.folder), queued(box.folder("blog"))], [[{ from: "coordinator", text: "Ship the cart." }], [{ from: "agent:shop", text: "Blog needs a fix." }], []]);
+	// A plugin's message about a project, as delivery's, github's or uptime's, wakes that project's agent.
+	box.fake.emit("coordinator-message", { text: "CI failed on blog.", project: "blog" });
+	assert.deepEqual(queued(box.folder("blog")), [{ plugin: "test", text: "CI failed on blog." }]);
+});
+
+test("a job of a project with an agent, blocked on the owner, has its notice sent to that agent's chat; one of a project without one, to every channel", async (t) => {
+	const box = await load(t, { shop: chat("telegram", "4", "shopbot"), docs: undefined });
+	const notices = () => box.fake.emitted.filter((event) => event.name === "notice").map((event) => event.data);
+	const [shop, docs] = ["2026-01-01-worker-0000000a", "2026-01-01-worker-0000000b"];
+	for (const [id, project] of [[shop, "shop"], [docs, "docs"]]) box.fake.emit("job-state", { id, project, ticket: null, machine: "local", from: "working", to: "blocked", reason: "user: May I drop it?" });
+	await until("both notices", () => notices().length === 2);
+	assert.deepEqual(notices(), [
+		{ text: `${shop} asks [SH-D1]: May I drop it?`, blocked: shop, channel: "telegram", instance: "shopbot", place: "4" },
+		{ text: `${docs} asks [BL-D1]: May I drop it?`, blocked: docs },
+	]);
+});
+
+test("each session's footer counts its own jobs: the coordinator's every job in a run, an agent's its project's only", async (t) => {
+	const box = await load(t, { shop: chat("telegram", "4"), blog: chat("discord", "5") });
+	const footer = (folder: string) => (existsSync(join(folder, "footer")) ? readFileSync(join(folder, "footer"), "utf8") : undefined);
+	const job = await box.fake.host.jobs.spawn({ task: "Wait.", project: "shop" });
+	const short = job.id.split("-").at(-1) ?? "";
+	await until("shop's footer", () => footer(box.folder("shop"))?.endsWith(`: ${short}`));
+	assert.deepEqual([footer(box.fake.host.folder), footer(box.folder("blog"))], [footer(box.folder("shop")), ""]);
+	box.tmux.releaseJobs();
+	await until("the job's end", () => box.fake.host.jobs.running().length === 0);
+	box.fake.emit("job-ended", { id: job.id, project: "shop", state: "ended" });
+	assert.deepEqual([footer(box.fake.host.folder), footer(box.folder("shop")), footer(box.folder("blog"))], ["", "", ""]);
+});
+
+test("from a project agent's session a decision is answered only from the owner's own message in its inbox, never a [from] one; another project's is refused", async (t) => {
+	const box = await load(t, { shop: chat("telegram", "4"), blog: chat("discord", "5") });
+	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	const merge = ["ask", "--kind", "merge", "--question", "Merge the cart?", "--option", "Merge it", "--option", "Not yet"];
+	assert.deepEqual([(await box.command("decision", merge)).out, (await box.command("decision", merge, "blog")).out], [["SH-D1"], ["BL-D1"]]);
+	const turn = (folder: string, seq: number, message: object) => {
+		mkdirSync(join(folder, "inbox", "turn"), { recursive: true });
+		writeFileSync(join(folder, "inbox", "turn", `${seq}-1000`), JSON.stringify(message));
+	};
+	const answer = (id: string) => box.command("decision", ["answer", id, "--decided", "Merge it", "--picked", "1", `${id} yes`]);
+	const use = (id: string) => box.fake.call("decision.owner", { id, what: "arthur take-main", kind: "merge", use: "take-main" });
+	const refused = (why: string) => ({ code: 1, out: [], err: [`arthur decision answer: refused: ${why}`] });
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = box.folder("shop");
+	// The owner's words in the coordinator's inbox, or told by the coordinator in shop's, prove nothing in shop's session.
+	turn(box.fake.host.folder, 7, { channel: "telegram", text: "SH-D1 yes" });
+	turn(box.folder("shop"), 8, { from: "coordinator", text: "SH-D1 yes" });
+	const none = "no message of the owner holds these words: his own [via <channel>] message of this turn, or one sent after the question was asked, never a forward or the terminal; quote his words exactly as he wrote them";
+	assert.deepEqual(await answer("SH-D1"), refused(`SH-D1 lets through arthur take-main: ${none}`));
+	const theirs = "BL-D1 is project blog's; the agent of project shop acts only on shop's decisions, the coordinator on blog's";
+	assert.deepEqual([await answer("BL-D1"), use("BL-D1")], [refused(theirs), theirs]);
+	turn(box.folder("shop"), 9, { channel: "telegram", text: "SH-D1 yes" });
+	assert.deepEqual(await answer("SH-D1"), { code: 0, out: ["SH-D1 answered: Merge it; a question of no ticket: the log only"], err: [] });
+	const recorded = 'Recorded as your decision SH-D1 (merge, lets through arthur take-main): Merge it; picked: option 1, "Merge it"; your words: "SH-D1 yes"; your message: "SH-D1 yes"';
+	assert.deepEqual(box.fake.emitted.findLast((event) => event.name === "notice")?.data, { text: recorded, decision: "SH-D1", channel: "telegram", place: "4" });
+	// The coordinator's session acts on every project's decisions.
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = box.fake.host.folder;
+	assert.equal(use("BL-D1"), "BL-D1 is open, not answered by the owner");
+	// Autopilot likewise: from shop's session only shop's tickets.
+	const ticket = box.fake.host.board.create("Fix the cart", "blog");
+	const autopilot = () => box.fake.call<Promise<string>>("ticket.autopilot", { id: ticket.id });
+	await assert.rejects(autopilot(), /not pre-approved: /);
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = box.folder("shop");
+	await assert.rejects(autopilot(), { message: `${ticket.id} is project blog's; the agent of project shop pre-approves only shop's tickets` });
+	// A ticket on no board is no other project's: the refusal is that it is not on the board.
+	await assert.rejects(box.fake.call<Promise<string>>("ticket.autopilot", { id: "SH0099" }), { message: "SH0099 is not on the board" });
+	// Its own project's ticket goes on to autopilot's own rules.
+	const own = box.fake.host.board.create("Fix the logo", "shop");
+	await assert.rejects(box.fake.call<Promise<string>>("ticket.autopilot", { id: own.id }), new RegExp(`^Error: ${own.id}: not pre-approved: `));
 });
 
 test("roles.project.model is one model name: a list is refused, naming the path", () => {

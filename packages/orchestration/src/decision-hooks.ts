@@ -26,7 +26,7 @@ function question(host: Host, where: Project, job: unknown, reason: string): Dec
 
 // Continues job `id` with the decision a class gave its question `decision`, once: `<folder>/continued/<decision>`, made whole or
 // not at all, marks it. Only a job blocked at the end of its run; one a plugin holds in its run goes on at its `job-ended`. A
-// continue that fails reaches the coordinator, naming why.
+// continue that fails reaches the session of the job's project (entry 86), naming why.
 function continueByPolicy(host: Host, id: string, decision: string, answer: Answer | undefined): void {
 	const [policy, job] = [policyOf(answer), host.jobs.list().find((each) => each.id === id)];
 	if (policy === undefined || answer === undefined || job?.state !== "blocked" || job.hold !== "") return;
@@ -38,7 +38,7 @@ function continueByPolicy(host: Host, id: string, decision: string, answer: Answ
 		throw error;
 	}
 	const told = (why: unknown) =>
-		host.events.emit("coordinator-message", { text: `${id} was not continued by policy (${policy}): ${(why instanceof Error ? why.message : String(why)).split("\n")[0]}; arthur continue ${id} '${answer.decided}' continues it with that decision.` });
+		host.events.emit("coordinator-message", { text: `${id} was not continued by policy (${policy}): ${(why instanceof Error ? why.message : String(why)).split("\n")[0]}; arthur continue ${id} '${answer.decided}' continues it with that decision.`, project: job.project });
 	host.jobs.continue(id, answer.decided).then((failed) => failed === undefined || told(failed), told);
 }
 

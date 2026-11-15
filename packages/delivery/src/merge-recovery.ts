@@ -36,7 +36,7 @@ export function recoverMerge(host: Host, project: string): { readonly job: strin
 		if (reset.status !== 0) {
 			git("update-ref", "HEAD", hash, parent);
 			const said = (reset.stderr.trim() || reset.stdout.trim()).split("\n").at(-1);
-			host.events.emit("coordinator-message", { text: `${why}: main still holds its merge commit ${hash.slice(0, 7)}, as git read-tree -m -u ${hash.slice(0, 7)} ${parent.slice(0, 7)} refused: ${said}; reset main to ${parent.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}` });
+			host.events.emit("coordinator-message", { text: `${why}: main still holds its merge commit ${hash.slice(0, 7)}, as git read-tree -m -u ${hash.slice(0, 7)} ${parent.slice(0, 7)} refused: ${said}; reset main to ${parent.slice(0, 7)} in ${root}, then arthur merge --auto ${job.id}`, project });
 			return undefined;
 		}
 		return { job: job.id, hash, why: `${why}: main went back from its merge commit ${hash.slice(0, 7)} to ${parent.slice(0, 7)}, the board kept.` };

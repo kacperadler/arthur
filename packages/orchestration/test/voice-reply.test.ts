@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { NOT_TRANSCRIBED } from "@arthur/core/parts";
 import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { inbox } from "../src/inbox.ts";
+import { voiceReplies } from "../src/voice-reply.ts";
 import { orchestration } from "../src/orchestration.ts";
 
 // The coordinator's reply to a voice note, also sent as a voice note (AR0553): the test provides `speak.say` as the speak plugin
@@ -163,7 +164,7 @@ test("while the inbox runs, its sweep every 500 ms sends the voice note of a rep
 	const [spoken, sent]: [string[], unknown[]] = [[], []];
 	fake.provide("speak.say", async (text: string) => (spoken.push(text), `/home/speak/${text}ogg`));
 	fake.provide("channel.send", (message: unknown) => async () => (sent.push(message), "sent 1 file in 1 message"));
-	const box = inbox(fake.host);
+	const box = inbox(fake.host, [{ name: "coordinator", folder: fake.host.folder }]);
 	box.start();
 	t.after(() => box.stop());
 	const note = fake.emit("message-received", { channel: "test", parts: [VOICE] });
@@ -176,4 +177,22 @@ test("while the inbox runs, its sweep every 500 ms sends the voice note of a rep
 		{ text: NOT_TRANSCRIBED, answers: [note.seq], channels: ["test"] },
 		{ text: "Started.", answers: [note.seq], channels: ["test"] },
 	]);
+});
+
+test("a project agent's reply, which names its chat's place (roadmap 86), sends its voice note there, and the line that says why one did not go too", async () => {
+	const fake = fakeHost({ name: "orchestration" });
+	const sent: unknown[] = [];
+	fake.provide("speak.say", async (text: string) => `/home/speak/${text}ogg`);
+	fake.provide("channel.send", (message: { files: string[]; place?: string }) => async () => {
+		if (message.files[0]?.includes("Refused")) throw new Error("no such topic");
+		sent.push(message);
+		return "sent 1 file in 1 message";
+	});
+	const voice = voiceReplies(fake.host);
+	const note = fake.emit("message-received", { channel: "test", parts: [VOICE], place: "42" });
+	voice(fake.emit("coordinator-replied", { text: "Shipped.", answers: [note.seq], channels: ["test"], place: "42" }));
+	voice(fake.emit("coordinator-replied", { text: "Refused.", answers: [note.seq], channels: ["test"], place: "42" }));
+	await until("the line", () => fake.emitted.some((event) => event.name === "coordinator-replied"));
+	assert.deepEqual(sent, [{ files: ["/home/speak/Shipped.ogg"], place: "42" }]);
+	assert.deepEqual(fake.emitted.map((event) => event.data), [{ text: "voice note not sent: no such topic", answers: [note.seq], channels: ["test"], place: "42" }]);
 });

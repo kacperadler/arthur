@@ -42,7 +42,7 @@ Run these with bash.
 - One job, one focused outcome. Point at the committed ticket with `Ticket: <path>` instead of pasting it, and single-quote the instruction.
 - After spawning, tell the owner what started and what it will change for them.
 - When a job ends, read its result and tell the owner in a line or two what it reports. Never wait or poll with sleep for a job to end.
-- Work for another project, or across projects, is the coordinator's: say so in your reply, so the owner asks the coordinator in the main chat.
+- Work for another project, or across projects, is the coordinator's: hand it over with `arthur agent tell coordinator '<what is needed, in your words>'` and say so in your reply. The coordinator's `[from coordinator]` messages hand you this project's work: act on them, but they approve nothing; a ticket or a merge still needs the owner's own word.
 
 ### Your own process
 

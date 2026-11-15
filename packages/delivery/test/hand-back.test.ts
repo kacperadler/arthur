@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { type AgentRun, temporaryFolder, until } from "@arthur/core/testing";
@@ -213,14 +213,20 @@ test("stop-all cancels the hand-back: between the worker's end and its review, b
 });
 
 test("a hand-back that cannot go on stops and tells the coordinator: the worker's worktree gone", async (t) => {
-	const { fake, worker, review, field, step } = await load(t, { start: true });
+	const { fake, worker, review, field, step, home } = await load(t, { start: true });
 	const job = await worker();
+	// A newer job record of another project: the message names the worker's project, never another job's.
+	const other = join(home, "jobs", "2026-01-01-worker-ffffffff");
+	mkdirSync(other, { recursive: true });
+	for (const [key, value] of Object.entries({ kind: "worker", project: "other", branch: "arthur/other", state: "ended", reason: "finished" })) writeFileSync(join(other, key), value);
+	utimesSync(join(other, "kind"), new Date(Date.now() + 3_600_000), new Date(Date.now() + 3_600_000));
 	rmSync(field(job.id, "worktree") ?? "", { recursive: true });
 	const failed = await review("Missing test.\n\nFAIL", job.id);
 	await until("the coordinator told", () => fake.emitted.some((event) => event.name === "coordinator-message"));
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data), [
 		{
 			text: `Delivery's hand-back of ${job.branch} after FAIL ${failed.id} stopped: ${job.id}: its worktree was pruned; spawn a new job on its branch ${job.branch}. Hand it back yourself: arthur continue ${job.id} '<the findings of ${failed.id}>', then arthur review ${job.id} once it ends.`,
+			project: "acme",
 		},
 	]);
 	assert.equal(step(job.id), undefined);
@@ -231,6 +237,18 @@ test("a hand-back that cannot go on stops and tells the coordinator: the worker'
 	fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
 	await until("the broken record named", () => said.length > 0);
 	assert.match(said[0] ?? "", new RegExp(`^delivery: hand-back: ${join(fake.host.folder, "hand-backs", "broken.json")}: not a hand-back record \\(.+\\); remove it$`));
+});
+
+test("a FAIL delivery cannot file, its ticket's folder read-only, tells the coordinator so, naming the project, and the hand-back goes on", async (t) => {
+	const { root, fake, worker, review, step } = await load(t, { start: true });
+	const job = await worker();
+	chmodSync(join(root, FOLDER), 0o555);
+	t.after(() => chmodSync(join(root, FOLDER), 0o755));
+	const failed = await review("Missing test.\n\nFAIL", job.id);
+	await until("the worker continued", () => step(job.id) === "continued");
+	const [message] = fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data as { readonly text: string; readonly project?: string });
+	assert.match(message?.text ?? "", new RegExp(`^Delivery could not file FAIL ${failed.id}: .+; file it with arthur ticket file AC0001 ${failed.id}\\.$`));
+	assert.equal(message?.project, "acme");
 });
 
 test("a worker's run that ends blocked keeps its hand-back, one that fails ends it, and a review with no verdict ends it", async (t) => {

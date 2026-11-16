@@ -134,7 +134,7 @@ function fetchTags(root: string): string {
 	const ran = refusal === "" ? spawnSync("git", [...words, "origin", "refs/tags/v*:refs/tags/v*"], options) : undefined;
 	if (ran?.status === 0) return "";
 	const lines = (ran?.stderr.trim() || `exit code ${ran?.status}`).split("\n");
-	const said = (lines.find((line) => /^(fatal|error):/.test(line)) ?? lines.at(-1) ?? "").replace(/(?<!transport )'[^']*'/g, "origin");
+	const said = (lines.find((line) => /^(fatal|error):/.test(line)) ?? lines[0] ?? "").replace(/(?<!transport )'[^']*'/g, "origin");
 	const why = ran === undefined ? refusal : ran.error ? `timed out after ${FETCH_MS / 1000} s` : `git fetch: ${said.replace(/\S+:\/\/\S+|\S*@\S+/g, "origin")}`;
 	return `tags not fetched from origin: ${why}; CHANGELOG.md counts the tags of ${root}`;
 }

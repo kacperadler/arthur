@@ -91,5 +91,10 @@ test("no transport origin's URL names that the owner does not allow, no prompt, 
 	assert.equal(fetch(), not(root, "git fetch: fatal: could not read Username for origin: terminal prompts disabled"));
 	git(root, "remote", "set-url", "origin", `http://arthur:s3cr3t@127.0.0.1:${port}/acme/shop.git`);
 	assert.equal(fetch(), not(root, "git fetch: fatal: Authentication failed for origin"));
+	// git prints this one's host, userinfo included, with neither quotes nor `://`; port 1 of this machine.
+	git(root, "remote", "set-url", "origin", "git://arthur:s3cret@127.0.0.1:1/acme/shop.git");
+	const userinfo = fetch();
+	assert.match(userinfo, /^tags not fetched from origin: git fetch: fatal: unable to look up origin \(port 9418\)/);
+	assert.equal(userinfo.includes("s3cret"), false);
 	assert.deepEqual([tags(), ran()], [[], ""], "nothing fetched, no askpass run");
 });

@@ -162,7 +162,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 		}
 		saveLastMerge(host, job.project, made);
 		endWait(host, job.id);
-		if (ticket === undefined || folder === undefined) console.log(`no ticket: no outcome.md, nothing moved\n${writeChangelog(host, job.project)}`);
+		if (ticket === undefined || folder === undefined) console.log(`no ticket: no outcome.md, nothing moved\n${writeChangelog(host, job.project, true)}`);
 		else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap, git, run: (command) => run(command, { ...process.env, ...(ask.path() && { PATH: ask.path() }) }) }, console.log);
 		return { project: job.project, branch: main, job: job.id, ticket: ticket?.id };
 	} finally {

@@ -73,7 +73,7 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 	const board = host.board.list(job.project);
 	const unblocked = board.filter((each) => each.status === "planned" && each.after?.includes(ticket.id) === true && each.after.every((id) => board.find((other) => other.id === id)?.status === "merged"));
 	if (unblocked.length > 0) log(`unblocked: ${unblocked.map((each) => each.id).join(", ")}`);
-	log(writeChangelog(host, job.project));
+	log(writeChangelog(host, job.project, true));
 	// The ticket's side in one commit before the push, the tickets findings.onMerge made and the board's other moves with it; a job may have written the config while the checks ran.
 	// The hooks stay off, so the project's own check of what a commit holds runs first, on the paths staged (AR0635).
 	const made = host.board.list(job.project).flatMap((each) => (had.has(each.id) ? [] : [dirname(each.path)]));

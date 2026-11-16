@@ -5649,9 +5649,9 @@
   {
     "id": "AR0699",
     "title": "The changelog counts the v0.1.0 tag as a release, so the next release lists only its own tickets",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0699-the-changelog-counts-the-v0-1-0-tag-as-a-release-so-the-next-release-lists-only/ticket.md",
-    "updated": "2026-11-16T05:28:15.367Z"
+    "updated": "2026-11-16T07:08:17.672Z"
   },
   {
     "id": "AR0700",

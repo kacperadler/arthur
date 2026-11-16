@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -97,4 +97,27 @@ test("no transport origin's URL names that the owner does not allow, no prompt, 
 	assert.match(userinfo, /^tags not fetched from origin: git fetch: fatal: unable to look up origin \(port 9418\)/);
 	assert.equal(userinfo.includes("s3cret"), false);
 	assert.deepEqual([tags(), ran()], [[], ""], "nothing fetched, no askpass run");
+});
+
+// The merge run from a terminal: ssh, which git runs for an ssh origin, opens /dev/tty to ask for a host key or a passphrase,
+// whatever the environment says. `script` gives the probe a terminal of its own, as the owner's shell would.
+const hasScript = spawnSync("sh", ["-c", "command -v script"]).status === 0;
+test("the fetch runs in a session of its own: ssh finds no terminal to ask on when the merge runs in one", { skip: !hasScript && "no script(1) here" }, async (t) => {
+	const { root, ran } = await setup(t);
+	const folder = temporaryFolder();
+	const [log, ssh, probe] = [join(folder, "log"), join(folder, "ssh"), join(folder, "probe.mjs")];
+	const tty = `(: < /dev/tty) 2>/dev/null && echo tty || echo notty`;
+	writeFileSync(ssh, `#!/bin/sh\necho "ssh: $( ${tty} )" >> '${log}'\nexit 1\n`, { mode: 0o755 });
+	const host = `{ board: { list: () => [], projects: () => [{ name: "acme", path: ${JSON.stringify(root)}, prefix: "AC" }], kinds: [] }, clock: { local: () => ({ date: "" }) } }`;
+	const lines = [
+		'import { spawnSync } from "node:child_process";\nimport { appendFileSync } from "node:fs";',
+		`import { writeChangelog } from ${JSON.stringify(new URL("../src/changelog.ts", import.meta.url).href)};`,
+		`appendFileSync(${JSON.stringify(log)}, "probe: " + spawnSync("sh", ["-c", ${JSON.stringify(tty)}], { encoding: "utf8" }).stdout);`,
+		`writeChangelog(${host}, undefined, true);`,
+	];
+	writeFileSync(probe, `${lines.join("\n")}\n`);
+	git(root, "remote", "set-url", "origin", "git@example.invalid:acme/shop.git");
+	const env = { ...process.env, GIT_SSH_COMMAND: ssh };
+	spawnSync("script", ["-qec", `'${process.execPath}' '${probe}'`, "/dev/null"], { env, stdio: "ignore", timeout: 30_000 });
+	assert.deepEqual([readFileSync(log, "utf8"), ran()], ["probe: tty\nssh: notty\n", ""], "the probe had a terminal, ssh none");
 });

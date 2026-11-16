@@ -1,4 +1,4 @@
-import { type SpawnSyncOptionsWithStringEncoding, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { checkConfig } from "@arthur/core/git-config";
@@ -122,20 +122,21 @@ function releasesOf(root: string, clock: Host["clock"]): { readonly line: readon
 
 // Origin's `v*` tags fetched into `root` before a merge rebuilds the changelog, so a release tagged there counts (AR0699); a line
 // when they could not be, the merge going on with the tags `root` has. No prompt, askpass, hook, fsmonitor or other program the
-// checkout's config or origin's URL names (as github's calls to origin, github-git.ts); only the refspec given (`--refmap=`: no
-// `remote.origin.fetch` a job wrote moves a ref), no other tag, no prune; a tag `root` holds elsewhere is not moved. Git's
-// error line is said with a quoted word, a URL or a word holding an `@` as `origin`, as each may hold a credential.
+// checkout's config or origin's URL names (as github's calls to origin, github-git.ts), and git in a session of its own, with no
+// terminal for ssh to ask on; only the refspec given (`--refmap=`: no `remote.origin.fetch` a job wrote moves a ref), no other
+// tag, no prune; a tag `root` holds elsewhere is not moved. Git's error line is said with a quoted word, a URL or a word holding
+// an `@` as `origin`, as each may hold a credential; a fetch past FETCH_MS is stopped, its error Node's (`ETIMEDOUT`).
 function fetchTags(root: string): string {
 	if (spawnSync("git", ["-C", root, "remote", "get-url", "origin"], { stdio: "ignore" }).status !== 0) return "";
 	const { refusal, pins } = checkConfig(root);
 	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never", GIT_PROTOCOL_FROM_USER: "0" };
 	const words = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, "fetch", "--quiet", "--no-tags", "--no-prune", "--refmap="];
-	const options: SpawnSyncOptionsWithStringEncoding = { env, encoding: "utf8", stdio: ["ignore", "ignore", "pipe"], timeout: FETCH_MS };
-	const ran = refusal === "" ? spawnSync("git", [...words, "origin", "refs/tags/v*:refs/tags/v*"], options) : undefined;
+	const options = { env, encoding: "utf8", timeout: FETCH_MS, detached: true } as const;
+	const ran = refusal === "" ? spawnSync("git", [...words, "origin", "refs/tags/v*:refs/tags/v*"], { ...options, stdio: ["ignore", "ignore", "pipe"] }) : undefined;
 	if (ran?.status === 0) return "";
 	const lines = (ran?.stderr.trim() || `exit code ${ran?.status}`).split("\n");
 	const said = (lines.find((line) => /^(fatal|error):/.test(line)) ?? lines[0] ?? "").replace(/(?<!transport )'[^']*'/g, "origin");
-	const why = ran === undefined ? refusal : ran.error ? `timed out after ${FETCH_MS / 1000} s` : `git fetch: ${said.replace(/\S+:\/\/\S+|\S*@\S+/g, "origin")}`;
+	const why = ran === undefined ? refusal : `git fetch: ${ran.error?.message ?? said.replace(/\S+:\/\/\S+|\S*@\S+/g, "origin")}`;
 	return `tags not fetched from origin: ${why}; CHANGELOG.md counts the tags of ${root}`;
 }
 

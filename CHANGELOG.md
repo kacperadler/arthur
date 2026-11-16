@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-16
+
+### Fixed
+
+- AR0699 The changelog counts the v0.1.0 tag as a release, so the next release lists only its own tickets (47580408)
+
 ## 2026-11-15
 
 ### Added

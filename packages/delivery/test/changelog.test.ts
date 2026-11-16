@@ -147,7 +147,7 @@ test("releases: a commit of main's first-parent line that changes the root versi
 });
 
 // AR0699: release 0.1.0 was tagged by hand on the merge where package.json first got a version, which no version change counts.
-test("a v<x.y.z> tag on the first-parent line, lightweight or annotated, is that version's release at its commit; a version a change made, a tag off the line or of another name, is not", async (t) => {
+test("a v<x.y.z> tag on the first-parent line, lightweight or annotated, is that version's release at its commit; a version a change made, a tag off the line or of another name, is not; one release per commit", async (t) => {
 	const acme = project(["AC0001", "AC0002", "AC0003", "AC0004", "AC0005"].map((id) => ({ id, status: "merged", kind: "fix" })));
 	const steps = history(acme, [
 		{ at: "2026-03-01T00:00:00Z", files: { "README.md": "# acme\n" } },
@@ -161,6 +161,9 @@ test("a v<x.y.z> tag on the first-parent line, lightweight or annotated, is that
 	const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", acme, ...args], { encoding: "utf8" }).trim();
 	git("tag", "v0.1.0", s1);
 	git("tag", "--annotate", "--message", "0.2.0", "v0.2.0", s2);
+	// One release per commit: its highest tag's, a version change's over any tag.
+	git("tag", "v0.1.9", s2);
+	git("tag", "v0.3.9", s4);
 	git("tag", "v0.3.0", `${s3}^2`);
 	for (const tag of ["v0.4.0", "v1.0", "v1.0.0-rc.1", "vnext", "v1.0.0x"]) git("tag", tag, s5);
 	for (const [id, step, day] of [["AC0001", s1, "02"], ["AC0002", s2, "03"], ["AC0003", s3, "04"], ["AC0004", s4, "05"], ["AC0005", s5, "06"]]) outcome(acme, id ?? "", `2026-03-${day}, \`${step}`);

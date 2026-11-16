@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { type SpawnSyncOptionsWithStringEncoding, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { checkConfig } from "@arthur/core/git-config";
@@ -99,36 +99,44 @@ function releasesOf(root: string, clock: Host["clock"]): { readonly line: readon
 	const line = log.map(([commit = ""]) => commit);
 	const changed = git("log", "--first-parent", "--reverse", "--format=%H %cI", "HEAD", "--", "package.json")
 		.split("\n")
+		// No empty entry: `cat-file blob :package.json` would read the index, and run the fsmonitor program the config names.
+		.filter(Boolean)
 		.flatMap((entry): Release[] => {
 			const [commit = "", time = ""] = entry.split(" ");
 			const [now, before] = [version(commit), version(`${commit}^`)];
 			return now === undefined || before === undefined || now === before ? [] : [{ version: now, date: clock.local(new Date(time)).date, at: line.indexOf(commit) }];
 		});
-	// `<object> <commit an annotated tag names, else nothing> <name>` per tag.
-	const tagged = git("for-each-ref", "--format=%(objectname) %(*objectname) %(refname:strip=2)", "refs/tags/v*")
+	// `<object> <commit an annotated tag names, else nothing> <name>` per tag, the highest version first: one release per commit,
+	// a version change's, else its highest tag's.
+	const tagged = git("for-each-ref", "--sort=-v:refname", "--format=%(objectname) %(*objectname) %(refname:strip=2)", "refs/tags/v*")
 		.split("\n")
 		.flatMap((entry): Release[] => {
 			const [own = "", peeled = "", name = ""] = entry.split(" ");
 			const [tag, at] = [/^v(\d+\.\d+\.\d+)$/.exec(name)?.[1], line.indexOf(peeled || own)];
-			if (tag === undefined || at === -1 || changed.some((each) => each.version === tag)) return [];
+			if (tag === undefined || at === -1 || changed.some((each) => each.version === tag || each.at === at)) return [];
 			return [{ version: tag, date: clock.local(new Date(log[at]?.[1] ?? "")).date, at }];
-		});
+		})
+		.filter((each, index, all) => all.findIndex((other) => other.at === each.at) === index);
 	return { line, releases: [...changed, ...tagged].sort((a, b) => a.at - b.at) };
 }
 
 // Origin's `v*` tags fetched into `root` before a merge rebuilds the changelog, so a release tagged there counts (AR0699); a line
-// when they could not be, the merge going on with the tags `root` has. No prompt, program or hook (as github's calls to origin);
-// only the refspec given, so no `remote.origin.fetch` a job wrote, and no prune; a tag `root` holds elsewhere is not moved.
+// when they could not be, the merge going on with the tags `root` has. No prompt, askpass, hook, fsmonitor or other program the
+// checkout's config or origin's URL names (as github's calls to origin, github-git.ts); only the refspec given (`--refmap=`: no
+// `remote.origin.fetch` a job wrote moves a ref), no other tag, no prune; a tag `root` holds elsewhere is not moved. Git's
+// error line is said with a quoted word, a URL or a word holding an `@` as `origin`, as each may hold a credential.
 function fetchTags(root: string): string {
 	if (spawnSync("git", ["-C", root, "remote", "get-url", "origin"], { stdio: "ignore" }).status !== 0) return "";
 	const { refusal, pins } = checkConfig(root);
-	if (refusal !== "") return `tags not fetched from origin: ${refusal}`;
 	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never", GIT_PROTOCOL_FROM_USER: "0" };
 	const words = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, "fetch", "--quiet", "--no-tags", "--no-prune", "--refmap="];
-	const ran = spawnSync("git", ["--no-replace-objects", ...words, "origin", "refs/tags/v*:refs/tags/v*"], { env, stdio: "ignore", timeout: FETCH_MS });
-	if (ran.status === 0) return "";
-	const why = ran.error === undefined ? `exited ${ran.status}` : `timed out after ${FETCH_MS / 1000} s`;
-	return `tags not fetched from origin: git fetch ${why}; CHANGELOG.md counts the tags of ${root}`;
+	const options: SpawnSyncOptionsWithStringEncoding = { env, encoding: "utf8", stdio: ["ignore", "ignore", "pipe"], timeout: FETCH_MS };
+	const ran = refusal === "" ? spawnSync("git", [...words, "origin", "refs/tags/v*:refs/tags/v*"], options) : undefined;
+	if (ran?.status === 0) return "";
+	const lines = (ran?.stderr.trim() || `exit code ${ran?.status}`).split("\n");
+	const said = (lines.find((line) => /^(fatal|error):/.test(line)) ?? lines.at(-1) ?? "").replace(/(?<!transport )'[^']*'/g, "origin");
+	const why = ran === undefined ? refusal : ran.error ? `timed out after ${FETCH_MS / 1000} s` : `git fetch: ${said.replace(/\S+:\/\/\S+|\S*@\S+/g, "origin")}`;
+	return `tags not fetched from origin: ${why}; CHANGELOG.md counts the tags of ${root}`;
 }
 
 export function changelogCommand(host: Host): Command {

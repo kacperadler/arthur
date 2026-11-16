@@ -128,13 +128,14 @@ test("a merge fetches origin's v* tags before it rebuilds CHANGELOG.md: one only
 	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
 	const paid = await merge(pay.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(paid.err, "");
-	assert.match(paid.out, new RegExp(`\ntags not fetched from origin: git fetch exited 1; CHANGELOG\\.md counts the tags of ${root}\nwrote CHANGELOG\\.md: 3 merged tickets\n`));
+	assert.match(paid.out, new RegExp(`\ntags not fetched from origin: git fetch: exit code 1; CHANGELOG\\.md counts the tags of ${root}\nwrote CHANGELOG\\.md: 3 merged tickets\n`));
 	assert.equal(git(root, "rev-parse", "v0.2.0"), mine);
 	git(root, "remote", "set-url", "origin", join(origin, "gone"));
 	const aside = await worker({ "aside.ts": "export const aside = 1;\n" }, "No ticket here.");
 	const away = await merge(aside.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(away.err, "");
-	assert.match(away.out, new RegExp(`\nno ticket: no outcome\\.md, nothing moved\ntags not fetched from origin: git fetch exited 128; CHANGELOG\\.md counts the tags of ${root}\nwrote CHANGELOG\\.md: 3 merged tickets\n`));
+	const gone = "git fetch: fatal: origin does not appear to be a git repository";
+	assert.match(away.out, new RegExp(`\nno ticket: no outcome\\.md, nothing moved\ntags not fetched from origin: ${gone}; CHANGELOG\\.md counts the tags of ${root}\nwrote CHANGELOG\\.md: 3 merged tickets\n`));
 });
 
 test("findings go to findings.onMerge: none open makes no ticket, an open one's ticket gets the next id; without a provider they stay open, said once", async (t) => {

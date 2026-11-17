@@ -3798,9 +3798,9 @@
   {
     "id": "AR0480",
     "title": "Plan: a stats plugin, token use, cost and time of every job and of the coordinator, per role, ticket and project",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0480-plan-a-stats-plugin-token-use-cost-and-time-of-every-job-and-of-the-coordinator/ticket.md",
-    "updated": "2026-10-27T07:50:24.212Z"
+    "updated": "2026-11-17T07:01:29.694Z"
   },
   {
     "id": "AR0481",
@@ -4840,9 +4840,9 @@
   {
     "id": "AR0604",
     "title": "Plan: the docker plugin and the core cleanup hook, roadmap 70 to 72",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0604-plan-the-docker-plugin-and-the-core-cleanup-hook-roadmap-70-to-72/ticket.md",
-    "updated": "2026-11-01T13:57:26.050Z"
+    "updated": "2026-11-17T07:01:30.940Z"
   },
   {
     "id": "AR0605",
@@ -5522,9 +5522,9 @@
   {
     "id": "AR0683",
     "title": "Measure the test suite on Bun beside Node, and report whether moving the tests is worth it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0683-measure-the-test-suite-on-bun-beside-node-and-report-whether-moving-the-tests-is/ticket.md",
-    "updated": "2026-11-10T09:19:58.669Z"
+    "updated": "2026-11-17T07:01:39.680Z"
   },
   {
     "id": "AR0684",
@@ -5574,9 +5574,9 @@
   {
     "id": "AR0690",
     "title": "docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0690-docker-buildx-with-its-own-options-before-build-docker-buildx-builder-x-build/ticket.md",
-    "updated": "2026-11-11T07:09:57.565Z"
+    "updated": "2026-11-17T07:01:41.045Z"
   },
   {
     "id": "AR0691",

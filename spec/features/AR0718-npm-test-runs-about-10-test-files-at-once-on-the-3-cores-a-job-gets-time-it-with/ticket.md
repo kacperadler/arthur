@@ -37,5 +37,4 @@ Out:
 - Making single slow tests faster: AR0671 did that.
 
 ## Decisions
-
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-11-17: AR0718 approved, budget 10; the owner: "AR-D688 approve" (AR-D688)

@@ -38,3 +38,4 @@ Out:
 
 ## Decisions
 - 2026-11-17: AR0718 approved, budget 10; the owner: "AR-D688 approve" (AR-D688)
+- 2026-11-17: Merge AR0718; the owner: "AR-D691 merge it" (AR-D691)

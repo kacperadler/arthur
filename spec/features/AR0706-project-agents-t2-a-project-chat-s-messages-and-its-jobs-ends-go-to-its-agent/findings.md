@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/voice-reply.ts:32`, `packages/telegram/src/telegram.ts:73`, `packages/discord/src/discord.ts:91`
 - What: the voice note of a project agent's reply now goes to its chat's `place` (AR0706), but `channel.send` in telegram and discord always sends by the main bot (`outgoing(main, ...)`). For an agent whose chat names a bot `instance`, the topic or channel id is that bot's, so Telegram is asked to send to the main bot's chat with another chat's `message_thread_id` [INFERENCE: it refuses it; not run against Telegram]; the owner then gets `voice note not sent: <Telegram's refusal>` in the agent's topic instead of the voice note. Reproduce: a project with `chat: { plugin: "telegram", instance: "shop", place: "42" }`, the speak plugin on, a voice note in topic 42.
 - Suggestion: voice-reply.ts passes the reply's `instance` to `channel.send` (`{ files, place, instance }`), and telegram's and discord's `channel.send` pick the bot by `instance` as their replies do now; `arthur send` keeps the main bot.
-- Status: deferred (client summary)
+- Status: ticket AR0714
 
 ## F2. The activity log does not show `agent-told`
 

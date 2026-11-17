@@ -19,4 +19,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-11-15-review-a09688b7 (review), 2026-11-15
 - Where: `packages/orchestration/roles/project.md:9`
 - What: The role says only that it restarts with `--continue`, and never mentions the fresh start or the handoff. The coordinator's role (`coordinator.md:9`) names `.arthur/session/after-restart.md`, so an agent that copies that convention would write into the coordinator's file. As it stands, an agent's `Restarted.` notice never carries steps for the owner. The role file is outside T4's Files list.
-- Status: deferred (client summary)
+- Status: ticket AR0716

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import type { Host } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { docker } from "../src/docker.ts";
+import { labelled } from "../src/docker-label.ts";
 import type { DockerOptions } from "../src/docker-options.ts";
 import { fakeDocker, row, type State } from "./fake-docker.ts";
 
@@ -28,22 +29,24 @@ const ROOT = temporaryFolder();
 const SWEEP = { deadlineMs: 120_000 };
 
 // What Docker holds: of job GONE, whose record no longer exists, and of its compose project `arthur-77777777`; of job `live`,
-// which has a record; the owner's own; dangling images and unused networks, old and young; and `arthur.keep`.
+// which has a record; the owner's own; dangling images and unused networks, old and young; and `arthur.keep`. Each job's
+// container with its maker's labels: the script's `arthur.container`, compose's config hash.
 function world(live: string): Partial<State> {
 	const [gone, mine, keep] = [`arthur.job=${GONE}`, `arthur.job=${live}`, "arthur.keep="];
+	const [goneRun, mineRun, made] = [`${gone},arthur.container=${GONE}`, `${mine},arthur.container=${live}`, "com.docker.compose.config-hash=9f8e"];
 	return {
 		info: { DockerRootDir: ROOT, SecurityOptions: [], ServerVersion: "29.9.2", SystemTime: NOW, Warnings: null },
 		rows: {
 			ps: [
-				row("ps", { ID: "c01", Names: "old-web", State: "exited", Labels: gone, Mounts: "f00danon", Networks: "old_net" }),
-				row("ps", { ID: "c02", Names: "old-run", State: "running", Labels: gone, Networks: "run_net" }),
-				row("ps", { ID: "c03", Names: "old-db", State: "created", Labels: "com.docker.compose.project=arthur-77777777,com.docker.compose.service=db" }),
-				row("ps", { ID: "c04", Names: "live-web", State: "exited", Labels: mine }),
-				row("ps", { ID: "c05", Names: "live-db", State: "exited", Labels: `com.docker.compose.project=arthur-${live.slice(-8)}` }),
+				row("ps", { ID: "c01", Names: "old-web", State: "exited", Labels: goneRun, Mounts: "f00danon", Networks: "old_net" }),
+				row("ps", { ID: "c02", Names: "old-run", State: "running", Labels: goneRun, Networks: "run_net" }),
+				row("ps", { ID: "c03", Names: "old-db", State: "created", Labels: `com.docker.compose.project=arthur-77777777,com.docker.compose.service=db,${made}` }),
+				row("ps", { ID: "c04", Names: "live-web", State: "exited", Labels: mineRun }),
+				row("ps", { ID: "c05", Names: "live-db", State: "exited", Labels: `com.docker.compose.project=arthur-${live.slice(-8)},${made}` }),
 				row("ps", { ID: "c06", Names: "mysql", State: "exited", Labels: "", Mounts: "mysql_data", Networks: "owner_net", CreatedAt: OLD }),
-				row("ps", { ID: "c07", Names: "kept-web", State: "exited", Labels: `${gone},${keep}` }),
-				row("ps", { ID: "c08", Names: "old-paused", State: "paused", Labels: gone }),
-				row("ps", { ID: "c09", Names: "old-dead", State: "dead", Labels: gone }),
+				row("ps", { ID: "c07", Names: "kept-web", State: "exited", Labels: `${goneRun},${keep}` }),
+				row("ps", { ID: "c08", Names: "old-paused", State: "paused", Labels: goneRun }),
+				row("ps", { ID: "c09", Names: "old-dead", State: "dead", Labels: goneRun }),
 			],
 			"network-ls": [
 				row("network-ls", { ID: "n01", Name: "old_net", Labels: gone }),
@@ -191,6 +194,29 @@ test("--dry-run lists what a real run removes and why, removing nothing; the run
 	assert.equal(fake.now().cache, 0, "the cache unused for 48 h went");
 	const again = await arthur(t, host, "sweep");
 	assert.equal(steady(again.out), `local: nothing to remove; ${refused}; build cache cut to 10G; 0B reclaimed; <n> GB free on ${ROOT}`);
+});
+
+test("the owner's containers from a gone job's images stay, running or stopped, with their volumes; the container the job made goes", async (t) => {
+	const { host } = await load({ local: { tools: ["docker"] } });
+	// The image job GONE built, and one its compose project built, each with the labels its builder gave it.
+	const images = [row("image-ls", { ID: "a00000000001", Repository: "old", Tag: "latest" }), row("image-ls", { ID: "a00000000002", Repository: "oldcompose-db", Tag: "latest" })];
+	const compose = "com.docker.compose.project=arthur-77777777,com.docker.compose.service=db,com.docker.compose.version=2.40.0";
+	fake.state({ info: { DockerRootDir: ROOT, SecurityOptions: [], ServerVersion: "29.9.2", SystemTime: NOW, Warnings: null }, rows: { "image-ls": images }, imageLabels: { a00000000001: `arthur.job=${GONE}`, a00000000002: compose } });
+	const run = (...args: string[]) => execFileSync(join(fake.bin, "docker"), args);
+	run(...labelled(["create", "--name", "old-app", "-v", "/cache", "old:latest"], GONE));
+	run("run", "-d", "--name", "owner-run", "old:latest");
+	run("create", "--name", "owner-app", "-v", "/data", "old:latest");
+	run("create", "--name", "owner-db", "oldcompose-db:latest");
+	const [oldApp, ownerRun, ownerApp, ownerDb] = fake.now().rows.ps ?? [];
+	assert.deepEqual([ownerRun?.Labels, ownerApp?.Labels, ownerDb?.Labels], [`arthur.job=${GONE}`, `arthur.job=${GONE}`, compose], "each took its image's labels");
+	const from = fake.calls().length;
+	const swept = await arthur(t, host, "sweep");
+	const conflict = "Error response from daemon: conflict: unable to delete";
+	const kept = `kept image old:latest: ${conflict} a00000000001 (cannot be forced) - image is being used by running container ${ownerRun?.ID}; kept image oldcompose-db:latest: ${conflict} a00000000002 (must be forced) - image is being used by stopped container ${ownerDb?.ID}`;
+	assert.deepEqual({ ...swept, out: steady(swept.out) }, { code: 0, out: `local: removed 1 container; ${kept}; build cache cut to 10G; 0B reclaimed; <n> GB free on ${ROOT}`, err: "" });
+	assert.deepEqual(changes(from)[0], ["container", "rm", "--volumes", oldApp?.ID]);
+	assert.deepEqual(fake.now().rows.ps, [ownerRun, ownerApp, ownerDb], "the owner's containers untouched, the stopped ones too");
+	assert.deepEqual(names("volume-ls"), [ownerApp?.Mounts], "old-app's anonymous volume went with it; the owner's stays");
 });
 
 test("arthur docker: Docker's usage and what each job labelled on each machine, the jobs that no longer exist marked", async (t) => {

@@ -1,16 +1,17 @@
 import { spawnSync } from "node:child_process";
 
-// The argument rewrite of a job's `docker` script (spec/roadmap.md, entry 70): `--label arthur.job=<id>` right after each
-// command that creates something, and every word that sets the `arthur.job` key dropped wherever it stands, so one job cannot
-// label for another; every other command passes unchanged. The prepare copies this file to the job's script folder on its
+// The argument rewrite of a job's `docker` script (spec/roadmap.md, entry 70): `--label arthur.job=<id>` right after each command
+// that creates something, and `--label arthur.container=<id>` after one that makes a container, which takes its image's labels too,
+// so only this one tells the job's container from the owner's; every word that sets either key dropped wherever it stands, so one
+// job cannot label for another; every other command passes unchanged. The prepare copies this file to the job's script folder on its
 // machine and the script runs it as `node <copy> <real docker> <id> <args>...`, so it imports only `node:` modules. docs/docker.md.
 
 const CREATES = [["run"], ["create"], ["container", "run"], ["container", "create"], ["build"], ["buildx", "build"], ["image", "build"], ["network", "create"], ["volume", "create"]];
 // docker's own options before the command (docker/cli v29, cli/flags/options.go) that take a value, long and short.
 const GLOBAL = ["--config", "--context", "--host", "--log-level", "--tlscacert", "--tlscert", "--tlskey"];
 const GLOBAL_SHORT = "cHl";
-// The `arthur.job` key, with a value or without, as Docker splits a label at its first `=`.
-const KEY = /^arthur\.job(=|$)/;
+// The `arthur.job` and `arthur.container` keys, with a value or without, as Docker splits a label at its first `=`.
+const KEY = /^arthur\.(job|container)(=|$)/;
 // A short group whose last option is `l` and that gives its value in the same word: `-l=…`, `-l…`, `-dl…`.
 const SHORT = /^(-[A-Za-z]*?)l=?(.*)$/s;
 
@@ -52,7 +53,9 @@ export function labelled(args: readonly string[], id: string): string[] {
 	const words = CREATES.find((each) => each.every((word, index) => args[index === 0 ? at : next + index - 1] === word));
 	if (words === undefined) return [...args];
 	const end = next + words.length - 1;
-	return [...args.slice(0, end), "--label", `arthur.job=${id}`, ...stripped(args.slice(end))];
+	// The first four of CREATES make a container.
+	const container = CREATES.indexOf(words) < 4 ? ["--label", `arthur.container=${id}`] : [];
+	return [...args.slice(0, end), "--label", `arthur.job=${id}`, ...container, ...stripped(args.slice(end))];
 }
 
 if (import.meta.main) {

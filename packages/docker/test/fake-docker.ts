@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,10 +7,10 @@ import { memoryBytes } from "@arthur/core";
 // The fake `docker` and `ssh` of the docker plugin's tests, in a folder of the test's own put first on PATH; no test reaches the
 // real Docker of the machine. `docker` is this file run by node: each argument list appended to `calls` as a JSON line, its
 // answers in the keys and texts docker-shapes.json records from docker/cli, moby and buildx, from `state.json` (`State`), which
-// its removals change; while `down` exists every command that needs the daemon fails with Docker's line and exit 1, and the
-// command `crash` names makes `down` first; `<host>.docker-down` does the same on that host alone. Its clock is
-// `info.SystemTime`, which `builder prune --filter until=` reads. `ssh <options> <host> <command>` runs the command here as
-// that host, the fake docker included, or fails as ssh does (255) while `<host>.down` exists.
+// its removals, `run` and `create` change (a container taking its image's labels); while `down` exists every command that needs
+// the daemon fails with Docker's line and exit 1, and the command `crash` names makes `down` first; `<host>.docker-down` does the
+// same on that host alone. Its clock is `info.SystemTime`, which `builder prune --filter until=` reads. `ssh <options> <host>
+// <command>` runs the command here as that host, the fake docker included, or fails as ssh does (255) while `<host>.down` exists.
 
 const { shapes, texts } = JSON.parse(readFileSync(new URL("docker-shapes.json", import.meta.url), "utf8")) as { shapes: Record<string, unknown>; texts: Record<string, string> };
 
@@ -146,6 +147,32 @@ if (import.meta.main) {
 		save({ ps: others, "network-ls": networks.filter((each) => each !== gone), "volume-ls": volumes.filter((each) => each !== gone && !anonymous(each)), "image-ls": images.filter((each) => each !== gone) });
 		if (command !== "image") say(name);
 		else for (const line of [...(gone?.Tag === "<none>" ? [] : [`Untagged: ${gone?.Repository}:${gone?.Tag}`]), `Deleted: sha256:${name}`]) say(line);
-	} else if (["run", "create", "build", "container", "buildx", "image", "network", "volume"].includes(command)) say("0123456789abcdef".repeat(4));
+	} else if (["run", "create"].includes(command) || ["container run", "container create"].includes(words)) {
+		// A container in `ps`, its full ID printed as `run -d` and `create` print it. The options read: `--label`, `-l`, `--name`, `-v` and
+		// `--volume` with the next word, any other one a flag; the first other word is the image. The image's labels go on the container
+		// under its own, as the daemon merges them (moby daemon/commit.go, merge). `-v <path>` mounts a new anonymous volume, `-v <name>:<path>`
+		// that volume, made unlabelled when missing; `-v /<host path>:<path>` binds no volume.
+		const given = command === "container" ? rest : [sub, ...rest];
+		const [labels, sources] = [[] as string[], [] as string[]];
+		let [name, image] = ["", ""];
+		for (let at = 0; at < given.length && image === ""; at++) {
+			const [word = "", next = ""] = [given[at], given[at + 1]];
+			if (["--label", "-l", "--name", "-v", "--volume"].includes(word)) at++;
+			if (word === "--label" || word === "-l") labels.push(next);
+			else if (word === "--name") name = next;
+			else if (word === "-v" || word === "--volume") sources.push(next.includes(":") ? (next.split(":")[0] ?? "") : "");
+			else if (!word.startsWith("-")) image = word;
+		}
+		const mounts = sources.filter((source) => !source.startsWith("/")).map((source) => source || randomBytes(32).toString("hex"));
+		const missing = mounts.filter((mount) => !volumes.some((volume) => volume.Name === mount));
+		const made = missing.map((each) => row("volume-ls", { Driver: "local", Name: each, Labels: sources.includes(each) ? "" : "com.docker.volume.anonymous=" }));
+		const from = images.find((each) => each.ID === image || `${each.Repository}:${each.Tag}` === image);
+		const inherited = (state.imageLabels?.[String(from?.ID)] ?? "").split(",").filter((pair) => pair !== "");
+		const merged = new Map([...inherited, ...labels].map((pair) => [pair.split("=")[0], pair.split("=").slice(1).join("=")]));
+		const [id, running] = [randomBytes(32).toString("hex"), (command === "container" ? sub : command) === "run"];
+		const container = { ID: id.slice(0, 12), Names: name || `fake_${id.slice(0, 6)}`, Image: image, State: running ? "running" : "created", Status: running ? "Up 1 second" : "Created" };
+		save({ ps: [...containers, row("ps", { ...container, Labels: [...merged].map((pair) => pair.join("=")).join(","), Mounts: mounts.join(","), Networks: "bridge" })], "volume-ls": [...volumes, ...made] });
+		say(id);
+	} else if (["build", "container", "buildx", "image", "network", "volume"].includes(command)) say("0123456789abcdef".repeat(4));
 	else fail(`docker: '${command}' is not a docker command.\nSee 'docker --help'`);
 }

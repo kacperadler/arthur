@@ -14,20 +14,22 @@ import { fakeDocker } from "./fake-docker.ts";
 
 const ID = "2026-11-09-worker-0a1b2c3d";
 const LABEL = ["--label", `arthur.job=${ID}`];
+// What a command that makes a container gets: the job's label, then the container's.
+const RUN = [...LABEL, "--label", `arthur.container=${ID}`];
 
-test("each command that creates something gets the job's label right after its words; every other command passes unchanged", () => {
-	for (const words of [["run"], ["create"], ["container", "run"], ["container", "create"], ["build"], ["buildx", "build"], ["image", "build"], ["network", "create"], ["volume", "create"]])
-		assert.deepEqual(labelled([...words, "x"], ID), [...words, ...LABEL, "x"], words.join(" "));
+test("each command that creates something gets the job's label right after its words, one that makes a container its container label too; every other command passes unchanged", () => {
+	for (const [index, words] of [["run"], ["create"], ["container", "run"], ["container", "create"], ["build"], ["buildx", "build"], ["image", "build"], ["network", "create"], ["volume", "create"]].entries())
+		assert.deepEqual(labelled([...words, "x"], ID), [...words, ...(index < 4 ? RUN : LABEL), "x"], words.join(" "));
 	for (const args of [["ps", "-a"], ["compose", "up", "-d"], ["image", "ls"], ["network", "ls"], ["volume", "rm", "x"], ["buildx", "ls"], ["exec", "c", "run"], ["start", "run"], [], ["--version"], ["--", "ps"], ["-", "run"]])
 		assert.deepEqual(labelled(args, ID), args, args.join(" "));
 });
 
 test("global options before the command keep their values, and the label still goes after the command", () => {
 	for (const globals of [["--log-level", "debug"], ["-l", "debug"], ["--log-level=debug"], ["-H", "unix:///run/docker.sock"], ["-Hunix:///run/docker.sock"], ["--context", "run"], ["-c", "run"], ["-D"], ["--tls", "--tlscert", "run"], ["--config", "/c", "--debug"]])
-		assert.deepEqual(labelled([...globals, "run", "img"], ID), [...globals, "run", ...LABEL, "img"], globals.join(" "));
+		assert.deepEqual(labelled([...globals, "run", "img"], ID), [...globals, "run", ...RUN, "img"], globals.join(" "));
 	for (const valued of ["--config", "--context", "--host", "--log-level", "--tlscacert", "--tlscert", "--tlskey", "-c", "-H", "-l"])
-		assert.deepEqual(labelled([valued, "run", "run", "img"], ID), [valued, "run", "run", ...LABEL, "img"], `${valued} takes the next word as its value`);
-	assert.deepEqual(labelled(["--", "run", "-l", "arthur.job=other", "img"], ID), ["--", "run", ...LABEL, "img"], "docker runs the command after a leading --");
+		assert.deepEqual(labelled([valued, "run", "run", "img"], ID), [valued, "run", "run", ...RUN, "img"], `${valued} takes the next word as its value`);
+	assert.deepEqual(labelled(["--", "run", "-l", "arthur.job=other", "img"], ID), ["--", "run", ...RUN, "img"], "docker runs the command after a leading --");
 	assert.deepEqual(labelled(["-D", "--", "volume", "create", "v"], ID), ["-D", "--", "volume", "create", ...LABEL, "v"]);
 });
 
@@ -40,19 +42,23 @@ test("buildx's own options before build keep their place, the label goes after b
 		assert.deepEqual(labelled(args, ID), args, args.join(" "));
 });
 
-test("every word that sets arthur.job goes, in each spelling and wherever it stands; a label with another key is kept", () => {
+test("every word that sets arthur.job or arthur.container goes, in each spelling and wherever it stands; a label with another key is kept", () => {
+	for (const other of ["arthur.job=2026-11-09-worker-ffffffff", "arthur.container=2026-11-09-worker-ffffffff"]) {
+		const key = other.slice(0, other.indexOf("="));
+		for (const given of [["--label", other], [`--label=${other}`], ["-l", other], [`-l${other}`], [`-l=${other}`], ["--label", key], [`--label=${key}=`], [other]])
+			for (const [command, own] of [[["run"], RUN], [["create"], RUN], [["container", "run"], RUN], [["build"], LABEL], [["volume", "create"], LABEL]] as const)
+				assert.deepEqual(labelled([...command, ...given, "img"], ID), [...command, ...own, "img"], `${command.join(" ")} ${given.join(" ")}`);
+	}
 	const other = "arthur.job=2026-11-09-worker-ffffffff";
-	for (const given of [["--label", other], [`--label=${other}`], ["-l", other], [`-l${other}`], [`-l=${other}`], ["--label", "arthur.job"], ["--label=arthur.job="], [other]])
-		for (const command of [["run"], ["create"], ["container", "run"], ["build"], ["volume", "create"]]) assert.deepEqual(labelled([...command, ...given, "img"], ID), [...command, ...LABEL, "img"], `${command.join(" ")} ${given.join(" ")}`);
-	assert.deepEqual(labelled(["run", "-dl", other, "img"], ID), ["run", ...LABEL, "-d", "img"], "-dl: its l taken out, -d kept");
-	assert.deepEqual(labelled(["run", `-itl${other}`, "img"], ID), ["run", ...LABEL, "-it", "img"]);
+	assert.deepEqual(labelled(["run", "-dl", other, "img"], ID), ["run", ...RUN, "-d", "img"], "-dl: its l taken out, -d kept");
+	assert.deepEqual(labelled(["run", `-itl${other}`, "img"], ID), ["run", ...RUN, "-it", "img"]);
 	assert.deepEqual(labelled(["build", "--label", other, ".", `--label=${other}`, "-t", "app"], ID), ["build", ...LABEL, ".", "-t", "app"]);
-	for (const kept of [["--label", "arthur.jobs=1"], ["--label", "com.example=arthur.job=x"], ["-l", "arthur.keep"], ["--label-file", "labels"], ["--label", "x.arthur.job=1"], ["-e", "A=1", "-p", "80:80"], ["--rm", "-it"]])
-		assert.deepEqual(labelled(["run", ...kept, "img", "sh", "-c", "echo"], ID), ["run", ...LABEL, ...kept, "img", "sh", "-c", "echo"], kept.join(" "));
+	for (const kept of [["--label", "arthur.jobs=1"], ["--label", "arthur.containers=1"], ["--label", "com.example=arthur.job=x"], ["-l", "arthur.keep"], ["--label-file", "labels"], ["--label", "x.arthur.job=1"], ["-e", "A=1", "-p", "80:80"], ["--rm", "-it"]])
+		assert.deepEqual(labelled(["run", ...kept, "img", "sh", "-c", "echo"], ID), ["run", ...RUN, ...kept, "img", "sh", "-c", "echo"], kept.join(" "));
 	// Words after the image or a `--`: what sets arthur.job goes there too, as Docker may read it as an option (review 3).
-	const after = ["--label", "arthur.job=x", "-l", "arthur.job=y", `--label=${other}`, "arthur.job=z"];
-	assert.deepEqual(labelled(["run", "img", "echo", ...after, "done"], ID), ["run", ...LABEL, "img", "echo", "done"]);
-	assert.deepEqual(labelled(["create", "--", "img", ...after], ID), ["create", ...LABEL, "--", "img"]);
+	const after = ["--label", "arthur.job=x", "-l", "arthur.job=y", `--label=${other}`, "arthur.job=z", "--label", "arthur.container=x"];
+	assert.deepEqual(labelled(["run", "img", "echo", ...after, "done"], ID), ["run", ...RUN, "img", "echo", "done"]);
+	assert.deepEqual(labelled(["create", "--", "img", ...after], ID), ["create", ...RUN, "--", "img"]);
 	assert.deepEqual(labelled(["build", "--", ...after, "."], ID), ["build", ...LABEL, "--", "."]);
 	// A literal --label or -- as another option's value, then the job's own try at another label: that label never stays.
 	const rows: [string[], string[]][] = [
@@ -65,12 +71,13 @@ test("every word that sets arthur.job goes, in each spelling and wherever it sta
 		[["network", "create", "-l", other, "net"], ["network", "create", ...LABEL, "net"]],
 	];
 	for (const [command, option] of [[["build"], "--build-arg"], [["volume", "create"], "--label"], [["network", "create"], "--driver"], [["buildx", "build"], "-t"], [["image", "build"], "--label"], [["run"], "-e"], [["create"], "--name"]] as const) {
-		rows.push([[...command, option, "--", `--label=${other}`, "x"], [...command, ...LABEL, option, "--", "x"]]);
-		rows.push([[...command, option, "--", "--label", other, "x"], [...command, ...LABEL, option, "--", "x"]]);
-		rows.push([[...command, option, "--", "-l", other, "x"], [...command, ...LABEL, option, "--", "x"]]);
+		const own = command[0] === "run" || command[0] === "create" ? RUN : LABEL;
+		rows.push([[...command, option, "--", `--label=${other}`, "x"], [...command, ...own, option, "--", "x"]]);
+		rows.push([[...command, option, "--", "--label", other, "x"], [...command, ...own, option, "--", "x"]]);
+		rows.push([[...command, option, "--", "-l", other, "x"], [...command, ...own, option, "--", "x"]]);
 	}
 	for (const [args, expected] of rows) assert.deepEqual(labelled(args, ID), expected, args.join(" "));
-	assert.deepEqual(labelled(["run", "--label"], ID), ["run", ...LABEL, "--label"], "a label without its value is Docker's to refuse");
+	assert.deepEqual(labelled(["run", "--label"], ID), ["run", ...RUN, "--label"], "a label without its value is Docker's to refuse");
 });
 
 // The fake docker, ssh and `omp` on PATH: the agent notes its environment in its worktree, then plays the fake agent.
@@ -118,8 +125,8 @@ test("a job on a machine labelled tools: docker gets its script first on PATH an
 	assert.equal(readFileSync(join(folder, "docker-label.ts"), "utf8"), readFileSync(new URL("../src/docker-label.ts", import.meta.url), "utf8"));
 	const run = (...args: string[]) => spawnSync(join(folder, "docker"), args, { encoding: "utf8" });
 	const ran = run("-D", "--log-level", "debug", "run", "-l", "arthur.job=other", "--rm", "img", "--label", "arthur.job=x");
-	assert.deepEqual([ran.status, ran.stdout], [0, `${"0123456789abcdef".repeat(4)}\n`], "docker's output and exit code pass through");
-	assert.deepEqual(fake.calls().at(-1), ["-D", "--log-level", "debug", "run", ...LABEL, "--rm", "img"]);
+	assert.deepEqual([ran.status, ran.stdout.length], [0, 65], "docker's output and exit code pass through: the container's full ID");
+	assert.deepEqual(fake.calls().at(-1), ["-D", "--log-level", "debug", "run", ...RUN, "--rm", "img"]);
 	assert.deepEqual([run("nope").status, run("nope").stderr], [1, "docker: 'nope' is not a docker command.\nSee 'docker --help'\n"]);
 	assert.deepEqual(host.emitted.filter((event) => event.name === "notice"), []);
 });

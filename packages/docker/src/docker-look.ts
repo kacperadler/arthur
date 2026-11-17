@@ -41,8 +41,11 @@ export function sections(stdout: string): Map<string, string[]> {
 export const json = (lines: readonly string[] = []): Row[] => lines.map((line) => JSON.parse(line));
 // `k=v,k=v`, as a listing prints labels.
 const pairs = (text: unknown): Labels => Object.fromEntries(String(text ?? "").split(",").filter((pair) => pair !== "").map((pair) => [pair.split("=")[0], pair.slice(pair.indexOf("=") + 1)]));
-// The job a resource's labels name: its `arthur.job`, else a compose project named as the docker script names a job's.
-const jobOf = (labels: Labels) => labels["arthur.job"] ?? /^arthur-[0-9a-f]{8}$/.exec(labels["com.docker.compose.project"] ?? "")?.[0];
+// The job a resource's labels name: its `arthur.job`, else a compose project named as the docker script names a job's. A container
+// takes its image's labels too, so it names one only by its maker's: the script's `arthur.container`, compose's config hash.
+const jobOf = (labels: Labels, container: boolean) =>
+	labels[container ? "arthur.container" : "arthur.job"] ??
+	(container && !("com.docker.compose.config-hash" in labels) ? undefined : /^arthur-[0-9a-f]{8}$/.exec(labels["com.docker.compose.project"] ?? "")?.[0]);
 // The record of `job`, a job's id or its compose project's name, among `ids`.
 export const recordOf = (ids: readonly string[], job: string) => ids.find((id) => id === job || `arthur-${id.slice(-8)}` === job);
 
@@ -70,7 +73,7 @@ export async function look(host: Host, machine: string): Promise<Seen | { readon
 			const id = String(kind === "volume" ? row.Name : row.ID);
 			const labels = kind === "image" ? (images.get(id) ?? {}) : pairs(row.Labels);
 			const name = kind === "container" ? row.Names : kind !== "image" ? row.Name : row.Tag === "<none>" ? id : `${row.Repository}:${row.Tag}`;
-			return { kind, word: `${kind}:${id}`, name: `${kind} ${name}`, row, labels, job: jobOf(labels) };
+			return { kind, word: `${kind}:${id}`, name: `${kind} ${name}`, row, labels, job: jobOf(labels, kind === "container") };
 		}),
 	);
 	return { now: Date.parse(time), root, things, system: json(found.get("system")), folders: (found.get("folders") ?? []).filter((name) => /^[\w-]+$/.test(name)) };

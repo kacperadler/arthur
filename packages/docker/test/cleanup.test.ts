@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import type { Host } from "@arthur/core/plugin";
@@ -153,6 +153,20 @@ test("Docker stopping half-way: what went stays gone, the rest is named for the 
 		message: "Docker stopped answering half-way: removed 2 containers, 1 network; left for the sweep: network shared_net, volume data, volume cache, image shop:latest, image shop-tools:latest",
 	});
 	assert.deepEqual([names("ps"), names("network-ls"), names("volume-ls")], [["other-web"], ["shared_net", "bridge"], ["data", "cache"]]);
+});
+
+test("one listing Docker refuses while it answers the rest: the hook gives up on the job, touching nothing", async () => {
+	const { hook } = await load({ local: { tools: ["docker"] } });
+	fake.state(made(ID));
+	// A docker first on PATH that refuses the listing of the job's containers alone, and passes every other call to the fake.
+	const refusing = temporaryFolder();
+	const script = `case "$*" in "container ls --all --filter label=arthur.container="*) echo "Error response from daemon: invalid filter" >&2; exit 1;; esac`;
+	writeFileSync(join(refusing, "docker"), `#!/bin/sh\n${script}\nexec '${join(fake.bin, "docker")}' "$@"\n`, { mode: 0o755 });
+	const [path, from] = [process.env.PATH, fake.calls().length];
+	process.env.PATH = [refusing, path].join(delimiter);
+	await assert.rejects(hook().finally(() => (process.env.PATH = path)), { message: "listing what the job made exited 1: Error response from daemon: invalid filter; what the job made there is left for the sweep" });
+	assert.deepEqual(changes(from), []);
+	assert.deepEqual(names("ps"), ["web", "db", "other-web"]);
 });
 
 test("a job on another machine is cleaned there, every command through host.jobs.run; that machine offline touches nothing", async () => {

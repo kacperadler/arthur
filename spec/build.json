@@ -5807,9 +5807,9 @@
   {
     "id": "AR0719",
     "title": "npm test takes about 12 minutes of 3 busy cores: find which test files and which started processes use its CPU time",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0719-npm-test-takes-about-12-minutes-of-3-busy-cores-find-which-test-files-and-which/ticket.md",
-    "updated": "2026-11-17T15:43:46.504Z",
+    "updated": "2026-11-17T15:55:11.205Z",
     "after": [
       "AR0718"
     ]

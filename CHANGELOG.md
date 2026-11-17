@@ -20,6 +20,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0683 Measure the test suite on Bun beside Node, and report whether moving the tests is worth it (fc066902)
 - AR0718 npm test runs about 10 test files at once on the 3 cores a job gets; time it with --test-concurrency 3 and keep the faster (1b2c023f)
+- AR0719 npm test takes about 12 minutes of 3 busy cores: find which test files and which started processes use its CPU time (6bc8dfba)
 
 ### 2026-11-16
 

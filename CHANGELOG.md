@@ -15,6 +15,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0690 docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays (704153ee)
 
+#### Changed
+
+- AR0683 Measure the test suite on Bun beside Node, and report whether moving the tests is worth it (fc066902)
+
 ### 2026-11-16
 
 #### Fixed

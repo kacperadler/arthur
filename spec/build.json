@@ -5522,9 +5522,9 @@
   {
     "id": "AR0683",
     "title": "Measure the test suite on Bun beside Node, and report whether moving the tests is worth it",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0683-measure-the-test-suite-on-bun-beside-node-and-report-whether-moving-the-tests-is/ticket.md",
-    "updated": "2026-11-17T07:01:39.680Z"
+    "updated": "2026-11-17T09:42:20.377Z"
   },
   {
     "id": "AR0684",
@@ -5663,9 +5663,9 @@
   {
     "id": "AR0701",
     "title": "A job's prune and the sweep take only containers the job made, never the owner's container from a job's image",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0701-a-job-s-prune-and-the-sweep-take-only-containers-the-job-made-never-the-owner-s/ticket.md",
-    "updated": "2026-11-17T07:13:56.590Z",
+    "updated": "2026-11-17T08:40:50.101Z",
     "after": [
       "AR0690"
     ]

@@ -2,78 +2,101 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
-## 2026-11-16
+## Unreleased
 
-### Fixed
+### 2026-11-17
+
+#### Added
+
+- AR0480 Plan: a stats plugin, token use, cost and time of every job and of the coordinator, per role, ticket and project
+- AR0604 Plan: the docker plugin and the core cleanup hook, roadmap 70 to 72
+
+#### Fixed
+
+- AR0690 docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays (704153ee)
+
+### 2026-11-16
+
+#### Fixed
 
 - AR0699 The changelog counts the v0.1.0 tag as a release, so the next release lists only its own tickets (47580408)
 
-## 2026-11-15
+### 2026-11-15
 
-### Added
+#### Added
 
 - AR0706 Project agents T2: a project chat's messages and its jobs' ends go to its agent, and arthur agent tell (roadmap 86) (046a2fee)
 - AR0707 Project agents T3: a project agent's context holds only its own project (roadmap 87) (d7b3b8ff)
 - AR0708 Project agents T4: compaction, the fresh start and the handoff for every project agent (roadmap 88) (c7ee8203)
 
-## 2026-11-14
+### 2026-11-14
 
-### Added
+#### Added
 
 - AR0705 Project agents T1: each project with a chat gets its own supervised omp session and arthur attach <project> (roadmap 85) (da1ed4ed)
 
-### Fixed
+#### Fixed
 
 - AR0712 A Dokploy upload of a folder sends its dotfiles too, such as a .dev.vars.example that holds a token (08e52551)
 
-### Changed
+#### Changed
 
 - AR0711 Mutate leaves out test helpers and the example config (392de77e)
 
-## 2026-11-13
+### 2026-11-13
 
-### Added
+#### Added
 
 - AR0530 `arthur log` and `/log`: read the activity log by day, user, actor, ticket or job (56514cf4)
 - AR0652 Stats S5: arthur stats, /stats and the morning report's Spend (roadmap 111) (46655571)
 - AR0653 Stats S6: Claude usage windows beside the costs, an estimate marked ≈ (roadmap 112) (234b6360)
 
-### Changed
+#### Changed
 
 - AR0651 Stats S4: the merged-ticket report moves from manage to stats (roadmap 110) (a27b618c)
 - AR0704 A test fixture names the owner's real account, user:terminal:kacper, in the public repository (254c2011)
 - AR0710 Mutate spreads its sample over the whole of a new file, not only its first lines (0812b4e6)
 
-## 2026-11-12
+### 2026-11-12
 
-### Added
+#### Added
 
-- AR0553 Speech: the coordinator answers a voice note with a voice note, spoken on this server (17dc9ed0)
 - AR0642 Roadmap 106: installing a release, arthur update and arthur machines update (0cebc800)
 - AR0643 Roadmap 107: a notice when a new release exists (dd403666)
-- AR0647 Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72) (cc86eb39)
 
-### Changed
+#### Changed
 
-- AR0641 Roadmap 105: the release workflow and the changelog per release (bb47fe30)
 - AR0686 Code: a review on the fable model finds redundant comments and removes them (e1847934)
 - AR0693 A role, criteria or vision file the approved ticket's Scope names merges on its own after CI passes (5afc8e5a)
 - AR0694 A Plan: yes ticket goes straight to its planner; the plan question is the owner's one decision (5512e3fb)
 - AR0695 The coordinator checks a finding's or audit's ticket against autopilot before asking the owner (dc057e4d)
 - AR0696 The review gate needs min(100, all) mutants, not min(25, all) (42f5b862)
 - AR0697 The test kit stops every process a test left in its folder when a test file exits (cdcd7c6b)
+
+## 0.1.0 (2026-11-12)
+
+### 2026-11-12
+
+#### Added
+
+- AR0553 Speech: the coordinator answers a voice note with a voice note, spoken on this server (17dc9ed0)
+- AR0647 Docker W4: the daily sweep of Docker leftovers, arthur docker and arthur docker sweep (roadmap 72) (cc86eb39)
+
+#### Changed
+
+- AR0641 Roadmap 105: the release workflow and the changelog per release (bb47fe30)
 - AR0698 Release 0.1.0: tag v0.1.0 and its GitHub release by hand, once AR0641 merges
 
-## 2026-11-11
+### 2026-11-11
 
-### Added
+#### Added
 
 - AR0645 Docker W2: the docker plugin labels what a job creates, and machines gives its labels (roadmap 70) (7dd448d8)
 - AR0646 Docker W3: a job's containers, networks, volumes and images go with its worktree (roadmap 71, docker half) (d2435dcf)
 - AR0681 Dokploy T4b: arthur dokploy postgres create makes a Postgres beside an app and writes its DATABASE_URL (23a43110)
 - AR0682 Dokploy T4c: arthur dokploy postgres backup schedules backups of a Postgres to an S3 destination (ec4e6a01)
 
-### Fixed
+#### Fixed
 
 - AR0679 The go-with-my-recommendation grant and approved policies still answer plan questions, which must go to the owner (AR-D603) (b76c2640)
 - AR0687 Workers commit after their checks ran, so every review is refused until a second run on the tip (2b7199c3)
@@ -81,19 +104,19 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0689 The review gate needs 25 mutants, but mutate stops at 1500 s, so a branch touching slow core tests can never be reviewed (98cae6c0)
 - AR0691 An automatic restart kills a running merge of Arthur code, which is rolled back, so no code merge in Arthur can finish (11010107)
 
-### Changed
+#### Changed
 
 - AR0671 Tests run faster: no real waits of seconds, the slowest file split, CI in parallel shards, workers test their package first (68ff7073)
 - AR0692 herdr start-up test fails under load: its 20 s wait for the start-up pass times out in a full npm test, and blocks reviews of unrelated branches (eca9687c)
 
-## 2026-11-10
+### 2026-11-10
 
-### Added
+#### Added
 
 - AR0670 A herdr plugin: each running job is a pane in herdr on the server, with its live activity and its state in the sidebar (31286fa2)
 - AR0680 Dokploy T4a: arthur dokploy source connects an app to its GitHub repository, so a push deploys it (3c9144dc)
 
-### Fixed
+#### Fixed
 
 - AR0665 Ticket approval and a plain merge need a recorded owner decision (e8db1f4d)
 - AR0668 A decision answer can quote only the id and a dash from the owner message, so a steered coordinator records his no as a yes (06f14a26)
@@ -102,16 +125,16 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0678 Report pages draw a double border on the right of the last number tile in a row and under the tiles of the last row (6260e8d7)
 - AR0684 An audio file transcript still proves the owner answer; only his voice notes may (AR-D616) (cd7c1eef)
 
-### Changed
+#### Changed
 
 - AR0548 The coordinator instructions built as text in TypeScript move into Markdown procedures (b2152c78)
 - AR0673 Plugin branches running in parallel conflict on lists that every new plugin appends to, so each later merge needs a merge of main and a budget raise (6c8c041a)
 - AR0676 The activity plugin is built, but the roadmap has no entries 99 to 101 and the vision and diagrams do not show it (5537c9f2)
 - AR0685 Tests: a review on the fable model finds redundant tests and removes them, after the test speed work (c957ad44)
 
-## 2026-11-09
+### 2026-11-09
 
-### Fixed
+#### Fixed
 
 - AR0485 A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked (4fa79860)
 - AR0486 A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth (14214a3f)
@@ -123,7 +146,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0663 A bare ** in report page text becomes bold, so globs and code lose it (3beb621f)
 - AR0664 arthur decision answer needs the owner own channel message, and high-impact answers name the decision id (46ed9425)
 
-### Changed
+#### Changed
 
 - AR0633 The umask test walks .arthur while the job still writes, and fails on a lock file that vanished (98e56bc7)
 - AR0656 A worker is told before its run ends that its checks did not pass on its clean committed tip (2f2ef424)
@@ -133,9 +156,9 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0660 The model test reads every file of a job folder while the job still writes, and fails on a lock file that vanished (cc9e82ee)
 - AR0666 The threat model says the coordinator runs with no sandbox and no worktree guard (d514bb2a)
 
-## 2026-11-07
+### 2026-11-07
 
-### Added
+#### Added
 
 - AR0529 The activity plugin: one file per day of who did what, kept 90 days (a9e86bfb)
 - AR0563 arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page (4b1e1cbb)
@@ -145,19 +168,19 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0650 Stats S3: the stats plugin keeps one line per job run and per coordinator turn (roadmap 109) (51b51061)
 - AR0654 Dokploy T3: create an app and set its build type, domain, volume and environment names, on the owner word (53dbde54)
 
-### Fixed
+#### Fixed
 
 - AR0635 The merge commits its spec files with hooks off, so the other-projects check never sees them before the push (a73083dd)
 - AR0636 A committed plan names the public IP addresses of the owner deploy host and this VPS (932354be)
 - AR0638 host.secrets holds only enabled plugins values, so the public decision log misses other env file values (39996965)
 
-### Changed
+#### Changed
 
 - AR0637 Mutate runs capped at 4 pass the review gate, and reviews then FAIL on survivors the worker never ran (b3e6be8f)
 
-## 2026-11-06
+### 2026-11-06
 
-### Added
+#### Added
 
 - AR0528 Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts (dd5907a9)
 - AR0556 Plan: the github plugin manages pull requests, issues and branches
@@ -166,12 +189,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0603 Dokploy T2: upload a file or folder and start a deploy, on the owner's word (39c9f9a0)
 - AR0649 Stats S2: tokens per model in the job record (roadmap 108) (97c9cc09)
 
-### Fixed
+#### Fixed
 
 - AR0628 git fast-import appends to any file named by a stdin option git export-pack-edges line, past the worktree guard (631ac206)
 - AR0630 arthur review runs on a job whose review-needed said no review, and a stopped review then blocks the merge (44d3b3c8)
 
-### Changed
+#### Changed
 
 - AR0561 Plan: agents do the right thing by default, every repeated correction moved up the pyramid
 - AR0631 Two tests fail now and then under the full suite: the discord 50 ms heartbeat, and the machine copy of only the log new bytes (90fae4df)
@@ -179,14 +202,14 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0639 Roadmap entries 104 to 107 and the vision lines for releases, installing and updating, from the AR0128 plan (e86e09fc)
 - AR0648 Stats S1: roadmap entries 108 to 112 and the vision's stats row, from the AR0480 plan (34363352)
 
-## 2026-11-05
+### 2026-11-05
 
-### Added
+#### Added
 
 - AR0560 GitHub T4: list and delete branches on origin (1c063abf)
 - AR0605 arthur config check type-checks arthur.config.ts and every project file with tsc (1cd256e9)
 
-### Fixed
+#### Fixed
 
 - AR0391 The 60 s limit of a push also bounds its LFS upload (19fc7230)
 - AR0399 `git lfs push origin` reads origin's URL outside Git's transport policy (a186c156)
@@ -200,19 +223,19 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0625 A git program called by its path (/usr/lib/git-core/git-*) passes the worktree guard (b445e4cb)
 - AR0629 A delivery merge running when arthur run restarts dies half done, leaving an unpushed merge commit on main (90e1b2e7)
 
-### Changed
+#### Changed
 
 - AR0626 Two tests fail now and then under the full suite: models server unreachable, discord refused slice (be1b4929)
 
-## 2026-11-04
+### 2026-11-04
 
-### Added
+#### Added
 
 - AR0606 Discord T3: the phone commands as Discord application commands, suggested when the owner types / (362c89f8)
 - AR0609 A personality file every agent reads, the coordinator included, as tone only (84d73bfe)
 - AR0614 Session: compact the coordinator by schedule, by context use, or both, chosen in the session options (752fb17b)
 
-### Fixed
+#### Fixed
 
 - AR0608 The plan guard ignores a Plan line it cannot read, so a misspelt one lets a worker start without a plan (4aea5715)
 - AR0610 arthur prune and a dropped ticket remove only the worktree and branch the spawn made, not what the job record names (e3deefdc)
@@ -227,31 +250,31 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0623 Uptime: this machine offline sends no notice and checks no site, only the probes, until one answers (8e7ed5c6)
 - AR0627 No client or other project of the owner named in the repository, and a check that refuses a commit naming one (3b0bb390)
 
-### Changed
+#### Changed
 
 - AR0584 Defaults T16: verify.md criteria for workers and reviewers, one Every job rule, and the retro sees the corrections (67edcac6)
 - AR0612 The /repeats page follows the report style (report.md) (9c7f172d)
 
-## 2026-11-03
+### 2026-11-03
 
-### Fixed
+#### Fixed
 
 - AR0390 A job on another machine moves a Git LFS project's commits there and back without their LFS objects (ba124480)
 - AR0396 A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads (cb5e5157)
 - AR0397 Arthur's other git reads in a main checkout still read through a replacement (67b7e607)
 
-### Changed
+#### Changed
 
 - AR0613 docs/deploy.md security section covers every channel, Discord included (2ca886e9)
 
-## 2026-11-02
+### 2026-11-02
 
-### Added
+#### Added
 
 - AR0562 arthur repeats and /repeats: what the owner decides again and again and what agents keep hitting, and a decisions retro (202a0e93)
 - AR0602 Discord T2: photos, files, voice and the phone commands in Discord (roadmap 90) (e4225ba9)
 
-### Fixed
+#### Fixed
 
 - AR0348 The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs (83adb63f)
 - AR0369 The agent's own request to a provider is never checked against the private network (03a3298c)
@@ -261,14 +284,14 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0507 A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff (bccfdff3)
 - AR0512 A job that empties its record's `guarded` file reads the env file after `arthur continue` (f5f2367e)
 
-## 2026-11-01
+### 2026-11-01
 
-### Fixed
+#### Fixed
 
 - AR0597 A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue (b9549ffe)
 - AR0599 Two core job tests can start the same systemd scope name at once (091ae34b)
 
-### Changed
+#### Changed
 
 - AR0582 Defaults T14: a source line over 160 characters counts as more than one (61f2a538)
 - AR0594 Retro: a worker sent back after a FAIL fixes the cause, not only the reviewer's examples (b9308c3e)
@@ -278,27 +301,27 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0600 Split the five source files that leave their zone once a line counts once per 160 characters (2320de78)
 - AR0601 Docs catch up: Dokploy in the README, setup guide, architecture diagram and vision; the roadmap and arthur.mmd lines left stale (290e014e)
 
-## 2026-10-31
+### 2026-10-31
 
-### Added
+#### Added
 
 - AR0580 Defaults T12: a review starts only on a tip whose check, test and mutate passed (1384c34b)
 - AR0588 Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers (e4a950b0)
 - AR0592 Plan: a discord plugin, the owner chat with Arthur in a private Discord server (84170c00)
 
-### Fixed
+#### Fixed
 
 - AR0590 AR0589 T3: a job cannot read the shared home .arthur/ of other projects (c966fcae)
 - AR0593 AR0589 T2: a job sees only its own project (d8013c2d)
 
-### Changed
+#### Changed
 
 - AR0495 Source file size in three zones: green up to 200 lines, yellow up to 220, red up to 250, never above (4253ffdb)
 - AR0579 Defaults T11: npm run mutate finds the tests that do not catch a change (6d1e9372)
 
-## 2026-10-30
+### 2026-10-30
 
-### Added
+#### Added
 
 - AR0569 Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event (cdb0abdc)
 - AR0571 Defaults T3: a job resumes once after a provider error or an ending with no verdict (4393690f)
@@ -309,7 +332,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0583 Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job (691ec332)
 - AR0585 Before a job ends, the agent is reminded to close the processes it started that are no longer needed (81dd75ff)
 
-### Fixed
+#### Fixed
 
 - AR0566 Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach (425ca8aa)
 - AR0570 Defaults T2: a branch cannot change its ticket, the board or the decision log (5a2e3ed8)
@@ -317,7 +340,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0586 The report check tests fail on GitHub CI: its Chrome will not render narrower than 500 px (8c271b51)
 - AR0591 The sandbox check reads a python3 that exits 127 itself as a missing agent, so the job runs without a sandbox (ee38ee83)
 
-### Changed
+#### Changed
 
 - AR0564 A report skill: how every HTML page for the owner is styled and checked before it is sent (f60b89db)
 - AR0565 limits.test.ts fails under load: three tests race a fixed 3 s job limit (4888ddf5)
@@ -329,14 +352,14 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0587 The report check tests skip on this server since the test kit moved HOME (0c4b7f93)
 - AR0589 Plan: each project keeps all its plugin settings in one place of arthur.config.ts (1f31ca20)
 
-## 2026-10-29
+### 2026-10-29
 
-### Added
+#### Added
 
 - AR0555 Cleanup after a merge: a merged job leaves no worktree, Docker leftovers, cache, or branch here or on GitHub (21bdc5ff)
 - AR0557 GitHub T1: an arthur github command and pull request reads (79553878)
 
-### Fixed
+#### Fixed
 
 - AR0437 A CI wait still cancels a hung run below the tip, whose end it no longer tells (91c8a24b)
 - AR0438 A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs (4d95ef30)
@@ -358,18 +381,18 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0546 A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all (a634a0ac)
 - AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
 
-### Changed
+#### Changed
 
 - AR0554 Rename the voice plugin to listen (4fcca560)
 
-## 2026-10-28
+### 2026-10-28
 
-### Added
+#### Added
 
 - AR0550 Voice: local transcription of voice notes with whisper.cpp (roadmap 81) (6964e6ab)
 - AR0551 Video: frames and the spoken words of a video part, with ffmpeg and the voice plugin (c7b4c24d)
 
-### Fixed
+#### Fixed
 
 - AR0414 A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out (19577505)
 - AR0425 A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test (c133bb0d)
@@ -389,7 +412,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0538 The coordinator's handoff is handed back through `sendUserMessage` unescaped (e51a7dee)
 - AR0539 A `^<model>` in a message's text gives the coordinator's session a model agent (32736d04)
 
-### Changed
+#### Changed
 
 - AR0477 Nine exports nobody imports (392ae9be)
 - AR0478 Two new plugins made at once still conflict in BUDGETS (0cf2657b)
@@ -397,9 +420,9 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0544 The merge step timeout test fails under load: its 3 s limit also catches `npm run check` (bd73579d)
 - AR0552 Docs: video in the architecture diagram and roadmap, voice and video as media plugins in the README diagram (285ae5ee)
 
-## 2026-10-27
+### 2026-10-27
 
-### Fixed
+#### Fixed
 
 - AR0343 Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file (56876e1e)
 - AR0374 The install at a spawn and each step of the merge have no time limit (a5779445)
@@ -430,7 +453,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0518 A token from the env file never appears in a job record, log, error or channel message (3b00352d)
 - AR0519 The env guard refuses a command whose text holds the word env after a dot, such as a regex on Node's environment object (0a1d4b83)
 
-### Changed
+#### Changed
 
 - AR0464 The stop test of a forked install process fails now and then under a merge step (93da6344)
 - AR0475 Line budgets on one line, plus a comment log, conflict on most merges of main (ae463a28)
@@ -438,9 +461,9 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0511 The github plugin's docs offer a classic token with `repo`, which writes every repository of the account (231e9f1d)
 - AR0514 spawn.md still lists a job reaching the user's own SSH login as a limit, which a hidden ~/.ssh mostly ends (de720e86)
 
-## 2026-10-26
+### 2026-10-26
 
-### Fixed
+#### Fixed
 
 - AR0335 The git commands that rewrite the shared repository pass as a documented limit (5141eaef)
 - AR0339 A recursive search from the coordinator's own folder prints the env file (ff75b704)
@@ -464,7 +487,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0459 The site draws each diagram at its own size in a small scrolling box, so a reader sees mostly empty space (8113159f)
 - AR0463 A merge step can plant a nested repository whose fsmonitor runs at the owner's next git call in that folder (b2f98242)
 
-### Changed
+#### Changed
 
 - AR0423 packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file (17d51ce6)
 - AR0442 An existing project whose history ends in plain commits refuses its first merge, its onboarding's included (8234e81f)
@@ -474,15 +497,15 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0460 A plugins page on the site, with a page for each plugin (9aec1747)
 - AR0461 test/readme.test.ts reads the real env file, and fails inside a job (6fa45467)
 
-## 2026-10-25
+### 2026-10-25
 
-### Added
+#### Added
 
 - AR0307 The switch: Arthur runs on the VPS and takes its own tickets (15faf015)
 - AR0362 A plain `arthur merge` asks no CI, so a tip whose run ended `failure` goes in on the checks on main alone, unsaid (d95a8869)
 - AR0386 Inside a job the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` are refused with the commands that change state (9609309c)
 
-### Fixed
+#### Fixed
 
 - AR0332 `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` are not read as `--git-dir`, `--work-tree` (059696a4)
 - AR0333 `cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME` (00a0c619)
@@ -526,7 +549,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0426 A forwarded file without a caption reaches the coordinator unmarked (75127d83)
 - AR0428 Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole (ae778efe)
 
-### Changed
+#### Changed
 
 - AR0345 Two docs disagree on what Arthur sends another machine (d732ba4f)
 - AR0372 The stash refusal tells a job to write its patch to a fixed name in /tmp (4fbe9a47)
@@ -539,9 +562,9 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0412 Inside the job sandbox, a test's job wrapper dies writing /proc/self/oom_score_adj, so its agent never starts (c07f6da5)
 - AR0419 The workflow test checks neither what the top-level permissions grant nor a .yaml workflow (2095c967)
 
-## 2026-10-23
+### 2026-10-23
 
-### Added
+#### Added
 
 - AR0273 Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review` (823864e)
 - AR0304 A new plugin's ticket without a plan can still be placed on another machine (7ac9b48)
@@ -551,7 +574,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0315 GitHub's own wake after a failed CI run names only the rerun (34adc87)
 - AR0378 A ticket has a Conventional Commits kind, and the board filters by it (64352eb9)
 
-### Fixed
+#### Fixed
 
 - AR0299 A crash of `arthur run` while a job's question waits for the log's lock loses its notice (c54a670)
 - AR0300 The wrapper's append to log can still recreate it while rm -r empties the record (e0a3aea)
@@ -583,14 +606,14 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0353 No command but three asks whether it runs inside a job: a job merges, spawns, stops, sends and moves the board (AR0311 F5, confirmed) (a1d953d2)
 - AR0370 The home and everything under it take the process umask: records, logs, the event log and every lock are readable by other users of the host (AR0311 F15, confirmed) (c7d9eab2)
 
-### Changed
+#### Changed
 
 - AR0312 The eval baseline of delivery/check-failed measures the old scenario (7ade4f3)
 - AR0317 The baseline of delivery/check-failed predates its stricter expectations (c05de11)
 
-## 2026-10-22
+### 2026-10-22
 
-### Added
+#### Added
 
 - AR0269 The disk check makes a second ssh call per machine and round (2bb5ec1)
 - AR0274 A worker learns of `arthur plugin new --root` only if its ticket or plan names it (aa8e03e)
@@ -606,7 +629,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0292 A check of its own still makes two ssh calls to a machine with a disk floor (59b78a4)
 - AR0295 The fixtures have no vision, so every eval context warns the main project has none (689f6fb)
 
-### Fixed
+#### Fixed
 
 - AR0271 Two processes checking one machine at once can both say the same news (92228a0)
 - AR0272 Arthur's own repository has no criteria folder, so its audits and retros run without their criteria (8d5d6bd)
@@ -623,14 +646,14 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0297 The styleguide and review criteria now live in two folders that will drift (bb00d85)
 - AR0298 On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there (b9d649e)
 
-### Changed
+#### Changed
 
 - AR0270 vision.md's disk refusal example differs from the roadmap and the code (85a4d58)
 - AR0291 The scenarios' `(?!.*--help)` guards are dead weight once the stub prints help itself (fdf7054)
 
-## 2026-10-21
+### 2026-10-21
 
-### Added
+#### Added
 
 - AR0239 Roadmap 54: arthur merge (2b0d0b4)
 - AR0240 Roadmap 60: arthur health (aaf9d45)
@@ -653,7 +676,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0266 Roadmap 63: the retro (fcf48c3)
 - AR0267 The procedure after a merge settles review notes as tickets whatever the project's findings mode (e82d8fd)
 
-### Fixed
+#### Fixed
 
 - AR0238 A rerun keeps its run id, so its end is never told as `ci-finished`
 - AR0241 arthur merge installs from the lockfile and never reads a project's own install (5d9c3fe)
@@ -664,15 +687,15 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0255 The poll's time is this machine's clock, compared with GitHub's `submitted_at` (c0548af)
 - AR0259 The example config gives delivery an option it refuses (6d9aaf1)
 
-### Changed
+#### Changed
 
 - AR0245 arthur stats: remove the unreachable unknown-project throw (4116eec)
 - AR0249 The vision still says `ci-finished` is keyed by run id
 - AR0268 The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has (2796ca0)
 
-## 2026-10-20
+### 2026-10-20
 
-### Added
+#### Added
 
 - AR0220 YouTrack: open issues grouped by state, and full create, edit, delete of issues and articles (e037b36)
 - AR0221 Roadmap 49: Telegram media in and out, arthur send (718a54a)
@@ -685,20 +708,20 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0236 Roadmap 57: GitHub polling CI runs (c5ecd88)
 - AR0237 Roadmap 53: arthur review-needed (534f5c3)
 
-### Fixed
+#### Fixed
 
 - AR0223 A restart between a part claim reply and the inbox queue sends the reply twice (7f2c3b9)
 - AR0225 A phone command does not learn which named bot it came through (8b4e8b0)
 - AR0226 The outbox's retry test failed once in a full test run (fe8699a)
 - AR0232 A site on a port that fetch blocks is reported down forever, as `bad port` (3526d40)
 
-### Changed
+#### Changed
 
 - AR0230 Two comments still name what AR0228 changed (7b930a4)
 
-## 2026-10-19
+### 2026-10-19
 
-### Added
+#### Added
 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
 - AR0146 Caps per feature on CPU and memory are not held, and not said, on a machine without a user manager
@@ -742,7 +765,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0212 Roadmap 48: Telegram outbox and retries (8de5935)
 - AR0218 With check.everySeconds above 120 a spawn between rounds still checks a listed machine over ssh itself (e0c0a28)
 
-### Fixed
+#### Fixed
 
 - AR0135 The inbox drops a new message whose event number an old one had, after the event log is cut by hand
 - AR0137 The burst test still relies on the test's 300 ms timers staying under a second
@@ -767,7 +790,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0217 A ticket's memory cap can be stretched by swap
 - AR0219 schedule.register still finds a plugin's package folder by its name
 
-### Changed
+#### Changed
 
 - AR0151 The example config and two diagrams still call Discord later (e373e84)
 - AR0152 Roadmap entry 93 depends on 41 but sits before it
@@ -777,9 +800,9 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0210 The nvm package still names the old licence (e9e6d98)
 - AR0215 The commit-rules doc shows the regex that counts 72 after the prefix
 
-## 2026-10-18
+### 2026-10-18
 
-### Added
+#### Added
 
 - AR0098 Plan: an agent per project with its own channel, and Discord and Slack channels (5cbfc1c)
 - AR0110 Roadmap 26: maxAgents and the models of each role (5dfeb7e)
@@ -798,21 +821,21 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0143 Roadmap 35: Compaction during the day (e91a0df)
 - AR0144 Roadmap 36: Fresh start, /restart and /restart fresh (f419a71)
 
-### Fixed
+#### Fixed
 
 - AR0111 A hand-over omp accepts and then fails leaves the inbox waiting until a restart (66fb3d3)
 - AR0112 A turn that keeps failing is handed its messages again every second, without a pause (c1f0e3d)
 - AR0113 The inbox is proved once against real omp: mid-turn join, resumed turn, willContinue (1f6adb6)
 - AR0136 A flaky test that fails GitHub CI now and then is found and fixed (f520142)
 
-### Changed
+#### Changed
 
 - AR0114 README's orchestration row shows entries 24 and 26 as not built (c062de4)
 - AR0115 arthur.mmd shows project agents in the first version, and orchestration as 1 of 8 entries built (7af750c)
 
-## 2026-10-17
+### 2026-10-17
 
-### Added
+#### Added
 
 - AR0033 An unknown `--project` name reaches the command unchecked (2f47a42)
 - AR0084 Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn (6d1b90b)
@@ -826,7 +849,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0107 Plan: arthur setup finds the tools, shows the config, and a setup guide (533b31d)
 - AR0109 The browser tab icon is a crop of the logo badge (264289c)
 
-### Fixed
+#### Fixed
 
 - AR0059 The worktree guard knows only its own project's checkout (0177255)
 - AR0083 arthur prune with no ids refuses; --all prunes every finished job (d799302)
@@ -835,15 +858,15 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0092 A project added while a job runs is guarded from that job at once (ecaf58f)
 - AR0099 CI on GitHub is red: three tests need a git identity or a systemd user session (ab5a288)
 
-### Changed
+#### Changed
 
 - AR0080 /board, /task and /findings move into orchestration, with host.jobs.list() (5dc7de2)
 - AR0081 `arthur config check` still reports two plugins of one name twice (dae7ec2)
 - AR0093 The job runner's prune still treats an empty list as every finished job (1822526)
 
-## 2026-10-16
+### 2026-10-16
 
-### Added
+#### Added
 
 - AR0001 Bootstrap: Arthur repository, docs, toolchain and the feature roadmap (bf0b60a)
 - AR0002 Roadmap: job state, several machines, and resource-based limits (31d5a1d)
@@ -883,7 +906,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0055 Roadmap: channels hand media to plugins; local voice transcription (d4e23cc)
 - AR0063 Roadmap: model providers on other machines, with a fallback chain (0fc8be3)
 
-### Fixed
+#### Fixed
 
 - AR0026 `arthur plugin new` meets the line-budget rule (a263149)
 - AR0028 An instance name can produce the same variable prefix as another plugin (859864c)
@@ -907,7 +930,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0070 An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again (8e9fcd3)
 - AR0071 A pruned worker whose branch Git keeps loses its worktree, so `arthur continue` on it cannot start (81a3c42)
 
-### Changed
+#### Changed
 
 - AR0029 README still says no feature code exists (e58e20e)
 - AR0050 Roadmap entry 8 still says the events logged before the daemon started are not delivered (321618c)

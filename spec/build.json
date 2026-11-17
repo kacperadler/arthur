@@ -5574,9 +5574,9 @@
   {
     "id": "AR0690",
     "title": "docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0690-docker-buildx-with-its-own-options-before-build-docker-buildx-builder-x-build/ticket.md",
-    "updated": "2026-11-17T07:01:41.045Z"
+    "updated": "2026-11-17T08:40:35.055Z"
   },
   {
     "id": "AR0691",

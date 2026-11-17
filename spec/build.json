@@ -5807,9 +5807,9 @@
   {
     "id": "AR0719",
     "title": "npm test takes about 12 minutes of 3 busy cores: find which test files and which started processes use its CPU time",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0719-npm-test-takes-about-12-minutes-of-3-busy-cores-find-which-test-files-and-which/ticket.md",
-    "updated": "2026-11-17T10:48:52.604Z",
+    "updated": "2026-11-17T15:43:46.504Z",
     "after": [
       "AR0718"
     ]
@@ -5822,6 +5822,50 @@
     "updated": "2026-11-17T11:10:35.559Z",
     "after": [
       "AR0702"
+    ]
+  },
+  {
+    "id": "AR0721",
+    "title": "npm test compiles Arthur's TypeScript again in every Node process it starts: turn on Node's compile cache for the test run",
+    "status": "planning",
+    "path": "spec/features/AR0721-npm-test-compiles-arthur-s-typescript-again-in-every-node-process-it-starts-turn/ticket.md",
+    "updated": "2026-11-17T15:43:55.362Z"
+  },
+  {
+    "id": "AR0722",
+    "title": "Tests that start the CLI or a fake with an environment of their own miss the compile cache",
+    "status": "planning",
+    "path": "spec/features/AR0722-tests-that-start-the-cli-or-a-fake-with-an-environment-of-their-own-miss-the/ticket.md",
+    "updated": "2026-11-17T15:43:56.688Z",
+    "after": [
+      "AR0721"
+    ]
+  },
+  {
+    "id": "AR0723",
+    "title": "The delivery tests run real npm for each merge's check and test steps of a two-script project",
+    "status": "planning",
+    "path": "spec/features/AR0723-the-delivery-tests-run-real-npm-for-each-merge-s-check-and-test-steps-of-a-two/ticket.md",
+    "updated": "2026-11-17T15:43:58.064Z"
+  },
+  {
+    "id": "AR0724",
+    "title": "The fake docker loads the whole core for one function, in each of its 609 starts",
+    "status": "planning",
+    "path": "spec/features/AR0724-the-fake-docker-loads-the-whole-core-for-one-function-in-each-of-its-609-starts/ticket.md",
+    "updated": "2026-11-17T15:43:59.475Z",
+    "after": [
+      "AR0720"
+    ]
+  },
+  {
+    "id": "AR0725",
+    "title": "topLevel and head run git rev-parse twice, and every test commit starts git maintenance",
+    "status": "planning",
+    "path": "spec/features/AR0725-toplevel-and-head-run-git-rev-parse-twice-and-every-test-commit-starts-git/ticket.md",
+    "updated": "2026-11-17T15:44:01.014Z",
+    "after": [
+      "AR0721"
     ]
   }
 ]

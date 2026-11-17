@@ -5673,9 +5673,9 @@
   {
     "id": "AR0702",
     "title": "An image a job built with several tags is removed by each tag",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0702-an-image-a-job-built-with-several-tags-is-removed-by-each-tag/ticket.md",
-    "updated": "2026-11-17T07:13:57.543Z",
+    "updated": "2026-11-17T11:06:44.874Z",
     "after": [
       "AR0701"
     ]
@@ -5812,6 +5812,16 @@
     "updated": "2026-11-17T10:48:52.604Z",
     "after": [
       "AR0718"
+    ]
+  },
+  {
+    "id": "AR0720",
+    "title": "A job image that carries arthur.container or a compose project with its config hash makes the owner container from it count as the job, so the prune and the sweep take it",
+    "status": "planning",
+    "path": "spec/features/AR0720-a-job-image-that-carries-arthur-container-or-a-compose-project-with-its-config/ticket.md",
+    "updated": "2026-11-17T11:08:28.498Z",
+    "after": [
+      "AR0702"
     ]
   }
 ]

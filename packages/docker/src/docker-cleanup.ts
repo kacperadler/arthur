@@ -2,7 +2,7 @@ import type { Host } from "@arthur/core/plugin";
 import { count, json, KINDS, type Row, sections, why } from "./docker-look.ts";
 
 // The docker plugin's `jobs.cleanup` hook (spec/roadmap.md, entry 71): right before a job's worktree goes, on its machine through
-// `host.jobs.run`, what the job made in Docker, by its `arthur.job` label or its compose project's: its containers stopped and
+// `host.jobs.run`, what the job made in Docker, by the script's labels or its compose project's: its containers stopped and
 // removed with their anonymous volumes, then its networks, volumes and images; each one Docker refuses kept and named; then the
 // shared build cache cut to `buildCache` and the job's script folder removed. docs/docker.md, "At each prune".
 
@@ -16,10 +16,12 @@ const UNITS = ["B", "kB", "MB", "GB", "TB", "PB"];
 
 // With `$1` the job's id and `$2` its compose project. Exit 3: no docker there; 4: Docker does not answer. Else each kind's
 // listing by the job's label, then by its compose project's, a JSON line per object after a `:<kind>` line; last `docker system df`.
+// A container counts only by the labels its maker gave it: the script's `arthur.container`, compose's config hash beside its project.
 const LIST = `command -v docker >/dev/null || exit 3
 docker info --format '{{.ServerVersion}}' >/dev/null || exit 4
 for kind in "container ls --all" "network ls" "volume ls" "image ls"; do
-	for label in "arthur.job=$1" "com.docker.compose.project=$2"; do echo ":\${kind%% *}"; docker $kind --filter "label=$label" --format '{{json .}}' || exit; done
+	job=job made=; [ "$kind" != "container ls --all" ] || job=container made="--filter label=com.docker.compose.config-hash"
+	for by in "arthur.$job=$1" "com.docker.compose.project=$2 $made"; do echo ":\${kind%% *}"; docker $kind --filter label=$by --format '{{json .}}' || exit; done
 done
 echo ":system"; docker system df --format '{{json .}}'`;
 

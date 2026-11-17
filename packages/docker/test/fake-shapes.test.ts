@@ -69,4 +69,18 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 	assert.equal(docker("context", "inspect", "--format", "{{.Endpoints.docker.Host}}").status, 0, "the context needs no daemon");
 	assert.equal(docker("--version").status, 0, "nor does the version");
 	assert.equal(fake.calls().length, 24, "each call noted");
+	// `run` and `create` add a container in `ps`'s keys, which takes its image's labels under its own, as the daemon merges them.
+	fake.down(false);
+	fake.state({ rows: { "image-ls": [row("image-ls", { ID: "0a1b2c3d4e5f", Repository: "shop", Tag: "latest" })] }, imageLabels: { "0a1b2c3d4e5f": "arthur.job=2026-11-09-worker-0a1b2c3d,arthur.keep=" } });
+	assert.match(docker("run", "-d", "--label", "arthur.keep=1", "-l", "own", "shop:latest").stdout, /^[0-9a-f]{64}\n$/, "run -d prints the full ID");
+	assert.match(docker("container", "create", "0a1b2c3d4e5f").stdout, /^[0-9a-f]{64}\n$/);
+	const created = lines("ps", "-a");
+	assert.deepEqual(created.flatMap((each) => drift(each, shapes.ps, "ps")), []);
+	assert.deepEqual(
+		created.map((each) => [each.Labels, each.State, each.Image]),
+		[
+			["arthur.job=2026-11-09-worker-0a1b2c3d,arthur.keep=1,own=", "running", "shop:latest"],
+			["arthur.job=2026-11-09-worker-0a1b2c3d,arthur.keep=", "created", "0a1b2c3d4e5f"],
+		],
+	);
 });

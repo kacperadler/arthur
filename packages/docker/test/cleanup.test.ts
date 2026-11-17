@@ -20,18 +20,18 @@ process.chdir(temporaryFolder());
 const ID = "2026-01-01-worker-0a1b2c3d";
 const OTHER = "c0000000000c";
 
-// What job `id` made: `web` running and `db` of its compose project, stopped; a network of each, `shared_net` holding another
-// job's running container; its volume `data`, the anonymous volume of `web`, and `cache`, which the other container mounts; the
-// image it built, `shop:latest`, and one its compose project built that the other container runs; `postgres:16`, pulled. Sizes
+// What job `id` made: `web` running, by its script, and `db` of its compose project, stopped; a network of each, `shared_net` holding
+// another job's running container; its volume `data`, the anonymous volume of `web`, and `cache`, which the other container mounts;
+// the image it built, `shop:latest`, and one its compose project built that the other container runs; `postgres:16`, pulled. Sizes
 // in bytes; the build cache 1 GB over 10G.
 function made(id: string): Partial<State> {
 	const [mine, compose] = [`arthur.job=${id}`, `com.docker.compose.project=arthur-${id.slice(-8)}`];
 	return {
 		rows: {
 			ps: [
-				row("ps", { ID: "c0000000000a", Names: "web", State: "running", Labels: mine, Mounts: "data,f00d0000anon", Networks: "shop_net", Image: "shop:latest" }),
-				row("ps", { ID: "c0000000000b", Names: "db", State: "exited", Labels: `${compose},com.docker.compose.service=db`, Networks: "shop_net", Image: "postgres:16" }),
-				row("ps", { ID: OTHER, Names: "other-web", State: "running", Labels: "arthur.job=2026-01-01-worker-99999999", Mounts: "cache", Networks: "bridge,shared_net", Image: "1111aaaa2222" }),
+				row("ps", { ID: "c0000000000a", Names: "web", State: "running", Labels: `${mine},arthur.container=${id}`, Mounts: "data,f00d0000anon", Networks: "shop_net", Image: "shop:latest" }),
+				row("ps", { ID: "c0000000000b", Names: "db", State: "exited", Labels: `${compose},com.docker.compose.service=db,com.docker.compose.config-hash=9f8e`, Networks: "shop_net", Image: "postgres:16" }),
+				row("ps", { ID: OTHER, Names: "other-web", State: "running", Labels: "arthur.job=2026-01-01-worker-99999999,arthur.container=2026-01-01-worker-99999999", Mounts: "cache", Networks: "bridge,shared_net", Image: "1111aaaa2222" }),
 			],
 			"network-ls": [row("network-ls", { ID: "n0000000000a", Name: "shop_net", Labels: compose }), row("network-ls", { ID: "n0000000000b", Name: "shared_net", Labels: mine }), row("network-ls", { ID: "n0000000000c", Name: "bridge", Labels: "" })],
 			"volume-ls": [row("volume-ls", { Name: "data", Labels: mine }), row("volume-ls", { Name: "f00d0000anon", Labels: "com.docker.volume.anonymous=" }), row("volume-ls", { Name: "cache", Labels: mine })],
@@ -104,6 +104,30 @@ test("a pruned job's containers stop and go with their anonymous volumes, then i
 	const again = fake.calls().length;
 	assert.deepEqual(await host.host.jobs.prune([job.id]), [`${job.id}: docker: nothing of the job's in Docker; build cache cut to 10G; 0B freed; kept the record: the test keeps it`]);
 	assert.deepEqual(changes(again), [["builder", "prune", "--force", "--max-used-space", "10G"]]);
+});
+
+test("the owner's containers from the job's images stay, running or stopped, with their volumes; the container the job made goes", async () => {
+	const { host, home } = await load({ local: { tools: ["docker"] } });
+	host.provide("jobs.keep", () => "the test keeps it");
+	const job = await host.host.jobs.spawn({ task: "Build it." });
+	await until("the job's end", () => readFileSync(join(home, "jobs", job.id, "state"), "utf8") === "ended" || undefined);
+	// The image the job built, and one its compose project built, each with the labels its builder gave it.
+	const images = [row("image-ls", { ID: "aaaa0000000a", Repository: "shop", Tag: "latest" }), row("image-ls", { ID: "bbbb0000000b", Repository: "shop-db", Tag: "latest" })];
+	const compose = `com.docker.compose.project=arthur-${job.id.slice(-8)},com.docker.compose.service=db,com.docker.compose.version=2.40.0`;
+	fake.state({ rows: { "image-ls": images }, imageLabels: { aaaa0000000a: `arthur.job=${job.id}`, bbbb0000000b: compose } });
+	execFileSync(join(home, "docker", "jobs", job.id, "docker"), ["run", "-d", "--name", "web", "-v", "/cache", "shop:latest"]);
+	execFileSync(join(fake.bin, "docker"), ["run", "-d", "--name", "owner-web", "-v", "/data", "shop:latest"]);
+	execFileSync(join(fake.bin, "docker"), ["create", "--name", "owner-db", "-v", "owner_data:/var/lib/postgresql/data", "shop-db:latest"]);
+	const [web, owner, ownerDb] = fake.now().rows.ps ?? [];
+	assert.deepEqual([web?.Labels, owner?.Labels, ownerDb?.Labels], [`arthur.job=${job.id},arthur.container=${job.id}`, `arthur.job=${job.id}`, compose], "each took its image's labels");
+	const from = fake.calls().length;
+	const conflict = "Error response from daemon: conflict: unable to delete";
+	const kept = `kept image shop:latest: ${conflict} aaaa0000000a (cannot be forced) - image is being used by running container ${owner?.ID}; kept image shop-db:latest: ${conflict} bbbb0000000b (must be forced) - image is being used by stopped container ${ownerDb?.ID}`;
+	const line = `docker: removed 1 container; ${kept}; build cache cut to 10G; 0B freed`;
+	assert.deepEqual(await host.host.jobs.prune([job.id]), [`${job.id}: ${line}; worktree ${job.worktree} removed; branch ${job.branch} deleted; kept the record: the test keeps it`]);
+	assert.deepEqual(changes(from).slice(0, 2), [["container", "stop", "--timeout", "10", web?.ID], ["container", "rm", "--volumes", web?.ID]]);
+	assert.deepEqual(fake.now().rows.ps, [owner, ownerDb], "the owner's containers untouched, the running one still running");
+	assert.deepEqual(names("volume-ls"), [owner?.Mounts, "owner_data"], "web's anonymous volume went with it; the owner's stay");
 });
 
 test("Docker not running: the worktree goes all the same, one notice names the job, the machine and the reason, and nothing of the job's is touched", async () => {

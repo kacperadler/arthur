@@ -106,7 +106,8 @@ test("every word that sets arthur.job or arthur.container goes, in each spelling
 	assert.deepEqual(labelled(["run", "-dl", other, "img"], ID), ["run", ...RUN, "-d", "img"], "-dl: its l taken out, -d kept");
 	assert.deepEqual(labelled(["run", `-itl${other}`, "img"], ID), ["run", ...RUN, "-it", "img"]);
 	assert.deepEqual(labelled(["build", "--label", other, ".", `--label=${other}`, "-t", "app"], ID), ["build", ...BUILD, ".", "-t", "app"]);
-	for (const kept of [["--label", "arthur.jobs=1"], ["--label", "arthur.containers=1"], ["--label", "com.example=arthur.job=x"], ["-l", "arthur.keep"], ["--label-file", "labels"], ["--label", "x.arthur.job=1"], ["-e", "A=1", "-p", "80:80"], ["--rm", "-it"]])
+	// `--env=X=arthur.job=1`: as long as `--label=` before the key, and no label.
+	for (const kept of [["--label", "arthur.jobs=1"], ["--label", "arthur.containers=1"], ["--label", "com.example=arthur.job=x"], ["-l", "arthur.keep"], ["--label-file", "labels"], ["--label", "x.arthur.job=1"], ["-e", "A=1", "-p", "80:80"], ["--rm", "-it"], ["--env=X=arthur.job=1"]])
 		assert.deepEqual(labelled(["run", ...kept, "img", "sh", "-c", "echo"], ID), ["run", ...RUN, ...kept, "img", "sh", "-c", "echo"], kept.join(" "));
 	// Words after the image or a `--`: what sets arthur.job goes there too, as Docker may read it as an option (review 3).
 	const after = ["--label", "arthur.job=x", "-l", "arthur.job=y", `--label=${other}`, "arthur.job=z", "--label", "arthur.container=x"];

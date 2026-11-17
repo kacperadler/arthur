@@ -311,11 +311,11 @@ test("a sweep that removes nothing still sends its notice when a machine failed,
 	low.host.emit("disk-low", { machine: "local", path: ROOT, free: 5, floor: 1e18 });
 	const [floor = ""] = await until("the floor's notice", () => (low.notices().length > 0 ? low.notices() : undefined), SWEEP);
 	assert.match(floor, /^docker: the sweep \(disk-low on local\):\n- local: nothing to remove; build cache cut to 10G; 0B reclaimed; [\d.]+ GB free on \S+; still under the floor: [\d.]+ GB free on \S+, floor 931322574\.6 GB$/);
-	// The cache unused for 48 h, 2 GB of it: the sweep's only gain.
-	fake.state({ ...bare, cache: 2e9, cacheUsedAt: "2026-01-01T00:00:00Z" });
+	// The cache unused for 48 h, one byte of it, the least space given back: the sweep's only gain.
+	fake.state({ ...bare, cache: 1, cacheUsedAt: "2026-01-01T00:00:00Z" });
 	const cache = await load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" } });
 	await cache.entries[0]?.run();
-	assert.deepEqual(cache.notices().map(steady), [`docker: the sweep (daily):\n- local: nothing to remove; build cache cut to 10G; 2GB reclaimed; <n> GB free on ${ROOT}`]);
+	assert.deepEqual(cache.notices().map(steady), [`docker: the sweep (daily):\n- local: nothing to remove; build cache cut to 10G; 1B reclaimed; <n> GB free on ${ROOT}`]);
 });
 
 test("a labelled machine where command -v finds no docker is no failure: no notice, exit 0 for arthur docker and its sweep", async (t) => {

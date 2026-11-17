@@ -47,3 +47,4 @@ Out:
 
 - 2026-11-13: Source: audit spec/quality/2026-11-13.md
 - 2026-11-13: Source: F6 of AR0647
+- 2026-11-17: AR0701 approved, budget 10; the owner: "AR-D685 approve, AR-D686 approve" (AR-D685)

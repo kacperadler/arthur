@@ -257,3 +257,15 @@ test("each call has its limit, both under the core's 2 minutes: the listing cut 
 	});
 	assert.deepEqual(limits, [30, 30, 85]);
 });
+
+test("a removal cut after an image's first tag leaves that image to the sweep by its other tag; one cut after its last tag leaves nothing", async () => {
+	const images = ["latest", "abc1234"].map((tag) => row("image-ls", { ID: "aaaa0000000a", Repository: "app", Tag: tag }));
+	fake.state({ rows: { "image-ls": images }, imageLabels: { aaaa0000000a: `arthur.job=${ID}` } });
+	const said = ["removed image:app:latest\n", "removed image:app:latest\nremoved image:app:abc1234\n"];
+	let calls = 0;
+	const late: Host["jobs"]["run"] = async (machine, argv, limit, input) =>
+		calls++ % 2 === 0 ? loaded.host.host.jobs.run(machine, argv, limit, input) : { code: null, stdout: said.shift() ?? "", stderr: `timed out after ${limit} s\n` };
+	const loaded = await load({ local: { tools: ["docker"] } }, {}, undefined, late);
+	await assert.rejects(loaded.hook(), { message: "the removal timed out after 85 s half-way: nothing of the job's in Docker; left for the sweep: image app:abc1234" });
+	await assert.rejects(loaded.hook(), { message: "the removal timed out after 85 s half-way: removed 1 image" });
+});

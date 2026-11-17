@@ -66,9 +66,9 @@ export function object(kind: string, row: Row): { readonly id: string; readonly 
 	const name = kind === "container" ? row.Names : kind === "image" ? (tag ?? id) : row.Name;
 	return { id: `${kind}:${id}`, word: `${kind}:${tag ?? id}`, name: `${kind} ${name}` };
 }
-// The `<kind>:<id>` (`of` each word) of each object whose every word is in `removed`: an image goes with its last tag.
+// The `<kind>:<id>` (`of` each word) of each object whose every word is in `removed`, once: an image goes with its last tag.
 export const gone = (words: readonly string[], of: (word: string) => string, removed: readonly string[]) =>
-	words.map(of).filter((id) => words.every((word) => of(word) !== id || removed.includes(word)));
+	[...new Set(words.map(of))].filter((id) => words.every((word) => of(word) !== id || removed.includes(word)));
 
 // What Docker on `machine` holds, or why it could not be read, and whether that is a failure.
 export async function look(host: Host, machine: string): Promise<Seen | { readonly problem: string; readonly failed: boolean }> {

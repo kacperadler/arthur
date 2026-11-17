@@ -38,3 +38,4 @@ Out:
 
 ## Decisions
 - 2026-11-10: AR0683 approved; the owner: "AR-D615 - yes" (AR-D615)
+- 2026-11-17: The tests stay on Node; no move to Bun; the owner: "ok so we will keep node" (AR-D687)

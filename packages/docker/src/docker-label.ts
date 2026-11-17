@@ -3,31 +3,26 @@ import { spawnSync } from "node:child_process";
 // The argument rewrite of a job's `docker` script (spec/roadmap.md, entry 70): `--label arthur.job=<id>` right after each command
 // that creates something, and `--label arthur.container=<id>` after one that makes a container, which takes its image's labels too,
 // so only this one tells the job's container from the owner's; every word that sets either key dropped wherever it stands, so one
-// job cannot label for another. An image a job builds or commits gets both marks of a container empty, so no container from it
-// counts as the job's by them (AR0720); every other command passes unchanged. The prepare copies this file to the job's script
-// folder on its machine and the script runs it as `node <copy> <real docker> <id> <args>...`, so it imports only `node:` modules.
-// docs/docker.md.
+// job cannot label for another. An image a job builds or commits gets both marks of a container empty (AR0720); every other command
+// passes unchanged. The prepare copies this file to the job's script folder on its machine and the script runs it as
+// `node <copy> <real docker> <id> <args>...`, so it imports only `node:` modules. docs/docker.md.
 
 // The commands that make a container, an image (`docker buildx build --help` lists a build's aliases), a network or a volume.
 const CONTAINER = [["run"], ["create"], ["container", "run"], ["container", "create"]];
 const IMAGE = [["build"], ["buildx", "build"], ["buildx", "b"], ["image", "build"], ["builder", "build"]];
 const OTHER = [["network", "create"], ["volume", "create"]];
 const COMMIT = [["commit"], ["container", "commit"]];
-// docker's own options before the command (docker/cli v29, cli/flags/options.go) that take a value, long and short; commit's
-// (container/commit.go).
+// docker's own options before the command (docker/cli v29, cli/flags/options.go) that take a value, long and short.
 const GLOBAL = ["--config", "--context", "--host", "--log-level", "--tlscacert", "--tlscert", "--tlskey"];
 const GLOBAL_SHORT = "cHl";
-const COMMIT_VALUED = ["--author", "--change", "--message"];
-const COMMIT_SHORT = "acm";
 // The `arthur.job` and `arthur.container` keys, with a value or without, as Docker splits a label at its first `=`; on a build
 // compose's config hash too, the other mark of a container (docker-look.ts, jobOf).
 const KEY = /^arthur\.(job|container)(=|$)/;
 const IMAGE_KEY = /^(arthur\.(job|container)|com\.docker\.compose\.config-hash)(=|$)/;
 // A short group whose last option is `l` and that gives its value in the same word: `-l=…`, `-l…`, `-dl…`.
 const SHORT = /^(-[A-Za-z]*?)l=?(.*)$/s;
-// Both marks of a container set empty, which reads as none (docker-look.ts, docker-cleanup.ts). On a build `--label` has the last
-// word over a Dockerfile's `LABEL` and its base image's labels (buildkit dockerfile2llb, moby builder/dockerfile); a commit keeps
-// each label of the container its changes do not set (moby daemon/commit.go).
+// Both marks of a container set empty, which reads as none. A build's `--label` has the last word over its Dockerfile's `LABEL`
+// and its base image's labels (buildkit dockerfile2llb); a commit keeps each label its changes do not set (moby daemon/commit.go).
 const BLANK = ["--label", "arthur.container=", "--label", "com.docker.compose.config-hash="];
 const CHANGE = ["--change", 'LABEL arthur.container="" com.docker.compose.config-hash=""'];
 
@@ -76,9 +71,9 @@ export function labelled(args: readonly string[], id: string): string[] {
 	if (words === undefined) return [...args];
 	const end = next + words.length - 1;
 	if (COMMIT.includes(words)) {
-		// commit reads no option after CONTAINER and applies its changes in order, as one Dockerfile: ours go last, so a `LABEL` of the
-		// job's own loses, and twice, so a change that ends in a line continuation takes the first as its text and the second stands.
-		const last = past(args, end, COMMIT_VALUED, COMMIT_SHORT);
+		// commit (docker/cli container/commit.go) reads no option after CONTAINER and applies its changes in order, as one Dockerfile: ours
+		// go last, so a `LABEL` of the job's own loses, and twice, so a change ending in a line continuation takes only the first.
+		const last = past(args, end, ["--author", "--change", "--message"], "acm");
 		return [...args.slice(0, last), ...CHANGE, ...CHANGE, ...args.slice(last)];
 	}
 	const own = CONTAINER.includes(words) ? ["--label", `arthur.container=${id}`] : IMAGE.includes(words) ? BLANK : [];

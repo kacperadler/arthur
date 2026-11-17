@@ -38,3 +38,4 @@ Out:
 - A command that calls Docker's API directly or `docker` by its absolute path: the sweep's leftovers, as documented.
 
 ## Decisions
+- 2026-11-17: AR0720 approved, budget 10, after AR0702; the owner: "AR-D690 approve" (AR-D690)

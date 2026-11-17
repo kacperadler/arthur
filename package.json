@@ -13,7 +13,7 @@
     "check": "tsc",
     "commit-msg": "node test/other-projects.ts",
     "mutate": "node test/mutate.ts",
-    "test": "node --import @arthur/core/testing --test \"test/**/*.test.ts\" \"packages/*/test/**/*.test.ts\""
+    "test": "node --import @arthur/core/testing --test --test-concurrency=$(node test/cpus.ts) \"test/**/*.test.ts\" \"packages/*/test/**/*.test.ts\""
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

@@ -90,6 +90,8 @@ const changes = (from: number) => fake.calls().slice(from).filter((args) => ["st
 const names = (kind: "ps" | "network-ls" | "volume-ls" | "image-ls") => (fake.now().rows[kind] ?? []).map((each) => String(each.Names ?? each.Name ?? `${each.Repository}:${each.Tag}:${each.ID}`));
 // The free space df measures changes between runs: said as <n>.
 const steady = (text: string) => text.replace(/\d+(\.\d)? GB free on/g, "<n> GB free on");
+// An image's rows in `docker image ls`, one per tag.
+const tagged = (id: string, repository: string, ...tags: string[]) => tags.map((tag) => row("image-ls", { ID: id, Repository: repository, Tag: tag }));
 
 // The plugin on the fake host on a repository of its own, the test as the machines plugin (`labels` by machine) and, unless
 // `schedule` is false, as the schedule plugin; `gpu` and `far` registered, reached through the fake ssh; `run` in place of the core's.
@@ -221,7 +223,6 @@ test("the owner's containers from a gone job's images stay, running or stopped, 
 
 test("an image a gone job built with two tags goes by each tag and counts once, in arthur docker, the dry run and the sweep; one the owner's container uses keeps its last tag", async (t) => {
 	const { host } = await load({ local: { tools: ["docker"] } });
-	const tagged = (id: string, repository: string, ...tags: string[]) => tags.map((tag) => row("image-ls", { ID: id, Repository: repository, Tag: tag }));
 	const images = [...tagged("b00000000001", "app", "latest", "abc1234"), ...tagged("b00000000002", "tool", "latest", "v2")];
 	fake.state({ info: { DockerRootDir: ROOT, SecurityOptions: [], ServerVersion: "29.9.2", SystemTime: NOW, Warnings: null }, rows: { "image-ls": images }, imageLabels: { b00000000001: `arthur.job=${GONE}`, b00000000002: `arthur.job=${GONE}` } });
 	execFileSync(join(fake.bin, "docker"), ["create", "--name", "owner-tool", "tool:v2"]);
@@ -238,6 +239,18 @@ test("an image a gone job built with two tags goes by each tag and counts once, 
 	assert.deepEqual(changes(from).slice(0, 4), [["image", "rm", "app:latest"], ["image", "rm", "app:abc1234"], ["image", "rm", "tool:latest"], ["image", "rm", "tool:v2"]]);
 	assert.deepEqual(names("image-ls"), ["tool:v2:b00000000002"], "app went with its last tag; tool lost the tag no container uses");
 	assert.deepEqual(fake.now().rows.ps, [owner], "the owner's container untouched");
+});
+
+test("the daily sweep tells of an image once its last tag went: no notice when it only untagged one it kept", async () => {
+	const { entries, notices } = await load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" }, buildCache: 0 });
+	const info = { DockerRootDir: ROOT, SecurityOptions: [], ServerVersion: "29.9.2", SystemTime: NOW, Warnings: null };
+	fake.state({ info, rows: { "image-ls": tagged("b00000000002", "tool", "latest", "v2") }, imageLabels: { b00000000002: `arthur.job=${GONE}` } });
+	execFileSync(join(fake.bin, "docker"), ["create", "--name", "owner-tool", "tool:v2"]);
+	await entries[0]?.run();
+	assert.deepEqual([notices(), names("image-ls")], [[], ["tool:v2:b00000000002"]], "tool:latest untagged, tool:v2 kept: nothing reclaimed");
+	fake.state({ info, rows: { "image-ls": tagged("b00000000001", "app", "latest", "abc1234") }, imageLabels: { b00000000001: `arthur.job=${GONE}` } });
+	await entries[0]?.run();
+	assert.deepEqual(notices().map(steady), [`docker: the sweep (daily):\n- local: removed 1 image; 0B reclaimed; <n> GB free on ${ROOT}`]);
 });
 
 test("arthur docker: Docker's usage and what each job labelled on each machine, the jobs that no longer exist marked", async (t) => {

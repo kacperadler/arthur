@@ -104,7 +104,7 @@ async function sweepOne(host: Host, machine: string, settings: Settings, dryRun:
 	if (ran.code !== 0) {
 		const rest = words.filter((word) => !removed.includes(word)).map(name);
 		const line = `${machine}: ${ran.code === 5 ? "Docker stopped answering" : `the removal ${why(ran, REMOVE_SECONDS)}`} half-way: ${went}${rest.length === 0 ? "" : `; left: ${rest.join(", ")}`}`;
-		return { line, would: [], failed: true, reclaimed: objects.length > 0, under: false };
+		return { line, would: [], failed: true, reclaimed: removed.length > 0, under: false };
 	}
 	const said = (prefix: string, text: string) => lines.filter((line) => line.startsWith(`${prefix} `)).map((line) => `${text}: ${line.slice(prefix.length + 1)}`);
 	const uncut = said("uncut", "build cache not cut");

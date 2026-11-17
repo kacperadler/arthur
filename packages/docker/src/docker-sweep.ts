@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { queueLock } from "@arthur/core/lock";
 import type { Host } from "@arthur/core/plugin";
 import { bytes, human } from "./docker-cleanup.ts";
-import { count, json, look, recordOf, type Seen, sections, type Thing, why } from "./docker-look.ts";
+import { count, gone, json, look, recordOf, type Seen, sections, type Thing, why } from "./docker-look.ts";
 
 // The sweep of Docker's leftovers (spec/roadmap.md, entry 72), one machine at a time, each under a lock of its own: what a job
 // whose record no longer exists labelled, at any age, but a running container; unlabelled dangling images and unused networks
@@ -23,8 +23,9 @@ const PREDEFINED = ["bridge", "host", "none"];
 const GB = 2 ** 30;
 
 // With `$1` the hours, `$2` the cache cap (0: none), `$3` Docker's data root, `$4` the floor's path or "", then a `<kind>:<id>`
-// or `folder:<path>` word each. A line per word, `removed <word>` or `kept <word> <Docker's first line>`; exit 5 once Docker
-// stops answering, so a refusal is told from a failure by `docker info`. Then the cache, `docker system df` and `df -Pk`.
+// word each, an image's `image:<repository>:<tag>` per tag, or `folder:<path>`. A line per word, `removed <word>` or `kept <word>
+// <Docker's first line>`; exit 5 once Docker stops answering, so a refusal is told from a failure by `docker info`. Then the
+// cache, `docker system df` and `df -Pk`.
 const REMOVE = `hours=$1 cache=$2 root=$3 floor=$4; shift 4
 up() { docker info --format '{{.ServerVersion}}' >/dev/null 2>&1 || exit 5; }
 first() { printf '%s\\n' "$1" | head -n 1; }
@@ -88,7 +89,8 @@ async function sweepOne(host: Host, machine: string, settings: Settings, dryRun:
 	const cut = settings.cache === "0" ? "" : `, then cut it to ${settings.cache}`;
 	if (dryRun) {
 		const would = [...doomed.map(({ thing, reason }) => `would remove ${thing.name} (${reason})`), ...folders.map((id) => `would remove script folder ${home}/${id}`), `would prune the build cache unused for ${settings.hours} h${cut}`];
-		return { line: `${machine}: --dry-run: ${doomed.length + folders.length} would be removed; nothing removed`, would: would.map((line) => `${machine}: ${line}`), failed: false, reclaimed: false, under: false };
+		const many = new Set(doomed.map(({ thing }) => thing.id)).size + folders.length;
+		return { line: `${machine}: --dry-run: ${many} would be removed; nothing removed`, would: would.map((line) => `${machine}: ${line}`), failed: false, reclaimed: false, under: false };
 	}
 	const floor = floors(host)[machine];
 	const words = [...doomed.map(({ thing }) => thing.word), ...folders.map((id) => `folder:${home}/${id}`)];
@@ -97,7 +99,8 @@ async function sweepOne(host: Host, machine: string, settings: Settings, dryRun:
 	const name = (word: string) => doomed.find(({ thing }) => thing.word === word)?.thing.name ?? `script folder ${word.slice(7)}`;
 	const removed = words.filter((word) => lines.includes(`removed ${word}`));
 	const kept = words.flatMap((word) => lines.filter((line) => line.startsWith(`kept ${word} `)).map((line) => `kept ${name(word)}: ${line.slice(word.length + 6)}`));
-	const went = removed.length === 0 ? "nothing to remove" : `removed ${count(removed.map((word) => word.slice(0, word.indexOf(":"))))}`;
+	const objects = gone(words, (word) => doomed.find(({ thing }) => thing.word === word)?.thing.id ?? word, removed);
+	const went = objects.length === 0 ? "nothing to remove" : `removed ${count(objects)}`;
 	if (ran.code !== 0) {
 		const rest = words.filter((word) => !removed.includes(word)).map(name);
 		const line = `${machine}: ${ran.code === 5 ? "Docker stopped answering" : `the removal ${why(ran, REMOVE_SECONDS)}`} half-way: ${went}${rest.length === 0 ? "" : `; left: ${rest.join(", ")}`}`;
@@ -113,7 +116,7 @@ async function sweepOne(host: Host, machine: string, settings: Settings, dryRun:
 	const under = floor !== undefined && free("floor") < floor.floor;
 	const parts = [went, ...kept, ...cache, `${human(freed)} reclaimed`, ...(Number.isNaN(free("root")) ? [] : [`${gb(free("root"))} free on ${seen.root}`])];
 	if (under) parts.push(`still under the floor: ${gb(free("floor"))} free on ${floor.path}, floor ${gb(floor.floor)}`);
-	return { line: `${machine}: ${parts.join("; ")}`, would: [], failed: false, reclaimed: removed.length > 0 || freed > 0, under };
+	return { line: `${machine}: ${parts.join("; ")}`, would: [], failed: false, reclaimed: objects.length > 0 || freed > 0, under };
 }
 
 // Each machine in turn, after any sweep there, across processes; a throw costs its machine only, a lock past WAIT_MS the whole call (findings.md, F3).

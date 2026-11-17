@@ -1,5 +1,5 @@
 import type { Host } from "@arthur/core/plugin";
-import { count, json, KINDS, type Row, sections, why } from "./docker-look.ts";
+import { count, gone, json, KINDS, object, type Row, sections, why } from "./docker-look.ts";
 
 // The docker plugin's `jobs.cleanup` hook (spec/roadmap.md, entry 71): right before a job's worktree goes, on its machine through
 // `host.jobs.run`, what the job made in Docker, by the script's labels or its compose project's: its containers stopped and
@@ -25,7 +25,8 @@ for kind in "container ls --all" "network ls" "volume ls" "image ls"; do
 done
 echo ":system"; docker system df --format '{{json .}}'`;
 
-// With `$1` the cache cap (0: none), `$2` the job's script folder, `$3` its containers, then a `<kind>:<id>` word per object.
+// With `$1` the cache cap (0: none), `$2` the job's script folder, `$3` its containers, then a `<kind>:<id>` word per object, an
+// image's `image:<repository>:<tag>` per tag.
 // A line per object, `removed <word>` or `kept <word> <Docker's first line>`, and one for the cache; exit 5 once Docker stops
 // answering, so a refusal is told from a failure by `docker info`, never by Docker's words. Last `docker system df` again.
 const REMOVE = `cache=$1 folder=$2 containers=$3; shift 3
@@ -64,27 +65,24 @@ export function dockerCleanup(host: Host, ours: (job: Job) => boolean, cache: st
 		if (listed.code === 4) throw new Error(`Docker does not answer: ${listed.stderr.trim().split("\n")[0]}; ${left}`);
 		if (listed.code !== 0) throw new Error(`listing what the job made ${why(listed, LIST_SECONDS)}; ${left}`);
 		const found = sections(listed.stdout);
-		// Each object once, by the id its kind's `rm` takes, with the name the line gives it.
-		const named = new Map<string, string>();
-		for (const kind of KINDS)
-			for (const row of json(found.get(kind))) {
-				const tag = row.Tag === undefined || row.Tag === "<none>" ? row.ID : `${row.Repository}:${row.Tag}`;
-				named.set(`${kind}:${kind === "volume" ? row.Name : row.ID}`, `${kind} ${kind === "container" ? row.Names : kind === "image" ? tag : row.Name}`);
-			}
+		// Each word once, by the word its kind's `rm` takes, with the object it removes and the name the line gives it.
+		const named = new Map<string, { readonly id: string; readonly name: string }>();
+		for (const kind of KINDS) for (const each of json(found.get(kind)).map((row) => object(kind, row))) named.set(each.word, each);
 		const words = [...named.keys()];
 		const containers = words.filter((word) => word.startsWith("container:")).map((word) => word.slice(10));
 		const ran = await host.jobs.run(job.machine, ["sh", "-c", REMOVE, "docker", cache, `${host.jobs.home(job.machine)}/docker/jobs/${job.id}`, containers.join(" "), ...words], REMOVE_SECONDS);
 		const lines = ran.stdout.split("\n");
 		const removed = words.filter((word) => lines.includes(`removed ${word}`));
-		const kept = words.flatMap((word) => lines.filter((line) => line.startsWith(`kept ${word} `)).map((line) => `kept ${named.get(word)}: ${line.slice(word.length + 6)}`));
-		const went = removed.length === 0 ? "nothing of the job's in Docker" : `removed ${count(removed.map((word) => word.slice(0, word.indexOf(":"))))}`;
+		const kept = words.flatMap((word) => lines.filter((line) => line.startsWith(`kept ${word} `)).map((line) => `kept ${named.get(word)?.name}: ${line.slice(word.length + 6)}`));
+		const went = gone(words, (word) => named.get(word)?.id ?? word, removed);
+		const said = went.length === 0 ? "nothing of the job's in Docker" : `removed ${count(went)}`;
 		if (ran.code !== 0) {
-			const rest = words.filter((word) => !removed.includes(word)).map((word) => named.get(word));
-			throw new Error(`${ran.code === 5 ? "Docker stopped answering" : `the removal ${why(ran, REMOVE_SECONDS)}`} half-way: ${went}${rest.length === 0 ? "" : `; left for the sweep: ${rest.join(", ")}`}`);
+			const rest = words.filter((word) => !removed.includes(word)).map((word) => named.get(word)?.name);
+			throw new Error(`${ran.code === 5 ? "Docker stopped answering" : `the removal ${why(ran, REMOVE_SECONDS)}`} half-way: ${said}${rest.length === 0 ? "" : `; left for the sweep: ${rest.join(", ")}`}`);
 		}
 		const uncut = lines.find((line) => line.startsWith("uncut "));
 		const cut = cache === "0" ? [] : [uncut === undefined ? `build cache cut to ${cache}` : `build cache not cut: ${uncut.slice(6)}`];
 		const freed = Math.max(0, bytes(json(found.get("system"))) - bytes(json(sections(ran.stdout).get("system"))));
-		return [went, ...kept, ...cut, `${human(freed)} freed`].join("; ");
+		return [said, ...kept, ...cut, `${human(freed)} freed`].join("; ");
 	};
 }

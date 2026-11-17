@@ -84,3 +84,28 @@ test("every answer of the fake docker has the keys docker/cli and moby v29.9.2 p
 		],
 	);
 });
+
+test("image rm as moby's image_delete.go: an ID with several tags refused, a tag of several untagged alone, the last tag deletes the image unless a container uses it", () => {
+	const fake = fakeDocker(temporaryFolder());
+	const tags = ["latest", "abc1234"].map((tag) => row("image-ls", { ID: "0a1b2c3d4e5f", Repository: "shop", Tag: tag }));
+	fake.state({ rows: { "image-ls": [...tags, row("image-ls", { ID: "1111aaaa2222", Repository: "<none>", Tag: "<none>" })] } });
+	const docker = (...args: string[]) => spawnSync(join(fake.bin, "docker"), args, { encoding: "utf8" });
+	const said = (...args: string[]) => (({ status, stdout, stderr }) => [status, stdout, stderr])(docker(...args));
+	const left = () => (fake.now().rows["image-ls"] ?? []).map((each) => `${each.Repository}:${each.Tag}`);
+	const referenced = "Error response from daemon: conflict: unable to delete 0a1b2c3d4e5f (must be forced) - image is referenced in multiple repositories";
+	assert.equal(texts["image-referenced"]?.replace("%s", "0a1b2c3d4e5f"), referenced);
+	assert.deepEqual(said("image", "rm", "0a1b2c3d4e5f"), [1, "", `${referenced}\n`]);
+	assert.deepEqual(left(), ["shop:latest", "shop:abc1234", "<none>:<none>"], "nothing removed");
+	docker("create", "--name", "owner", "shop:latest");
+	assert.deepEqual(said("image", "rm", "shop:latest"), [0, "Untagged: shop:latest\n", ""], "untagged though a container uses it: another tag holds the image");
+	assert.deepEqual(left(), ["shop:abc1234", "<none>:<none>"]);
+	const owner = fake.now().rows.ps?.[0];
+	assert.equal(owner?.Image, "0a1b2c3d4e5f", "docker ps shows a container's image by its ID once its tag is gone");
+	const inUse = `Error response from daemon: conflict: unable to remove repository reference "shop:abc1234" (must force) - container ${owner?.ID} is using its referenced image 0a1b2c3d4e5f\n`;
+	assert.deepEqual(said("image", "rm", "shop:abc1234"), [1, "", inUse]);
+	fake.state({ ...fake.now(), rows: { ...fake.now().rows, ps: [] } });
+	assert.deepEqual(said("image", "rm", "shop:abc1234"), [0, "Untagged: shop:abc1234\nDeleted: sha256:0a1b2c3d4e5f\n", ""]);
+	assert.deepEqual(said("image", "rm", "1111aaaa2222"), [0, "Deleted: sha256:1111aaaa2222\n", ""], "a dangling image by its ID");
+	assert.deepEqual(left(), []);
+	assert.deepEqual(said("image", "rm", "shop:latest"), [2, "", "the fake holds no image shop:latest\n"]);
+});

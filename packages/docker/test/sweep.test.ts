@@ -90,6 +90,8 @@ const changes = (from: number) => fake.calls().slice(from).filter((args) => ["st
 const names = (kind: "ps" | "network-ls" | "volume-ls" | "image-ls") => (fake.now().rows[kind] ?? []).map((each) => String(each.Names ?? each.Name ?? `${each.Repository}:${each.Tag}:${each.ID}`));
 // The free space df measures changes between runs: said as <n>.
 const steady = (text: string) => text.replace(/\d+(\.\d)? GB free on/g, "<n> GB free on");
+// An image's rows in `docker image ls`, one per tag.
+const tagged = (id: string, repository: string, ...tags: string[]) => tags.map((tag) => row("image-ls", { ID: id, Repository: repository, Tag: tag }));
 
 // The plugin on the fake host on a repository of its own, the test as the machines plugin (`labels` by machine) and, unless
 // `schedule` is false, as the schedule plugin; `gpu` and `far` registered, reached through the fake ssh; `run` in place of the core's.
@@ -174,8 +176,8 @@ test("--dry-run lists what a real run removes and why, removing nothing; the run
 		["network", "rm", "n02"],
 		["network", "rm", "n03"],
 		["volume", "rm", "old_data"],
-		["image", "rm", "a00000000001"],
-		["image", "rm", "a00000000002"],
+		["image", "rm", "old:latest"],
+		["image", "rm", "oldcompose-db:latest"],
 		["image", "rm", "a00000000003"],
 		["builder", "prune", "--force", "--filter", "until=48h"],
 		["builder", "prune", "--force", "--max-used-space", "10G"],
@@ -211,12 +213,44 @@ test("the owner's containers from a gone job's images stay, running or stopped, 
 	assert.deepEqual([ownerRun?.Labels, ownerApp?.Labels, ownerDb?.Labels], [`arthur.job=${GONE}`, `arthur.job=${GONE}`, compose], "each took its image's labels");
 	const from = fake.calls().length;
 	const swept = await arthur(t, host, "sweep");
-	const conflict = "Error response from daemon: conflict: unable to delete";
-	const kept = `kept image old:latest: ${conflict} a00000000001 (cannot be forced) - image is being used by running container ${ownerRun?.ID}; kept image oldcompose-db:latest: ${conflict} a00000000002 (must be forced) - image is being used by stopped container ${ownerDb?.ID}`;
+	const conflict = "Error response from daemon: conflict: unable to remove repository reference";
+	const kept = `kept image old:latest: ${conflict} "old:latest" (must force) - container ${ownerRun?.ID} is using its referenced image a00000000001; kept image oldcompose-db:latest: ${conflict} "oldcompose-db:latest" (must force) - container ${ownerDb?.ID} is using its referenced image a00000000002`;
 	assert.deepEqual({ ...swept, out: steady(swept.out) }, { code: 0, out: `local: removed 1 container; ${kept}; build cache cut to 10G; 0B reclaimed; <n> GB free on ${ROOT}`, err: "" });
 	assert.deepEqual(changes(from)[0], ["container", "rm", "--volumes", oldApp?.ID]);
 	assert.deepEqual(fake.now().rows.ps, [ownerRun, ownerApp, ownerDb], "the owner's containers untouched, the stopped ones too");
 	assert.deepEqual(names("volume-ls"), [ownerApp?.Mounts], "old-app's anonymous volume went with it; the owner's stays");
+});
+
+test("an image a gone job built with two tags goes by each tag and counts once, in arthur docker, the dry run and the sweep; one the owner's container uses keeps its last tag", async (t) => {
+	const { host } = await load({ local: { tools: ["docker"] } });
+	const images = [...tagged("b00000000001", "app", "latest", "abc1234"), ...tagged("b00000000002", "tool", "latest", "v2")];
+	fake.state({ info: { DockerRootDir: ROOT, SecurityOptions: [], ServerVersion: "29.9.2", SystemTime: NOW, Warnings: null }, rows: { "image-ls": images }, imageLabels: { b00000000001: `arthur.job=${GONE}`, b00000000002: `arthur.job=${GONE}` } });
+	execFileSync(join(fake.bin, "docker"), ["create", "--name", "owner-tool", "tool:v2"]);
+	const owner = fake.now().rows.ps?.[0];
+	const usage = await arthur(t, host);
+	assert.equal(usage.out.split("\n").at(-1), `  ${GONE} (no longer exists, so the sweep removes them): 2 images`);
+	const reason = `its job ${GONE} no longer exists`;
+	const would = ["app:latest", "app:abc1234", "tool:latest", "tool:v2"].map((name) => `local: would remove image ${name} (${reason})`);
+	assert.equal((await arthur(t, host, "sweep", "--dry-run")).out, [...would, "local: would prune the build cache unused for 48 h, then cut it to 10G", "local: --dry-run: 2 would be removed; nothing removed"].join("\n"));
+	const from = fake.calls().length;
+	const swept = await arthur(t, host, "sweep");
+	const kept = `kept image tool:v2: Error response from daemon: conflict: unable to remove repository reference "tool:v2" (must force) - container ${owner?.ID} is using its referenced image b00000000002`;
+	assert.deepEqual({ ...swept, out: steady(swept.out) }, { code: 0, out: `local: removed 1 image; ${kept}; build cache cut to 10G; 0B reclaimed; <n> GB free on ${ROOT}`, err: "" });
+	assert.deepEqual(changes(from).slice(0, 4), [["image", "rm", "app:latest"], ["image", "rm", "app:abc1234"], ["image", "rm", "tool:latest"], ["image", "rm", "tool:v2"]]);
+	assert.deepEqual(names("image-ls"), ["tool:v2:b00000000002"], "app went with its last tag; tool lost the tag no container uses");
+	assert.deepEqual(fake.now().rows.ps, [owner], "the owner's container untouched");
+});
+
+test("the daily sweep tells of an image once its last tag went: no notice when it only untagged one it kept", async () => {
+	const { entries, notices } = await load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" }, buildCache: 0 });
+	const info = { DockerRootDir: ROOT, SecurityOptions: [], ServerVersion: "29.9.2", SystemTime: NOW, Warnings: null };
+	fake.state({ info, rows: { "image-ls": tagged("b00000000002", "tool", "latest", "v2") }, imageLabels: { b00000000002: `arthur.job=${GONE}` } });
+	execFileSync(join(fake.bin, "docker"), ["create", "--name", "owner-tool", "tool:v2"]);
+	await entries[0]?.run();
+	assert.deepEqual([notices(), names("image-ls")], [[], ["tool:v2:b00000000002"]], "tool:latest untagged, tool:v2 kept: nothing reclaimed");
+	fake.state({ info, rows: { "image-ls": tagged("b00000000001", "app", "latest", "abc1234") }, imageLabels: { b00000000001: `arthur.job=${GONE}` } });
+	await entries[0]?.run();
+	assert.deepEqual(notices().map(steady), [`docker: the sweep (daily):\n- local: removed 1 image; 0B reclaimed; <n> GB free on ${ROOT}`]);
 });
 
 test("arthur docker: Docker's usage and what each job labelled on each machine, the jobs that no longer exist marked", async (t) => {
@@ -277,11 +311,11 @@ test("a sweep that removes nothing still sends its notice when a machine failed,
 	low.host.emit("disk-low", { machine: "local", path: ROOT, free: 5, floor: 1e18 });
 	const [floor = ""] = await until("the floor's notice", () => (low.notices().length > 0 ? low.notices() : undefined), SWEEP);
 	assert.match(floor, /^docker: the sweep \(disk-low on local\):\n- local: nothing to remove; build cache cut to 10G; 0B reclaimed; [\d.]+ GB free on \S+; still under the floor: [\d.]+ GB free on \S+, floor 931322574\.6 GB$/);
-	// The cache unused for 48 h, 2 GB of it: the sweep's only gain.
-	fake.state({ ...bare, cache: 2e9, cacheUsedAt: "2026-01-01T00:00:00Z" });
+	// The cache unused for 48 h, one byte of it, the least space given back: the sweep's only gain.
+	fake.state({ ...bare, cache: 1, cacheUsedAt: "2026-01-01T00:00:00Z" });
 	const cache = await load({ local: { tools: ["docker"] } }, { sweep: { at: "04:00" } });
 	await cache.entries[0]?.run();
-	assert.deepEqual(cache.notices().map(steady), [`docker: the sweep (daily):\n- local: nothing to remove; build cache cut to 10G; 2GB reclaimed; <n> GB free on ${ROOT}`]);
+	assert.deepEqual(cache.notices().map(steady), [`docker: the sweep (daily):\n- local: nothing to remove; build cache cut to 10G; 1B reclaimed; <n> GB free on ${ROOT}`]);
 });
 
 test("a labelled machine where command -v finds no docker is no failure: no notice, exit 0 for arthur docker and its sweep", async (t) => {

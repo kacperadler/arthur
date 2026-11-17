@@ -4,7 +4,7 @@ Usage: `arthur docker sweep [--machine <name>] [--dry-run]`. The shared rules (t
 
 The sweep of Docker's leftovers by hand, on each machine labelled `tools: docker`, or on `<name>` alone. It is the sweep `sweep.at` runs daily and a `disk-low` runs on its machine (`packages/docker/docs/docker.md`, "The sweep"), which says what goes and what stays; by hand it prints its lines instead of sending a notice.
 
-Run `--dry-run` first: it removes nothing and lists, on each machine, what a real run would remove and why, then a count:
+Run `--dry-run` first: it removes nothing and lists, on each machine, what a real run would remove and why, an image by each of its tags, then a count, an image with several tags counted once:
 
 ```
 local: would remove container old-web (its job 2026-11-01-worker-99999999 no longer exists)

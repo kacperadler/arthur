@@ -46,7 +46,7 @@ function made(id: string): Partial<State> {
 const KEPT = [
 	`kept network shared_net: Error response from daemon: error while removing network: network shared_net has active endpoints (name:"other-web" id:"${OTHER}")`,
 	`kept volume cache: Error response from daemon: remove cache: volume is in use - [${OTHER}]`,
-	`kept image shop-tools:latest: Error response from daemon: conflict: unable to delete 1111aaaa2222 (cannot be forced) - image is being used by running container ${OTHER}`,
+	`kept image shop-tools:latest: Error response from daemon: conflict: unable to remove repository reference "shop-tools:latest" (must force) - container ${OTHER} is using its referenced image 1111aaaa2222`,
 ];
 // The calls that change something, as the fake docker got them.
 const changes = (from: number) => fake.calls().slice(from).filter((args) => ["stop", "rm", "prune"].includes(args[1] ?? ""));
@@ -91,8 +91,8 @@ test("a pruned job's containers stop and go with their anonymous volumes, then i
 		["network", "rm", "n0000000000a"],
 		["volume", "rm", "data"],
 		["volume", "rm", "cache"],
-		["image", "rm", "aaaa0000000a"],
-		["image", "rm", "1111aaaa2222"],
+		["image", "rm", "shop:latest"],
+		["image", "rm", "shop-tools:latest"],
 		["builder", "prune", "--force", "--max-used-space", "10G"],
 	]);
 	assert.deepEqual([names("ps"), names("network-ls"), names("volume-ls"), names("image-ls")], [["other-web"], ["shared_net", "bridge"], ["cache"], ["shop-tools", "postgres"]], "the anonymous volume went with web; the pulled image stays");
@@ -121,13 +121,28 @@ test("the owner's containers from the job's images stay, running or stopped, wit
 	const [web, owner, ownerDb] = fake.now().rows.ps ?? [];
 	assert.deepEqual([web?.Labels, owner?.Labels, ownerDb?.Labels], [`arthur.job=${job.id},arthur.container=${job.id}`, `arthur.job=${job.id}`, compose], "each took its image's labels");
 	const from = fake.calls().length;
-	const conflict = "Error response from daemon: conflict: unable to delete";
-	const kept = `kept image shop:latest: ${conflict} aaaa0000000a (cannot be forced) - image is being used by running container ${owner?.ID}; kept image shop-db:latest: ${conflict} bbbb0000000b (must be forced) - image is being used by stopped container ${ownerDb?.ID}`;
+	const conflict = "Error response from daemon: conflict: unable to remove repository reference";
+	const kept = `kept image shop:latest: ${conflict} "shop:latest" (must force) - container ${owner?.ID} is using its referenced image aaaa0000000a; kept image shop-db:latest: ${conflict} "shop-db:latest" (must force) - container ${ownerDb?.ID} is using its referenced image bbbb0000000b`;
 	const line = `docker: removed 1 container; ${kept}; build cache cut to 10G; 0B freed`;
 	assert.deepEqual(await host.host.jobs.prune([job.id]), [`${job.id}: ${line}; worktree ${job.worktree} removed; branch ${job.branch} deleted; kept the record: the test keeps it`]);
 	assert.deepEqual(changes(from).slice(0, 2), [["container", "stop", "--timeout", "10", web?.ID], ["container", "rm", "--volumes", web?.ID]]);
 	assert.deepEqual(fake.now().rows.ps, [owner, ownerDb], "the owner's containers untouched, the running one still running");
 	assert.deepEqual(names("volume-ls"), [owner?.Mounts, "owner_data"], "web's anonymous volume went with it; the owner's stay");
+});
+
+test("an image the job built with two tags goes by each tag and counts once, a dangling one by its ID; one the owner's container uses keeps its last tag", async () => {
+	const { hook } = await load({ local: { tools: ["docker"] } });
+	const compose = `com.docker.compose.project=arthur-${ID.slice(-8)},com.docker.compose.service=db`;
+	const tagged = (id: string, repository: string, ...tags: string[]) => tags.map((tag) => row("image-ls", { ID: id, Repository: repository, Tag: tag }));
+	const images = [...tagged("aaaa0000000a", "app", "latest", "abc1234"), ...tagged("cccc0000000c", "db", "latest", "v1"), ...tagged("dddd0000000d", "<none>", "<none>")];
+	const owner = row("ps", { ID: "c0000000000d", Names: "owner-db", State: "exited", Labels: compose, Image: "db:v1" });
+	fake.state({ rows: { ps: [owner], "image-ls": images }, imageLabels: { aaaa0000000a: `arthur.job=${ID}`, cccc0000000c: compose, dddd0000000d: `arthur.job=${ID}` } });
+	const from = fake.calls().length;
+	const kept = `kept image db:v1: Error response from daemon: conflict: unable to remove repository reference "db:v1" (must force) - container c0000000000d is using its referenced image cccc0000000c`;
+	assert.equal(await hook(), `removed 2 images; ${kept}; build cache cut to 10G; 0B freed`);
+	const removals = [["image", "rm", "app:latest"], ["image", "rm", "app:abc1234"], ["image", "rm", "dddd0000000d"], ["image", "rm", "db:latest"], ["image", "rm", "db:v1"]];
+	assert.deepEqual(changes(from).slice(0, 5), removals);
+	assert.deepEqual(fake.now().rows["image-ls"], [images[3]], "app and the dangling image went; db lost the tag no container uses");
 });
 
 test("Docker not running: the worktree goes all the same, one notice names the job, the machine and the reason, and nothing of the job's is touched", async () => {
@@ -241,4 +256,16 @@ test("each call has its limit, both under the core's 2 minutes: the listing cut 
 		message: "the removal timed out after 85 s half-way: removed 1 container; left for the sweep: container db, network shared_net, network shop_net, volume data, volume cache, image shop:latest, image shop-tools:latest",
 	});
 	assert.deepEqual(limits, [30, 30, 85]);
+});
+
+test("a removal cut after an image's first tag leaves that image to the sweep by its other tag; one cut after its last tag leaves nothing", async () => {
+	const images = ["latest", "abc1234"].map((tag) => row("image-ls", { ID: "aaaa0000000a", Repository: "app", Tag: tag }));
+	fake.state({ rows: { "image-ls": images }, imageLabels: { aaaa0000000a: `arthur.job=${ID}` } });
+	const said = ["removed image:app:latest\n", "removed image:app:latest\nremoved image:app:abc1234\n"];
+	let calls = 0;
+	const late: Host["jobs"]["run"] = async (machine, argv, limit, input) =>
+		calls++ % 2 === 0 ? loaded.host.host.jobs.run(machine, argv, limit, input) : { code: null, stdout: said.shift() ?? "", stderr: `timed out after ${limit} s\n` };
+	const loaded = await load({ local: { tools: ["docker"] } }, {}, undefined, late);
+	await assert.rejects(loaded.hook(), { message: "the removal timed out after 85 s half-way: nothing of the job's in Docker; left for the sweep: image app:abc1234" });
+	await assert.rejects(loaded.hook(), { message: "the removal timed out after 85 s half-way: removed 1 image" });
 });

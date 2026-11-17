@@ -27,7 +27,7 @@ async function usage(host: Host, machines: readonly string[]): Promise<number> {
 			const job = thing.job === undefined ? undefined : (recordOf(ids, thing.job) ?? thing.job);
 			if (job !== undefined) jobs.set(job, [...(jobs.get(job) ?? []), thing]);
 		}
-		for (const [job, things] of jobs) lines.push(`  ${job}${recordOf(ids, job) === undefined ? " (no longer exists, so the sweep removes them)" : ""}: ${count(things.map((thing) => thing.kind))}`);
+		for (const [job, things] of jobs) lines.push(`  ${job}${recordOf(ids, job) === undefined ? " (no longer exists, so the sweep removes them)" : ""}: ${count(things.map((thing) => thing.id))}`);
 	}
 	console.log(lines.join("\n"));
 	return failed ? 1 : 0;

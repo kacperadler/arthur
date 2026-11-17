@@ -6,8 +6,9 @@ import type { Host, Ran } from "@arthur/core/plugin";
 
 export type Row = Readonly<Record<string, unknown>>;
 type Labels = Readonly<Record<string, string>>;
-// One object Docker holds: the word its removal takes, `<kind>:<id>`, its name, its row, its labels and the job they name.
-export type Thing = { readonly kind: string; readonly word: string; readonly name: string; readonly row: Row; readonly labels: Labels; readonly job?: string };
+// One object Docker holds: `<kind>:<id>`, the object itself; the word its removal takes, `<kind>:<id>` or a tagged image's
+// `image:<repository>:<tag>`; its name, its row, its labels and the job they name. An image with two tags is two things.
+export type Thing = { readonly kind: string; readonly id: string; readonly word: string; readonly name: string; readonly row: Row; readonly labels: Labels; readonly job?: string };
 // What a machine's Docker holds: its clock, its data root, each object, `docker system df`'s rows, the script folders there.
 export type Seen = { readonly now: number; readonly root: string; readonly things: readonly Thing[]; readonly system: readonly Row[]; readonly folders: readonly string[] };
 
@@ -49,12 +50,25 @@ const jobOf = (labels: Labels, container: boolean) =>
 // The record of `job`, a job's id or its compose project's name, among `ids`.
 export const recordOf = (ids: readonly string[], job: string) => ids.find((id) => id === job || `arthur-${id.slice(-8)}` === job);
 
-// `2 containers, 1 network, 1 script folder` of a list of kinds, in the order they go.
-export const count = (kinds: readonly string[]) =>
-	[...KINDS, "folder"]
+// `2 containers, 1 network, 1 script folder` of a list of `<kind>:<id>`, each object once, in the order they go.
+export function count(objects: readonly string[]): string {
+	const kinds = [...new Set(objects)].map((object) => object.slice(0, object.indexOf(":")));
+	return [...KINDS, "folder"]
 		.map((kind) => [kind === "folder" ? "script folder" : kind, kinds.filter((each) => each === kind).length] as const)
 		.flatMap(([kind, many]) => (many === 0 ? [] : [`${many} ${kind}${many === 1 ? "" : "s"}`]))
 		.join(", ");
+}
+// An object of `kind` by its listing's row. Docker refuses `image rm <ID>` for an image with several tags, so a tagged image goes
+// by each tag, `docker image ls` printing a row per tag, and the last untag deletes it; an untagged one goes by its ID.
+export function object(kind: string, row: Row): { readonly id: string; readonly word: string; readonly name: string } {
+	const id = String(kind === "volume" ? row.Name : row.ID);
+	const tag = kind === "image" && row.Tag !== "<none>" ? `${row.Repository}:${row.Tag}` : undefined;
+	const name = kind === "container" ? row.Names : kind === "image" ? (tag ?? id) : row.Name;
+	return { id: `${kind}:${id}`, word: `${kind}:${tag ?? id}`, name: `${kind} ${name}` };
+}
+// The `<kind>:<id>` (`of` each word) of each object whose every word is in `removed`, once: an image goes with its last tag.
+export const gone = (words: readonly string[], of: (word: string) => string, removed: readonly string[]) =>
+	[...new Set(words.map(of))].filter((id) => words.every((word) => of(word) !== id || removed.includes(word)));
 
 // What Docker on `machine` holds, or why it could not be read, and whether that is a failure.
 export async function look(host: Host, machine: string): Promise<Seen | { readonly problem: string; readonly failed: boolean }> {
@@ -70,10 +84,9 @@ export async function look(host: Host, machine: string): Promise<Seen | { readon
 	const images = new Map((found.get("labels") ?? []).map((line) => [line.slice(7, 19), (JSON.parse(line.slice(line.indexOf(" ") + 1)) ?? {}) as Labels]));
 	const things = KINDS.flatMap((kind) =>
 		json(found.get(kind)).map((row): Thing => {
-			const id = String(kind === "volume" ? row.Name : row.ID);
-			const labels = kind === "image" ? (images.get(id) ?? {}) : pairs(row.Labels);
-			const name = kind === "container" ? row.Names : kind !== "image" ? row.Name : row.Tag === "<none>" ? id : `${row.Repository}:${row.Tag}`;
-			return { kind, word: `${kind}:${id}`, name: `${kind} ${name}`, row, labels, job: jobOf(labels, kind === "container") };
+			const { id, word, name } = object(kind, row);
+			const labels = kind === "image" ? (images.get(String(row.ID)) ?? {}) : pairs(row.Labels);
+			return { kind, id, word, name, row, labels, job: jobOf(labels, kind === "container") };
 		}),
 	);
 	return { now: Date.parse(time), root, things, system: json(found.get("system")), folders: (found.get("folders") ?? []).filter((name) => /^[\w-]+$/.test(name)) };

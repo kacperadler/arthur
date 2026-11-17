@@ -129,7 +129,28 @@ if (import.meta.main) {
 		if (name !== "") fail(`the fake holds no container ${name}`, 2);
 		save({ ps: containers.map((each) => (named.includes(String(each.ID)) ? { ...each, State: "exited", Status: "Exited (0) 1 second ago" } : each)) });
 		for (const each of named) say(each);
-	} else if (["container rm", "network rm", "volume rm", "image rm"].includes(words)) {
+	} else if (words === "image rm") {
+		// As moby's image_delete.go: a tag of an image with more is untagged alone; the last tag, or an ID with at most one tag, deletes
+		// the image, unless a container uses it; an ID with several tags is refused. A container shows an untagged image by its ID.
+		const [name = ""] = named;
+		const tag = (each: Row) => `${each.Repository}:${each.Tag}`;
+		const id = (images.find((each) => each.Tag !== "<none>" && tag(each) === name) ?? images.find((each) => each.ID === name))?.ID;
+		if (id === undefined) fail(`the fake holds no image ${name}`, 2);
+		const rows = images.filter((each) => each.ID === id);
+		const tags = rows.filter((each) => each.Tag !== "<none>").map(tag);
+		const using = containers.find((each) => each.Image === id || tags.includes(String(each.Image)));
+		const byTag = tags.includes(name);
+		if (byTag && tags.length > 1) {
+			save({ "image-ls": images.filter((each) => each.ID !== id || tag(each) !== name), ps: containers.map((each) => (each.Image === name ? { ...each, Image: id } : each)) });
+			say(`Untagged: ${name}`);
+		} else if (byTag && using !== undefined) fail(fill(texts["reference-in-use"] ?? "", name, String(using.ID).slice(0, 12), String(id)));
+		else if (tags.length > 1) fail(fill(texts["image-referenced"] ?? "", String(id)));
+		else if (using !== undefined) fail(fill(texts["image-in-use"] ?? "", String(id), ...(using.State === "running" ? ["cannot be forced", "running"] : ["must be forced", "stopped"]), String(using.ID).slice(0, 12)));
+		else {
+			save({ "image-ls": images.filter((each) => each.ID !== id) });
+			for (const line of [...tags.map((each) => `Untagged: ${each}`), `Deleted: sha256:${id}`]) say(line);
+		}
+	} else if (["container rm", "network rm", "volume rm"].includes(words)) {
 		const [name = ""] = named;
 		const key = command === "volume" ? "Name" : "ID";
 		const gone = (state.rows[LISTS[`${command} ls`] as Kind] ?? []).find((each) => each[key] === name || (command === "network" && each.Name === name));
@@ -140,13 +161,10 @@ if (import.meta.main) {
 		if (command === "network" && endpoints.length > 0) fail(fill(texts["network-in-use"] ?? "", String(gone?.Name), endpoints.map((each) => `name:"${each.Names}" id:"${String(each.ID).slice(0, 12)}"`).join(", ")));
 		const mounting = others.filter((each) => listed(each.Mounts, name));
 		if (command === "volume" && mounting.length > 0) fail(fill(texts["volume-in-use"] ?? "", name, mounting.map((each) => String(each.ID)).join(", ")));
-		const using = others.find((each) => each.Image === gone?.ID || each.Image === `${gone?.Repository}:${gone?.Tag}`);
-		if (command === "image" && using !== undefined) fail(fill(texts["image-in-use"] ?? "", name.slice(0, 12), ...(using.State === "running" ? ["cannot be forced", "running"] : ["must be forced", "stopped"]), String(using.ID).slice(0, 12)));
 		// `--volumes`: the container's anonymous volumes go with it, but one another container mounts.
 		const anonymous = (each: Row) => command === "container" && rest.includes("--volumes") && listed(gone?.Mounts, each.Name) && String(each.Labels).includes("com.docker.volume.anonymous=") && !others.some((other) => listed(other.Mounts, each.Name));
-		save({ ps: others, "network-ls": networks.filter((each) => each !== gone), "volume-ls": volumes.filter((each) => each !== gone && !anonymous(each)), "image-ls": images.filter((each) => each !== gone) });
-		if (command !== "image") say(name);
-		else for (const line of [...(gone?.Tag === "<none>" ? [] : [`Untagged: ${gone?.Repository}:${gone?.Tag}`]), `Deleted: sha256:${name}`]) say(line);
+		save({ ps: others, "network-ls": networks.filter((each) => each !== gone), "volume-ls": volumes.filter((each) => each !== gone && !anonymous(each)) });
+		say(name);
 	} else if (["run", "create"].includes(command) || ["container run", "container create"].includes(words)) {
 		// A container in `ps`, its full ID printed as `run -d` and `create` print it. The options read: `--label`, `-l`, `--name`, `-v` and
 		// `--volume` with the next word, any other one a flag; the first other word is the image. The image's labels go on the container

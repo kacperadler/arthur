@@ -5796,5 +5796,12 @@
     "status": "planning",
     "path": "spec/features/AR0717-the-vision-still-says-project-agents-come-later/ticket.md",
     "updated": "2026-11-17T01:28:01.397Z"
+  },
+  {
+    "id": "AR0718",
+    "title": "npm test runs about 10 test files at once on the 3 cores a job gets; time it with --test-concurrency 3 and keep the faster",
+    "status": "planning",
+    "path": "spec/features/AR0718-npm-test-runs-about-10-test-files-at-once-on-the-3-cores-a-job-gets-time-it-with/ticket.md",
+    "updated": "2026-11-17T09:42:36.722Z"
   }
 ]

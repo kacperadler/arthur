@@ -5663,9 +5663,9 @@
   {
     "id": "AR0701",
     "title": "A job's prune and the sweep take only containers the job made, never the owner's container from a job's image",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0701-a-job-s-prune-and-the-sweep-take-only-containers-the-job-made-never-the-owner-s/ticket.md",
-    "updated": "2026-11-17T08:40:50.101Z",
+    "updated": "2026-11-17T10:01:24.578Z",
     "after": [
       "AR0690"
     ]
@@ -5800,8 +5800,18 @@
   {
     "id": "AR0718",
     "title": "npm test runs about 10 test files at once on the 3 cores a job gets; time it with --test-concurrency 3 and keep the faster",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0718-npm-test-runs-about-10-test-files-at-once-on-the-3-cores-a-job-gets-time-it-with/ticket.md",
-    "updated": "2026-11-17T09:49:03.113Z"
+    "updated": "2026-11-17T09:49:08.296Z"
+  },
+  {
+    "id": "AR0719",
+    "title": "npm test takes about 12 minutes of 3 busy cores: find which test files and which started processes use its CPU time",
+    "status": "planning",
+    "path": "spec/features/AR0719-npm-test-takes-about-12-minutes-of-3-busy-cores-find-which-test-files-and-which/ticket.md",
+    "updated": "2026-11-17T10:39:51.984Z",
+    "after": [
+      "AR0718"
+    ]
   }
 ]

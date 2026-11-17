@@ -5673,9 +5673,9 @@
   {
     "id": "AR0702",
     "title": "An image a job built with several tags is removed by each tag",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0702-an-image-a-job-built-with-several-tags-is-removed-by-each-tag/ticket.md",
-    "updated": "2026-11-17T11:06:44.874Z",
+    "updated": "2026-11-17T21:37:08.631Z",
     "after": [
       "AR0701"
     ]

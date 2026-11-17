@@ -12,4 +12,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: `npm run mutate` on this branch's first commit turned the half-way return's `failed: true` into `failed: false` and every test still passed (`survived: packages/docker/src/docker-sweep.ts:107`). The test "Docker stopping half-way, or the removal cut by its limit" runs only the daily entry, whose notice goes out anyway since something was reclaimed; nothing runs the sweep by hand there, so the exit 1 that `docs/commands/docker-sweep.md` promises for a sweep failed half-way is not held. The final branch no longer changes that line, so the mutant no longer shows.
 - Suggestion: in that test, run `arthur docker sweep` by hand against the same `crash: "network rm"` state and assert exit 1; nothing else changes.
 - Budget: 0.5
-- Status: open
+- Status: deferred (client summary)

@@ -46,9 +46,12 @@ export function labelled(args: readonly string[], id: string): string[] {
 	}
 	// Docker runs the command after a `--` that ends its own options: `docker -- run img`.
 	if (args[at] === "--") at++;
-	const words = CREATES.find((each) => each.every((word, index) => args[at + index] === word));
+	// buildx's own options (docker buildx --help) may stand before its command: `--builder` takes the next word; buildx reads no `--`.
+	let next = at + 1;
+	while (args[at] === "buildx" && args[next]?.startsWith("-") && args[next] !== "-" && args[next] !== "--") next += args[next] === "--builder" ? 2 : 1;
+	const words = CREATES.find((each) => each.every((word, index) => args[index === 0 ? at : next + index - 1] === word));
 	if (words === undefined) return [...args];
-	const end = at + words.length;
+	const end = next + words.length - 1;
 	return [...args.slice(0, end), "--label", `arthur.job=${id}`, ...stripped(args.slice(end))];
 }
 

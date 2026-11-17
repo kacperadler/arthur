@@ -31,6 +31,15 @@ test("global options before the command keep their values, and the label still g
 	assert.deepEqual(labelled(["-D", "--", "volume", "create", "v"], ID), ["-D", "--", "volume", "create", ...LABEL, "v"]);
 });
 
+test("buildx's own options before build keep their place, the label goes after build, and a foreign arthur.job goes", () => {
+	const other = "arthur.job=2026-11-09-worker-ffffffff";
+	for (const own of [["--builder", "x"], ["--debug"], ["-D"], ["--builder=x"], ["--debug=true"], ["--builder", "build"], ["--builder", "-D", "-D"], ["--builder", "x", "-D"]])
+		assert.deepEqual(labelled(["buildx", ...own, "build", "--label", other, "."], ID), ["buildx", ...own, "build", ...LABEL, "."], own.join(" "));
+	assert.deepEqual(labelled(["-D", "buildx", "--builder", "x", "build", "."], ID), ["-D", "buildx", "--builder", "x", "build", ...LABEL, "."]);
+	for (const args of [["buildx", "--builder", "x", "ls"], ["buildx", "-D", "bake"], ["buildx", "--builder"], ["buildx", "--", "build", "."], ["buildx", "--debug", "-", "build"]])
+		assert.deepEqual(labelled(args, ID), args, args.join(" "));
+});
+
 test("every word that sets arthur.job goes, in each spelling and wherever it stands; a label with another key is kept", () => {
 	const other = "arthur.job=2026-11-09-worker-ffffffff";
 	for (const given of [["--label", other], [`--label=${other}`], ["-l", other], [`-l${other}`], [`-l=${other}`], ["--label", "arthur.job"], ["--label=arthur.job="], [other]])

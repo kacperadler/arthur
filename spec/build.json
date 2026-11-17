@@ -5663,9 +5663,9 @@
   {
     "id": "AR0701",
     "title": "A job's prune and the sweep take only containers the job made, never the owner's container from a job's image",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0701-a-job-s-prune-and-the-sweep-take-only-containers-the-job-made-never-the-owner-s/ticket.md",
-    "updated": "2026-11-17T10:01:24.578Z",
+    "updated": "2026-11-17T11:06:29.246Z",
     "after": [
       "AR0690"
     ]

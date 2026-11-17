@@ -14,6 +14,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 #### Fixed
 
 - AR0690 docker buildx with its own options before build (docker buildx --builder x build) gets no job label, and a foreign arthur.job label stays (704153ee)
+- AR0701 A job's prune and the sweep take only containers the job made, never the owner's container from a job's image (9723a365)
 
 #### Changed
 

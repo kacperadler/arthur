@@ -130,6 +130,56 @@ test("the owner's containers from the job's images stay, running or stopped, wit
 	assert.deepEqual(names("volume-ls"), [owner?.Mounts, "owner_data"], "web's anonymous volume went with it; the owner's stay");
 });
 
+test("an image the job built or committed gives no container the job's marks, whatever its Dockerfile, a --label-file, the committed container or a change of the job's own held: the owner's containers from it stay, the job's own go", async () => {
+	const { host, home } = await load({ local: { tools: ["docker"] } });
+	host.provide("jobs.keep", () => "the test keeps it");
+	const job = await host.host.jobs.spawn({ task: "Build it." });
+	await until("the job's end", () => readFileSync(join(home, "jobs", job.id, "state"), "utf8") === "ended" || undefined);
+	// Both marks of a container of the job's: the script's, and compose's config hash beside its project.
+	const [project, hash] = [`com.docker.compose.project=arthur-${job.id.slice(-8)}`, "com.docker.compose.config-hash"];
+	const marks = [`arthur.container=${job.id}`, project, `${hash}=9f8e`];
+	const folder = temporaryFolder();
+	writeFileSync(join(folder, "Dockerfile"), `FROM postgres:16\nLABEL ${marks.join(" ")}\n`);
+	writeFileSync(join(folder, "marks"), `${marks.join("\n")}\n`);
+	fake.state({ rows: { "image-ls": [row("image-ls", { ID: "bbbb0000000b", Repository: "postgres", Tag: "16" })] } });
+	const mine = (...args: string[]) => execFileSync(join(home, "docker", "jobs", job.id, "docker"), args);
+	const owner = (...args: string[]) => execFileSync(join(fake.bin, "docker"), args);
+	// The job's images: built from a Dockerfile that sets the marks; committed from its container run with a --label-file of them,
+	// from its compose container (compose makes it through Docker's API, past the script), and with a change of its own that sets them
+	// before one that ends in a line continuation.
+	mine("build", "-t", "shop:built", folder);
+	mine("run", "-d", "--name", "web", "--label-file", join(folder, "marks"), "postgres:16");
+	owner("create", "--name", "db", "--label", project, "--label", `${hash}=9f8e`, "postgres:16");
+	mine("commit", "web", "shop:filed");
+	mine("container", "commit", "db", "shop:db");
+	mine("commit", "-c", `LABEL ${marks.join(" ")}`, "--change", "ENV a=\\", "db", "shop:changed");
+	// The owner's container from each, and two more of the job's from them: one its script made, one its compose project made.
+	owner("run", "-d", "--name", "owner-built", "-v", "/data", "shop:built");
+	for (const name of ["filed", "db", "changed"]) owner("create", "--name", `owner-${name}`, `shop:${name}`);
+	mine("create", "--name", "again", "shop:filed");
+	owner("create", "--name", "db-again", "--label", project, "--label", `${hash}=77aa`, "shop:built");
+	const [web, db, ...rest] = fake.now().rows.ps ?? [];
+	const [owners, [again, dbAgain]] = [rest.slice(0, 4), rest.slice(4)];
+	const read = (labels: unknown) => Object.fromEntries(String(labels).split(",").map((pair) => [pair.split("=")[0], pair.slice(pair.indexOf("=") + 1)]));
+	assert.deepEqual(
+		owners.map((each) => [each.Names, read(each.Labels)["arthur.container"], read(each.Labels)[hash], read(each.Labels)["com.docker.compose.project"]]),
+		["built", "filed", "db", "changed"].map((name) => [`owner-${name}`, "", "", `arthur-${job.id.slice(-8)}`]),
+		"each took its image's labels: the job's compose project, and both marks empty",
+	);
+	assert.deepEqual([read(again?.Labels)["arthur.container"], read(dbAgain?.Labels)[hash]], [job.id, "77aa"], "the job's own carry the mark their maker gave them");
+	const from = fake.calls().length;
+	const image = (tag: string) => (fake.now().rows["image-ls"] ?? []).find((each) => each.Repository === "shop" && each.Tag === tag)?.ID;
+	const kept = owners.map((each) => {
+		const tag = `shop:${String(each.Names).slice(6)}`;
+		return `kept image ${tag}: Error response from daemon: conflict: unable to remove repository reference "${tag}" (must force) - container ${each.ID} is using its referenced image ${image(tag.slice(5))}`;
+	});
+	const line = `docker: removed 4 containers; ${kept.join("; ")}; build cache cut to 10G; 0B freed`;
+	assert.deepEqual(await host.host.jobs.prune([job.id]), [`${job.id}: ${line}; worktree ${job.worktree} removed; branch ${job.branch} deleted; kept the record: the test keeps it`]);
+	assert.deepEqual(changes(from)[0], ["container", "stop", "--timeout", "10", web?.ID, again?.ID, db?.ID, dbAgain?.ID]);
+	assert.deepEqual(fake.now().rows.ps, owners, "the owner's containers untouched, the running one still running");
+	assert.deepEqual(names("volume-ls"), [owners[0]?.Mounts], "the owner's anonymous volume stays");
+});
+
 test("an image the job built with two tags goes by each tag and counts once, a dangling one by its ID; one the owner's container uses keeps its last tag", async () => {
 	const { hook } = await load({ local: { tools: ["docker"] } });
 	const compose = `com.docker.compose.project=arthur-${ID.slice(-8)},com.docker.compose.service=db`;

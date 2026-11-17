@@ -16,12 +16,15 @@ const UNITS = ["B", "kB", "MB", "GB", "TB", "PB"];
 
 // With `$1` the job's id and `$2` its compose project. Exit 3: no docker there; 4: Docker does not answer. Else each kind's
 // listing by the job's label, then by its compose project's, a JSON line per object after a `:<kind>` line; last `docker system df`.
-// A container counts only by the labels its maker gave it: the script's `arthur.container`, compose's config hash beside its project.
+// A container counts only by the labels its maker gave it: the script's `arthur.container`, compose's config hash beside its
+// project, and not by an empty hash, which the image a job built or committed gives it (docker-label.ts): its line is left empty.
 const LIST = `command -v docker >/dev/null || exit 3
 docker info --format '{{.ServerVersion}}' >/dev/null || exit 4
 for kind in "container ls --all" "network ls" "volume ls" "image ls"; do
-	job=job made=; [ "$kind" != "container ls --all" ] || job=container made="--filter label=com.docker.compose.config-hash"
-	for by in "arthur.$job=$1" "com.docker.compose.project=$2 $made"; do echo ":\${kind%% *}"; docker $kind --filter label=$by --format '{{json .}}' || exit; done
+	job=job made='{{json .}}'; [ "$kind" != "container ls --all" ] || job=container made='{{if .Label "com.docker.compose.config-hash"}}{{json .}}{{end}}'
+	echo ":\${kind%% *}"
+	docker $kind --filter "label=arthur.$job=$1" --format '{{json .}}' || exit
+	docker $kind --filter "label=com.docker.compose.project=$2" --format "$made" || exit
 done
 echo ":system"; docker system df --format '{{json .}}'`;
 

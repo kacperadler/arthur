@@ -38,3 +38,4 @@ Out:
 - Moving to Bun: declined (AR-D687).
 
 ## Decisions
+- 2026-11-17: AR0719 approved, budget 10, after AR0718; the owner: "AR-D689 approve" (AR-D689)

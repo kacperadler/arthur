@@ -7,6 +7,7 @@ import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@art
 import { ciWaits } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
 import { saveReview } from "../src/review-records.ts";
+import { fakeNpm } from "./fake-npm.ts";
 
 const PATH = process.env.PATH ?? "";
 const TEST_JS = 'console.log("ℹ tests 1\\nℹ pass 1");\n';
@@ -81,8 +82,11 @@ async function load(t: TestContext, github = true) {
 		await until(`${id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 		fake.emit("job-ended", { id, state: "ended" });
 	};
+	// The checks on main run through the fake `npm` of fake-npm.ts, `npm()` its calls.
+	const bin = temporaryFolder();
+	const npm = fakeNpm(bin);
 	const agent = (run: AgentRun) => {
-		process.env.PATH = [dirname(fakeAgent(run)), PATH].join(delimiter);
+		process.env.PATH = [dirname(fakeAgent(run)), bin, PATH].join(delimiter);
 	};
 	const commit = (worktree: string, changes: Readonly<Record<string, string>>, ...rename: string[]) => {
 		write(worktree, changes);
@@ -120,14 +124,14 @@ async function load(t: TestContext, github = true) {
 	const projects = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { readonly project?: string }).project);
 	const waiting = (id: string) => existsSync(join(fake.host.folder, id, "ci-wait"));
 	return {
-		...{ root, fake, plugin, git, commit, worker, review, run, merge: (...args: string[]) => run("merge", args), messages, projects, waiting, asked, cancels, answers, owner },
+		...{ root, fake, plugin, git, commit, worker, review, run, merge: (...args: string[]) => run("merge", args), messages, projects, waiting, asked, cancels, answers, owner, npm },
 		head: () => git(root, "rev-parse", "HEAD"),
 		set: (next: Record<string, unknown>) => void (project = next),
 	};
 }
 
 test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused, each naming its rule: autoMerge off or unset, no PASS, a FAIL, a PASS on an older commit", async (t) => {
-	const { fake, commit, worker, review, merge, head, set, asked, answers } = await load(t);
+	const { fake, commit, worker, review, merge, head, set, asked, answers, npm } = await load(t);
 	const job = await worker(1);
 	const passed = await review(job.id, "PASS");
 	const start = head();
@@ -151,6 +155,7 @@ test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused,
 	answers.ci = ciRun(tip, job.branch);
 	const merged = await merge(job.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(npm(), "run check\ntest\n", "the checks on main ran through the fake npm, once each");
 	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\n`));
 	assert.equal(fake.host.board.get("AC0001")?.status, "merged");
 });

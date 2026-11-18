@@ -9,7 +9,7 @@ import { ciRun, type CiRun, DONE, FOLDER, load, noIdentityAnywhere, OWNER, PACKA
 // arthur merge (merge-setup.ts): a branch that goes in, the refusals before it does, and what it asks github and the owner.
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named, the ticket's jobs pruned; the install's cache is the merge's own, gone after it", async (t) => {
-	const { root, fake, home, git, worker, aside, review, merge, head, status, bun, caches, installs } = await load(t);
+	const { root, fake, home, git, worker, aside, review, merge, head, status, bun, npm, caches, installs } = await load(t);
 	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
 	// Another worker of the ticket, its commit never merged: a merge never forces its branch away.
 	const other = await worker({ "draft.ts": "export const draft = 1;\n" });
@@ -47,6 +47,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 		].join("\n"),
 	);
 	assert.equal(bun(), "install --frozen-lockfile\n", "the project's install ran once");
+	assert.equal(npm(), "run check\ntest\n", "the checks ran through the fake npm, once each");
 	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), basename(each), existsSync(dirname(each))]), [[fake.host.folder, "bun", false]], "a cache folder in the plugin's own, removed after the merge");
 	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: git(root, "rev-parse", "HEAD^") }], "asked of projects.install for the merge commit");
 	assert.match(readFileSync(join(root, FOLDER, "review-1.md"), "utf8"), new RegExp(`^- Job: ${passed}\n- Branch: ${job.branch}\n`, "m"));

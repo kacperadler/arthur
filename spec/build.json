@@ -5834,9 +5834,9 @@
   {
     "id": "AR0722",
     "title": "Tests that start the CLI or a fake with an environment of their own miss the compile cache",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0722-tests-that-start-the-cli-or-a-fake-with-an-environment-of-their-own-miss-the/ticket.md",
-    "updated": "2026-11-18T09:56:31.667Z",
+    "updated": "2026-11-18T10:52:00.724Z",
     "after": [
       "AR0721"
     ]
@@ -5861,9 +5861,9 @@
   {
     "id": "AR0725",
     "title": "topLevel and head run git rev-parse twice, and every test commit starts git maintenance",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0725-toplevel-and-head-run-git-rev-parse-twice-and-every-test-commit-starts-git/ticket.md",
-    "updated": "2026-11-18T07:13:50.828Z",
+    "updated": "2026-11-18T09:59:54.419Z",
     "after": [
       "AR0721"
     ]

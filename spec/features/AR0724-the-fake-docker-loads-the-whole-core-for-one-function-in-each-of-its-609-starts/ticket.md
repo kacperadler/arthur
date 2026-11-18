@@ -35,3 +35,4 @@ In: `packages/docker/test/fake-docker.ts`, `packages/core/package.json` if a sub
 
 - 2026-11-17: Source: AR0719's report, P4.
 - 2026-11-18: AR0724 approved, budget 10; the owner: "AR-D695 - merge" (AR-D695)
+- 2026-11-18: AR0724 Done means takes the measured fall (19.2 CPU-s for sweep.test.ts, 83.0 to 63.8) in place of the 60 CPU-s threshold; the owner: "AR-D699 - accept" (AR-D699)

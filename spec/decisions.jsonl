@@ -1403,3 +1403,5 @@
 {"record":"answer","id":"AR-D696","time":"2026-11-18T08:13:50+01:00","decided":"AR0725 approved, budget 10","picked":1,"words":"AR-D696 - merge","message":20507}
 {"record":"answer","id":"AR-D697","time":"2026-11-18T08:20:41+01:00","decided":"Merge AR0674","picked":1,"words":"AR-D697 merge it","message":20544}
 {"record":"answer","id":"AR-D698","time":"2026-11-18T08:20:42+01:00","decided":"Merge AR0675","picked":1,"words":"AR-D698 merge it","message":20544}
+{"record":"ask","id":"AR-D699","time":"2026-11-18T12:19:13+01:00","project":"arthur","kind":"job","question":"The ticket's \"`sweep.test.ts` alone falls by at least 60 CPU-s without P1\" cannot be reached while each docker call is one node process: the measured fall is 19.2 CPU-s (83.0 to 63.8). Accept the measured numbers as Done, or change the ticket (which threshold or scope)?","options":[],"ticket":"AR0724","job":"2026-11-18-worker-37bcba2e"}
+{"record":"answer","id":"AR-D699","time":"2026-11-18T12:31:19+01:00","decided":"AR0724 Done means takes the measured fall (19.2 CPU-s for sweep.test.ts, 83.0 to 63.8) in place of the 60 CPU-s threshold","words":"AR-D699 - accept","message":20877}

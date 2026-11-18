@@ -5851,9 +5851,9 @@
   {
     "id": "AR0724",
     "title": "The fake docker loads the whole core for one function, in each of its 609 starts",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0724-the-fake-docker-loads-the-whole-core-for-one-function-in-each-of-its-609-starts/ticket.md",
-    "updated": "2026-11-18T07:13:49.439Z",
+    "updated": "2026-11-18T10:52:22.464Z",
     "after": [
       "AR0720"
     ]
@@ -5861,9 +5861,9 @@
   {
     "id": "AR0725",
     "title": "topLevel and head run git rev-parse twice, and every test commit starts git maintenance",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0725-toplevel-and-head-run-git-rev-parse-twice-and-every-test-commit-starts-git/ticket.md",
-    "updated": "2026-11-18T09:59:54.419Z",
+    "updated": "2026-11-18T11:12:46.060Z",
     "after": [
       "AR0721"
     ]

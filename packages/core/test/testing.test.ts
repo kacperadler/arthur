@@ -299,12 +299,15 @@ test("a signal another handler takes is left to it: the kit ends nothing, and cl
 	assert.equal(existsSync(ended.root), false, `${ended.root} is left`);
 });
 
-test("under the kit, HOME and TMPDIR are folders of its own and git commits as its own identity, not the user's", () => {
+test("under the kit, HOME and TMPDIR are folders of its own, git commits as its own identity, not the user's, and a commit starts no git maintenance", () => {
 	const root = dirname(dirname(temporaryFolder()));
 	assert.deepEqual([homedir(), tmpdir()], [join(root, "home"), join(root, "tmp")]);
 	const repository = temporaryFolder();
 	for (const args of [["init", "--quiet"], ["commit", "--quiet", "--allow-empty", "-m", "first"]]) execFileSync("git", ["-C", repository, ...args]);
 	assert.equal(execFileSync("git", ["-C", repository, "log", "-1", "--format=%an <%ae> %cn <%ce>"], { encoding: "utf8" }), "test <test@example.com> test <test@example.com>\n");
+	// GIT_TRACE names each program Git starts; the second commit turns maintenance on again, to show the trace would name it.
+	const traced = (...config: string[]) => spawnSync("git", ["-C", repository, ...config, "commit", "--quiet", "--allow-empty", "-m", "next"], { env: { ...process.env, GIT_TRACE: "1" }, encoding: "utf8" });
+	assert.deepEqual([traced(), traced("-c", "maintenance.auto=true")].map((run) => [run.status, run.stderr.includes("git maintenance run --auto")]), [[0, false], [0, true]]);
 });
 
 // A child that loads the kit in `cwd` with `cache` as its NODE_COMPILE_CACHE (undefined: unset) prints the variable after the load, its

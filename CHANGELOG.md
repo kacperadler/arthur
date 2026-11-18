@@ -15,6 +15,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 #### Changed
 
 - AR0721 npm test compiles Arthur's TypeScript again in every Node process it starts: turn on Node's compile cache for the test run (47b0de43)
+- AR0723 The delivery tests run real npm for each merge's check and test steps of a two-script project (6c9abe65)
 
 ### 2026-11-17
 

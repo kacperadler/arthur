@@ -5834,9 +5834,9 @@
   {
     "id": "AR0722",
     "title": "Tests that start the CLI or a fake with an environment of their own miss the compile cache",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0722-tests-that-start-the-cli-or-a-fake-with-an-environment-of-their-own-miss-the/ticket.md",
-    "updated": "2026-11-18T07:13:46.597Z",
+    "updated": "2026-11-18T09:56:31.667Z",
     "after": [
       "AR0721"
     ]
@@ -5844,9 +5844,9 @@
   {
     "id": "AR0723",
     "title": "The delivery tests run real npm for each merge's check and test steps of a two-script project",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0723-the-delivery-tests-run-real-npm-for-each-merge-s-check-and-test-steps-of-a-two/ticket.md",
-    "updated": "2026-11-18T08:47:58.368Z"
+    "updated": "2026-11-18T09:59:36.364Z"
   },
   {
     "id": "AR0724",

@@ -5451,9 +5451,9 @@
   {
     "id": "AR0675",
     "title": "A worker's run end that gets the checks reminder loses the leftover-processes reminder for the rest of that run",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0675-a-worker-s-run-end-that-gets-the-checks-reminder-loses-the-leftover-processes/ticket.md",
-    "updated": "2026-11-18T04:23:31.611Z"
+    "updated": "2026-11-18T07:39:35.030Z"
   },
   {
     "id": "AR0676",

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { once } from "node:events";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { fakeAgent, jobSlice, temporaryFolder } from "@arthur/core/testing";
+import { leftProcesses } from "../src/processes-extension.ts";
 
 // Delivery's one extension, which answers the run's end (AR0675); the file a record written before it names beside it.
 const EXTENSION = join(import.meta.dirname, "..", "src", "checks-extension.ts");
@@ -85,6 +87,15 @@ test("a job whose record, written before AR0675, names processes-extension.ts as
 		{ willContinue: true, step: 1 },
 		{ willContinue: false, step: 3 },
 	]);
+});
+
+test("an @ that starts a command line, or a word of it after a space or one of ( [ { < \" ' `, gets a word joiner; one inside a word, none", async (t) => {
+	// A child of this process, which `leftProcesses` takes for the agent, its command line `@left -e <script> (@a ... h@i`; gone and reaped at the test's end.
+	const left = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", "(@a", "[@b", "{@c", "<@d", '"@e', "'@f", "`@g", "h@i"], { argv0: "@left", stdio: "ignore" });
+	t.after(() => (left.kill("SIGKILL"), once(left, "exit")));
+	const line = `\n- pid ${left.pid}: \u2060@left -e setInterval(() => {}, 1000) (\u2060@a [\u2060@b {\u2060@c <\u2060@d "\u2060@e '\u2060@f \`\u2060@g h@i\n`;
+	const reminder = leftProcesses("2026-01-01-worker-00000000");
+	assert.ok(reminder?.includes(line), reminder);
 });
 
 test("each process below the agent is named, its child's child too", (t) => {

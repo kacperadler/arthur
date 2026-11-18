@@ -59,10 +59,10 @@ export default function checks(pi: ExtensionApi): void {
 	};
 	// The one answer to the run's end, as omp keeps only the first continuation its handlers give (AR0675): the reminders due, the checks'
 	// then the processes' (processes-extension.ts), each given at most once per run, one omp process: its third end at the latest is its end.
-	let [checked, named] = [false, false];
+	const given = { checks: false, processes: false };
 	pi.on("session_stop", (_event, ctx) => {
-		const due = [checked ? undefined : unchecked(ctx.cwd), named ? undefined : leftProcesses(basename(record))];
-		[checked, named] = [checked || due[0] !== undefined, named || due[1] !== undefined];
+		const due = [given.checks ? undefined : unchecked(ctx.cwd), given.processes ? undefined : leftProcesses(basename(record))];
+		[given.checks, given.processes] = [given.checks || due[0] !== undefined, given.processes || due[1] !== undefined];
 		const texts = due.filter((text) => text !== undefined);
 		return texts.length === 0 ? undefined : { continue: true, additionalContext: texts.join("\n\n") };
 	});

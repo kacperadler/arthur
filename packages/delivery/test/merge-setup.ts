@@ -5,6 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import type { TestContext } from "node:test";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
+import { fakeNpm } from "./fake-npm.ts";
 
 // The arthur merge test files' shared setup: a project with its board and checks, a fake host with delivery, and their helpers.
 
@@ -21,6 +22,7 @@ export const OWNER = "AC-D1";
 
 // The repository `acme` (prefix AC): AC0001 "Shop" planned, AC0002 waiting for it, AC0003 for it and AC0002, all on the
 // board; the project's checks in package.json; a `bun.lock`, whose install is a fake `bun` that notes each call in `bun.log`.
+// The checks run through the fake `npm` of fake-npm.ts, `npm()` its calls: both fakes are on PATH once a worker or review ran.
 // `projects.install` answers `answer` (`installAs` sets it, an Error thrown), each request noted in `installs` with main's HEAD;
 // `decision.owner` answers as orchestration does, "" for OWNER, each request noted in `owner`.
 // `worker(files, task, message)` runs a worker on AC0001 that commits `files` and ends on `message`; `review(job, message, cost)` runs a review ending on `message`, costing `cost` USD;
@@ -53,6 +55,7 @@ export async function load(t: TestContext, options: Parameters<typeof delivery>[
 	const bun = () => (existsSync(join(bin, "bun.log")) ? readFileSync(join(bin, "bun.log"), "utf8") : "");
 	// The cache folder each install used, a line each, made by the fake `bun` in it as a real one would.
 	const caches = () => (existsSync(join(bin, "caches")) ? readFileSync(join(bin, "caches"), "utf8").trim().split("\n") : []);
+	const npm = fakeNpm(bin);
 	t.after(() => {
 		process.env.PATH = PATH;
 	});
@@ -124,7 +127,7 @@ export async function load(t: TestContext, options: Parameters<typeof delivery>[
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, aside, ended, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
+	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, aside, ended, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, npm, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
 }
 
 // The checks on main, of a branch whose `test` script notes its cgroup and forks a sleeper out of its process group, noting its pid.

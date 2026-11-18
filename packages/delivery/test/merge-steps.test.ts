@@ -8,6 +8,8 @@ import { FOLDER, forkingTest, load, manager, OWNER, running } from "./merge-setu
 
 // arthur merge (merge-setup.ts): the checks on main, each step's scope, limit, install and PATH, and the sweeps after them.
 
+const PATH = process.env.PATH ?? "";
+
 test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-*, another old folder and an old cache_ one below the top stay", async (t) => {
 	const { fake, worker, merge, caches } = await load(t);
 	const job = await worker({ "bun.lock": '{ "shop": 1 }\n' });
@@ -122,7 +124,7 @@ test("what the branch itself commits counts as a step's to the sweep: a symlink 
 });
 
 // A project that declares only `test`: no `npm run check` races the short limit on a loaded host (AR0544: 3 s caught it at load
-// 40); the slow step's 60 s stays far above it. `npm test` reaches the script in about 200 ms at load 6.
+// 40); the slow step's 60 s stays far above it. The fake `npm test` (fake-npm.ts) starts one bare Node before the script.
 test("a step still running at merge.stepSeconds is killed and fails, though it ignores SIGTERM: main reset, main's own install put back", async (t) => {
 	const { root, worker, review, merge, head, bun } = await load(t, { merge: { stepSeconds: 1 } });
 	const noted = temporaryFolder();
@@ -174,8 +176,10 @@ test("the install is the project's own, as projects.install answers: a custom co
 	assert.deepEqual([head(), bun(), status("AC0003")], [before, "run deps\n", "done"]);
 });
 
+// The one merge test on real npm (AR0723): the PATH nvm answers is the one the test started with, without the fake npm, so
+// this holds that npm itself, started by nvm's `node`, finds and runs the scripts package.json declares.
 test("with nvm.path provided, the install and checks run on its PATH, asked for main's checkout before them and again for the reinstall; a throw fails the merge", async (t) => {
-	const { root, fake, git, take, worker, review, merge, head, status, installAs } = await load(t);
+	const { root, fake, git, take, worker, review, merge, head, status, installAs, npm } = await load(t);
 	// nvm's Node: a `node` that notes its arguments, then runs this Node.
 	const node = temporaryFolder();
 	writeFileSync(join(node, "node"), `#!/bin/sh\necho "$*" >> '${join(node, "node.log")}'\nexec '${process.execPath}' "$@"\n`, { mode: 0o755 });
@@ -192,13 +196,14 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 	git(root, "commit", "--quiet", "-m", "an install script");
 	await take();
 	installAs("node install.js");
-	answer = `${node}${delimiter}${process.env.PATH}`;
+	answer = `${node}${delimiter}${PATH}`;
 	const job = await worker();
 	await review(job.id, "PASS");
 	const merged = await merge(job.id, "--decision", OWNER);
 	assert.equal(merged.code, undefined, merged.err);
 	assert.deepEqual(asked, [{ root, head: git(root, "rev-parse", "HEAD^") }], "asked once, for the merge commit, before the steps");
 	assert.deepEqual([ran().includes("install.js"), ran().includes("-e "), ran().includes("test.js")], [true, true, true], ran().join("\n"));
+	assert.equal(npm(), "", "the scripts ran, and not through the fake npm: the real one found them");
 
 	const cart = "spec/features/AC0002-cart";
 	const second = await worker({ broken: "" }, `Ticket: ${cart}/ticket.md`);

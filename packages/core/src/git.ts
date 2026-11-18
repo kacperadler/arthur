@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { checkConfig } from "./git-config.ts";
 
-// The Git a job runner needs (spec/roadmap.md, entries 9 and 11), each one `git` call on the repository at `root`. `git` and
-// `yes` (and `fileAt`) run no hook and no fsmonitor its config names, nor read a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
+// The Git a job runner needs (spec/roadmap.md, entries 9 and 11), each one `git` call on the repository at `root`. No call here runs a hook
+// or an fsmonitor its config names, nor reads a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
 const GIT = ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
 
 // Runs `git -C <root> <args>`; its output with the last newline removed, or an error with what Git said.
@@ -20,12 +20,14 @@ function yes(root: string, args: readonly string[]): boolean {
 
 // The top folder of the repository `folder` is in; undefined outside Git.
 export function topLevel(folder: string): string | undefined {
-	return yes(folder, ["rev-parse", "--show-toplevel"]) ? git(folder, ["rev-parse", "--show-toplevel"]) : undefined;
+	const run = spawnSync("git", [...GIT, "-C", folder, "rev-parse", "--show-toplevel"], { encoding: "utf8" });
+	return run.status === 0 ? run.stdout.replace(/\n$/, "") : undefined;
 }
 
 // The commit `name` names, HEAD when left out; undefined when it names none (a repository with no commit yet).
 export function head(root: string, name = "HEAD"): string | undefined {
-	return yes(root, ["rev-parse", "--verify", "--quiet", `${name}^{commit}`]) ? git(root, ["rev-parse", `${name}^{commit}`]) : undefined;
+	const run = spawnSync("git", [...GIT, "-C", root, "rev-parse", "--verify", `${name}^{commit}`], { encoding: "utf8" });
+	return run.status === 0 ? run.stdout.replace(/\n$/, "") : undefined;
 }
 
 // A file, not a folder, at `path` from the top of the repository, in `commit`.

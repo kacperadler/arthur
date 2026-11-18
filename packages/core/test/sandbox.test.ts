@@ -793,7 +793,7 @@ test("a sandboxed job reads no token of the env file: not by its path, a link, n
 	writeFileSync(join(folder, "arthur.config.ts"), tokenConfig(folder, envFile, home));
 	writeFileSync(join(folder, "own.config.ts"), tokenConfig(folder, envFile, "./home"));
 	const cli = join(import.meta.dirname, "..", "src", "cli.ts");
-	const arthur = (cwd: string, name: string) => spawnSync(process.execPath, [cli, name], { cwd, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	const arthur = (cwd: string, name: string) => spawnSync(process.execPath, [cli, name], { cwd, encoding: "utf8", env: { PATH: process.env.PATH ?? "", NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 	assert.equal(arthur(folder, "plain").stdout, "plain ran\n", "the plugins' folders made as arthur run makes them");
 	const temporary = join(folder, "tmp");
 	mkdirSync(temporary);

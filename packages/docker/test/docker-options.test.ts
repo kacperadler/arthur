@@ -13,7 +13,7 @@ test("arthur config check refuses the options as written in arthur.config.ts, ea
 	execFileSync("git", ["init", "--quiet", folder]);
 	const plugin = JSON.stringify(fileURLToPath(new URL("../src/docker.ts", import.meta.url)));
 	writeFileSync(join(folder, "arthur.config.ts"), `import { docker } from ${plugin};\nexport default { plugins: [{ name: "orchestration", setup() {} }, docker({ leftoverHours: 0, buildCache: "10%", sweep: { at: "24:00" } })] };\n`);
-	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_JOB: "" };
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB: "" };
 	const run = spawnSync(process.execPath, [fileURLToPath(import.meta.resolve("@arthur/core/cli")), "config", "check"], { cwd: folder, encoding: "utf8", env });
 	assert.notEqual(run.status, 0);
 	for (const line of ["docker.buildCache: expected bytes with K", "docker.leftoverHours: expected a number of hours, 1 or more, got 0", 'docker.sweep.at: expected "HH:MM", 00:00 to 23:59, got "24:00"'])

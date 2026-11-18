@@ -217,7 +217,7 @@ test("a page rendered at another width is refused, as with a browser that ignore
 test("with no browser it checks nothing and exits 2, never 0", () => {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "page.html"), "<p>x</p>");
-	const run = spawnSync("/bin/bash", ["-c", COMMAND.replace("<page>", join(folder, "page.html"))], { cwd: ROOT, encoding: "utf8", env: { PATH: dirname(process.execPath), HOME: temporaryFolder() } });
+	const run = spawnSync("/bin/bash", ["-c", COMMAND.replace("<page>", join(folder, "page.html"))], { cwd: ROOT, encoding: "utf8", env: { PATH: dirname(process.execPath), HOME: temporaryFolder(), NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 	assert.deepEqual([run.status, run.stdout, run.stderr], [2, "", "no browser found; set CHROME to a Chrome or Chromium binary\n"]);
 });
 

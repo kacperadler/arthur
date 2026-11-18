@@ -13,7 +13,7 @@ const BOOT_ID = "/proc/sys/kernel/random/boot_id";
 // A user manager with the CPU and memory controllers delegated, as systemd answers, and jobs that may run without the sandbox (a host without it), so `arthur run`'s doctor misses nothing.
 const BIN = temporaryFolder();
 writeFileSync(join(BIN, "systemctl"), `#!/bin/sh\n[ "$1" = --user ] && exit 0\necho 'cpu memory pids'\n`, { mode: 0o755 });
-const ENV = { PATH: `${BIN}:${process.env.PATH ?? ""}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? "" };
+const ENV = { PATH: `${BIN}:${process.env.PATH ?? ""}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? "", NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE };
 
 // Each plugin logs its `start` and `stop` to `log.txt` beside the config; `more` replaces any of its parts.
 const HEAD = `import { appendFileSync, existsSync } from "node:fs";
@@ -282,7 +282,7 @@ test("an event a command emits reaches the daemon's subscribers once, from the d
 	const { folder, home, log } = project(orchestration);
 	writeFileSync(join(folder, "ping.md"), "# arthur ping\n");
 	const ping = (data: string) => {
-		const command = spawnSync(process.execPath, [CLI, "ping", data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+		const command = spawnSync(process.execPath, [CLI, "ping", data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 		assert.deepEqual([command.status, command.stderr], [0, ""]);
 		return command.pid;
 	};
@@ -350,7 +350,7 @@ test("the events appended while no daemon runs reach the next one once, a crash 
 	const { folder, home, log } = project(orchestration);
 	writeFileSync(join(folder, "ping.md"), "# arthur ping\n");
 	const emit = (name: string, data: string) => {
-		const command = spawnSync(process.execPath, [CLI, name, data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+		const command = spawnSync(process.execPath, [CLI, name, data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 		assert.deepEqual([command.status, command.stderr], [0, ""]);
 	};
 	const daemon = async () => {

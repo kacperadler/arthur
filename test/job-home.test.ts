@@ -72,7 +72,7 @@ test("a job of shop1 gets Permission denied on shop2's record, the event log, pl
 		[`.arthur/delivery/${SHOP2}/checks`]: "check pass 0123456 clean\n",
 		".arthur/github/state.json": `${JSON.stringify({ runs: { shop2: ["9001/1"] }, pulls: {} })}\n`,
 	});
-	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_JOB_SLICE: jobSlice.slice, ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t" };
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB_SLICE: jobSlice.slice, ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t" };
 	const spawned = spawnSync(process.execPath, [CLI, "spawn", "Read.", "--project", "shop1"], { cwd: arthur, encoding: "utf8", env });
 	assert.equal(spawned.status, 0, spawned.stderr);
 	const id = spawned.stdout.trim();

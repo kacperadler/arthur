@@ -26,7 +26,7 @@ test("the README status line names a command that runs and links an existing roa
 		cwd: folder,
 		encoding: "utf8",
 		// Its own XDG_CONFIG_HOME, never the caller's: without one the CLI reads the owner's env file, which a job cannot read.
-		env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: folder },
+		env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: folder, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE },
 	});
 	assert.deepEqual([run.status, run.stderr], [0, ""], `${command} exits 0 on the smallest config Arthur starts`);
 });

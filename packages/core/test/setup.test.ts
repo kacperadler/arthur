@@ -47,7 +47,7 @@ function project({ config, env, packages = {} }: { readonly config?: string; rea
 		if (options !== undefined) writeFileSync(join(dir, "options.js"), options);
 	}
 	const arthur = (args: readonly string[] = ["setup"], shell: Readonly<Record<string, string>> = {}) =>
-		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: [bin, process.env.PATH ?? ""].join(delimiter), XDG_CONFIG_HOME: xdg, ...shell }, timeout: 30_000 });
+		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: [bin, process.env.PATH ?? ""].join(delimiter), XDG_CONFIG_HOME: xdg, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ...shell }, timeout: 30_000 });
 	return { folder, xdg, tool, arthur };
 }
 

@@ -435,7 +435,7 @@ test("in the shell, with orchestration before projects in the config: the agent 
 	const plugin = fileURLToPath(new URL("../src/orchestration.ts", import.meta.url));
 	const config = (piece: unknown) =>
 		`import { orchestration } from ${JSON.stringify(plugin)};\nexport default { plugins: [orchestration({ coordinator: { tmux: { socket: ${JSON.stringify(SOCKET)} } } }), { name: "projects", setup(host) {\n\thost.provide("projects", () => [{ name: "shop", path: import.meta.dirname, prefix: "SH", pieces: { orchestration: ${JSON.stringify(piece)} } }]);\n} }] };\n`;
-	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 	writeFileSync(join(folder, "arthur.config.ts"), config(chat("telegram", "4")));
 	const other = arthur("attach", "blog");
 	assert.deepEqual([other.status, other.stderr], [1, "arthur attach: project blog has no agent (no orchestration.project({ chat }) in its project file); projects with one: shop\n"]);

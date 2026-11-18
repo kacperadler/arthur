@@ -5827,9 +5827,9 @@
   {
     "id": "AR0721",
     "title": "npm test compiles Arthur's TypeScript again in every Node process it starts: turn on Node's compile cache for the test run",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0721-npm-test-compiles-arthur-s-typescript-again-in-every-node-process-it-starts-turn/ticket.md",
-    "updated": "2026-11-18T07:13:45.176Z"
+    "updated": "2026-11-18T07:14:17.223Z"
   },
   {
     "id": "AR0722",

@@ -50,3 +50,4 @@ Out:
 - 2026-11-10: Source: F1 of AR0486
 - 2026-11-10: Source: F2 of AR0486
 - 2026-11-10: AR0674 approved; the owner: "approve all five" (AR-D607)
+- 2026-11-18: Merge AR0674; the owner: "AR-D697 merge it" (AR-D697)

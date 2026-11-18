@@ -17,6 +17,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0721 npm test compiles Arthur's TypeScript again in every Node process it starts: turn on Node's compile cache for the test run (47b0de43)
 - AR0722 Tests that start the CLI or a fake with an environment of their own miss the compile cache (b6c1acfd)
 - AR0723 The delivery tests run real npm for each merge's check and test steps of a two-script project (6c9abe65)
+- AR0724 The fake docker loads the whole core for one function, in each of its 609 starts (753f98ed)
 
 ### 2026-11-17
 

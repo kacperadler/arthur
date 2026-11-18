@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import type { Host, JobRecord } from "@arthur/core/plugin";
+import { leftProcesses } from "./processes-extension.ts";
 import { untested } from "./review-command.ts";
 
 // Delivery's OMP extension (spec/roadmap.md, entry 53), which each job's agent loads with `-e` after the core's own
@@ -43,20 +44,27 @@ export default function checks(pi: ExtensionApi): void {
 		mkdirSync(dirname(file), { recursive: true });
 		appendFileSync(file, lines.map((line) => `${line} ${(before ?? after).head} ${clean(line) ? "clean" : "dirty"}\n`).join(""));
 	});
-	// A worker whose run ends before its checks passed on its clean committed tip is told once, as processes-extension.ts tells
-	// leftovers (AR0585): `arthur review` refuses that tip (AR0580), and the coordinator continued the worker by hand.
-	let reminded = false;
-	pi.on("session_stop", (_event, ctx) => {
-		if (reminded || field("kind") !== "worker") return undefined;
+	// A worker whose run ends before its checks passed on its clean committed tip is told: `arthur review` refuses that tip
+	// (AR0580), and the coordinator continued the worker by hand.
+	const unchecked = (cwd: string) => {
+		if (field("kind") !== "worker") return undefined;
 		// `untested` (review-command.ts) reads only these of the host and the job; outside Git no package.json, so no checks due.
 		const [host, job] = [{ folder: dirname(dirname(file)) } as Host, { id: basename(record), branch: field("branch"), machine: field("machine") || "local" } as JobRecord];
-		const tip = git(ctx.cwd, "rev-parse", "HEAD").stdout.trim();
-		const missing = untested(host, job, { git: (...words) => git(ctx.cwd, ...words).stdout.trim(), commit: tip });
+		const tip = git(cwd, "rev-parse", "HEAD").stdout.trim();
+		const missing = untested(host, job, { git: (...words) => git(cwd, ...words).stdout.trim(), commit: tip });
 		if (missing === undefined) return undefined;
-		reminded = true;
 		const ran = /ran on (\w+), not the tip/.exec(missing)?.[1];
 		const moved = ran === undefined ? "" : ` Your checks ran on ${ran}, and your tip is now ${tip.slice(0, 7)}: any commit after them needs them run again.`;
-		return { continue: true, additionalContext: `[Arthur] Before your run ends: Arthur starts no review yet: ${missing}.${moved} Commit your work, then run npm run check && npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.` };
+		return `[Arthur] Before your run ends: Arthur starts no review yet: ${missing}.${moved} Commit your work, then run npm run check && npm test in one bash call and npm run mutate in another, on the committed tip; change nothing after them, name each mutant that survives, and end with your final message again, whole. A run that stopped with a Blocked: line ends again with it.`;
+	};
+	// The one answer to the run's end, as omp keeps only the first continuation its handlers give (AR0675): the reminders due, the checks'
+	// then the processes' (processes-extension.ts), each given at most once per run, one omp process: its third end at the latest is its end.
+	const given = { checks: false, processes: false };
+	pi.on("session_stop", (_event, ctx) => {
+		const due = [given.checks ? undefined : unchecked(ctx.cwd), given.processes ? undefined : leftProcesses(basename(record))];
+		[given.checks, given.processes] = [given.checks || due[0] !== undefined, given.processes || due[1] !== undefined];
+		const texts = due.filter((text) => text !== undefined);
+		return texts.length === 0 ? undefined : { continue: true, additionalContext: texts.join("\n\n") };
 	});
 }
 

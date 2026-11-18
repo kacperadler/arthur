@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { once } from "node:events";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { temporaryFolder } from "@arthur/core/testing";
+import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import checks from "../src/checks-extension.ts";
+import { delivery } from "../src/delivery.ts";
 
 const SUMMARY = (passed: number, failed: number) => `✔ a\nℹ tests ${passed + failed}\nℹ suites 0\nℹ pass ${passed}\nℹ fail ${failed}\nℹ duration_ms 5\n`;
 const BOTH = JSON.stringify({ scripts: { check: "tsc", test: "node --test" } });
@@ -332,4 +334,46 @@ test("a run whose tip has its checks passed clean, a job of another kind or on a
 	outside.job({ kind: "worker", branch: BRANCH });
 	rmSync(join(outside.worktree, ".git"), { recursive: true });
 	assert.deepEqual(outside.stop(), [undefined]);
+});
+
+// Which reminders a run's end got, in the order its one answer holds them; without an answer, none.
+const told = ([answer]: readonly unknown[]) => Array.from(((answer as { additionalContext?: string } | undefined)?.additionalContext ?? "").matchAll(/^\[Arthur\] Before your run ends: (Arthur starts no review yet|these processes of your job are still running)/gm), (match) => (match[1]?.startsWith("these") ? "processes" : "checks"));
+
+test("the run's end gets one answer, the checks' reminder then the processes', each at most once per run: a later end gets only the one not given yet", async (t) => {
+	const worker = () => {
+		const loaded = load(t, ALL);
+		loaded.job({ kind: "worker", branch: BRANCH });
+		return loaded;
+	};
+	const first = worker();
+	assert.deepEqual(told(first.stop()), ["checks"], "no process left yet");
+	// A process the job left: a child of this process, which the extension takes for the agent, gone and reaped at the test's end.
+	const left = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+	t.after(() => (left.kill("SIGKILL"), once(left, "exit")));
+	const [second] = first.stop() as [{ readonly continue: boolean; readonly additionalContext: string }];
+	assert.deepEqual([told([second]), second.continue, second.additionalContext.includes(`\n\n- pid ${left.pid}: ${process.execPath} -e `)], [["processes"], true, true], "its checks still missing are not told again");
+	assert.deepEqual(first.stop(), [undefined], "both given: the run's third end is its end, its checks missing and a process left");
+	const both = worker();
+	const [joined] = both.stop() as [{ readonly additionalContext: string }];
+	assert.deepEqual(told([joined]), ["checks", "processes"]);
+	assert.ok(joined.additionalContext.includes(` ${ASK}\n\n[Arthur] Before your run ends: these processes of your job are still running.\n\n- pid ${left.pid}: `), joined.additionalContext);
+	assert.deepEqual(both.stop(), [undefined]);
+	const passed = worker();
+	passed.run(PASSING);
+	assert.deepEqual(told(passed.stop()), ["processes"], "its checks passed on its clean tip");
+	passed.git("commit", "--quiet", "--allow-empty", "-m", "docs");
+	assert.deepEqual(told(passed.stop()), ["checks"], "the process still left is not named again");
+	assert.deepEqual(passed.stop(), [undefined]);
+});
+
+test("delivery registers this extension alone, the one that answers a run's end: a job's record names it and no other", async () => {
+	const root = join(temporaryFolder(), "acme");
+	mkdirSync(root);
+	for (const args of [["init", "--quiet", "--initial-branch=main"], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "--allow-empty", "-m", "first"]]) execFileSync("git", ["-C", root, ...args]);
+	const fake = fakeHost({ name: "delivery", root });
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
+	await fake.setup(delivery());
+	const job = await fake.host.jobs.spawn({ task: "Go." });
+	// A path from the core's `src/`, as the wrapper resolves it (packages/core/src/wrapper.ts).
+	assert.equal(readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "extensions"), "utf8"), join("..", "..", "delivery", "src", "checks-extension.ts"));
 });

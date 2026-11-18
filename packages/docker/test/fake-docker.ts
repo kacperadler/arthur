@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { memoryBytes } from "@arthur/core";
 
 // The fake `docker` and `ssh` of the docker plugin's tests, in a folder of the test's own put first on PATH; no test reaches the
 // real Docker of the machine. `docker` is this file run by node: each argument list appended to `calls` as a JSON line, its
@@ -49,6 +48,16 @@ function human(size: number): string {
 	let unit = 0;
 	for (; size >= 1000 && unit < UNITS.length - 1; unit++) size /= 1000;
 	return `${Number(size.toPrecision(4))}${UNITS[unit]}`;
+}
+
+// `--max-used-space`'s size in bytes as buildx reads it (docker/cli opts/opts.go, MemBytes: docker/go-units RAMInBytes), in the
+// forms the plugin's `buildCache` takes, the only ones the fake reads: a number, then K, M, G or T, powers of 1024, or none, 1
+// byte or more once the fraction is cut. Read here, not by the core's `memoryBytes`: each `docker` call is a node process of its
+// own, which pays for every module it loads (AR0724).
+function ramBytes(text: string): number | undefined {
+	const [, number, unit = ""] = /^(\d+(?:\.\d+)?)([KMGT]?)$/.exec(text) ?? [];
+	const bytes = Math.trunc(Number(number) * 1024 ** ["", "K", "M", "G", "T"].indexOf(unit));
+	return bytes >= 1 ? bytes : undefined;
 }
 
 // A label `k=v` or `k` as its key and value.
@@ -150,7 +159,9 @@ if (import.meta.main) {
 		// `--filter until=<hours>h` takes the whole cache once it went unused that long by the daemon's clock; `--max-used-space` cuts it to that size.
 		const until = Number.parseFloat(rest.find((word) => word.startsWith("until="))?.slice(6) ?? "");
 		const stale = Date.parse(String(state.info.SystemTime)) - Date.parse(state.cacheUsedAt ?? "") >= until * 3_600_000;
-		const cut = stale ? (state.cache ?? 0) : Math.max(0, (state.cache ?? 0) - (memoryBytes(rest[rest.indexOf("--max-used-space") + 1] ?? "", 0) ?? Infinity));
+		const size = rest.includes("--max-used-space") ? (rest[rest.indexOf("--max-used-space") + 1] ?? "") : undefined;
+		const max = size === undefined ? Infinity : (ramBytes(size) ?? fail(`the fake reads --max-used-space only as a number, then K, M, G or T or none, 1 byte or more, got ${size}`, 2));
+		const cut = stale ? (state.cache ?? 0) : Math.max(0, (state.cache ?? 0) - max);
 		save({}, { cache: (state.cache ?? 0) - cut });
 		say(fill(texts["builder-prune"] ?? "", human(cut)));
 	} else if (words === "container stop") {

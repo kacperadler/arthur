@@ -23,7 +23,7 @@ const BUDGETS = {
 
 	discord: 983,
 
-	docker: 720,
+	docker: 745,
 
 	dokploy: 887,
 

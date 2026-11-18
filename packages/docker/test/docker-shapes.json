@@ -6,6 +6,7 @@
 		"compose-v2.40.0": "https://github.com/docker/compose/tree/v2.40.0: pkg/compose/build.go (getImageBuildLabels: an image compose builds carries com.docker.compose.project, com.docker.compose.service and com.docker.compose.version), pkg/compose/create.go (prepareLabels, called by getCreateConfigs for each container compose makes, one-offs too: com.docker.compose.config-hash, which no image it builds carries)",
 		"moby-docker-v29.9.2-labels": "https://github.com/moby/moby/tree/docker-v29.9.2: daemon/commit.go (merge: a new container takes each label of its image it was not given itself)",
 		"docker-cli-v29.9.2-sweep": "https://github.com/docker/cli/tree/v29.9.2: cli/command/image/inspect.go (--format a template on the image's InspectResponse: .Id the full sha256 ID, whose first 12 hex digits are the ID docker image ls prints; {{json .Config.Labels}} an object, null for none), formatter/image.go (--format '{{.ID}}'); moby api/types/system/info.go (SystemTime, the daemon's clock in RFC 3339 with nanoseconds); buildx commands/prune.go (--filter until=<duration>: records unused that long)",
+		"images-a-job-makes": "read on 2026-11-17 for AR0720. https://github.com/docker/cli/tree/v29.9.2: cli/command/container/commit.go (commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]], its options, none read after CONTAINER, flags.SetInterspersed(false); the image's ID printed), container/opts.go and opts/parse.go (run and create: --label-file's lines under each --label, ReadKVStrings), formatter/container.go (docker ps --format: Label, a label's value, empty when missing). https://github.com/moby/moby/tree/docker-v29.9.2: daemon/commit.go (CreateImageFromContainer: the changes applied, then merge keeps each label of the container they do not set), daemon/builder/dockerfile/builder.go (BuildFromConfig: the changes joined by a new line and parsed as one Dockerfile; validCommitCommands and its refusal; buildLabelOptions: the legacy builder adds each --label as a last LABEL), daemon/errors.go (No such container). https://github.com/moby/buildkit/tree/v0.34.0 (moby's go.mod): frontend/dockerfile/dockerfile2llb/convert.go (finalizeResultImage: each --label copied over the image's labels, a Dockerfile's LABEL and its base's included), frontend/dockerfile/parser/parser.go (a line ending in the escape character goes on with the next). https://github.com/docker/buildx/tree/v0.38.1: commands/build.go (--label, and no --label-file). `docker build --label-file x .`, `docker commit --frobnicate x` and `docker commit` on this machine (the three texts of a refused command line)",
 		"docker-29.9.2-client": "docker version on this machine: Client: Docker Engine - Community, Version 29.9.2, Git commit a82e528"
 	},
 	"recorded": "2026-11-11",
@@ -33,6 +34,11 @@
 		"image-referenced": "Error response from daemon: conflict: unable to delete %s (must be forced) - image is referenced in multiple repositories",
 		"reference-in-use": "Error response from daemon: conflict: unable to remove repository reference \"%s\" (must force) - container %s is using its referenced image %s",
 		"tcp-warning": "[DEPRECATION NOTICE]: API is accessible on http://%s without encryption.%s\n%s",
-		"rootless": "name=rootless"
+		"rootless": "name=rootless",
+		"build-flag": "unknown flag: %s\n\nUsage:  docker buildx build [OPTIONS] PATH | URL | -\n\nRun 'docker buildx build --help' for more information",
+		"commit-flag": "unknown flag: %s\n\nUsage:  docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]\n\nRun 'docker commit --help' for more information",
+		"commit-args": "docker: 'docker commit' requires at least 1 and at most 2 arguments\n\nUsage:  docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]\n\nRun 'docker commit --help' for more information",
+		"no-such-container": "Error response from daemon: No such container: %s",
+		"change-command": "Error response from daemon: %s is not a valid change command"
 	}
 }

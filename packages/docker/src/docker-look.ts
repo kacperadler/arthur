@@ -43,10 +43,11 @@ export const json = (lines: readonly string[] = []): Row[] => lines.map((line) =
 // `k=v,k=v`, as a listing prints labels.
 const pairs = (text: unknown): Labels => Object.fromEntries(String(text ?? "").split(",").filter((pair) => pair !== "").map((pair) => [pair.split("=")[0], pair.slice(pair.indexOf("=") + 1)]));
 // The job a resource's labels name: its `arthur.job`, else a compose project named as the docker script names a job's. A container
-// takes its image's labels too, so it names one only by its maker's: the script's `arthur.container`, compose's config hash.
+// takes its image's labels too, so it names one only by its maker's: the script's `arthur.container`, compose's config hash, each
+// empty on an image a job built or committed (docker-label.ts), so an empty one is none.
 const jobOf = (labels: Labels, container: boolean) =>
-	labels[container ? "arthur.container" : "arthur.job"] ??
-	(container && !("com.docker.compose.config-hash" in labels) ? undefined : /^arthur-[0-9a-f]{8}$/.exec(labels["com.docker.compose.project"] ?? "")?.[0]);
+	(container ? labels["arthur.container"] || undefined : labels["arthur.job"]) ??
+	(container && !labels["com.docker.compose.config-hash"] ? undefined : /^arthur-[0-9a-f]{8}$/.exec(labels["com.docker.compose.project"] ?? "")?.[0]);
 // The record of `job`, a job's id or its compose project's name, among `ids`.
 export const recordOf = (ids: readonly string[], job: string) => ids.find((id) => id === job || `arthur-${id.slice(-8)}` === job);
 

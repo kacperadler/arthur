@@ -4,6 +4,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## Unreleased
 
+### 2026-11-18
+
+#### Fixed
+
+- AR0720 A job image that carries arthur.container or a compose project with its config hash makes the owner container from it count as the job, so the prune and the sweep take it (49caf384)
+
 ### 2026-11-17
 
 #### Added

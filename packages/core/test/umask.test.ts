@@ -39,7 +39,7 @@ test("under umask 022 every file and folder an arthur command and its job write 
 	const setup = `setup(host) { takeLock(join(host.folder, "held.lock")); }`;
 	writeFileSync(join(root, "arthur.config.ts"), `import { join } from "node:path";\nimport { takeLock } from ${JSON.stringify(LOCK)};\nexport default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", ${setup} }] };\n`);
 	const home = join(root, ".arthur");
-	const spawned = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
+	const spawned = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	assert.equal(spawned.status, 0, spawned.stderr);
 	const id = spawned.stdout.trim();
 	await until("the job's end", () => readEvents(home, 1).some((event) => event.name === "job-ended"));

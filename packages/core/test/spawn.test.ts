@@ -43,7 +43,7 @@ function repository(config = CONFIG): string {
 }
 
 function arthur(root: string, ...args: string[]): { readonly status: number | null; readonly stdout: string; readonly stderr: string } {
-	return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
+	return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB_SLICE: jobSlice.slice } });
 }
 
 const jobs = (root: string) => (existsSync(join(root, ".arthur/jobs")) ? readdirSync(join(root, ".arthur/jobs")) : []);
@@ -100,7 +100,7 @@ test("a wrapper that systemd-run did not start: arthur spawn prints the id, then
 	// Each notes its arguments in `<itself>.args`, a line per call.
 	writeFileSync(join(bin, "systemctl"), '#!/bin/sh\necho "$@" >> "$0.args"\nexit 0\n', { mode: 0o755 });
 	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho \"$@\" >> \"$0.args\"\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
-	const run = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
+	const run = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	const id = run.stdout.trim();
 	assert.match(run.stdout, /^\d{4}-\d\d-\d\d-worker-[0-9a-f]{8}\n$/);
 	assert.deepEqual([run.status, run.stderr.split("\n").at(-2)], [1, "failed: systemd-run: Failed to start transient scope unit: Access denied"]);
@@ -229,7 +229,7 @@ test("two arthur spawn processes at once get distinct ids, branches and worktree
 	const root = repository();
 	const once = () =>
 		new Promise<string>((resolve, reject) => {
-			const child = spawn(process.execPath, [CLI, "spawn", "Go."], { cwd: root, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
+			const child = spawn(process.execPath, [CLI, "spawn", "Go."], { cwd: root, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB_SLICE: jobSlice.slice } });
 			let out = "";
 			child.stdout.on("data", (chunk) => (out += chunk));
 			child.on("close", (code) => (code === 0 ? resolve(out.trim()) : reject(new Error(`exit ${code}`))));

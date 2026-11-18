@@ -65,7 +65,7 @@ test("a variable set in the shell but not in the env file is said, without its v
 		`ARTHUR_YOUTRACK_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(none, "vars")}`,
 		"set     ARTHUR_YOUTRACK_TOKEN (youtrack.tokenEnv)",
 	]);
-	const run = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_YOUTRACK_ACME_TOKEN: SECRET } });
+	const run = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_YOUTRACK_ACME_TOKEN: SECRET } });
 	assert.deepEqual([run.status, ...run.stdout.split("\n").slice(0, 2)], [0, untyped(join(folder, "arthur.config.ts")), shellOnly]);
 	assert.doesNotMatch(run.stdout, new RegExp(SECRET));
 });
@@ -151,7 +151,7 @@ test("a known secret never appears in an error, a warning or the check's output"
 test("the arthur binary runs config check in the working folder: its lines, and the exit code", () => {
 	const folder = project(PLUGINS, "ARTHUR_YOUTRACK_URL=x\n");
 	const run = (args: string[], env: Record<string, string> = {}) =>
-		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ...env } });
+		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ...env } });
 	const missing = run(["config", "check"]);
 	assert.deepEqual([missing.status, missing.stdout], [1, `${untyped(join(folder, "arthur.config.ts"))}\nset     ARTHUR_YOUTRACK_URL (youtrack.instances[0].urlEnv)\nmissing ARTHUR_YOUTRACK_ACME_TOKEN (youtrack.instances[1].tokenEnv)\n`]);
 	assert.equal(run(["config", "check"], { ARTHUR_YOUTRACK_ACME_TOKEN: SECRET }).status, 0);
@@ -164,7 +164,7 @@ test("the arthur binary runs config check in the working folder: its lines, and 
 test("the arthur binary's config check prints a refusal of a plugin's setup and fails; a refusal before setup is printed once", () => {
 	const check = (plugins: string) => {
 		const folder = project(plugins);
-		const result = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+		const result = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 		return [result.status, result.stdout.replaceAll(`${join(folder, "arthur.config.ts")}: `, "").replaceAll(join(folder, "arthur.config.ts"), "arthur.config.ts")];
 	};
 	const none = `${UNTYPED}\nno enabled plugin names an env variable\n`;
@@ -202,7 +202,7 @@ function typed(bot: string, projects: string, files: Readonly<Record<string, str
 const errors = (lines: readonly string[]) => lines.map((line) => line.replace(/^(\S+)\(\d+,\d+\): error TS\d+: .*?'(\w+)'.*$/, "$1 $2"));
 async function both(folder: string) {
 	const { lines, ok } = await configCheck(join(folder, "arthur.config.ts"), {});
-	const run = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+	const run = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 	return { lines: errors(lines), ok, binary: [run.status, ...errors(run.stdout.trim().split("\n"))] };
 }
 const NONE = "no enabled plugin names an env variable";

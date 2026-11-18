@@ -59,7 +59,7 @@ function project(home?: string) {
 	writeFileSync(join(folder, "arthur.config.ts"), CONFIG.replace("HOME", JSON.stringify(home ?? join(folder, ".arthur"))));
 	const say = (name: string, text?: string) => (text === undefined ? rmSync(join(folder, name), { force: true }) : writeFileSync(join(folder, name), text));
 	const log = () => (existsSync(join(folder, "log.txt")) ? readFileSync(join(folder, "log.txt"), "utf8") : "");
-	const env = { PATH: [bin, PATH].join(delimiter), XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? "" };
+	const env = { PATH: [bin, PATH].join(delimiter), XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? "", NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE };
 	// Cut after 30 s: a refused `arthur run` ends at once, one that starts stays until its signal.
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env, timeout: 30_000 });
 	return { folder, home: home ?? join(folder, ".arthur"), say, log, arthur, env };
@@ -355,7 +355,7 @@ test("a check that hangs is cut after 10 s, every check at once, and the others 
 });
 
 // `arthur run` in the background, until the test ends.
-function start(t: TestContext, folder: string, env: Readonly<Record<string, string>>): { readonly child: ChildProcess; readonly output: () => string; readonly ended: Promise<number | null> } {
+function start(t: TestContext, folder: string, env: NodeJS.ProcessEnv): { readonly child: ChildProcess; readonly output: () => string; readonly ended: Promise<number | null> } {
 	const child = spawn(process.execPath, [CLI, "run"], { cwd: folder, env });
 	let stdout = "";
 	child.stdout.on("data", (chunk) => (stdout += chunk));

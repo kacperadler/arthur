@@ -24,7 +24,7 @@ function projectsWith(plugin: string, pieces: string): { readonly status: number
 	mkdirSync(join(folder, "projects", "shop"), { recursive: true });
 	writeFileSync(join(folder, "arthur.config.ts"), config(plugin));
 	writeFileSync(join(folder, "projects", "shop", "project.config.ts"), `export default [{ projects: { prefix: "SH", path: "../.." } }, ${pieces}];\n`);
-	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_JOB: "" };
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB: "" };
 	const run = spawnSync(process.execPath, [CLI, "projects"], { cwd: folder, encoding: "utf8", env });
 	return { status: run.status, out: run.stdout + run.stderr };
 }

@@ -384,7 +384,7 @@ test("a config that lists the schedule plugin after docker loads: docker's setup
 	const plugin = JSON.stringify(fileURLToPath(new URL("../src/docker.ts", import.meta.url)));
 	const schedule = `{ name: "schedule", setup(host) { host.provide("schedule.register", () => undefined); } }`;
 	writeFileSync(join(folder, "arthur.config.ts"), `import { docker } from ${plugin};\nexport default { plugins: [{ name: "orchestration", setup() {} }, docker({ sweep: { at: "04:00" } }), ${schedule}] };\n`);
-	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_JOB: "" };
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB: "" };
 	const run = spawnSync(process.execPath, [fileURLToPath(import.meta.resolve("@arthur/core/cli")), "docker", "--help"], { cwd: folder, encoding: "utf8", env });
 	assert.equal(run.status, 0, run.stderr);
 	assert.match(run.stdout, /^# arthur docker\n/);

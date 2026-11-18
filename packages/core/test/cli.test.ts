@@ -33,7 +33,7 @@ function project(config: string = CONFIG): string {
 
 function arthur(folder: string, ...args: string[]): { readonly status: number | null; readonly stdout: string; readonly stderr: string } {
 	writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 }
 
 const ALL = "commands: boom, config, continue, doctor, echo, gone, help, jobs, prune, quiet, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, update, version\n";
@@ -53,7 +53,7 @@ test("ARTHUR_PROJECT is the default of --project: a command gets it, --project w
 	const folder = project();
 	const run = (value: string, ...args: string[]) => {
 		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-		return spawnSync(process.execPath, [CLI, "echo", ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_PROJECT: value } });
+		return spawnSync(process.execPath, [CLI, "echo", ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_PROJECT: value } });
 	};
 	assert.deepEqual([run("shop").status, run("shop").stdout], [3, `${JSON.stringify({ args: [], project: "shop" })}\n`]);
 	assert.equal(run("shop", "--project", "acme").stdout, `${JSON.stringify({ args: [], project: "acme" })}\n`);
@@ -410,7 +410,7 @@ test("inside an eval session (ARTHUR_EVAL set) every command refuses, naming why
 	const stub = "/tmp/arthur-eval-x/bin/arthur";
 	const inEval = (value: string, ...args: string[]) => {
 		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_EVAL: value } });
+		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_EVAL: value } });
 	};
 	for (const args of [["echo", "x"], ["boom"], ["help"], [], ["echo", "--help"], ["version"], ["ticket", "new", "A"], ["--project", "nope", "echo"]]) {
 		const run = inEval(stub, ...args);
@@ -425,7 +425,7 @@ test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it ru
 	const record = "/home/arthur/.arthur/jobs/2026-10-23-worker-0a1b2c3d";
 	const inJob = (value: string, ...args: string[]) => {
 		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB: value } });
+		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB: value } });
 	};
 	assert.equal(arthur(folder, "quiet").status, 0, "the home folder as a live one has it");
 	const home = () => readdirSync(join(folder, ".arthur"), { recursive: true, encoding: "utf8" }).sort().map((path) => (statSync(join(folder, ".arthur", path)).isFile() ? `${path}: ${readFileSync(join(folder, ".arthur", path), "utf8")}` : path));
@@ -457,7 +457,7 @@ test("in a job's scope the CLI refuses with ARTHUR_JOB cleared once its home hol
 	const folder = project();
 	const run = (...args: string[]) => {
 		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-		const ran = spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+		const ran = spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE } });
 		return [ran.status, ran.stdout, ran.stderr];
 	};
 	const refusal = (command: string) => `arthur ${command}: refused inside a job ${scope}: a job runs only the commands its role needs; put what the coordinator should do in your final message\n`;

@@ -5444,9 +5444,9 @@
   {
     "id": "AR0674",
     "title": "A finding quoted in a ticket is data only for the worker; the planner, plan reviewer, reviewer and auditor still read it as their ticket's instruction",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0674-a-finding-quoted-in-a-ticket-is-data-only-for-the-worker-the-planner-plan/ticket.md",
-    "updated": "2026-11-18T03:33:48.950Z"
+    "updated": "2026-11-18T07:30:46.993Z"
   },
   {
     "id": "AR0675",

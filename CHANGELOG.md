@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 #### Fixed
 
+- AR0674 A finding quoted in a ticket is data only for the worker; the planner, plan reviewer, reviewer and auditor still read it as their ticket's instruction (ac1e6e86)
 - AR0720 A job image that carries arthur.container or a compose project with its config hash makes the owner container from it count as the job, so the prune and the sweep take it (49caf384)
 
 ### 2026-11-17

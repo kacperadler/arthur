@@ -18,6 +18,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0722 Tests that start the CLI or a fake with an environment of their own miss the compile cache (b6c1acfd)
 - AR0723 The delivery tests run real npm for each merge's check and test steps of a two-script project (6c9abe65)
 - AR0724 The fake docker loads the whole core for one function, in each of its 609 starts (753f98ed)
+- AR0725 topLevel and head run git rev-parse twice, and every test commit starts git maintenance (6deec255)
 
 ### 2026-11-17
 

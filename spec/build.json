@@ -5861,9 +5861,9 @@
   {
     "id": "AR0725",
     "title": "topLevel and head run git rev-parse twice, and every test commit starts git maintenance",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0725-toplevel-and-head-run-git-rev-parse-twice-and-every-test-commit-starts-git/ticket.md",
-    "updated": "2026-11-18T11:36:23.662Z",
+    "updated": "2026-11-18T11:54:40.102Z",
     "after": [
       "AR0721"
     ]

@@ -12,6 +12,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0675 A worker's run end that gets the checks reminder loses the leftover-processes reminder for the rest of that run (01e81fee)
 - AR0720 A job image that carries arthur.container or a compose project with its config hash makes the owner container from it count as the job, so the prune and the sweep take it (49caf384)
 
+#### Changed
+
+- AR0721 npm test compiles Arthur's TypeScript again in every Node process it starts: turn on Node's compile cache for the test run (47b0de43)
+
 ### 2026-11-17
 
 #### Added

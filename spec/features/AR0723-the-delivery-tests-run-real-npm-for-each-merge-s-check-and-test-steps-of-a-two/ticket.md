@@ -34,3 +34,4 @@ In: `packages/delivery/test/merge-setup.ts`, `merge.test.ts` (35 npm starts), `m
 ## Decisions
 
 - 2026-11-17: Source: AR0719's report, P3.
+- 2026-11-18: AR0723 approved, budget 10; the owner: "AR-D694 - merge" (AR-D694)

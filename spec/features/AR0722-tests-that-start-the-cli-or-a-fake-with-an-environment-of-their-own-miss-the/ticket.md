@@ -39,3 +39,4 @@ Order: after AR0721 (it gives the cache P2 passes on).
 ## Decisions
 
 - 2026-11-17: Source: AR0719's report, P2.
+- 2026-11-18: AR0722 approved, budget 10; the owner: "AR-D693 - merge" (AR-D693)

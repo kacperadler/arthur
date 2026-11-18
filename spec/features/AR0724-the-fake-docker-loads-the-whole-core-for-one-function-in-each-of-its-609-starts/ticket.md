@@ -34,3 +34,4 @@ In: `packages/docker/test/fake-docker.ts`, `packages/core/package.json` if a sub
 ## Decisions
 
 - 2026-11-17: Source: AR0719's report, P4.
+- 2026-11-18: AR0724 approved, budget 10; the owner: "AR-D695 - merge" (AR-D695)

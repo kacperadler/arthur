@@ -37,3 +37,4 @@ Risk, as the report weighs it: low. The same code runs; only V8's compile step i
 ## Decisions
 
 - 2026-11-17: Source: AR0719's report, P1.
+- 2026-11-18: AR0721 approved, budget 10; the owner: "AR-D692 - merge" (AR-D692)

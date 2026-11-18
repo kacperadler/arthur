@@ -5444,16 +5444,16 @@
   {
     "id": "AR0674",
     "title": "A finding quoted in a ticket is data only for the worker; the planner, plan reviewer, reviewer and auditor still read it as their ticket's instruction",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0674-a-finding-quoted-in-a-ticket-is-data-only-for-the-worker-the-planner-plan/ticket.md",
-    "updated": "2026-11-10T07:19:23.988Z"
+    "updated": "2026-11-18T03:33:48.950Z"
   },
   {
     "id": "AR0675",
     "title": "A worker's run end that gets the checks reminder loses the leftover-processes reminder for the rest of that run",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0675-a-worker-s-run-end-that-gets-the-checks-reminder-loses-the-leftover-processes/ticket.md",
-    "updated": "2026-11-10T07:19:29.360Z"
+    "updated": "2026-11-18T04:23:31.611Z"
   },
   {
     "id": "AR0676",
@@ -5827,16 +5827,16 @@
   {
     "id": "AR0721",
     "title": "npm test compiles Arthur's TypeScript again in every Node process it starts: turn on Node's compile cache for the test run",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0721-npm-test-compiles-arthur-s-typescript-again-in-every-node-process-it-starts-turn/ticket.md",
-    "updated": "2026-11-17T15:43:55.362Z"
+    "updated": "2026-11-18T07:13:45.176Z"
   },
   {
     "id": "AR0722",
     "title": "Tests that start the CLI or a fake with an environment of their own miss the compile cache",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0722-tests-that-start-the-cli-or-a-fake-with-an-environment-of-their-own-miss-the/ticket.md",
-    "updated": "2026-11-17T15:43:56.688Z",
+    "updated": "2026-11-18T07:13:46.597Z",
     "after": [
       "AR0721"
     ]
@@ -5844,16 +5844,16 @@
   {
     "id": "AR0723",
     "title": "The delivery tests run real npm for each merge's check and test steps of a two-script project",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0723-the-delivery-tests-run-real-npm-for-each-merge-s-check-and-test-steps-of-a-two/ticket.md",
-    "updated": "2026-11-17T15:43:58.064Z"
+    "updated": "2026-11-18T07:13:48.010Z"
   },
   {
     "id": "AR0724",
     "title": "The fake docker loads the whole core for one function, in each of its 609 starts",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0724-the-fake-docker-loads-the-whole-core-for-one-function-in-each-of-its-609-starts/ticket.md",
-    "updated": "2026-11-17T15:43:59.475Z",
+    "updated": "2026-11-18T07:13:49.439Z",
     "after": [
       "AR0720"
     ]
@@ -5861,9 +5861,9 @@
   {
     "id": "AR0725",
     "title": "topLevel and head run git rev-parse twice, and every test commit starts git maintenance",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0725-toplevel-and-head-run-git-rev-parse-twice-and-every-test-commit-starts-git/ticket.md",
-    "updated": "2026-11-17T15:44:01.014Z",
+    "updated": "2026-11-18T07:13:50.828Z",
     "after": [
       "AR0721"
     ]

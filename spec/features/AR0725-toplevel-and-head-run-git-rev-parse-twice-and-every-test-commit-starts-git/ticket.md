@@ -36,3 +36,4 @@ Order: after AR0721 (both edit `packages/core/src/test-env.ts`).
 ## Decisions
 
 - 2026-11-17: Source: AR0719's report, P5.
+- 2026-11-18: AR0725 approved, budget 10; the owner: "AR-D696 - merge" (AR-D696)

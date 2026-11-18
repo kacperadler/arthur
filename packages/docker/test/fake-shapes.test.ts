@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 import { temporaryFolder } from "@arthur/core/testing";
 import { fakeDocker, type Kind, row, VERSION } from "./fake-docker.ts";
 
@@ -155,4 +156,31 @@ test("build, commit and --label-file as docker/cli, moby and buildkit apply labe
 	assert.deepEqual(listed.map((line) => (line === "" ? "" : JSON.parse(line).Names)), ["web", "db", "", ""], "blank's own is empty; the last line ends the output");
 	assert.deepEqual(docker("container", "ls", "--format", '{{if .Label "nope"}}{{json .}}{{end}}').stdout, "\n\n\n");
 	assert.equal(docker("network", "ls", "--format", '{{if .Label "own"}}{{json .}}{{end}}').status, 2, "a format of container ls alone");
+});
+
+test("builder prune --max-used-space cuts the cache to its size, a number, then K, M, G or T, powers of 1024; a size in another form the fake refuses, the cache whole", () => {
+	const fake = fakeDocker(temporaryFolder());
+	const docker = (...args: string[]) => spawnSync(join(fake.bin, "docker"), args, { encoding: "utf8" });
+	const pruned = (cache: number, ...args: string[]) => {
+		fake.state({ cache });
+		const { status, stdout, stderr } = docker("builder", "prune", "--force", ...args);
+		return [status, stdout, stderr, fake.now().cache];
+	};
+	const sizes: [string, number][] = [["1", 1], ["1.9", 1], ["1.5K", 1536], ["2M", 2 * 1024 ** 2], ["10G", 10 * 1024 ** 3], ["0.25T", 1024 ** 4 / 4]];
+	for (const [size, bytes] of sizes) assert.deepEqual(pruned(bytes + 7, "--max-used-space", size), [0, "Total:\t7B\n", "", bytes], size);
+	assert.deepEqual(pruned(1536, "--max-used-space", "1.5K"), [0, "Total:\t0B\n", "", 1536], "a cache of that size stays whole");
+	assert.deepEqual(pruned(1535, "--max-used-space", "1.5K"), [0, "Total:\t0B\n", "", 1535], "and a smaller one");
+	assert.deepEqual(pruned(5000), [0, "Total:\t0B\n", "", 5000], "no size: the fake cuts nothing");
+	const refusal = "the fake reads --max-used-space only as a number, then K, M, G or T or none, 1 byte or more, got ";
+	for (const size of ["0", "0.9", "0K", "", "G", "10g", "2048k", "10GB", "10 G", "1G ", "1.G", ".5G", "-1G", "1e3", "10P", "10%", "infinity"]) assert.deepEqual(pruned(5000, "--max-used-space", size), [2, "", `${refusal}${size}\n`, 5000], size);
+	assert.deepEqual(pruned(5000, "--max-used-space"), [2, "", `${refusal}\n`, 5000], "the size left out");
+});
+
+test("a start of the fake docker loads no file but its own: each docker call is a node process, which pays for every module it loads (AR0724)", () => {
+	const fake = fakeDocker(temporaryFolder());
+	const hooks = join(temporaryFolder(), "loads.mjs");
+	// Each file a node process loads after this one, a line each on its stderr.
+	writeFileSync(hooks, 'import { registerHooks } from "node:module";\nregisterHooks({ load(url, context, next) { if (url.startsWith("file:")) process.stderr.write(`${url}\\n`); return next(url, context); } });\n');
+	const run = spawnSync(join(fake.bin, "docker"), ["builder", "prune", "--force", "--max-used-space", "10G"], { encoding: "utf8", env: { ...process.env, NODE_OPTIONS: `--import=${pathToFileURL(hooks).href}` } });
+	assert.deepEqual([run.status, run.stdout, run.stderr.split("\n").filter((line) => line.startsWith("file:"))], [0, "Total:\t0B\n", [new URL("fake-docker.ts", import.meta.url).href]]);
 });

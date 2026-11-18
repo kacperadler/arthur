@@ -307,6 +307,29 @@ test("under the kit, HOME and TMPDIR are folders of its own and git commits as i
 	assert.equal(execFileSync("git", ["-C", repository, "log", "-1", "--format=%an <%ae> %cn <%ce>"], { encoding: "utf8" }), "test <test@example.com> test <test@example.com>\n");
 });
 
+// A child that loads the kit in `cwd` with `cache` as its NODE_COMPILE_CACHE (undefined: unset) prints the variable after the load, its
+// own cache folder, and the one of a `node -p` child it starts in `other` with its environment.
+function compileCache(cache: string | undefined, cwd: string, other: string): { readonly env: string; readonly own?: string; readonly child: string } {
+	const code = `import ${JSON.stringify(import.meta.resolve("@arthur/core/testing"))};
+		import { spawnSync } from "node:child_process";
+		import { getCompileCacheDir } from "node:module";
+		const child = spawnSync(process.execPath, ["-p", "require('node:module').getCompileCacheDir()"], { cwd: ${JSON.stringify(other)}, encoding: "utf8" }).stdout.trim();
+		console.log(JSON.stringify({ env: process.env.NODE_COMPILE_CACHE, own: getCompileCacheDir(), child }));`;
+	return JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", code], { cwd, env: { ...process.env, NODE_COMPILE_CACHE: cache }, encoding: "utf8" }));
+}
+
+// Node takes any value of NODE_DISABLE_COMPILE_CACHE, an empty one too, as its off switch.
+test("the kit turns on Node's compile cache, for itself and each child with its environment, in the checkout's own folder, or the one NODE_COMPILE_CACHE names, made absolute", { skip: process.env.NODE_DISABLE_COMPILE_CACHE !== undefined && "NODE_DISABLE_COMPILE_CACHE turns Node's compile cache off" }, () => {
+	const [cwd, other] = [temporaryFolder(), temporaryFolder()];
+	const checkout = join(import.meta.dirname, "../../../node_modules/.cache/arthur-test-compile");
+	for (const [cache, folder] of [[undefined, checkout], ["", checkout], [join(other, "named"), join(other, "named")], ["relative", join(cwd, "relative")]] as const) {
+		const seen = compileCache(cache, cwd, other);
+		// Node keeps a folder of its own version and the user inside the one it is given.
+		assert.deepEqual([seen.env, dirname(seen.own ?? ""), seen.child], [folder, folder, seen.own], `NODE_COMPILE_CACHE ${JSON.stringify(cache)}`);
+	}
+	assert.deepEqual(readdirSync(other), ["named"], "a child in another folder makes no cache folder there");
+});
+
 test("a tmux command under the kit reaches no live server", { skip: !hasTmux() && "tmux is not installed" }, () => {
 	const run = spawnSync("tmux", ["list-sessions"], { encoding: "utf8" });
 	assert.notEqual(run.status, 0, `tmux listed live sessions: ${run.stdout}`);

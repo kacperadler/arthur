@@ -1,33 +1,25 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 
-// Delivery's OMP extension that reminds a job's agent of the processes it left running (AR0585), loaded with `-e` like
-// checks-extension.ts: at the end of a run (omp's `session_stop`, which comes right before `agent_end`, so its continuation
-// goes on with the same run before its last message counts as the result), the job's processes other than the agent and its
-// wrapper, when there are any, are named to the agent once, which then stops those it no longer needs and ends again. The
+// Delivery's reminder to a job's agent of the processes it left running (AR0585), a part of the one answer checks-extension.ts
+// gives at the end of a run (AR0675; omp's `session_stop`, which comes right before `agent_end`, so its continuation
+// goes on with the same run before its last message counts as the result): the processes of job `id` other than the agent and
+// its wrapper are named to the agent, which then stops those it no longer needs and ends again; with none left, undefined. The
 // wrapper still kills what is left in the job's scope when the job ends: docs/delivery.md, "Processes a job leaves running".
-
-type Continuation = { readonly continue: true; readonly additionalContext: string } | undefined;
-type ExtensionApi = { on(event: "session_stop", handler: () => Continuation): void };
-
-export default function processes(pi: ExtensionApi): void {
-	const record = process.env.ARTHUR_JOB;
-	if (record === undefined || record === "") return;
-	// Once per run, which is one omp process: the second end of the run is its end.
-	let reminded = false;
-	pi.on("session_stop", () => {
-		if (reminded) return undefined;
-		const left = leftovers(basename(record));
-		if (left.length === 0) return undefined;
-		reminded = true;
-		// omp reads a file a message names as `@<path>` into the turn: a word joiner before each such `@` of a command line.
-		const named = left.map(({ pid, command }) => `- pid ${pid}: ${command.replace(/(?<=^|[\s([{<"'`])@/g, "\u2060@")}`);
-		const intro = "[Arthur] Before your run ends: these processes of your job are still running.";
-		const ask = "Stop each one you started and no longer need (a dev server, a watcher, a test run in the background) and leave the rest. Then end with your final message again, whole: the job's result is your last message, not the one above.";
-		return { continue: true, additionalContext: `${intro}\n\n${named.join("\n")}\n\n${ask}` };
-	});
+export function leftProcesses(id: string): string | undefined {
+	const left = leftovers(id);
+	if (left.length === 0) return undefined;
+	// omp reads a file a message names as `@<path>` into the turn: a word joiner before each such `@` of a command line.
+	const named = left.map(({ pid, command }) => `- pid ${pid}: ${command.replace(/(?<=^|[\s([{<"'`])@/g, "\u2060@")}`);
+	const intro = "[Arthur] Before your run ends: these processes of your job are still running.";
+	const ask = "Stop each one you started and no longer need (a dev server, a watcher, a test run in the background) and leave the rest. Then end with your final message again, whole: the job's result is your last message, not the one above.";
+	return `${intro}\n\n${named.join("\n")}\n\n${ask}`;
 }
+
+// A record written before AR0675 names this file as an extension of its own, and the wrapper loads it in each later run of
+// that job (`arthur continue`): it registers nothing, as checks-extension.ts answers the run's end.
+export default function processes(): void {}
 
 // The processes of job `id` but the agent (this process) and its wrapper (its parent): in the job's systemd scope,
 // `arthur-job-<id>.scope`, `arthur-job-<id>.<ms>.scope` for a continued run, every one, a daemon that left the agent's process

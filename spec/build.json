@@ -5867,5 +5867,12 @@
     "after": [
       "AR0721"
     ]
+  },
+  {
+    "id": "AR0726",
+    "title": "An owner's budget decision on a pre-approved ticket does not lift its autopilot cap unless its words say 'the owner approved'",
+    "status": "planning",
+    "path": "spec/features/AR0726-an-owner-s-budget-decision-on-a-pre-approved-ticket-does-not-lift-its-autopilot/ticket.md",
+    "updated": "2026-11-19T10:59:07.212Z"
   }
 ]

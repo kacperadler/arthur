@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { execFile, execFileSync } from "node:child_process";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { promisify } from "node:util";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { ATTACH } from "../src/herdr-cli.ts";
 import { checkOptions, herdr, summary, table, tools } from "../src/herdr.ts";
@@ -68,7 +69,9 @@ test("start makes the arthur workspace, its first tab the coordinator running ar
 	assert.deepEqual([first.workspaces.map((each) => each.label), first.tabs.map((each) => [each.label, each.cwd]), first.panes[0]?.ran], [["arthur"], [["coordinator", process.cwd()]], [ATTACH]]);
 	assert.deepEqual(box.server.calls()[1], ["workspace", "create", "--label", "arthur", "--cwd", process.cwd(), "--no-focus"]);
 	await box.plugin.start?.();
+	// The pass's last call ended (no child process left), not only begun: one still running would save the state it read over the seed.
 	await until("the second pass", () => box.server.calls().filter(([group, verb]) => group === "pane" && verb === "list").length === 2);
+	await until("its last call's end", () => !process.getActiveResourcesInfo().includes("ProcessWrap"));
 	assert.deepEqual([box.server.state().workspaces.length, box.server.state().tabs.length], [1, 1]);
 	// The owner closed the coordinator's tab: the next start opens a new one.
 	box.server.seed([]);
@@ -77,6 +80,16 @@ test("start makes the arthur workspace, its first tab the coordinator running ar
 	await until("a new coordinator tab", () => box.server.state().tabs.some((each) => each.label === "coordinator"));
 	await until("its attach loop", () => box.server.state().panes[0]?.ran[0] === ATTACH);
 	assert.deepEqual(box.server.state().workspaces.length, 1);
+});
+
+test("the fake herdr: calls at once from separate processes, and a seed among them, each save whole through a temporary name of its own", async () => {
+	const server = fakeHerdr();
+	server.seed([]);
+	const calls = Array.from({ length: 40 }, () => promisify(execFile)(join(server.folder, "herdr"), ["tab", "list", "--workspace", "w1"]));
+	for (let round = 0; round < 40; round++) server.seed([]);
+	const answers = await Promise.all(calls);
+	assert.deepEqual([...new Set(answers.map(({ stdout }) => JSON.parse(stdout).result.tabs[0].label))], ["coordinator"]);
+	assert.deepEqual([server.state().tabs.length, readdirSync(server.folder).filter((name) => name.startsWith(".state.json"))], [1, []], "no temporary file left");
 });
 
 test("a spawned job gets a tab named by its ticket, kind and short id, running its follow view, its state reported; its end is idle, and its prune closes the tab", async (t) => {

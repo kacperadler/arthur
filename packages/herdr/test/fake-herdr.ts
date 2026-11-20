@@ -12,6 +12,8 @@ import { delimiter, join } from "node:path";
 export type Pane = { pane_id: string; tab_id: string; workspace_id: string; cwd: string; ran: string[]; agent: string | null; agent_status: string; message: string | null };
 export type State = { next: number; workspaces: { workspace_id: string; label: string }[]; tabs: { tab_id: string; workspace_id: string; label: string; cwd: string }[]; panes: Pane[] };
 export type Mode = "up" | "down" | "hang" | "error";
+// The saves this process made: with its pid, a temporary name no other writer uses.
+let saves = 0;
 
 // PATH without any folder that holds a `herdr`, so a test never reaches the herdr installed on this machine.
 export function pathWithoutHerdr(path = process.env.PATH ?? ""): string {
@@ -126,8 +128,10 @@ function fail(line: string, code: number): void {
 	process.exitCode = code;
 }
 
-// Whole or not at all, so a test reading it while a call writes never sees half of it.
+// Whole or not at all, so a test reading it while a call writes never sees half of it; through a temporary name of this writer's
+// own, so two writers at once (a test's `seed` and a played call, or two calls) never rename each other's file away (AR0728).
 function save(folder: string, state: State): void {
-	writeFileSync(join(folder, ".state.json"), JSON.stringify(state));
-	renameSync(join(folder, ".state.json"), join(folder, "state.json"));
+	const own = join(folder, `.state.json.${process.pid}.${saves++}`);
+	writeFileSync(own, JSON.stringify(state));
+	renameSync(own, join(folder, "state.json"));
 }

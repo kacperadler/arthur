@@ -46,3 +46,4 @@ Out:
 - 2026-11-20: Source: audit spec/quality/2026-11-20.md
 - 2026-11-20: Source: F1 of AR0718
 - 2026-11-20: Pre-approved by policy: test from audit spec/quality/2026-11-20.md, 2 Scope files, budget $1 of the $3 cap
+- 2026-11-20: The owner approved AR0728 at a budget of $3; the owner: "AR-D700 yes" (AR-D700)

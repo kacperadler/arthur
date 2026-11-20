@@ -5888,5 +5888,40 @@
     "status": "merged",
     "path": "spec/features/AR0728-the-fake-herdr-writes-its-state-through-one-shared-temporary-name-so-npm-test/ticket.md",
     "updated": "2026-11-20T10:36:12.640Z"
+  },
+  {
+    "id": "AR0729",
+    "title": "Mutate tries the newest commit's lines first, so a fix round's new conditions run before the 100-mutant cap",
+    "status": "planning",
+    "path": "spec/features/AR0729-mutate-tries-the-newest-commit-s-lines-first-so-a-fix-round-s-new-conditions-run/ticket.md",
+    "updated": "2026-11-20T21:37:55.160Z"
+  },
+  {
+    "id": "AR0730",
+    "title": "A survivor may stay only when it changes no behaviour",
+    "status": "planning",
+    "path": "spec/features/AR0730-a-survivor-may-stay-only-when-it-changes-no-behaviour/ticket.md",
+    "updated": "2026-11-20T21:38:14.587Z"
+  },
+  {
+    "id": "AR0731",
+    "title": "The roadmap page counts a ticket titled `(roadmap N)` as entry N's",
+    "status": "planning",
+    "path": "spec/features/AR0731-the-roadmap-page-counts-a-ticket-titled-roadmap-n-as-entry-n-s/ticket.md",
+    "updated": "2026-11-20T21:38:15.315Z"
+  },
+  {
+    "id": "AR0732",
+    "title": "Mutate kills the processes a mutant's test run left behind",
+    "status": "planning",
+    "path": "spec/features/AR0732-mutate-kills-the-processes-a-mutant-s-test-run-left-behind/ticket.md",
+    "updated": "2026-11-20T21:38:16.039Z"
+  },
+  {
+    "id": "AR0733",
+    "title": "The full check's output is read whole, never filtered",
+    "status": "planning",
+    "path": "spec/features/AR0733-the-full-check-s-output-is-read-whole-never-filtered/ticket.md",
+    "updated": "2026-11-20T21:38:16.770Z"
   }
 ]

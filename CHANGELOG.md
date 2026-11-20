@@ -4,6 +4,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## Unreleased
 
+### 2026-11-20
+
+#### Changed
+
+- AR0728 The fake herdr writes its state through one shared temporary name, so npm test sometimes fails a herdr test (3e3b4c4e)
+
 ### 2026-11-18
 
 #### Fixed

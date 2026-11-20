@@ -5874,5 +5874,19 @@
     "status": "planning",
     "path": "spec/features/AR0726-an-owner-s-budget-decision-on-a-pre-approved-ticket-does-not-lift-its-autopilot/ticket.md",
     "updated": "2026-11-19T10:59:07.212Z"
+  },
+  {
+    "id": "AR0727",
+    "title": "The coordinator's and the project agent's outside-text rule does not set aside a finding quoted in a ticket",
+    "status": "planning",
+    "path": "spec/features/AR0727-the-coordinator-s-and-the-project-agent-s-outside-text-rule-does-not-set-aside-a/ticket.md",
+    "updated": "2026-11-20T01:04:34.165Z"
+  },
+  {
+    "id": "AR0728",
+    "title": "The fake herdr writes its state through one shared temporary name, so npm test sometimes fails a herdr test",
+    "status": "planned",
+    "path": "spec/features/AR0728-the-fake-herdr-writes-its-state-through-one-shared-temporary-name-so-npm-test/ticket.md",
+    "updated": "2026-11-20T01:05:06.581Z"
   }
 ]

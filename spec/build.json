@@ -5885,8 +5885,8 @@
   {
     "id": "AR0728",
     "title": "The fake herdr writes its state through one shared temporary name, so npm test sometimes fails a herdr test",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0728-the-fake-herdr-writes-its-state-through-one-shared-temporary-name-so-npm-test/ticket.md",
-    "updated": "2026-11-20T01:05:06.581Z"
+    "updated": "2026-11-20T01:05:24.084Z"
   }
 ]

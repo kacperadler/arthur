@@ -69,5 +69,21 @@
     "action": {
       "message": "AR-D624 (owner approved): update OMP from 18.3.0 to 18.18.6 now if no job runs (else wait until none does, before 03:00): `omp update`, check `omp --version` and `npx arthur doctor`, then spawn one small test job (e.g. AR0683 or a read-only task) and confirm it runs and ends normally. If anything breaks, roll back: `npm i -g @oh-my-pi/pi-coding-agent@18.3.0` (or the way omp was installed in ~/.local/bin), and tell the owner. Then tell him the result in one line."
     }
+  },
+  {
+    "id": "zf-thread-check",
+    "at": "2026-11-23T06:20",
+    "action": {
+      "message": "Steel thread, before the 07:00 run: do the 06:20 check of the procedure below.",
+      "procedure": ".arthur/session/steel-thread.md"
+    }
+  },
+  {
+    "id": "zf-thread-report",
+    "at": "2026-11-23T07:10",
+    "action": {
+      "message": "Steel thread: the 07:00 run is done; collect the evidence and write the report as the procedure below says.",
+      "procedure": ".arthur/session/steel-thread.md"
+    }
   }
 ]

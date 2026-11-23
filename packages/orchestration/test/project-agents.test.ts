@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 import { oneAtATime } from "../src/sessions.ts";
 import { fakeTmux, type Start } from "./fake-tmux.ts";
@@ -103,21 +103,65 @@ test("two projects in one place of one channel refuse the load, naming both; ano
 	}
 });
 
+// The plugin's `arthur doctor` lines, each checked; and a chat's line, with the fix of a chat that is no other project's.
+const shown = (fake: FakeHost) => fake.collect<{ name: string; check(): string; costs: string; fix: string; critical: boolean }[]>("doctor").flat().map(({ name, check, costs, fix, critical }) => [name, check(), costs, fix, critical]);
+const line = (project: string, plugin: string, check: string, fix = `enable the ${plugin} plugin in arthur.config.ts, or name a channel plugin in the chat of ${project}'s orchestration.project(...)`) => [`chat of ${project}`, check, `no agent of project ${project}, nor arthur run`, fix, true];
+const noFile = () => {
+	throw new Error("expected files, a list of at least one path");
+};
+
+// AR0715: the load compares the bots' names as written, before a channel can say which bot is main.
+test("doctor: two projects in one place, one naming the channel's main bot and one no bot, are a critical line of the later one, in either order, naming both and the chat", async (t) => {
+	const [named, unnamed] = [chat("test", "42", "first"), chat("test", "42")];
+	const taken = (project: string, piece: { chat: unknown }, other = "shop") =>
+		line(project, "test", `missing: its chat ${JSON.stringify(piece.chat)} is project ${other}'s too, test's main bot being first; each project agent needs a place of its own`, `name another place or bot in the chat of ${project}'s orchestration.project(...), or of ${other}'s`);
+	for (const [shop, blog] of [[unnamed, named], [named, unnamed]] as const) {
+		const { fake } = await load(t, { shop, docs: undefined, blog });
+		fake.provide("channel.send", noFile);
+		assert.deepEqual(shown(fake), [line("shop", "test", "ok"), line("blog", "test", "ok")], "no channel answers which bot is main: two bots, as written");
+		fake.provide("channel.main", () => "first");
+		assert.deepEqual(shown(fake), [line("shop", "test", "ok"), taken("blog", blog)]);
+	}
+	// The first project in that chat is the one named, whatever lies between; a chat that is no one's before it stays fine.
+	const three = await load(t, { web: chat("test", "43"), shop: named, blog: chat("test", "42", "second"), docs: unnamed });
+	three.fake.provide("channel.send", noFile);
+	three.fake.provide("channel.main", () => "first");
+	assert.deepEqual(shown(three.fake), [line("web", "test", "ok"), line("shop", "test", "ok"), line("blog", "test", "ok"), taken("docs", unnamed)]);
+	// Without channel.send too, the shared chat is the line: its plugin is enabled, since it answered which bot is main.
+	const mute = await load(t, { shop: unnamed, blog: named });
+	mute.fake.provide("channel.main", () => "first");
+	assert.deepEqual(shown(mute.fake), [line("shop", "test", "missing: test provides no channel.send; plugins that do: none"), taken("blog", named)]);
+});
+
+test("doctor: two projects on different places, bots or channels are no shared chat, nor is a named bot beside an unnamed main one", async (t) => {
+	const pairs = [
+		[chat("test", "42"), chat("test", "43", "first"), "first"],
+		[chat("test", "42", "first"), chat("test", "43"), "first"],
+		[chat("test", "42"), chat("test", "42", "second"), "first"],
+		[chat("test", "42", "second"), chat("test", "42"), "first"],
+		[chat("test", "42", "first"), chat("test", "42", "second"), "first"],
+		[chat("test", "42"), chat("test", "42", "first"), undefined],
+		[chat("test", "42", "first"), chat("test", "42"), undefined],
+	] as const;
+	for (const [shop, blog, main] of pairs) {
+		const { fake } = await load(t, { shop, blog });
+		fake.provide("channel.send", noFile);
+		fake.provide("channel.main", () => main);
+		assert.deepEqual(shown(fake), [line("shop", "test", "ok"), line("blog", "test", "ok")], JSON.stringify([shop, blog, main]));
+	}
+	// Another channel's place 42 by a bot of the same name: the main bot is each channel's own.
+	const { fake } = await load(t, { shop: chat("test", "42"), blog: chat("discord", "42", "first") });
+	fake.provide("channel.send", noFile);
+	fake.provide("channel.main", () => "first");
+	assert.deepEqual(shown(fake), [line("shop", "test", "ok"), line("blog", "discord", "missing: discord provides no channel.send; plugins that do: test")]);
+});
+
 test("doctor: a chat whose plugin provides no channel.send is a critical line, asked with no file; none without a chat", async (t) => {
 	const { fake } = await load(t, { shop: chat("test", "4"), blog: chat("discord", "5"), docs: undefined });
-	const requirements = () => fake.collect<{ name: string; check(): string; costs: string; fix: string; critical: boolean }[]>("doctor").flat();
-	const shown = () => requirements().map(({ name, check, costs, fix, critical }) => [name, check(), costs, fix, critical]);
-	const line = (project: string, plugin: string, check: string) => {
-		const fix = `enable the ${plugin} plugin in arthur.config.ts, or name a channel plugin in the chat of ${project}'s orchestration.project(...)`;
-		return [`chat of ${project}`, check, `no agent of project ${project}, nor arthur run`, fix, true];
-	};
-	assert.deepEqual(shown(), [line("shop", "test", "missing: test provides no channel.send; plugins that do: none"), line("blog", "discord", "missing: discord provides no channel.send; plugins that do: none")]);
+	assert.deepEqual(shown(fake), [line("shop", "test", "missing: test provides no channel.send; plugins that do: none"), line("blog", "discord", "missing: discord provides no channel.send; plugins that do: none")]);
 	const asked: unknown[] = [];
-	fake.provide("channel.send", (message: unknown) => {
-		asked.push(message);
-		throw new Error("expected files, a list of at least one path");
-	});
-	assert.deepEqual(shown(), [line("shop", "test", "ok"), line("blog", "discord", "missing: discord provides no channel.send; plugins that do: test")]);
+	fake.provide("channel.send", (message: unknown) => (asked.push(message), noFile()));
+	assert.deepEqual(shown(fake), [line("shop", "test", "ok"), line("blog", "discord", "missing: discord provides no channel.send; plugins that do: test")]);
 	assert.deepEqual(asked.slice(0, 1), [{ files: [] }]);
 	const alone = await load(t, { docs: undefined });
 	assert.deepEqual(alone.fake.collect("doctor"), [], "no chat: no line");

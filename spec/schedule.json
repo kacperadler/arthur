@@ -108,12 +108,5 @@
     "action": {
       "message": "Spawn the waiting approved tickets on --model claude-fable-5-2 as CPU allows (handoff, the ~18:45 lines): AR0715 $10, PG0155 $15, PG0156 $15, KA0137 $15, AR0717 $10; AR0716 after AR0713. If still no room, add another one-off entry 20 minutes later."
     }
-  },
-  {
-    "id": "resume-jobs",
-    "at": "2026-11-23T20:45",
-    "action": {
-      "message": "Resume PG0155 2026-11-23-worker-f8ce788c (final checks on tip 22fcd57) and start the ZF0094 review 2026-11-23-worker-3f8bf7ff as slots and the disk floor allow (handoff). If still no room, add another one-off entry 20 minutes later."
-    }
   }
 ]

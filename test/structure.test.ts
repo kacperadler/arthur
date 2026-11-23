@@ -19,7 +19,7 @@ const BUDGETS = {
 
 	delivery: 2370,
 
-	develop: 760,
+	develop: 766,
 
 	discord: 983,
 

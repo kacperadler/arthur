@@ -67,6 +67,10 @@
 		"passed": 1,
 		"runs": 3
 	},
+	"session/after-restart-agent": {
+		"passed": 0,
+		"runs": 1
+	},
 	"session/after-restart-plan": {
 		"passed": 0,
 		"runs": 3

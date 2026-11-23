@@ -131,8 +131,11 @@ export async function evalRun(scenario: Scenario, agent: Agent, context: (root: 
 		writeStub(stub, repo, log, scenario.stub, pages);
 		writeFileSync(join(run, "prompt.md"), context(repo, scenario));
 		writeFileSync(join(run, "turn.md"), scenario.turn);
+		// A scenario's `agent`, a project agent's turn: its own session folder is there, as the session plugin makes a live agent's.
+		const own = scenario.agent === undefined ? undefined : join(repo, scenario.agent);
+		if (own !== undefined) mkdirSync(own, { recursive: true });
 		// No ARTHUR_ variable of this process reaches the turn (a job's record, a plugin's folder).
-		const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), PATH: `${join(run, "bin")}${delimiter}${process.env.PATH ?? ""}`, ARTHUR_EVAL: stub, TZ: zoneAt(scenario.hour) };
+		const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), PATH: `${join(run, "bin")}${delimiter}${process.env.PATH ?? ""}`, ARTHUR_EVAL: stub, ARTHUR_SESSION_FOLDER: own, TZ: zoneAt(scenario.hour) };
 		const ended = await session({ command: agent.command, args: [...agent.args, "--append-system-prompt", join(run, "prompt.md")] }, run, repo, env, scenario.timeoutSeconds);
 		// A help call (eval-stub.ts) only read a page: no expectation counts it.
 		const calls = existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((entry) => entry.help !== true).map((entry) => String(entry.call)) : [];

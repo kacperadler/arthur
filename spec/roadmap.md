@@ -825,7 +825,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 ### 67. Evals: the runner
 
 - Package: develop.
-- Delivers: `arthur eval` replays coordinator turns (a job ended, a schedule entry due, a message) against scenarios, on a copy of a fixture, with `arthur` replaced by a recording stub; a scenario is scored by what the run left behind (files, refs, the stub's log); pass rates against a baseline; every command refuses to run inside an eval session.
+- Delivers: `arthur eval` replays coordinator turns (a job ended, a schedule entry due, a message), or a project agent's for a scenario with `agent` (AR0716), against scenarios, on a copy of a fixture, with `arthur` replaced by a recording stub; a scenario is scored by what the run left behind (files, refs, the stub's log); pass rates against a baseline; every command refuses to run inside an eval session.
 - Done means: edge cases: a scenario whose fixture is missing fails alone; a turn that never ends hits the scenario's timeout; the stub never reaches the live home folder (asserted).
 - Depends on: 25, 66.
 - Size: a day.
@@ -834,7 +834,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 ### 68. Evals: the scenarios
 
 - Package: develop, and each plugin whose procedure a scenario tests.
-- Delivers: the scenarios, each in the package of the plugin whose procedure it tests: after a restart with a plan, an audit with autopilot, a failed check, a failed CI run, a condition before review, an env refusal, "later" as a ticket, a merge, the morning report, a one-line night answer, no sleeping, onboarding questions, a retro, a FAIL review continued, a FAIL review handed back, a PASS review, a PASS review with its hook, unblocked after a restart, a worker done; the baseline.
+- Delivers: the scenarios, each in the package of the plugin whose procedure it tests: after a restart with a plan, the same in a project agent's session (AR0716), an audit with autopilot, a failed check, a failed CI run, a condition before review, an env refusal, "later" as a ticket, a merge, the morning report, a one-line night answer, no sleeping, onboarding questions, a retro, a FAIL review continued, a FAIL review handed back, a PASS review, a PASS review with its hook, unblocked after a restart, a worker done; the baseline.
 - Done means: every scenario runs against the fake agent in `npm test` (the scoring, not the model); the baseline holds a rate for each.
 - Depends on: 67, 65, 59.
 - Size: a day.

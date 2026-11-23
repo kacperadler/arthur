@@ -101,5 +101,12 @@
       "message": "ZF steel thread rerun: collect the evidence of the 07:00 run and send the owner the report, as the procedure says.",
       "procedure": ".arthur/session/steel-thread.md"
     }
+  },
+  {
+    "id": "fable-spawns",
+    "at": "2026-11-23T19:05",
+    "action": {
+      "message": "Spawn the waiting approved tickets on --model claude-fable-5-2 as CPU allows (handoff, the ~18:45 lines): AR0715 $10, PG0155 $15, PG0156 $15, KA0137 $15, AR0717 $10; AR0716 after AR0713. If still no room, add another one-off entry 20 minutes later."
+    }
   }
 ]

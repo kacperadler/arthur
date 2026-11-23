@@ -26,7 +26,8 @@ export function chatProblem(value: unknown): string | undefined {
 	return fine ? undefined : `expected { chat: { plugin, instance?, place } }, each a non-empty string, got ${JSON.stringify(value)}`;
 }
 
-// Two projects in one place of one channel would each hear the other's messages, so the second is refused, naming both.
+// Two projects in one place of one channel would each hear the other's messages, so the second is refused, naming both. The bots'
+// names are compared as written: which bot is a channel's main one `arthur doctor` asks, once every plugin is set up (orchestration.ts).
 export function sessionList(host: Host, coordinator: Coordinator): Session[] {
 	const { model, thinking } = roleOptions(host.options, "project");
 	const list: Session[] = [{ name: "coordinator", folder: host.folder, coordinator }];
@@ -51,6 +52,10 @@ export function sessionFor<T extends Pick<Session, "project" | "chat">>(list: re
 	const found = list.find(({ project, chat }) => chat !== undefined && (to.channel === undefined ? project === to.project : chat.plugin === to.channel && (chat.instance ?? main[chat.plugin]) === to.instance && chat.place === to.place));
 	return found ?? (list[0] as T);
 }
+
+// `main` for `sessionFor`, asked each time it is needed: a channel may set up after this plugin.
+export const mainBots = (host: Pick<Host, "collectEach">): Record<string, unknown> =>
+	Object.fromEntries(host.collectEach("channel.main").flatMap((each) => ("error" in each ? [] : [[each.plugin, each.value]])));
 
 // Where a notice of an agent's goes: its chat's channel, bot and place; nothing for the coordinator's, which every channel sends.
 export const noticeAt = (chat: Chat | undefined): { readonly channel?: string; readonly instance?: string; readonly place?: string } =>

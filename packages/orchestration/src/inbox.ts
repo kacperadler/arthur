@@ -4,7 +4,7 @@ import { type Received, received, turnText } from "@arthur/core/parts";
 import type { Event, Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
 import { redact } from "./credential.ts";
-import { type Box, noticeAt, sessionFor } from "./sessions.ts";
+import { type Box, mainBots, noticeAt, sessionFor } from "./sessions.ts";
 import { ASK, held } from "./silent.ts";
 import { voiceReplies } from "./voice-reply.ts";
 import { turn, wake } from "./wake.ts";
@@ -32,8 +32,6 @@ const seen = (home: string, name: string, boxes: readonly string[]) => folders(h
 export function inbox(host: Host, sessions: readonly Box[]): { start(): void; stop(): void } {
 	const { folder } = host;
 	const to = (data: Readonly<Record<string, unknown>>, main?: Readonly<Record<string, unknown>>) => sessionFor(sessions, data, main).folder;
-	// Each channel's main bot by its name (`channel.main`), asked as a message is routed: a channel may set up after this plugin.
-	const main = () => Object.fromEntries(host.collectEach("channel.main").flatMap((each) => ("error" in each ? [] : [[each.plugin, each.value]])));
 	const waiting = join(folder, "inbox", "received");
 	const next = () => (existsSync(waiting) ? readdirSync(waiting).filter((name) => /^\d+-\d+$/.test(name)).sort((a, b) => parseInt(a) - parseInt(b))[0] : undefined);
 	// `resolving` is the last pass over `received/`, `scheduled` whether one more waits behind it; passes run only once started.
@@ -59,7 +57,7 @@ export function inbox(host: Host, sessions: readonly Box[]): { start(): void; st
 					const logged = own?.seq === seq && Date.parse(own.time) === ms ? after.filter((event) => event.name === "coordinator-replied" && JSON.stringify(((event.data ?? {}) as Readonly<Record<string, unknown>>).answers) === `[${seq}]`) : [];
 					const events = { ...host.events, emit: (event: string, data: unknown) => (event === "coordinator-replied" ? logged.shift() : undefined) ?? host.events.emit(event, data) };
 					const said = await turnText({ collectEach: host.collectEach, events }, seq, message);
-					queue(folder, to(message, main()), { seq, time: new Date(ms).toISOString() }, { channel: message.channel, text: said });
+					queue(folder, to(message, mainBots(host)), { seq, time: new Date(ms).toISOString() }, { channel: message.channel, text: said });
 					rmSync(file);
 				}
 			})

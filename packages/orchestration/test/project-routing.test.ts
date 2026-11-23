@@ -138,6 +138,24 @@ test("an agent's reply and notice go to its chat: its channel, bot and place; wh
 	assert.deepEqual([list(join(box.folder("shop"), "outbox", "held")), list(join(box.folder("shop"), "outbox", "sent"))], [["1000-000002.json"], ["1000-000001.json", "1000-000003.json"]]);
 });
 
+// AR0713: an ask is its session's own, so a removed agent's goes to the coordinator with the reply it was run for.
+test("while silent, a removed agent's ask moves to the coordinator's folder with its unsent reply, which is sent; a coordinator's own ask stays instead", (t) => {
+	for (const own of [undefined, "3000"]) {
+		const box = routed(t, {});
+		const [ask, gone] = [join(box.folder(), "silent-ask"), join(box.folder("shop"), "silent-ask")];
+		mkdirSync(join(box.folder("shop"), "outbox"), { recursive: true });
+		writeFileSync(join(box.folder(), "silent.json"), JSON.stringify({ since: "2026-01-01T00:00:00.000Z", seq: 0, work: "the cart" }));
+		writeFileSync(gone, "1000");
+		if (own !== undefined) writeFileSync(ask, own);
+		writeFileSync(join(box.folder("shop"), "outbox", "2000-000001.json"), JSON.stringify({ text: "Shop: approve SH0001?", answers: ["4-1000"], channels: [] }));
+		box.run.start();
+		assert.deepEqual([existsSync(gone), existsSync(ask) && readFileSync(ask, "utf8")], own === undefined ? [false, "1000"] : [true, own]);
+		box.run.stop();
+		const replied = box.fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data);
+		assert.deepEqual([replied, existsSync(ask)], own === undefined ? [[{ text: "Shop: approve SH0001?", answers: [4], channels: [] }], false] : [[], true]);
+	}
+});
+
 test("a message for an agent that is down waits in its inbox and is handed over once it is up, a tell marked [from] and given as Arthur's, not the owner's", async (t) => {
 	const box = routed(t);
 	const told = box.fake.emit("agent-told", { to: "agent:shop", from: "coordinator", text: "Ship the cart." });

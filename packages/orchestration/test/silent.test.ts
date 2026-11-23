@@ -17,12 +17,14 @@ const NOW = new Date("2026-10-19T08:00:00Z");
 const WORK = "AR0207 to AR0209 merged; stop at $20";
 
 // The plugin set up on a fake host in Warsaw, its coordinator not started; `silent.json` written before the setup when given,
-// as an earlier process left it. `run` is `arthur silent <args>`, its exit code and what it printed; `stop` sweeps the outbox.
-async function setup(t: TestContext, before?: string) {
+// as an earlier process left it; with `agent`, project shop has its agent, in the folder `shop`. `run` is `arthur silent
+// <args>`, its exit code and what it printed; `stop` sweeps the outbox.
+async function setup(t: TestContext, before?: string, agent = false) {
 	const root = temporaryFolder();
 	execFileSync("git", ["init", "--quiet", root]);
 	const fake = fakeHost({ name: "orchestration", root, timeZone: "Europe/Warsaw", now: NOW });
 	if (before !== undefined) writeFileSync(join(fake.host.folder, "silent.json"), before);
+	if (agent) fake.provide("projects", () => [{ name: "shop", path: temporaryFolder(), prefix: "SH", pieces: { orchestration: { chat: { plugin: "telegram", place: "4" } } } }]);
 	const plugin = orchestration();
 	await fake.setup(plugin);
 	const printed: string[] = [];
@@ -33,6 +35,7 @@ async function setup(t: TestContext, before?: string) {
 	return {
 		fake,
 		folder,
+		shop: join(folder, "agents", "shop"),
 		async run(...args: string[]) {
 			printed.length = 0;
 			const code = await fake.commands.find((command) => command.name === "silent")?.run({ args, project: undefined });
@@ -41,14 +44,14 @@ async function setup(t: TestContext, before?: string) {
 		route: (text: string) => fake.host.commands.route(text),
 		silent: (notice: unknown) => fake.call<boolean>("coordinator.silent", notice),
 		state: () => (existsSync(join(folder, "silent.json")) ? (JSON.parse(readFileSync(join(folder, "silent.json"), "utf8")) as { since: string; seq: number; work: string }) : undefined),
-		// A reply as the inbox extension writes it, named after the time it was written.
-		reply(text: string, channels: readonly string[], at = Date.now()) {
-			mkdirSync(join(folder, "outbox"), { recursive: true });
-			writeFileSync(join(folder, "outbox", `${at}-${String(++written).padStart(6, "0")}.json`), JSON.stringify({ text, answers: [written], channels }));
+		// A reply as the inbox extension writes it to the outbox of the session folder `of`, named after the time it was written.
+		reply(text: string, channels: readonly string[], at = Date.now(), of = folder) {
+			mkdirSync(join(of, "outbox"), { recursive: true });
+			writeFileSync(join(of, "outbox", `${at}-${String(++written).padStart(6, "0")}.json`), JSON.stringify({ text, answers: [written], channels }));
 		},
 		sweep: () => plugin.stop?.(),
 		replied: () => fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => (event.data as { text: string }).text),
-		held: () => (existsSync(join(folder, "outbox", "held")) ? readdirSync(join(folder, "outbox", "held")).length : 0),
+		held: (of = folder) => (existsSync(join(of, "outbox", "held")) ? readdirSync(join(of, "outbox", "held")).length : 0),
 		async context() {
 			printed.length = 0;
 			await fake.commands.find((command) => command.name === "coordinator")?.run({ args: ["context"], project: undefined });
@@ -158,6 +161,54 @@ test("while on, a reply to only Arthur's messages is held; an owner's is sent; a
 	reply("A wake after an ask from before on.", [], Date.now() + 10);
 	await sweep();
 	assert.equal(held(), 6, "on from off removes an ask left behind");
+});
+
+// AR0713: the ask was one file for every session, so an agent's job-end reply used it up and the coordinator's question was held.
+test("an ask lets through only the next reply of the session that ran it; another session's reply after it is held; on from off and off remove every session's", async (t) => {
+	const { folder, shop, run, reply, sweep, replied, held } = await setup(t, undefined, true);
+	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	const asks = () => [folder, shop].map((each) => existsSync(join(each, "silent-ask")));
+	// The agent's folder, as its supervisor makes it at its start.
+	mkdirSync(shop, { recursive: true });
+	assert.deepEqual([await run("ask"), asks()], [[0, "silent: off"], [false, false]], "while off an ask leaves no mark");
+	await run("on", WORK);
+	// Outside every session: the coordinator's ask.
+	await run("ask");
+	assert.deepEqual(asks(), [true, false]);
+	reply("Shop: the job ended.", [], Date.now() + 1, shop);
+	await sweep();
+	assert.deepEqual([replied(), held(shop), asks()], [[], 1, [true, false]], "the agent's reply does not use up the coordinator's ask");
+	reply("Merge AR0207?", [], Date.now() + 2);
+	await sweep();
+	assert.deepEqual([replied(), held(), asks()], [["Merge AR0207?"], 0, [false, false]]);
+	// In the agent's session: its own ask, which the coordinator's reply does not use up.
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = shop;
+	assert.deepEqual(await run("ask"), [0, "silent: on; the reply of this turn goes to the owner"]);
+	assert.deepEqual(asks(), [false, true]);
+	reply("A job ended.", [], Date.now() + 3);
+	await sweep();
+	assert.deepEqual([replied().length, held(), asks()], [1, 1, [false, true]]);
+	reply("Shop: approve SH0001?", [], Date.now() + 4, shop);
+	reply("Shop: the next wake.", [], Date.now() + 5, shop);
+	await sweep();
+	assert.deepEqual([replied(), held(shop), asks()], [["Merge AR0207?", "Shop: approve SH0001?"], 2, [false, false]], "one ask, one reply of its session");
+	// A session's folder no project names (a removed agent's, another home's): the coordinator's ask.
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(folder, "agents", "blog");
+	await run("ask");
+	assert.deepEqual(asks(), [true, false]);
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = shop;
+	await run("ask");
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = folder;
+	await run("off");
+	assert.deepEqual(asks(), [false, false], "off removes every session's ask");
+	for (const each of [folder, shop]) writeFileSync(join(each, "silent-ask"), String(Date.now()));
+	await run("on");
+	assert.deepEqual(asks(), [false, false], "on from off removes every session's ask");
+	await run("ask");
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = shop;
+	await run("ask");
+	await run("on", "Other work.");
+	assert.deepEqual(asks(), [true, true], "on while on keeps each ask");
 });
 
 test("a restart while on: still on, the context says so, held replies stay held and the next one is held too", async (t) => {

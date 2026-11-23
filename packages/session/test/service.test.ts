@@ -104,7 +104,7 @@ test("under the service, a restart due is asked by arthur run itself once no job
 	assert.deepEqual({ then, waitSeconds, run }, { then: "restart", waitSeconds: 120, run: true });
 	assert.equal(await box.route("/restart"), "error: a restart is already on its way, asked by the restart guard");
 	await until("the handoff request", () => first.messages().length === 1);
-	assert.equal(first.messages()[0]?.content, ask(box.handoff, "and goes on with this one"));
+	assert.equal(first.messages()[0]?.content, ask(box.handoff, "and goes on with this conversation"));
 	writeFileSync(box.handoff, `${HANDOFF}\n`);
 	box.open("written");
 	await until("arthur run ended", () => box.ended.length === 1);

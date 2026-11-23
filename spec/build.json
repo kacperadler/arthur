@@ -5765,9 +5765,9 @@
   {
     "id": "AR0713",
     "title": "A project agent's reply uses up the coordinator's silent ask, so the coordinator's decision question is held and never sent",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0713-a-project-agent-s-reply-uses-up-the-coordinator-s-silent-ask-so-the-coordinator/ticket.md",
-    "updated": "2026-11-23T19:21:14.091Z"
+    "updated": "2026-11-23T19:45:18.078Z"
   },
   {
     "id": "AR0714",

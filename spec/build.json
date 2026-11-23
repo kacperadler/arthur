@@ -5779,9 +5779,9 @@
   {
     "id": "AR0715",
     "title": "Two projects can share one chat without a refusal when one names the main bot and the other leaves the bot out",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0715-two-projects-can-share-one-chat-without-a-refusal-when-one-names-the-main-bot/ticket.md",
-    "updated": "2026-11-23T16:38:19.508Z"
+    "updated": "2026-11-23T17:50:14.617Z"
   },
   {
     "id": "AR0716",
@@ -5796,9 +5796,9 @@
   {
     "id": "AR0717",
     "title": "The vision still says project agents come later",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0717-the-vision-still-says-project-agents-come-later/ticket.md",
-    "updated": "2026-11-23T16:37:41.823Z"
+    "updated": "2026-11-23T17:57:01.001Z"
   },
   {
     "id": "AR0718",

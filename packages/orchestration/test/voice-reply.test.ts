@@ -179,7 +179,7 @@ test("while the inbox runs, its sweep every 500 ms sends the voice note of a rep
 	]);
 });
 
-test("a project agent's reply, which names its chat's place (roadmap 86), sends its voice note there, and the line that says why one did not go too", async () => {
+test("a project agent's reply, which names its chat's place and bot (roadmap 86, AR0714), sends its voice note there by that bot, and the line that says why one did not go too", async () => {
 	const fake = fakeHost({ name: "orchestration" });
 	const sent: unknown[] = [];
 	fake.provide("speak.say", async (text: string) => `/home/speak/${text}ogg`);
@@ -190,9 +190,30 @@ test("a project agent's reply, which names its chat's place (roadmap 86), sends 
 	});
 	const voice = voiceReplies(fake.host);
 	const note = fake.emit("message-received", { channel: "test", parts: [VOICE], place: "42" });
-	voice(fake.emit("coordinator-replied", { text: "Shipped.", answers: [note.seq], channels: ["test"], place: "42" }));
-	voice(fake.emit("coordinator-replied", { text: "Refused.", answers: [note.seq], channels: ["test"], place: "42" }));
-	await until("the line", () => fake.emitted.some((event) => event.name === "coordinator-replied"));
-	assert.deepEqual(sent, [{ files: ["/home/speak/Shipped.ogg"], place: "42" }]);
-	assert.deepEqual(fake.emitted.map((event) => event.data), [{ text: "voice note not sent: no such topic", answers: [note.seq], channels: ["test"], place: "42" }]);
+	voice(fake.emit("coordinator-replied", { text: "Shipped.", answers: [note.seq], channels: ["test"], place: "42", instance: "shop" }));
+	voice(fake.emit("coordinator-replied", { text: "Refused.", answers: [note.seq], channels: ["test"], place: "42", instance: "shop" }));
+	// A chat that names no bot: its channel's main one sends.
+	voice(fake.emit("coordinator-replied", { text: "Main.", answers: [note.seq], channels: ["test"], place: "42" }));
+	await until("the second voice note", () => sent.length === 2);
+	assert.deepEqual(sent, [{ files: ["/home/speak/Shipped.ogg"], place: "42", instance: "shop" }, { files: ["/home/speak/Main.ogg"], place: "42" }]);
+	assert.deepEqual(fake.emitted.map((event) => event.data), [{ text: "voice note not sent: no such topic", answers: [note.seq], channels: ["test"], place: "42", instance: "shop" }]);
+});
+
+// AR0714: the whole way, from the chat in the project's file to what the channel is asked to send.
+test("a project agent's reply to a voice note in its chat goes out with its chat's bot and place, and its voice note is sent with both", async () => {
+	const fake = fakeHost({ name: "orchestration" });
+	fake.provide("projects", () => [{ name: "shop", path: temporaryFolder(), prefix: "SH", pieces: { orchestration: { chat: { plugin: "test", instance: "shop", place: "42" } } } }]);
+	const sent: unknown[] = [];
+	fake.provide("speak.say", async (text: string) => `/home/speak/${text}ogg`);
+	fake.provide("channel.send", (message: unknown) => async () => (sent.push(message), "sent 1 file in 1 message"));
+	const plugin = orchestration();
+	await fake.setup(plugin);
+	const note = fake.emit("message-received", { channel: "test", instance: "shop", place: "42", parts: [VOICE] });
+	const outbox = join(fake.host.folder, "agents", "shop", "outbox");
+	mkdirSync(outbox, { recursive: true });
+	writeFileSync(join(outbox, `${Date.now()}-000001.json`), JSON.stringify({ text: "Shipped.", answers: [`${note.seq}-${Date.parse(note.time)}`], channels: ["test"] }));
+	await plugin.stop?.();
+	await until("the voice note", () => sent.length === 1);
+	assert.deepEqual(sent, [{ files: ["/home/speak/Shipped.ogg"], place: "42", instance: "shop" }]);
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data), [{ text: "Shipped.", answers: [note.seq], channels: ["test"], instance: "shop", place: "42" }]);
 });

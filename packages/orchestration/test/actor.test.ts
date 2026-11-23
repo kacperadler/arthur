@@ -39,3 +39,21 @@ test("actor answers agent:<project> in a project agent's session, on its own tur
 	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(fake.host.folder, "agents", "blog");
 	assert.deepEqual(fake.collect("actor"), [undefined], "no agent of that name");
 });
+
+// AR0714: where `arthur send` goes in a project agent's session, as the core asks it of `actor.chat`.
+test("actor.chat answers a project agent's chat in its session's process alone: none in the coordinator's, another agent's folder or outside a session", async (t) => {
+	const fake = fakeHost({ name: "orchestration" });
+	const chat = { plugin: "telegram", instance: "shop", place: "4" };
+	fake.provide("projects", () => [{ name: "shop", path: temporaryFolder(), prefix: "SH", pieces: { orchestration: { chat } } }, { name: "blog", path: temporaryFolder(), prefix: "BL", pieces: { orchestration: { chat: { plugin: "discord", place: "5" } } } }]);
+	await fake.setup(orchestration());
+	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	assert.deepEqual(fake.collect("actor.chat"), [undefined], "outside every session");
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(fake.host.folder, "agents", "shop");
+	assert.deepEqual(fake.collect("actor.chat"), [chat]);
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(fake.host.folder, "agents", "blog");
+	assert.deepEqual(fake.collect("actor.chat"), [{ plugin: "discord", place: "5" }]);
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = fake.host.folder;
+	assert.deepEqual(fake.collect("actor.chat"), [undefined], "the coordinator's session");
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(fake.host.folder, "agents", "docs");
+	assert.deepEqual(fake.collect("actor.chat"), [undefined], "no agent of that name");
+});

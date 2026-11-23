@@ -16,9 +16,9 @@ import type { Bot } from "./rest.ts";
 // agent's, entry 86), the notices by the bot their `instance` names, else the unnamed bot, else the first, and to their place
 // only when their `channel` is none or discord; through the outbox (outbox.ts), without a notification in quiet hours, and a
 // notice only when `call("coordinator.silent", notice)` does not hold it; files by `channel.send` (media-out.ts), which
-// `arthur send` asks; each bot's requirements for `arthur doctor` (discord-doctor.ts): packages/discord/docs/discord.md. Only
-// `arthur run` starts the plugin, so only it connects and sends texts; what comes before the start, as the replay of the event
-// log, is queued at the start.
+// `arthur send` asks, by the bot its `instance` names, else the main one; each bot's requirements for `arthur doctor`
+// (discord-doctor.ts): packages/discord/docs/discord.md. Only `arthur run` starts the plugin, so only it connects and sends
+// texts; what comes before the start, as the replay of the event log, is queued at the start.
 
 export type BotOptions = { readonly name?: string; readonly tokenEnv: string; readonly guildIdEnv: string; readonly userIdEnv: string; readonly channelIdEnv: string };
 
@@ -88,7 +88,7 @@ export function discord(options: DiscordOptions, closeMs?: number): Plugin {
 				await box.idle();
 			};
 			host.provide("doctor", () => bots.flatMap((each) => requirements(each, () => menuCommands(host), join(host.folder, "commands.json"))));
-			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
+			host.provide("channel.send", (message: unknown) => outgoing(named(asRecord(message).instance), () => host.clock.isQuiet(), message));
 			// The main bot's name, none for the unnamed one: a project's chat that names no bot is its (orchestration's routing).
 			host.provide("channel.main", () => main.name);
 		},

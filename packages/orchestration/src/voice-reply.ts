@@ -3,9 +3,9 @@ import type { Event, Host } from "@arthur/core/plugin";
 
 // The coordinator's reply to the owner's voice note goes back as a voice note too (AR0553), after its text and where its text
 // goes: spoken by the plugin that provides `speak.say` (speak), sent by the `channel.send` of each channel a voice note came
-// from, to the reply's place (a project agent's chat, entry 86), none for the coordinator's. When the voice note cannot go,
-// one line on that channel says why; with no plugin providing `speak.say`, the text goes alone and nothing is said. One reply
-// at a time, in the order they were sent: docs/commands/coordinator.md, "The coordinator's inbox".
+// from, by the reply's bot (`instance`) to its place (a project agent's chat, entry 86), neither for the coordinator's. When
+// the voice note cannot go, one line on that channel says why; with no plugin providing `speak.say`, the text goes alone and
+// nothing is said. One reply at a time, in the order they were sent: docs/commands/coordinator.md, "The coordinator's inbox".
 
 export function voiceReplies(host: Pick<Host, "events" | "collectEach">): (reply: Event) => void {
 	let last = Promise.resolve();
@@ -15,8 +15,8 @@ export function voiceReplies(host: Pick<Host, "events" | "collectEach">): (reply
 }
 
 async function voice(host: Pick<Host, "events" | "collectEach">, reply: Event): Promise<void> {
-	const { text, answers, place } = (reply.data ?? {}) as { readonly text?: unknown; readonly answers?: unknown; readonly place?: unknown };
-	const at = typeof place === "string" ? { place } : {};
+	const { text, answers, place, instance } = (reply.data ?? {}) as Readonly<Record<string, unknown>>;
+	const at = { ...(typeof place === "string" ? { place } : {}), ...(typeof instance === "string" ? { instance } : {}) };
 	const seqs = Array.isArray(answers) ? answers.filter((seq): seq is number => Number.isSafeInteger(seq)) : [];
 	if (typeof text !== "string" || seqs.length === 0) return;
 	// Each channel a voice note it answers came from, with the event numbers of those messages.

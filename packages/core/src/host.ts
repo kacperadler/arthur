@@ -18,10 +18,10 @@ import { ownHome } from "./own-home.ts";
 import { coreRequirements } from "./requirements.ts";
 import { checkPieces, unreadPieces } from "./project-pieces.ts";
 import { rangeRequirements } from "./plugin-range.ts";
-import type { Answer, Plugin } from "./plugin.ts";
+import type { Plugin } from "./plugin.ts";
 import { asPlugin, pluginHost, pluginStep, registry } from "./plugin-host.ts";
 import { envFileNames, type Hide } from "./secret-names.ts";
-import type { Outgoing } from "./send-command.ts";
+import type { Channels, Chat } from "./send-command.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
 // gives each its folder and runs `setup` in dependency order. Every refusal names the plugins involved.
@@ -36,9 +36,10 @@ import type { Outgoing } from "./send-command.ts";
 // and `owner` the one that provides `decision.owner` whether the owner's recorded decision lets a move to planned through;
 // `doctor` checks the core's requirements, each project piece no loaded plugin reads, each plugin's range of this core read at load
 // (plugin-range.ts), and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's;
-// `append` only logs one, for `arthur run` to deliver, the next one if it ends (`command-ran`); `channels` asks every channel's `channel.send` (`arthur send`); `hide`
-// names the env file's values, outside a job, and the plugins' (secret-names.ts).
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly owner: (asked: OwnerRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly append: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[]; readonly hide: Hide };
+// `append` only logs one, for `arthur run` to deliver, the next one if it ends (`command-ran`); `channels` asks every channel's
+// `channel.send` and the chat of this process's session, orchestration's answer to `actor.chat` (`arthur send`); `hide` names
+// the env file's values, outside a job, and the plugins' (secret-names.ts).
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly owner: (asked: OwnerRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly append: (name: string, data: unknown) => void; readonly channels: Channels; readonly hide: Hide };
 export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 // As `decision.owner` takes it: the decision's id, what it lets through, its kind, ticket and use; it answers "" or the refusal.
 export type OwnerRequest = { readonly id: string; readonly what: string; readonly kind: string; readonly ticket: string; readonly use: string };
@@ -101,7 +102,9 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		return doctor([...coreRequirements(config.core, () => [dirname(config.path), ...(lists.length === 0 ? [] : projectList(lists).map((each) => each.path))]), ...unreadPieces(sorted, lists), ...ranges], answers);
 	};
 	const append = (name: string, data: unknown) => void withLog(config.core.home, (fd) => appendEvent(fd, "core", stamp("core", name, data), name, data, hide));
-	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, owner, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), append, channels: (message) => names.collectEach("channel.send", [message.caption === undefined ? message : { ...message, caption: hide(message.caption) }]), hide };
+	const send: Channels["send"] = (out) => names.collectEach("channel.send", [out.caption === undefined ? out : { ...out, caption: hide(out.caption) }]);
+	const channels = { send, chat: () => names.collect("actor.chat", [])[0] as Chat | undefined };
+	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, owner, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), append, channels, hide };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

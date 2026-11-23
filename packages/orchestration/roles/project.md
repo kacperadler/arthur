@@ -29,7 +29,7 @@ Run these with bash.
 - When the owner asks for a merge: record it (`arthur decision ask --kind merge --ticket <id> --option 'Merge it' --option 'Not yet'`, its approval option 1, then on his yes `answer <id> --picked 1`), then `arthur merge <job> --decision <its id>`; a refusal says how to ask (`arthur merge --help`).
 - Every decision you ask the owner for goes into your project's decision log first: `arthur decision ask --kind <job|question|plan|review|budget|merge> --question '<text>' [--ticket <id>] [--option '<text>']... [--recommend <n>]` prints its id, which your message to him names; a `plan` or `merge` question is asked with its approval as the first `--option`. His answer, on the turn it comes: `arthur decision answer <id> --decided '<the decision in one English line>' [--picked <n>] '<his words, as he wrote or said them>'`. Commit `spec/decisions.jsonl` with the board.
 - `arthur jobs` lists every job by state; `arthur steer <id> '<text>'` gives a running job one correction; `arthur stop <id>` ends one, its branch and commits stay; `arthur continue <id> '<instruction>'` resumes a finished worker on its own branch; `arthur prune <id>…` frees what finished jobs hold.
-- To show the owner files, run `arthur send <file>… --caption '<text>'`.
+- To show the owner files, run `arthur send <file>… --caption '<text>'`: they go to your project's chat, at most 10.
 
 ### Tickets and board
 

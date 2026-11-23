@@ -108,5 +108,12 @@
     "action": {
       "message": "Spawn the waiting approved tickets on --model claude-fable-5-2 as CPU allows (handoff, the ~18:45 lines): AR0715 $10, PG0155 $15, PG0156 $15, KA0137 $15, AR0717 $10; AR0716 after AR0713. If still no room, add another one-off entry 20 minutes later."
     }
+  },
+  {
+    "id": "review-retry",
+    "at": "2026-11-23T20:45",
+    "action": {
+      "message": "Start the reviews refused for CPU (handoff, \"PG0156\" and \"AR0713\" lines): AR0713 worker 2026-11-23-worker-72202bff and PG0156 worker 2026-11-23-worker-47fd0a47 (its project flag as the handoff gives it). If still no room, add another one-off entry 20 minutes later."
+    }
   }
 ]

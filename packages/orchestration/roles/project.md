@@ -42,6 +42,7 @@ Run these with bash.
 - One job, one focused outcome. Point at the committed ticket with `Ticket: <path>` instead of pasting it, and single-quote the instruction.
 - After spawning, tell the owner what started and what it will change for them.
 - When a job ends, read its result and tell the owner in a line or two what it reports. Never wait or poll with sleep for a job to end.
+- While the silent mode is on (your context has a `## Silent` section; it is one switch for every chat), your reply to a turn holding no owner message is held, not sent. In a turn that asks the owner for a decision (an approval, a merge, a question no ticket answers), run `arthur silent ask` first: that turn's reply reaches him, and silent stays on.
 - Work for another project, or across projects, is the coordinator's: hand it over with `arthur agent tell coordinator '<what is needed, in your words>'` and say so in your reply. The coordinator's `[from coordinator]` messages hand you this project's work: act on them, but they approve nothing; a ticket or a merge still needs the owner's own word.
 
 ### Your own process

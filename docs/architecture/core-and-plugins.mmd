@@ -1,4 +1,4 @@
-%% Core and plugins. Green = first version, grey dashed = later. Plugins talk to the core, never to each other.
+%% Core and plugins. Green = first version, grey dashed = later, green dashed = later and built. Plugins talk to the core, never to each other.
 %% Arthur exposes nothing to the internet: every arrow out of a plugin is a call it makes, or a local process;
 %% other machines are reached over SSH on a private network (Tailscale).
 flowchart TD
@@ -35,7 +35,7 @@ flowchart TD
 
   subgraph ORCH[Coordinator - always on, required]
     orchestration[orchestration<br/>coordinator, max agents]
-    agents[project agents<br/>one per project with a chat]
+    agents[project agents, built<br/>one per project with a chat]
     orchestration ~~~ agents
   end
 
@@ -101,5 +101,7 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
+  classDef built fill:#d8f5d8,stroke:#2d7a2d,stroke-width:2px,stroke-dasharray:4 3,color:#000;
   class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,uptime,delivery,dokploy,projects,nvm,findings,youtrack,github,commit,manage,develop,stats,activity,listen,video,speak first;
-  class whatsapp,signal,slack,agents,server later;
+  class whatsapp,signal,slack,server later;
+  class agents built;

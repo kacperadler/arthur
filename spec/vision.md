@@ -63,7 +63,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 
 | Plugin | First or later | Does |
 | --- | --- | --- |
-| orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. Later, an agent per project with a `chat`, and the routing of that chat to it (roadmap 85 to 88). |
+| orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. Later, built: an agent per project with a `chat`, and the routing of that chat to it (roadmap 85 to 88). |
 | machines (named) | first | The machines jobs run on: `local`, where Arthur runs, and others reached over SSH on a private network, each with labels (os, arch, tools); places each job on a machine that has the labels its project or ticket requires. Below. |
 | models (named) | first | Model providers on other machines (Ollama or OpenAI-compatible, loopback, private or Tailscale only) and each role's ordered model list, the first available at spawn. |
 | resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), how many jobs start from each machine's free resources, below `maxAgents`, and a floor of free disk per machine. Below. |
@@ -94,7 +94,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | whatsapp (named) | later | A channel, through a local bridge. The official Business API is out: it delivers incoming messages by webhook. |
 | server (named) | later | The core's events and commands over HTTP and a stream, for clients: the web panel, the owner's own mobile app (Expo), a T3 Code-like UI. Bound to a private network and reached by the VPS's Tailscale name, with a token. |
 
-Order of the later plugins, cheapest first: signal (a local process), then slack (an official bot, no ban risk, but a gateway client that has to stay alive), then whatsapp (an unofficial bridge: the account may be banned), then server (needs a stable event protocol and auth), and the owner's own apps on it. Project agents (roadmap 85 to 88) come before all of them, once the other projects have moved to Arthur.
+Order of the later plugins, cheapest first: signal (a local process), then slack (an official bot, no ban risk, but a gateway client that has to stay alive), then whatsapp (an unofficial bridge: the account may be banned), then server (needs a stable event protocol and auth), and the owner's own apps on it. Project agents (roadmap 85 to 88) came before all of them and are built.
 
 The core never assumes a project is a Git repository or that a single human approves everything, so the company edition (roadmap 79) is plugins on the same core.
 

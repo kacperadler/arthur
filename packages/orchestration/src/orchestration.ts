@@ -93,7 +93,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			spawnRules(host, coordinator, sessions);
 			plans(host);
 			autopilot(host, () => sessionOf(sessions)?.project);
-			silentMode(host);
+			silentMode(host, sessions);
 			decisionHooks(host);
 			decisionUse(host, sessions);
 			paperCheck(host);

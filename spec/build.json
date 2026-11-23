@@ -5765,9 +5765,9 @@
   {
     "id": "AR0713",
     "title": "A project agent's reply uses up the coordinator's silent ask, so the coordinator's decision question is held and never sent",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0713-a-project-agent-s-reply-uses-up-the-coordinator-s-silent-ask-so-the-coordinator/ticket.md",
-    "updated": "2026-11-23T18:26:26.303Z"
+    "updated": "2026-11-23T19:02:30.549Z"
   },
   {
     "id": "AR0714",
@@ -5796,9 +5796,9 @@
   {
     "id": "AR0717",
     "title": "The vision still says project agents come later",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0717-the-vision-still-says-project-agents-come-later/ticket.md",
-    "updated": "2026-11-23T18:26:44.185Z"
+    "updated": "2026-11-23T18:58:48.150Z"
   },
   {
     "id": "AR0718",

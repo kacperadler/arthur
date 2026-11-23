@@ -5765,9 +5765,9 @@
   {
     "id": "AR0713",
     "title": "A project agent's reply uses up the coordinator's silent ask, so the coordinator's decision question is held and never sent",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0713-a-project-agent-s-reply-uses-up-the-coordinator-s-silent-ask-so-the-coordinator/ticket.md",
-    "updated": "2026-11-23T16:38:16.569Z"
+    "updated": "2026-11-23T18:26:26.303Z"
   },
   {
     "id": "AR0714",
@@ -5779,9 +5779,9 @@
   {
     "id": "AR0715",
     "title": "Two projects can share one chat without a refusal when one names the main bot and the other leaves the bot out",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0715-two-projects-can-share-one-chat-without-a-refusal-when-one-names-the-main-bot/ticket.md",
-    "updated": "2026-11-23T17:50:14.617Z"
+    "updated": "2026-11-23T18:23:56.278Z"
   },
   {
     "id": "AR0716",
@@ -5796,9 +5796,9 @@
   {
     "id": "AR0717",
     "title": "The vision still says project agents come later",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0717-the-vision-still-says-project-agents-come-later/ticket.md",
-    "updated": "2026-11-23T17:57:01.001Z"
+    "updated": "2026-11-23T18:26:44.185Z"
   },
   {
     "id": "AR0718",

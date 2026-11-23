@@ -63,7 +63,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 
 | Plugin | First or later | Does |
 | --- | --- | --- |
-| orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. An agent per project with a `chat`, and the routing of that chat to it, built (roadmap 85 to 88). |
+| orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. Later, built: an agent per project with a `chat`, and the routing of that chat to it (roadmap 85 to 88). |
 | machines (named) | first | The machines jobs run on: `local`, where Arthur runs, and others reached over SSH on a private network, each with labels (os, arch, tools); places each job on a machine that has the labels its project or ticket requires. Below. |
 | models (named) | first | Model providers on other machines (Ollama or OpenAI-compatible, loopback, private or Tailscale only) and each role's ordered model list, the first available at spawn. |
 | resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), how many jobs start from each machine's free resources, below `maxAgents`, and a floor of free disk per machine. Below. |

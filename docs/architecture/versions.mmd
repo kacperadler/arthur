@@ -1,4 +1,4 @@
-%% From the switch (Arthur runs on its own repository since 2026-10-25) to the rest of Arthur's first version and after it. Green = first version, grey dashed = later.
+%% From the switch (Arthur runs on its own repository since 2026-10-25) to the rest of Arthur's first version and after it. Green = first version, grey dashed = later, green dashed = later and built.
 flowchart TD
   today[Arthur runs on its own repository<br/>other projects to follow]
 
@@ -13,7 +13,7 @@ flowchart TD
   switch2[Switch the other projects]
 
   subgraph V2[Later, in this order]
-    agents[1 project agents<br/>one per project with a chat]
+    agents[1 project agents, built<br/>one per project with a chat]
     signal[2 signal]
     slack[3 slack]
     whatsapp[4 whatsapp bridge]
@@ -26,5 +26,7 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
+  classDef built fill:#d8f5d8,stroke:#2d7a2d,stroke-width:2px,stroke-dasharray:4 3,color:#000;
   class core,p1,p2,p3 first;
-  class agents,signal,slack,whatsapp,server,apps later;
+  class signal,slack,whatsapp,server,apps later;
+  class agents built;

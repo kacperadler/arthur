@@ -110,10 +110,10 @@
     }
   },
   {
-    "id": "zf-spawns",
-    "at": "2026-11-23T20:15",
+    "id": "resume-jobs",
+    "at": "2026-11-23T20:20",
     "action": {
-      "message": "ZF-D88: spawn ZF0092, ZF0093, ZF0094 (project prefix ZF, --budget 30 --model claude-fable-5-2 --ignore-restart) as CPU allows (handoff, the ZF-D87 line). If still no room, add another one-off entry 20 minutes later."
+      "message": "Resume the three runs the 19:58 restart stopped, as CPU allows (handoff, \"Restart at 19:58\" line): AR0713 conflict fix 2026-11-23-worker-72202bff first, then AR0714 2026-11-23-worker-dabd19ca, then PG0155 2026-11-23-worker-f8ce788c. If still no room, add another one-off entry 20 minutes later."
     }
   }
 ]

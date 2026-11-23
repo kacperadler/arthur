@@ -10,6 +10,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0715 Two projects can share one chat without a refusal when one names the main bot and the other leaves the bot out (74c6f841)
 
+#### Changed
+
+- AR0717 The vision still says project agents come later (f8b0149c)
+
 ### 2026-11-20
 
 #### Changed

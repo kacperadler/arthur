@@ -5,7 +5,7 @@ import type { Event, Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
 import { redact } from "./credential.ts";
 import { type Box, noticeAt, sessionFor } from "./sessions.ts";
-import { held } from "./silent.ts";
+import { ASK, held } from "./silent.ts";
 import { voiceReplies } from "./voice-reply.ts";
 import { turn, wake } from "./wake.ts";
 
@@ -95,8 +95,8 @@ export function inbox(host: Host, sessions: readonly Box[]): { start(): void; st
 	return {
 		start() {
 			// A removed agent's messages not yet answered go to the coordinator's queue, and its replies and notices not yet sent
-			// (`.json` files, not its drafts nor `sent/` and `held/`) to the coordinator's outbox, so none is lost. A message of its
-			// turn that a reply it wrote answers stays, as its own restart would take it as answered (inbox-extension.ts).
+			// (`.json` files, not its drafts nor `sent/` and `held/`) to the coordinator's outbox, its ask with them, so none is lost.
+			// A message of its turn that a reply it wrote answers stays, as its own restart would take it as answered (inbox-extension.ts).
 			for (const each of folders(folder).slice(1).filter((one) => !sessions.some((session) => session.folder === one))) {
 				const replies = ["outbox", "outbox/sent", "outbox/held"].flatMap((box) => list(join(each, box)).filter((one) => one.endsWith(".json")).map((one) => join(each, box, one)));
 				const answered = new Set(replies.flatMap((file) => ((JSON.parse(readFileSync(file, "utf8")) as { answers?: unknown[] }).answers ?? []).map(String)));
@@ -105,6 +105,7 @@ export function inbox(host: Host, sessions: readonly Box[]): { start(): void; st
 						mkdirSync(join(folder, into), { recursive: true });
 						renameSync(join(each, from, name), join(folder, into, name));
 					}
+				if (existsSync(join(each, ASK)) && !existsSync(join(folder, ASK))) renameSync(join(each, ASK), join(folder, ASK));
 			}
 			footer(host, sessions);
 			timer = setInterval(() => sweep(host, sessions, voice), SWEEP_MS);
@@ -165,14 +166,14 @@ function footer(host: Host, sessions: readonly Box[]): void {
 
 // Each reply or notice the extensions wrote, oldest first per session, emitted and then moved to `outbox/sent/`, a sent reply
 // then to `voice` (voice-reply.ts); while silent is on, a reply of a turn holding no owner message is not emitted but moved to
-// `outbox/held/` (silent.ts). An agent's reply and notice go to its chat alone.
+// `outbox/held/`, unless its own session ran `arthur silent ask` (silent.ts). An agent's reply and notice go to its chat alone.
 function sweep(host: Host, sessions: readonly Box[], voice: (reply: Event) => void): void {
 	for (const { folder, chat } of sessions) {
 		const outbox = join(folder, "outbox");
 		const { channel, ...spot } = noticeAt(chat);
 		for (const name of list(outbox).filter((each) => each.endsWith(".json")).sort()) {
 			const file = JSON.parse(readFileSync(join(outbox, name), "utf8")) as { text: string; answers: (string | number)[]; channels: string[] } | { notice: string };
-			const box = "notice" in file || file.channels.length > 0 || !held(host.folder, name) ? "sent" : "held";
+			const box = "notice" in file || file.channels.length > 0 || !held(host.folder, folder, name) ? "sent" : "held";
 			if ("notice" in file) host.events.emit("notice", { text: redact(file.notice, host.secrets), ...noticeAt(chat) });
 			// The event names the event numbers its files hold.
 			else if (box === "sent") voice(host.events.emit("coordinator-replied", { text: file.text, answers: file.answers.map((answer) => parseInt(String(answer))), channels: channel === undefined ? file.channels : [channel], ...spot }));

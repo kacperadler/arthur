@@ -5779,9 +5779,9 @@
   {
     "id": "AR0715",
     "title": "Two projects can share one chat without a refusal when one names the main bot and the other leaves the bot out",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0715-two-projects-can-share-one-chat-without-a-refusal-when-one-names-the-main-bot/ticket.md",
-    "updated": "2026-11-23T18:23:56.278Z"
+    "updated": "2026-11-23T18:34:22.160Z"
   },
   {
     "id": "AR0716",

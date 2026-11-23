@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
-import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join, relative } from "node:path";
 import type { Expect, Scenario } from "./eval-scenario.ts";
 import { writeStub } from "./eval-stub.ts";
 
@@ -131,8 +131,11 @@ export async function evalRun(scenario: Scenario, agent: Agent, context: (root: 
 		writeStub(stub, repo, log, scenario.stub, pages);
 		writeFileSync(join(run, "prompt.md"), context(repo, scenario));
 		writeFileSync(join(run, "turn.md"), scenario.turn);
-		// A scenario's `agent`, a project agent's turn: its own session folder is there, as the session plugin makes a live agent's.
+		// A scenario's `agent`: the agent's own session folder is there, as a live agent's is, never through a link the fixture ships.
 		const own = scenario.agent === undefined ? undefined : join(repo, scenario.agent);
+		let at = own ?? repo;
+		while (lstatSync(at, { throwIfNoEntry: false }) === undefined) at = dirname(at);
+		if (realpathSync(at) !== at) throw new Error(`agent: ${scenario.agent} leaves the run's repository through the fixture's link ${relative(repo, at)}`);
 		if (own !== undefined) mkdirSync(own, { recursive: true });
 		// No ARTHUR_ variable of this process reaches the turn (a job's record, a plugin's folder).
 		const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), PATH: `${join(run, "bin")}${delimiter}${process.env.PATH ?? ""}`, ARTHUR_EVAL: stub, ARTHUR_SESSION_FOLDER: own, TZ: zoneAt(scenario.hour) };

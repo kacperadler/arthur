@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -329,16 +329,37 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
 });
 
-test("a scenario's agent makes the turn a project agent's: its context, and its session folder made in the run's repository, which ARTHUR_SESSION_FOLDER names; a path that is not inside the repository fails the scenario", async (t) => {
+test("a scenario's agent makes the turn a project agent's: its context, and its session folder made in the run's repository, which ARTHUR_SESSION_FOLDER names; a path that is not inside the repository, or leaves it through a link of the fixture, fails", async (t) => {
 	const note = { message: "Note it." };
-	const [own, wrong] = [".arthur/session/agents/shop", [3, null, true, "", " ", "/tmp/session", "..", "../session", "a/../../session", ".", "a/.."]];
+	// Each way out of the repository: no text, an absolute path, the root itself, `..`, and `..` then down again through the folders the eval runs in.
+	const [cwd, own] = [process.cwd(), ".arthur/session/agents/shop"];
+	const back = [`../${basename(cwd)}/session`, `../../${basename(dirname(cwd))}/${basename(cwd)}/session`];
+	const wrong = [3, null, true, "", " ", "/tmp/session", `${cwd}/session`, "..", "../session", "a/../../session", ".", "./", "a/..", "a/../", "./..", ...back];
+	const name = (index: number) => `wrong${String(index).padStart(2, "0")}`;
 	const eval_ = await load(t, {
 		agent: { turn: note, agent: own, expect: { files: { [`${own}/after-restart.md`]: ["^steps$"] }, missing: [".arthur/session/after-restart.md"] } },
-		...Object.fromEntries(wrong.map((agent, index) => [`wrong${String(index).padStart(2, "0")}`, { turn: note, agent }])),
+		...{ dangling: { turn: note, agent: own }, linked: { turn: note, agent: own }, nested: { turn: note, agent: own } },
+		...Object.fromEntries(wrong.map((agent, index) => [name(index), { turn: note, agent }])),
 	});
+	// A fixture whose `.arthur`, or a folder under it, is a link out of the repository, one of them to nothing.
+	const outside = temporaryFolder();
+	mkdirSync(join(outside, "agents"));
+	symlinkSync(join(outside, "gone"), join(eval_.pkg, "evals", "dangling", "fixture", ".arthur"));
+	symlinkSync(outside, join(eval_.pkg, "evals", "linked", "fixture", ".arthur"));
+	mkdirSync(join(eval_.pkg, "evals", "nested", "fixture", ".arthur"));
+	symlinkSync(outside, join(eval_.pkg, "evals", "nested", "fixture", ".arthur", "session"));
 	const answer = await eval_.eval("--runs", "1");
-	const refused = (index: number) => `${join(eval_.pkg, "evals", `wrong${String(index).padStart(2, "0")}`, "scenario.json")}: agent: expected a path inside the repository, the project agent's session folder`;
-	assert.deepEqual(answer.out.slice(0, -1), ["develop/agent: 1/1 (no baseline)", ...wrong.flatMap((_, index) => [`develop/wrong${String(index).padStart(2, "0")}: 0/1 (no baseline)`, `  run 1: ${refused(index)}`])]);
+	const refused = (index: number) => `${join(eval_.pkg, "evals", name(index), "scenario.json")}: agent: expected a path inside the repository, the project agent's session folder`;
+	const link = (path: string) => `  run 1: the run failed: agent: ${own} leaves the run's repository through the fixture's link ${path}`;
+	// The link to nothing fails where the run looks at it, in Node's words, before any folder is made.
+	assert.match(answer.out[2] ?? "", /^ {2}run 1: the run failed: ENOENT: [^']+'\S+\/repo\/\.arthur'$/);
+	assert.deepEqual(answer.out.toSpliced(2, 1).slice(0, -1), [
+		"develop/agent: 1/1 (no baseline)",
+		"develop/dangling: 0/1 (no baseline)",
+		...["develop/linked: 0/1 (no baseline)", link(".arthur"), "develop/nested: 0/1 (no baseline)", link(".arthur/session/agents")],
+		...wrong.flatMap((_, index) => [`develop/${name(index)}: 0/1 (no baseline)`, `  run 1: ${refused(index)}`]),
+	]);
+	assert.deepEqual(readdirSync(outside, { recursive: true }), ["agents"], "nothing made through a link");
 	const repo = /^12\n# The project agent\n\nContext of (\S+\/arthur-eval-[^/]+\/repo) at /.exec(eval_.transcript("develop-agent-1", "stderr"))?.[1];
 	const env = readFileSync(join(eval_.spy, "env"), "utf8").split("\n").filter((line) => line.startsWith("ARTHUR_") && !line.startsWith("ARTHUR_EVAL="));
 	assert.deepEqual(env, [`ARTHUR_SESSION_FOLDER=${repo}/${own}`]);

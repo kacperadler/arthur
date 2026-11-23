@@ -30,3 +30,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: `arthur eval` asks `roles.model` for the role `coordinator` once and starts every run with that model and thinking level. A live project agent starts with `roles.project`'s (`packages/orchestration/src/sessions.ts:32`), so where the two differ, `session/after-restart-agent` measures the project role on another model than the one that reads it live. `packages/develop/docs/commands/eval.md` says so ("for a project agent's turn too").
 - Suggestion: ask `roles.model` for `project` when the scenario has `agent`, and name both models in the eval's first line.
 - Status: open
+
+## F4. A link the fixture ships takes the eval stub's files out of the run's repository
+
+- Kind: security
+- Found by: 2026-11-23-worker-f865eac7 (worker), 2026-11-23
+- Where: `packages/develop/src/eval-stub.ts:36`
+- What: the stub refuses an answer's file by its written path only (`path.relative(repo, file)` starting with `..`), then makes its folder and writes it. A run copies its fixture with `cpSync`, which keeps a link as a link (seen in a probe: a copied `link -> ../outside` still pointed outside, and a folder made under it appeared there). So an answer's `files: { "link/x.md": ... }` in a fixture that ships `link` would be written where the link points, outside the run's repository, against `packages/develop/docs/commands/eval.md` ("writes only in the run's repository"). Read from the stub's lines; no run of it was made. This branch refuses the same way out for a scenario's `agent` folder (`packages/develop/src/eval-run.ts:136`), not for the stub.
+- Suggestion: have the stub refuse a file whose first parent that exists does not read as itself (`fs.realpathSync`), as the run does for `agent`, with a test whose fixture ships a link. Nothing else changes.
+- Status: open

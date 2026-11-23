@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, isAbsolute, join, relative } from "node:path";
+import { basename, isAbsolute, join, normalize } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 import type { StubAnswer } from "./eval-stub.ts";
 
@@ -76,7 +76,7 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 		const { turn, hour = HOUR, context = {}, agent, timeoutSeconds = TIMEOUT_SECONDS, stub = [], expect = {} } = json;
 		if (!Number.isInteger(hour) || (hour as number) < 0 || (hour as number) > 23) throw new Error("hour: expected a whole hour, 0 to 23");
 		if (!object(context) || !Object.values(context).every((text) => typeof text === "string")) throw new Error("context: expected { <plugin>: <text> }");
-		if (agent !== undefined && (!words(agent) || isAbsolute(agent) || /^(\.\.(\/|$)|$)/.test(relative(".", agent)))) throw new Error("agent: expected a path inside the repository, the project agent's session folder");
+		if (agent !== undefined && (!words(agent) || isAbsolute(agent) || /^\.\.?(\/|$)/.test(normalize(agent)))) throw new Error("agent: expected a path inside the repository, the project agent's session folder");
 		if (!Number.isInteger(timeoutSeconds) || (timeoutSeconds as number) < 1) throw new Error("timeoutSeconds: expected a whole number of seconds, 1 or more");
 		if (!Array.isArray(stub) || !stub.every((answer) => object(answer) && typeof answer.match === "string")) throw new Error("stub: expected a list of { match, output?, exit?, files? }");
 		for (const [index, answer] of (stub as Json[]).entries()) {

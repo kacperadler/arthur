@@ -113,7 +113,7 @@
     "id": "resume-jobs",
     "at": "2026-11-23T20:20",
     "action": {
-      "message": "Resume the three runs the 19:58 restart stopped, as CPU allows (handoff, \"Restart at 19:58\" line): AR0713 conflict fix 2026-11-23-worker-72202bff first, then AR0714 2026-11-23-worker-dabd19ca, then PG0155 2026-11-23-worker-f8ce788c. If still no room, add another one-off entry 20 minutes later."
+      "message": "Resume, as CPU allows, the runs the 19:58 restart ended (handoff, \"To resume\" list): AR0714 2026-11-23-worker-dabd19ca, ZF0096 2026-11-23-worker-9130d1a1, ZF0092 2026-11-23-worker-7c17f0a0, PG0155 2026-11-23-worker-f8ce788c. Each keeps its uncommitted work in its worktree. If still no room, add another one-off entry 20 minutes later."
     }
   }
 ]

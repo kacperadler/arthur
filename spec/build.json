@@ -5765,37 +5765,40 @@
   {
     "id": "AR0713",
     "title": "A project agent's reply uses up the coordinator's silent ask, so the coordinator's decision question is held and never sent",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0713-a-project-agent-s-reply-uses-up-the-coordinator-s-silent-ask-so-the-coordinator/ticket.md",
-    "updated": "2026-11-17T01:27:58.946Z"
+    "updated": "2026-11-23T16:37:36.082Z"
   },
   {
     "id": "AR0714",
     "title": "A project agent's voice notes and arthur send files go through the main bot to the main chat, not to its own chat",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0714-a-project-agent-s-voice-notes-and-arthur-send-files-go-through-the-main-bot-to/ticket.md",
-    "updated": "2026-11-17T01:27:59.555Z"
+    "updated": "2026-11-23T16:37:37.497Z"
   },
   {
     "id": "AR0715",
     "title": "Two projects can share one chat without a refusal when one names the main bot and the other leaves the bot out",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0715-two-projects-can-share-one-chat-without-a-refusal-when-one-names-the-main-bot/ticket.md",
-    "updated": "2026-11-17T01:28:00.171Z"
+    "updated": "2026-11-23T16:37:38.937Z"
   },
   {
     "id": "AR0716",
     "title": "A project agent is never told where its after-restart steps go, and its handoff request calls it the coordinator",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0716-a-project-agent-is-never-told-where-its-after-restart-steps-go-and-its-handoff/ticket.md",
-    "updated": "2026-11-17T01:28:00.787Z"
+    "updated": "2026-11-23T16:37:40.403Z",
+    "after": [
+      "AR0713"
+    ]
   },
   {
     "id": "AR0717",
     "title": "The vision still says project agents come later",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0717-the-vision-still-says-project-agents-come-later/ticket.md",
-    "updated": "2026-11-17T01:28:01.397Z"
+    "updated": "2026-11-23T16:37:41.823Z"
   },
   {
     "id": "AR0718",

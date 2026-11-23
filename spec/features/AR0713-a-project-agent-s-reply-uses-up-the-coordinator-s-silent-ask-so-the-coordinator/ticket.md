@@ -46,3 +46,4 @@ Out:
 ## Decisions
 
 - 2026-11-17: Source: audit spec/quality/2026-11-17.md
+- 2026-11-23: AR0713 approved: a silent-mode pass belongs to the session that asked for it, budget $10; the owner: "PG-D177 PG-D178 AR-D703 AR-D704 AR-D705 AR-D706 AR-D707 KA-D37 yes" (AR-D703)

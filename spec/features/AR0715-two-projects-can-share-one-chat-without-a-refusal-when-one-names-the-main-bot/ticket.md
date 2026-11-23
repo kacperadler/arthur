@@ -42,3 +42,4 @@ Out:
 
 - 2026-11-17: Source: audit spec/quality/2026-11-17.md
 - 2026-11-17: Source: F2 of AR0705
+- 2026-11-23: AR0715 approved: two projects sharing one chat are refused however the bot is named, budget $10; the owner: "PG-D177 PG-D178 AR-D703 AR-D704 AR-D705 AR-D706 AR-D707 KA-D37 yes" (AR-D705)

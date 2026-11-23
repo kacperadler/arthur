@@ -19,7 +19,7 @@ import { type McpOptions, mcpServers } from "./mcp.ts";
 import { checkOptions, coordinatorOptions } from "./orchestration-options.ts";
 import { paperCheck } from "./paper-check.ts";
 import { plans } from "./plans.ts";
-import { type Chat, chatProblem, oneAtATime, type Session, sessionList, sessionOf } from "./sessions.ts";
+import { type Chat, chatProblem, mainBots, oneAtATime, type Session, sessionFor, sessionList, sessionOf } from "./sessions.ts";
 import { silentMode } from "./silent.ts";
 import { spawnRules } from "./spawn-rules.ts";
 
@@ -31,7 +31,7 @@ import { spawnRules } from "./spawn-rules.ts";
 // autopilot.ts); the silent mode (entry 47, silent.ts); tmux as its `arthur doctor` requirement (entry 80); the morning
 // report (entry 65): with `morningReport.at`, an action schedule sends the coordinator with roles/coordinator/morning-report.md;
 // and the decision log (entry 96, decision-log.ts), `arthur decision` and `arthur decisions`, with what only the owner's decision lets through (decision-use.ts); the merge's check of a worker's branch (paper-check.ts); `actor`, who acts in a session (entry 99, actor.ts);
-// and a project agent per project whose file holds `orchestration.project({ chat })`, its `arthur doctor` line that its chat's plugin sends (entry 85, sessions.ts);
+// and a project agent per project whose file holds `orchestration.project({ chat })`, its `arthur doctor` line that its chat's plugin sends and no other project has its chat (entry 85, sessions.ts);
 // its chat's messages and its project's job ends and plugin messages in its inbox, and `arthur agent tell` (entry 86, inbox.ts, agent-command.ts);
 // and for the session plugin, the list of sessions and the restart of each (entry 88).
 
@@ -112,13 +112,26 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			host.provide("orchestration.chats", () => chats);
 			// A chat its plugin cannot send to would leave its agent mute; `channel.send` with no file is refused before anything is sent.
 			const senders = () => host.collectEach("channel.send", { files: [] }).map((answer) => answer.plugin);
+			// The project whose agent gets a chat's messages: an earlier one's when both chats are one place of one bot, one naming its
+			// channel's main bot and one no bot, which the load lets through, since a channel answers `channel.main` only once set up.
+			const hears = ({ plugin, instance, place }: Chat, main = mainBots(host)) =>
+				sessionFor(sessions, { channel: plugin, instance: instance ?? main[plugin], place }, main).project;
 			if (chats.length > 0)
 				host.provide("doctor", () =>
-					chats.map(({ project, plugin }) => ({
+					chats.map(({ project, ...chat }) => ({
 						name: `chat of ${project}`,
-						check: () => (senders().includes(plugin) ? "ok" : `missing: ${plugin} provides no channel.send; plugins that do: ${senders().join(", ") || "none"}`),
+						check: () => {
+							const [main, { plugin }] = [mainBots(host), chat];
+							const other = hears(chat, main);
+							if (other !== project) return `missing: its chat ${JSON.stringify(chat)} is project ${other}'s too, ${plugin}'s main bot being ${main[plugin]}; each project agent needs a place of its own`;
+							return senders().includes(plugin) ? "ok" : `missing: ${plugin} provides no channel.send; plugins that do: ${senders().join(", ") || "none"}`;
+						},
 						costs: `no agent of project ${project}, nor arthur run`,
-						fix: `enable the ${plugin} plugin in arthur.config.ts, or name a channel plugin in the chat of ${project}'s orchestration.project(...)`,
+						get fix() {
+							const other = hears(chat);
+							if (other !== project) return `name another place or bot in the chat of ${project}'s orchestration.project(...), or of ${other}'s`;
+							return `enable the ${chat.plugin} plugin in arthur.config.ts, or name a channel plugin in the chat of ${project}'s orchestration.project(...)`;
+						},
 						critical: true,
 					})),
 				);

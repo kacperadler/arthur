@@ -4,6 +4,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## Unreleased
 
+### 2026-11-23
+
+#### Fixed
+
+- AR0715 Two projects can share one chat without a refusal when one names the main bot and the other leaves the bot out (74c6f841)
+
 ### 2026-11-20
 
 #### Changed

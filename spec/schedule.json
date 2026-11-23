@@ -85,5 +85,21 @@
       "message": "Steel thread: the 07:00 run is done; collect the evidence and write the report as the procedure below says.",
       "procedure": ".arthur/session/steel-thread.md"
     }
+  },
+  {
+    "id": "zf-thread-check-2",
+    "at": "2026-11-24T06:20",
+    "action": {
+      "message": "ZF steel thread rerun: the 06:20 pre-run check (keys, services, test data), as the procedure says.",
+      "procedure": ".arthur/session/steel-thread.md"
+    }
+  },
+  {
+    "id": "zf-thread-report-2",
+    "at": "2026-11-24T07:10",
+    "action": {
+      "message": "ZF steel thread rerun: collect the evidence of the 07:00 run and send the owner the report, as the procedure says.",
+      "procedure": ".arthur/session/steel-thread.md"
+    }
   }
 ]

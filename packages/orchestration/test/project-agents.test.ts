@@ -111,26 +111,28 @@ const noFile = () => {
 };
 
 // AR0715: the load compares the bots' names as written, before a channel can say which bot is main.
-test("doctor: two projects in one place, one naming the channel's main bot and one no bot, are a critical line of the later one, in either order, naming both and the chat", async (t) => {
-	const [named, unnamed] = [chat("test", "42", "first"), chat("test", "42")];
-	const taken = (project: string, piece: { chat: unknown }, other = "shop") =>
-		line(project, "test", `missing: its chat ${JSON.stringify(piece.chat)} is project ${other}'s too, test's main bot being first; each project agent needs a place of its own`, `name another place or bot in the chat of ${project}'s orchestration.project(...), or of ${other}'s`);
-	for (const [shop, blog] of [[unnamed, named], [named, unnamed]] as const) {
+const [NAMED, UNNAMED] = [chat("test", "42", "first"), chat("test", "42")];
+const taken = (project: string, piece: { chat: unknown }, other = "shop") =>
+	line(project, "test", `missing: its chat ${JSON.stringify(piece.chat)} is project ${other}'s too, test's main bot being first; each project agent needs a place of its own`, `name another place or bot in the chat of ${project}'s orchestration.project(...), or of ${other}'s`);
+
+for (const [order, shop, blog] of [["the unnamed one first", UNNAMED, NAMED], ["the named one first", NAMED, UNNAMED]] as const)
+	test(`doctor: two projects in one place, one naming the channel's main bot and one no bot, are a critical line of the later one, naming both and the chat: ${order}`, async (t) => {
 		const { fake } = await load(t, { shop, docs: undefined, blog });
 		fake.provide("channel.send", noFile);
 		assert.deepEqual(shown(fake), [line("shop", "test", "ok"), line("blog", "test", "ok")], "no channel answers which bot is main: two bots, as written");
 		fake.provide("channel.main", () => "first");
 		assert.deepEqual(shown(fake), [line("shop", "test", "ok"), taken("blog", blog)]);
-	}
-	// The first project in that chat is the one named, whatever lies between; a chat that is no one's before it stays fine.
-	const three = await load(t, { web: chat("test", "43"), shop: named, blog: chat("test", "42", "second"), docs: unnamed });
+	});
+
+test("doctor: the shared chat's line names the first project in it, whatever lies between, and comes before a missing channel.send", async (t) => {
+	const three = await load(t, { web: chat("test", "43"), shop: NAMED, blog: chat("test", "42", "second"), docs: UNNAMED });
 	three.fake.provide("channel.send", noFile);
 	three.fake.provide("channel.main", () => "first");
-	assert.deepEqual(shown(three.fake), [line("web", "test", "ok"), line("shop", "test", "ok"), line("blog", "test", "ok"), taken("docs", unnamed)]);
-	// Without channel.send too, the shared chat is the line: its plugin is enabled, since it answered which bot is main.
-	const mute = await load(t, { shop: unnamed, blog: named });
+	assert.deepEqual(shown(three.fake), [line("web", "test", "ok"), line("shop", "test", "ok"), line("blog", "test", "ok"), taken("docs", UNNAMED)]);
+	// Its plugin is enabled, since it answered which bot is main: the fix is another place or bot, not enabling the plugin.
+	const mute = await load(t, { shop: UNNAMED, blog: NAMED });
 	mute.fake.provide("channel.main", () => "first");
-	assert.deepEqual(shown(mute.fake), [line("shop", "test", "missing: test provides no channel.send; plugins that do: none"), taken("blog", named)]);
+	assert.deepEqual(shown(mute.fake), [line("shop", "test", "missing: test provides no channel.send; plugins that do: none"), taken("blog", NAMED)]);
 });
 
 test("doctor: two projects on different places, bots or channels are no shared chat, nor is a named bot beside an unnamed main one", async (t) => {

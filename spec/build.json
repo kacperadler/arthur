@@ -5954,5 +5954,12 @@
     "status": "merged",
     "path": "spec/features/AR0737-arthur-s-text-uses-instead-of-the-owner-s-standard/ticket.md",
     "updated": "2026-11-24T10:29:26.973Z"
+  },
+  {
+    "id": "AR0738",
+    "title": "arthur commit-board commits the board and the decision log after the project commit-msg check (AR0667 T2)",
+    "status": "planning",
+    "path": "spec/features/AR0738-arthur-commit-board-commits-the-board-and-the-decision-log-after-the-project/ticket.md",
+    "updated": "2026-11-24T12:25:32.158Z"
   }
 ]

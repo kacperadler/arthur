@@ -5772,9 +5772,9 @@
   {
     "id": "AR0714",
     "title": "A project agent's voice notes and arthur send files go through the main bot to the main chat, not to its own chat",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0714-a-project-agent-s-voice-notes-and-arthur-send-files-go-through-the-main-bot-to/ticket.md",
-    "updated": "2026-11-23T16:38:18.022Z"
+    "updated": "2026-11-23T23:10:10.715Z"
   },
   {
     "id": "AR0715",
@@ -5786,9 +5786,9 @@
   {
     "id": "AR0716",
     "title": "A project agent is never told where its after-restart steps go, and its handoff request calls it the coordinator",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0716-a-project-agent-is-never-told-where-its-after-restart-steps-go-and-its-handoff/ticket.md",
-    "updated": "2026-11-23T22:47:39.454Z",
+    "updated": "2026-11-24T00:21:45.405Z",
     "after": [
       "AR0713"
     ]

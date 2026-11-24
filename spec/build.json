@@ -5947,5 +5947,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0736-arthur-silent-help-says-every-held-reply-goes-to-the-coordinator-outbox/ticket.md",
     "updated": "2026-11-24T01:24:58.881Z"
+  },
+  {
+    "id": "AR0737",
+    "title": "Arthur's text uses '-' instead of '—', the owner's standard",
+    "status": "planning",
+    "path": "spec/features/AR0737-arthur-s-text-uses-instead-of-the-owner-s-standard/ticket.md",
+    "updated": "2026-11-24T09:38:13.454Z"
   }
 ]

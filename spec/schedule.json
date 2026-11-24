@@ -115,12 +115,5 @@
     "action": {
       "message": "The owner asked (2026-11-23 ~22:30): at 09:00, when his recommend grant ends, send him one report of the night: the 07:10 steel-thread result (already sent at 07:10), every job started, finished, reviewed or merged since 22:30, every decision answered by policy, and the questions still waiting for him (merges of ZF0092/ZF0093/ZF0094/ZF0096 and the older ZF ones). Run npx arthur silent ask first so it reaches him."
     }
-  },
-  {
-    "id": "queue-spawns-4",
-    "at": "2026-11-24T14:40",
-    "action": {
-      "message": "Start the rest of the approved queue as room allows, in this order: ZF0102 planner, ZF0082 continue, ZF0152 planner (see handoff section 1). If still no room, add another one-off entry 30 minutes later."
-    }
   }
 ]

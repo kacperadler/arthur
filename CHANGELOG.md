@@ -6,6 +6,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### 2026-11-24
 
+#### Added
+
+- AR0735 A spawn refused for lack of CPU waits for a job end that may never free room, so the coordinator schedules retries by hand (19a44ba4)
+
 #### Fixed
 
 - AR0716 A project agent is never told where its after-restart steps go, and its handoff request calls it the coordinator (75f8c7b3)

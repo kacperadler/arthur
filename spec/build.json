@@ -5772,9 +5772,9 @@
   {
     "id": "AR0714",
     "title": "A project agent's voice notes and arthur send files go through the main bot to the main chat, not to its own chat",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0714-a-project-agent-s-voice-notes-and-arthur-send-files-go-through-the-main-bot-to/ticket.md",
-    "updated": "2026-11-24T11:40:47.859Z"
+    "updated": "2026-11-24T13:26:09.803Z"
   },
   {
     "id": "AR0715",
@@ -5937,9 +5937,9 @@
   {
     "id": "AR0735",
     "title": "A spawn refused for lack of CPU waits for a job end that may never free room, so the coordinator schedules retries by hand",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0735-a-spawn-refused-for-lack-of-cpu-waits-for-a-job-end-that-may-never-free-room-so/ticket.md",
-    "updated": "2026-11-24T12:58:47.885Z"
+    "updated": "2026-11-24T13:32:53.670Z"
   },
   {
     "id": "AR0736",

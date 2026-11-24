@@ -1,3 +1,5 @@
+import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { memoryBytes } from "@arthur/core";
 import type { Host } from "@arthur/core/plugin";
 import { diskGB, diskPaths, leastFree, underFloor } from "./machine-disk.ts";
@@ -77,23 +79,41 @@ export function roomGuard(host: Host, folder: string, perJob: Reserve, keepFree:
 		return roomOf(name, sample, pending, perJob, keepFree);
 	};
 	const lines = async () => (await Promise.all(host.jobs.machines().map(async (name) => room(name, await fresh(name)).line))).join("\n");
+	// A refusal for room on a machine is kept once, as `machines/<name>.refused` and the event `room-refused`, until `arthur run`'s
+	// check of `local`, or a machines round's of another machine, finds room there: the process that removes the file, one only,
+	// tells the coordinator (AR0735). A spawn's own check tells nothing: it takes the room it finds.
+	const refused = (name: string) => join(folder, "machines", `${name}.refused`);
+	const tell = (name: string, sample: Sample) => {
+		const { jobs, line } = room(name, sample);
+		if (jobs === 0) return;
+		try {
+			rmSync(refused(name));
+		} catch {
+			return;
+		}
+		host.events.emit("coordinator-message", { text: `${name} has room again, after a spawn or continue was refused there for lack of it: start what waits for it.\n${line}` });
+	};
 	return {
-		checkLocal: () => check("local"),
+		checkLocal: () => check("local").then((sample) => tell("local", sample)),
 		// `machines.round`: each listed machine's check of a round begun now, every `everySeconds`, kept as its check (`samples`);
 		// with a floor, `paths` names the ones each check's df reads, so the round's one ssh call carries the disk too.
 		round: (checks: ReadonlyMap<string, Promise<Said>>, everySeconds?: number) => {
 			const asked = new Map([...checks.keys()].map((name) => [name, floor > 0 ? diskPaths(host, name) : undefined]));
-			const samples = Promise.all([...checks].map(([name, said]) => keep(name, checkSample(host, folder, name, floor, said, everySeconds, asked.get(name)))));
+			const samples = Promise.all([...checks].map(([name, said]) => keep(name, checkSample(host, folder, name, floor, said, everySeconds, asked.get(name))).then((sample) => tell(name, sample))));
 			// A provider's refusal reaches the machine's sample; its check reads no path.
 			const answered = Promise.all([...asked].map(async ([name, paths]) => [name, (await paths?.catch(() => undefined)) ?? []] as const));
 			return { samples, paths: answered.then((entries) => new Map(entries.map(([name, paths]) => [name, "error" in paths ? [] : paths]))) };
 		},
 		// `resources.free`: the jobs machine `name` has room for, as placement reads it.
 		free: async (name: string) => room(name, await fresh(name)).jobs,
-		// `beforeSpawn`: a job starts only on a machine with room for it; the refusal names every machine and its room.
+		// `beforeSpawn`: a job starts only on a machine with room for it; the refusal names every machine and its room, kept once for `tell`.
 		async check({ machine }: { readonly machine: string }): Promise<string | undefined> {
 			if (room(machine, await fresh(machine)).jobs > 0) return undefined;
-			return `no room on ${machine} for another job: ${(await lines()).split("\n").join("; ")}; spawn again once a job ends`;
+			if (!existsSync(refused(machine))) {
+				writeFileSync(refused(machine), "");
+				host.events.emit("room-refused", { machine });
+			}
+			return `no room on ${machine} for another job: ${(await lines()).split("\n").join("; ")}; the coordinator is told once ${machine} has room again: spawn again then`;
 		},
 		lines,
 		// The coordinator's context: the same lines from the checks kept, without checking anew.

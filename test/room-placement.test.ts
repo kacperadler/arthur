@@ -93,7 +93,7 @@ test("placement takes the machine with the most room as resources.free answers i
 	at.setLocal(1 * GB);
 	gpu(1 * GB);
 	await assert.rejects(at.fake.host.jobs.spawn({ task: "Go." }), {
-		message: /^refused by resources: no room on local for another job: local: no room, short of 1\.0 GB memory .*; gpu: no room, short of 1\.0 GB memory .*; spawn again once a job ends$/,
+		message: /^refused by resources: no room on local for another job: local: no room, short of 1\.0 GB memory .*; gpu: no room, short of 1\.0 GB memory .*; the coordinator is told once local has room again: spawn again then$/,
 	});
 });
 

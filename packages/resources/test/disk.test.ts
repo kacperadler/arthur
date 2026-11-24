@@ -147,7 +147,7 @@ test("a spawn exactly at the floor starts; the floor hit mid-job leaves the job 
 	assert.deepEqual(notices(), [`machine local: 19.9 GB free on ${home}, floor 20 GB; no job starts there until it is back at the floor, the running ones go on`]);
 	assert.ok(fake.host.jobs.running().includes(one.id), "the running job goes on");
 	await assert.rejects(fake.host.jobs.spawn({ task: "Two.", machine: "local" }), {
-		message: `refused by resources: no room on local for another job: ${said}; gpu: room for any number of jobs, perJob reserving nothing (8.0 GB, 8.0 cores, 40 GB disk free); spawn again once a job ends`,
+		message: `refused by resources: no room on local for another job: ${said}; gpu: room for any number of jobs, perJob reserving nothing (8.0 GB, 8.0 cores, 40 GB disk free); the coordinator is told once local has room again: spawn again then`,
 	});
 	later();
 	assert.equal(await free("local"), 0);

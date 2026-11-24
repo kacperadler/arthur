@@ -47,7 +47,7 @@ const BUDGETS = {
 
 	projects: 595,
 
-	resources: 638,
+	resources: 661,
 
 	schedule: 621,
 

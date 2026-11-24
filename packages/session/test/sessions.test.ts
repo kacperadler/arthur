@@ -157,7 +157,7 @@ test("/restart from shop's chat: shop's agent writes its handoff in its folder, 
 	await box.start();
 	assert.equal(await box.route("/restart", { channel: "test", place: "shop" }), "restarting: the project agent of shop writes its handoff first, for at most 120 s; Restarted. follows");
 	await until("the handoff request", () => first.messages().length === 1);
-	assert.equal(first.messages()[0]?.content, ask(handoff, "and goes on with this one"));
+	assert.equal(first.messages()[0]?.content, ask(handoff, "and goes on with this conversation"));
 	writeFileSync(handoff, `${HANDOFF}\n`);
 	box.open("written");
 	await until("the restart", () => box.restarted.length === 1);

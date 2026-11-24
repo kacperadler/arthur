@@ -34,8 +34,8 @@ test("the handoff request is today's text, word for word, for a compaction, a re
 		`First write your handoff to ${handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The ${next} conversation starts by reading it. ${ARTHUR}`;
 	const [compact, restart, fresh] = await Promise.all(["compact", "restart", "fresh"].map((then) => asked(handoffs as (pi: unknown) => void, then)));
 	assert.equal(compact?.message, `[Arthur] Your conversation is compacted after this turn. ${rest(compact?.handoff ?? "", "compacted")}`);
-	assert.equal(restart?.message, `[Arthur] This conversation ends after this turn: the coordinator restarts and goes on with this one. ${rest(restart?.handoff ?? "", "next")}`);
-	assert.equal(fresh?.message, `[Arthur] This conversation ends after this turn: the coordinator restarts in a fresh conversation. ${rest(fresh?.handoff ?? "", "next")}`);
+	assert.equal(restart?.message, `[Arthur] This conversation ends after this turn: this session restarts and goes on with this conversation. ${rest(restart?.handoff ?? "", "next")}`);
+	assert.equal(fresh?.message, `[Arthur] This conversation ends after this turn: this session restarts in a fresh conversation. ${rest(fresh?.handoff ?? "", "next")}`);
 });
 
 test("the request's words are the file roles/coordinator/handoff-<then>.md beside the extension, each {handoff} filled in, a $ pattern in the path kept", async () => {

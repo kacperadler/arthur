@@ -55,7 +55,7 @@ test("/restart with a coordinator: the handoff first, the restart goes on with -
 	assert.equal(await box.route("/restart"), "restarting: the coordinator writes its handoff first, for at most 120 s; Restarted. follows");
 	assert.equal(await box.route("/restart fresh"), "error: a restart is already on its way, asked by /restart");
 	await until("the handoff request", () => first.messages().length === 1);
-	assert.equal(first.messages()[0]?.content, ask(box.handoff, "and goes on with this one"));
+	assert.equal(first.messages()[0]?.content, ask(box.handoff, "and goes on with this conversation"));
 	writeFileSync(box.handoff, `${HANDOFF}\n`);
 	writeFileSync(join(box.folder, "after-restart.md"), "Log in again: omp login.\n");
 	box.open("written");
@@ -140,7 +140,7 @@ test("a compaction still asked for gives way to /restart", async (t) => {
 	assert.equal(await box.route("/restart"), "restarting: the coordinator writes its handoff first, for at most 120 s; Restarted. follows");
 	box.open("idle");
 	await until("the restart", () => box.restarts.length === 1);
-	assert.deepEqual(first.messages().map((message) => message.content), ["Busy.", ask(box.handoff, "and goes on with this one")], "the compaction's handoff is never asked");
+	assert.deepEqual(first.messages().map((message) => message.content), ["Busy.", ask(box.handoff, "and goes on with this conversation")], "the compaction's handoff is never asked");
 	assert.deepEqual(box.out, ["session: restart: done; the coordinator restarts, with no handoff (handoff not written: no new handoff when the coordinator's turn ended)"]);
 });
 

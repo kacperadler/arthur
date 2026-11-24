@@ -25,7 +25,7 @@ Health:
 - <each line another plugin answers to collect("health")>
 ```
 
-`(arthur run restarted)` after a restart that ended `arthur run` (step 6), `(fresh session)` after a fresh conversation, `(handoff not written)` when no new handoff was written, joined by `; `; plain `Restarted.` otherwise. `after-restart.md` holds the steps for the human after a restart (not the handoff), written by the coordinator; it is sent once and then removed, and a file of only blanks is not sent. A health answer is a line or a list of lines; a plugin whose answer throws gives `<plugin>: health failed: <first line>`.
+`(arthur run restarted)` after a restart that ended `arthur run` (step 6), `(fresh session)` after a fresh conversation, `(handoff not written)` when no new handoff was written, joined by `; `; plain `Restarted.` otherwise. `after-restart.md` holds the steps for the human after a restart (not the handoff), written by the coordinator, or by a project agent in its own folder (below); it is sent once and then removed, and a file of only blanks is not sent. A health answer is a line or a list of lines; a plugin whose answer throws gives `<plugin>: health failed: <first line>`.
 
 The command's message is answered here and never reaches the coordinator's inbox, so the next conversation does not read it again.
 

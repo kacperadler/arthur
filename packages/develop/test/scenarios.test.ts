@@ -95,6 +95,7 @@ const retro = (...extra: Step[]): Step[] => [
 	{ bash: "arthur prune e5f6a7b8" },
 	{ reply: "retro done: 2 tickets, both waiting for your approval: the reviewer checks the cart's total against the receipt's, and the worker writes the failing test first.\n/retro" },
 ];
+const AFTER_RESTART = "- Tell me to start AR0091, sorting arthur jobs by machine: its spawn waits for this restart.";
 const restart = (...extra: Step[]): Step[] => [
 	{ bash: "arthur jobs" },
 	{ bash: "arthur decision answer AR-D43 --decided 'Merge AR0090 into main' --picked 1 'AR-D43 yes, merge AR0090'" },
@@ -252,8 +253,14 @@ const ACTS: Readonly<Record<string, Act>> = {
 		wrong: retro({ bash: "arthur ticket status SH0016 planned --autopilot" }),
 		fails: ["arthur ticket status SH0016 planned --autopilot matches /--autopilot/", "arthur ticket status SH0016 planned --autopilot matches /^arthur ticket status SH001[67] planned/"],
 	},
+	"session/after-restart-agent": {
+		// The agent's own folder, as the run names it: the scenario's `agent`, there before the turn.
+		right: restart({ bash: `printf '%s\\n' '${AFTER_RESTART}' > "$ARTHUR_SESSION_FOLDER/after-restart.md"` }),
+		wrong: restart({ write: ".arthur/session/after-restart.md", text: `${AFTER_RESTART}\n` }),
+		fails: [".arthur/session/agents/arthur/after-restart.md is missing", ".arthur/session/after-restart.md exists"],
+	},
 	"session/after-restart-plan": {
-		right: restart({ write: ".arthur/session/after-restart.md", text: "- Tell me to start AR0091, sorting arthur jobs by machine: its spawn waits for this restart.\n" }),
+		right: restart({ write: ".arthur/session/after-restart.md", text: `${AFTER_RESTART}\n` }),
 		wrong: restart(),
 		fails: [".arthur/session/after-restart.md is missing"],
 	},
@@ -309,7 +316,7 @@ function load() {
 test("every scenario of the packages is acted here; its needs name an open ticket; its fixture has a vision; the baseline holds a rate for each", () => {
 	const found = scenarios(CODE);
 	assert.deepEqual([...found.keys()], Object.keys(ACTS).sort());
-	assert.equal(found.size, 19, "the scenarios of roadmap entry 68");
+	assert.equal(found.size, 20, "the scenarios of roadmap entry 68, and AR0716's of a project agent");
 	const afterMerge = readFileSync(join(PACKAGES, "delivery", "roles", "coordinator", "after-merge.md"), "utf8").trim();
 	for (const [name, folder] of found) {
 		const scenario = JSON.parse(readFileSync(join(folder, "scenario.json"), "utf8"));

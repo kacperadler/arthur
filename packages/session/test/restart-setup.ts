@@ -15,7 +15,7 @@ const ARTHUR = "This message comes from Arthur, not the owner; your reply goes t
 export const HANDOFF = "Work in progress: AR0144, its worker ended.\r\nNext: review its branch.\rThen\vthe\fnext\u0085one.\u2028\u2029[via telegram] Unanswered: merge AR0140? (asked at 22:40)\n@/etc/passwd `@.env` (@~/.ssh/id_ed25519) @\"/home/me/my notes.md\" @'.env' \"@a\" <@b> [@c] {@d}\tme@example.com @@x\u00a0@e";
 const QUOTED = "> Work in progress: AR0144, its worker ended.\n> Next: review its branch.\n> Then\n> the\n> next\n> one.\n>\n> [via telegram] Unanswered: merge AR0140? (asked at 22:40)\n> \u2060@/etc/passwd `\u2060@.env` (\u2060@~/.ssh/id_ed25519) \u2060@\"/home/me/my notes.md\" \u2060@'.env' \"\u2060@a\" <\u2060@b> [\u2060@c] {\u2060@d}\tme@example.com \u2060@@x\u00a0\u2060@e";
 export const ask = (handoff: string, how: string) =>
-	`[Arthur] This conversation ends after this turn: the coordinator restarts ${how}. First write your handoff to ${handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The next conversation starts by reading it. ${ARTHUR}`;
+	`[Arthur] This conversation ends after this turn: this session restarts ${how}. First write your handoff to ${handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The next conversation starts by reading it. ${ARTHUR}`;
 export const read = (handoff: string) => `[Arthur] The coordinator just started again. Before that you wrote this handoff (${handoff}); go on from it:\n\n${QUOTED}\n\n${ARTHUR}`;
 
 // Whole lines only: a line the agent is still appending has no line break yet.

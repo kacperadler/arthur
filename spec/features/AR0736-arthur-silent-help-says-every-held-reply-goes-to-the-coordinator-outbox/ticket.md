@@ -42,3 +42,4 @@ Out:
 - 2026-11-24: Source: audit spec/quality/2026-11-24.md
 - 2026-11-24: Pre-approved by policy: docs from audit spec/quality/2026-11-24.md, 1 Scope file, budget $1 of the $3 cap
 - 2026-11-24: AR0736 budget raised from $1 to $3; it commits its edit and runs the checks; the owner: "AR-D716 1, AR-D717 1, PG-D184 1, PG-D182 1, AR-D718 1, AR-D719 1, AR-D720 1, PG-D183 1, ZF-D95 1, ZF-D107 2, ZF-D72 2" (AR-D718)
+- 2026-11-24: The owner approved AR0736's budget of $3; it commits its edit and runs the checks; the owner: "AR-D723 1, AR-D724 1" (AR-D724)

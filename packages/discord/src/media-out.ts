@@ -3,10 +3,10 @@ import { basename } from "node:path";
 import { channelId } from "./outbox.ts";
 import { type ApiError, type Bot, rest } from "./rest.ts";
 
-// `channel.send` on Discord (spec/roadmap.md, entry 90): files by the main bot in one message, one multipart request
-// (`payload_json` and `files[n]`), the caption as its text, pinging no one, without a notification in quiet hours; to the
-// place when it is a text channel of the bot's server, else to the main channel. Every file is checked before the send is
-// answered, so a refusal sends nothing: packages/discord/docs/discord.md, "Sending files".
+// `channel.send` on Discord (spec/roadmap.md, entry 90): files by the bot the caller picked (discord.ts) in one message, one
+// multipart request (`payload_json` and `files[n]`), the caption as its text, pinging no one, without a notification in quiet
+// hours; to the place when it is a text channel of the bot's server, else to its main channel. Every file is checked before
+// the send is answered, so a refusal sends nothing: packages/discord/docs/discord.md, "Sending files".
 
 const MIB = 1024 * 1024;
 // Discord's limits ("Uploading Files"): 10 files in one message, each up to 20 MiB and all of a request up to 25 MiB; a

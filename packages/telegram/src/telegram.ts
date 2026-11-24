@@ -11,9 +11,9 @@ import { checkOptions } from "./telegram-options.ts";
 // through, else the bot their `instance` names (a project agent's, entry 86), the notices by the bot their `instance` names,
 // else the unnamed bot, else the first, and to their place only when their `channel` is none or telegram; through the outbox
 // (outbox.ts), without a notification in quiet hours, and a notice only when `call("coordinator.silent", notice)` does not
-// hold it; files by `channel.send` (media-out.ts), which `arthur send` asks; each bot's command menu at the start (menu.ts):
-// packages/telegram/docs/telegram.md. Only `arthur run` starts the plugin, so only it polls and sends texts; what comes
-// before the start, as the replay of the event log, is queued at the start.
+// hold it; files by `channel.send` (media-out.ts), which `arthur send` asks, by the bot its `instance` names, else the main
+// one; each bot's command menu at the start (menu.ts): packages/telegram/docs/telegram.md. Only `arthur run` starts the
+// plugin, so only it polls and sends texts; what comes before the start, as the replay of the event log, is queued at the start.
 
 export type BotOptions = { readonly name?: string; readonly botTokenEnv: string; readonly chatIdEnv: string };
 
@@ -70,7 +70,7 @@ export function telegram(options: TelegramOptions): Plugin {
 				return [...bots.map((each) => poll(host, each, stopping.signal, send, box.flush)), menu(host, bots, stopping.signal)];
 			};
 			idle = box.idle;
-			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));
+			host.provide("channel.send", (message: unknown) => outgoing(named(asRecord(message).instance), () => host.clock.isQuiet(), message));
 			// The main bot's name, none for the unnamed one: a project's chat that names no bot is its (orchestration's routing).
 			host.provide("channel.main", () => main.name);
 			// Each bot a project's chat names (orchestration's `orchestration.chats`, roadmap 85) talks in topics of its private chat.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { basename, join } from "node:path";
 import { test } from "node:test";
@@ -363,6 +363,8 @@ export default { plugins: [{ name: "orchestration", setup(host) {
 
 // Two channels as plugins provide `channel.send`: each checks the message and answers its send, which writes what it sent in
 // `<channel>.json` beside the config; `phone` refuses a file whose name ends in `bad`, `pager` fails the send of one ending in `down`.
+// `actor.chat` as orchestration answers it: the chat of the project agent whose session's folder ARTHUR_ORCHESTRATION_FOLDER
+// names, none in any other process; the chat of `docs` is on `radio`, which is no channel here.
 const CHANNELS = `import { writeFileSync } from "node:fs";
 const channel = (name, refuse, fail) => ({ name, setup(host) {
 	host.provide("channel.send", (message) => {
@@ -374,7 +376,9 @@ const channel = (name, refuse, fail) => ({ name, setup(host) {
 		};
 	});
 } });
-export default { plugins: [{ name: "orchestration", setup() {} }, channel("phone", "bad", "never"), channel("pager", "never", "down")] };
+const chats = { "agents/shop": { plugin: "pager", instance: "shop", place: "42" }, "agents/blog": { plugin: "phone", place: "7" }, "agents/docs": { plugin: "radio", place: "1" } };
+const orchestration = { name: "orchestration", setup(host) { host.provide("actor.chat", () => chats[process.env.ARTHUR_ORCHESTRATION_FOLDER]); } };
+export default { plugins: [orchestration, channel("phone", "bad", "never"), channel("pager", "never", "down")] };
 `;
 
 test("arthur send asks every channel and sends only once all took the message: files from the working folder, the caption and the place", () => {
@@ -388,6 +392,31 @@ test("arthur send asks every channel and sends only once all took the message: f
 	assert.deepEqual(sent("pager").files, [join(folder, "a.png"), "/tmp/b.mp4"], "no channel sent, the one that took it included");
 	const failed = arthur(folder, "send", "e.down");
 	assert.deepEqual([failed.status, failed.stdout, failed.stderr], [1, "phone: sent 1\n", "arthur send: pager: the send failed\n"]);
+});
+
+// AR0714: a project agent's files go to its own chat, not to every channel's main one.
+test("arthur send in a project agent's session sends to its chat alone: its channel, by its bot, to its place; with --place, and in any other session, as before", () => {
+	const folder = project(CHANNELS);
+	// What each channel sent since the last look.
+	const sent = () =>
+		["phone", "pager"].map((name) => {
+			const file = join(folder, `${name}.json`);
+			const message = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;
+			rmSync(file, { force: true });
+			return message;
+		});
+	const run = (session: string, ...args: string[]) => {
+		const env = { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_ORCHESTRATION_FOLDER: session };
+		const { status, stdout, stderr } = spawnSync(process.execPath, [CLI, "send", ...args], { cwd: folder, encoding: "utf8", env });
+		return [status, stdout, stderr, ...sent()];
+	};
+	const [a, bad] = [join(folder, "a.png"), join(folder, "b.bad")];
+	assert.deepEqual(run("agents/shop", "a.png", "b.bad", "--caption", "Screens."), [0, "pager: sent 2\n", "", undefined, { files: [a, bad], caption: "Screens.", place: "42", instance: "shop" }], "phone, which would refuse b.bad, is not its chat's channel");
+	assert.deepEqual(run("agents/blog", "a.png"), [0, "phone: sent 1\n", "", { files: [a], place: "7" }, undefined], "a chat that names no bot");
+	assert.deepEqual(run("agents/shop", "a.png", "--place", "12"), [0, "phone: sent 1\npager: sent 1\n", "", { files: [a], place: "12" }, { files: [a], place: "12" }], "--place");
+	assert.deepEqual(run("orchestration", "a.png"), [0, "phone: sent 1\npager: sent 1\n", "", { files: [a] }, { files: [a] }], "the coordinator's session");
+	assert.deepEqual(run("agents/shop", "e.down"), [1, "", "arthur send: pager: the send failed\n", undefined, undefined]);
+	assert.deepEqual(run("agents/docs", "a.png"), [1, "", "arthur send: this session's chat is on radio, which provides no channel.send: see arthur doctor\n", undefined, undefined]);
 });
 
 test("arthur send: no channel enabled says so; no file or a flag without its value is wrong usage", () => {

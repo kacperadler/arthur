@@ -2,10 +2,10 @@ import { readFileSync, statSync } from "node:fs";
 import { basename, extname } from "node:path";
 import { type Bot, call, topic } from "./bot-api.ts";
 
-// `channel.send` on Telegram (spec/roadmap.md, entry 49): files by the main bot, to a topic when the place is one, without a
-// notification in quiet hours: photos and videos as an album (one alone as itself), the other files as documents after it, and
-// each `.ogg` file alone as a voice note (AR0553), the caption on the first message. Every file is checked before the send is
-// answered, so a refusal sends nothing: packages/telegram/docs/telegram.md, "Sending files".
+// `channel.send` on Telegram (spec/roadmap.md, entry 49): files by the bot the caller picked (telegram.ts), to a topic when the
+// place is one, without a notification in quiet hours: photos and videos as an album (one alone as itself), the other files as
+// documents after it, and each `.ogg` file alone as a voice note (AR0553), the caption on the first message. Every file is
+// checked before the send is answered, so a refusal sends nothing: packages/telegram/docs/telegram.md, "Sending files".
 
 type Item = { readonly path: string; readonly kind: "photo" | "video" | "document" | "voice" };
 

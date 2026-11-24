@@ -6,7 +6,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { type TestContext, test } from "node:test";
 import { temporaryFolder, until } from "@arthur/core/testing";
-import { FOREIGN, fakeDiscord, load, MAIN, message, NOW, PROJECT, snowflake, TOKEN } from "./fake-discord.ts";
+import { FOREIGN, fakeDiscord, GUILD, load, MAIN, message, NOW, OWNER, PROJECT, SECOND, snowflake, TOKEN } from "./fake-discord.ts";
 
 // Files both ways on Discord (spec/roadmap.md, entry 90): what the owner sends saved as parts, and `channel.send`.
 
@@ -138,6 +138,28 @@ test("send: a place that is a text channel of the server is where the files go; 
 	api.fail(`GET /channels/${PROJECT}`, 502, { message: "Bad Gateway", code: 0 });
 	await assert.rejects(fake.call<() => Promise<string>>("channel.send", { files: [file], place: PROJECT })(), /GET \/channels\/1300000000000000004: 502: Bad Gateway/);
 	assert.equal(api.took.length, 5, "a place Discord could not say goes nowhere, not to the main channel");
+});
+
+// AR0714: a project agent's files and voice notes go by its chat's bot, as its replies do.
+test("send: by the bot its instance names, to that bot's main channel or the place in its server; with none, or a name no bot has, by the unnamed bot", async (t) => {
+	const api = await fakeDiscord(t);
+	const unnamed = { tokenEnv: "ARTHUR_DISCORD_BOT_TOKEN", guildIdEnv: "ARTHUR_DISCORD_GUILD_ID", userIdEnv: "ARTHUR_DISCORD_USER_ID", channelIdEnv: "ARTHUR_DISCORD_CHANNEL_ID" };
+	const bots = [{ ...unnamed, name: "shop", tokenEnv: "ARTHUR_DISCORD_SECOND_BOT_TOKEN", channelIdEnv: "ARTHUR_DISCORD_SECOND_CHANNEL_ID" }, unnamed];
+	const env = { ARTHUR_DISCORD_BOT_TOKEN: TOKEN, ARTHUR_DISCORD_GUILD_ID: GUILD, ARTHUR_DISCORD_USER_ID: OWNER, ARTHUR_DISCORD_CHANNEL_ID: MAIN, ARTHUR_DISCORD_SECOND_BOT_TOKEN: SECOND, ARTHUR_DISCORD_SECOND_CHANNEL_ID: PROJECT };
+	const { fake } = await load(t, { apiUrl: api.url, bots }, { env });
+	const file = join(temporaryFolder(), "a.txt");
+	writeFileSync(file, "a");
+	for (const to of [{ instance: "shop" }, { instance: "shop", place: MAIN }, {}, { instance: "gone" }, { place: PROJECT }]) await fake.call<() => Promise<string>>("channel.send", { files: [file], ...to })();
+	const [shop, main] = [`Bot ${SECOND}`, `Bot ${TOKEN}`];
+	assert.deepEqual(api.calls.map((call) => [call.headers.authorization, call.method, call.path]), [
+		[shop, "POST", `/channels/${PROJECT}/messages`],
+		[shop, "GET", `/channels/${MAIN}`],
+		[shop, "POST", `/channels/${MAIN}/messages`],
+		[main, "POST", `/channels/${MAIN}/messages`],
+		[main, "POST", `/channels/${MAIN}/messages`],
+		[main, "GET", `/channels/${PROJECT}`],
+		[main, "POST", `/channels/${PROJECT}/messages`],
+	]);
 });
 
 test("send: every refusal at once, before anything goes: over 10 files, a file over 20 MiB, over 25 MiB in all, a missing or empty file, a long caption", async (t) => {

@@ -98,6 +98,8 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			decisionUse(host, sessions);
 			paperCheck(host);
 			host.provide("actor", actor(sessions));
+			// For the core's `arthur send`: the chat of the project agent whose session this process runs in; none in any other.
+			host.provide("actor.chat", () => sessionOf(sessions)?.chat);
 			const at = (host.options as OrchestrationOptions).morningReport?.at;
 			const report = { id: "report", at, option: "morningReport.at", action: { message: "Write the morning report.", procedure: fileURLToPath(new URL("../roles/coordinator/morning-report.md", import.meta.url)) } };
 			if (at !== undefined && host.collect("schedule.register", host.name, [report], host.package).length === 0)

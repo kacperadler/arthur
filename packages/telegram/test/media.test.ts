@@ -3,7 +3,7 @@ import { readFileSync, truncateSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { temporaryFolder, until } from "@arthur/core/testing";
-import { botApi, CHAT, load, said, TOKEN } from "./fake-bot-api.ts";
+import { botApi, CHAT, load, SECOND, said, TOKEN } from "./fake-bot-api.ts";
 
 const MB = 1024 * 1024;
 
@@ -122,6 +122,27 @@ test("channel.send: photos and videos as one album with the caption, then the ot
 			media: JSON.stringify([{ type: "photo", media: "attach://file0", caption: "Screens." }, { type: "video", media: "attach://file1" }, { type: "photo", media: "attach://file2" }]),
 		},
 		{ method: "sendMediaGroup", ...to, file0: upload(path("c.pdf")), file1: upload(path("e.txt")), media: JSON.stringify([{ type: "document", media: "attach://file0" }, { type: "document", media: "attach://file1" }]) },
+	]);
+});
+
+// AR0714: a project agent's files and voice notes go by its chat's bot, as its replies do.
+test("channel.send: by the bot its instance names, to that bot's chat and the topic; with none, or a name no bot has, by the unnamed bot", async (t) => {
+	const api = await botApi(t);
+	const bots = [{ name: "shop", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" }, { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }];
+	const env = { ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: String(CHAT), ARTHUR_TELEGRAM_SECOND_BOT_TOKEN: SECOND, ARTHUR_TELEGRAM_SECOND_CHAT_ID: "5151" };
+	const { fake } = await load(t, { apiUrl: api.url, bots }, { env });
+	const path = files({ "note.ogg": "opus bytes" });
+	for (const to of [{ place: "42", instance: "shop" }, { instance: "shop" }, { place: "42" }, { place: "42", instance: "gone" }, {}]) {
+		const [answer] = fake.host.collectEach<() => Promise<string>>("channel.send", { files: [path("note.ogg")], ...to });
+		assert.ok(answer !== undefined && "value" in answer, JSON.stringify(answer));
+		assert.equal(await answer.value(), "sent 1 file in 1 message");
+	}
+	assert.deepEqual(api.calls.filter((call) => call.method === "sendVoice").map((call) => [call.token, call.params.chat_id, call.params.message_thread_id]), [
+		[SECOND, "5151", "42"],
+		[SECOND, "5151", undefined],
+		[TOKEN, String(CHAT), "42"],
+		[TOKEN, String(CHAT), "42"],
+		[TOKEN, String(CHAT), undefined],
 	]);
 });
 

@@ -50,3 +50,4 @@ Out:
 - 2026-11-17: Source: F1 of AR0706
 - 2026-11-23: AR0714 approved: a project agent voice replies and sent files go to its own chat, budget $10; the owner: "PG-D177 PG-D178 AR-D703 AR-D704 AR-D705 AR-D706 AR-D707 KA-D37 yes" (AR-D704)
 - 2026-11-23: AR0714 budget raised from $10 to $20; it finishes on the same branch; the owner: "AR-D709 1, AR-D708 1, AR-D711 1" (AR-D708)
+- 2026-11-24: Merge AR0714; the owner: "AR-D716 1, AR-D717 1, PG-D184 1, PG-D182 1, AR-D718 1, AR-D719 1, AR-D720 1, PG-D183 1, ZF-D95 1, ZF-D107 2, ZF-D72 2" (AR-D717)

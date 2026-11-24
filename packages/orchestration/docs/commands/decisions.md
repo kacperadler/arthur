@@ -7,7 +7,7 @@ Reads the project's decision log, `spec/decisions.jsonl` (`arthur decision --hel
 Without an id, one line per question, in the order asked:
 
 ```
-<id> <date asked> <kind>[ <ticket>]: <question> — open | answered <date>: <decided> | closed <date>: <reason>
+<id> <date asked> <kind>[ <ticket>]: <question> - open | answered <date>: <decided> | closed <date>: <reason>
 ```
 
 The later answer counts. A line under the ticket's Decisions that differs from what the answers write adds `; edited by hand under the Decisions of <ticket>`, and one missing adds `; its line under the Decisions of <ticket> is missing`; neither is rewritten here.

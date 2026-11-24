@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -10,10 +10,11 @@ import { checkOptions } from "../src/develop-options.ts";
 
 // `arthur eval` against the fake host, the scenarios in a package folder of the test's own, the main project's checkout a
 // temporary folder, and `omp` a fake of the test's: a shell script that acts on the turn's text as an agent would, through the
-// `arthur` its PATH finds (the eval's stub) and the real CLI by its path. It notes its arguments and environment in `spy`, and
-// the hour `date` reads and its system prompt on stderr. Orchestration's `coordinator.turn` is faked too: it answers what it was
-// asked, as JSON, and refuses a turn that says so; and its `coordinator.checkoutContext`, which answers what it was asked and
-// the copy's README, and refuses a plugin named `refused` as orchestration refuses one that answers no context.
+// `arthur` its PATH finds (the eval's stub) and the real CLI by its path. It notes its arguments and environment in `spy`, the
+// hour `date` reads and its system prompt on stderr, and steps in the folder ARTHUR_SESSION_FOLDER names, when it names one.
+// Orchestration's `coordinator.turn` is faked too: it answers what it was asked, as JSON, and refuses a turn that says so; and its
+// `coordinator.checkoutContext`, which answers what it was asked, as the coordinator or a project agent, and the copy's README,
+// and refuses a plugin named `refused` as orchestration refuses one that answers no context.
 
 const CLI = fileURLToPath(import.meta.resolve("@arthur/core/cli"));
 const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
@@ -54,6 +55,7 @@ arthur ticket new Fix the login > ticket.txt
 arthur merge AR0001 > /dev/null
 arthur send report.png 2> send.txt
 ${quote(process.execPath)} ${quote(CLI)} version > real.txt 2>&1
+[ -d "$ARTHUR_SESSION_FOLDER" ] && printf 'steps\\n' > "$ARTHUR_SESSION_FOLDER/after-restart.md"
 printf 'noted\\n' > notes.md
 git add --all && git commit --quiet --message notes
 echo '{"type":"tool_execution_start","toolCallId":"t1","toolName":"bash","args":{"command":"sleep 1"}}'
@@ -106,9 +108,9 @@ async function load(t: TestContext, list: Readonly<Record<string, Scenario>>, op
 		if (asked[0] === "unknown") throw new Error("schedule.message: refused by the fake");
 		return `scheduled ${JSON.stringify(asked)}`;
 	});
-	fake.provide("coordinator.checkoutContext", ({ root, at, context }: { readonly root: string; readonly at: Date; readonly context: Readonly<Record<string, string>> }) => {
+	fake.provide("coordinator.checkoutContext", ({ root, at, context, agent }: { readonly root: string; readonly at: Date; readonly context: Readonly<Record<string, string>>; readonly agent: boolean }) => {
 		if ("refused" in context) throw new Error("coordinator.checkoutContext: context names refused: refused by the fake");
-		return `# The coordinator\n\nContext of ${root} at ${at.toISOString()} with ${JSON.stringify(context)}: ${readFileSync(join(root, "README.md"), "utf8")}`;
+		return `# The ${agent ? "project agent" : "coordinator"}\n\nContext of ${root} at ${at.toISOString()} with ${JSON.stringify(context)}: ${readFileSync(join(root, "README.md"), "utf8")}`;
 	});
 	fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
 	await fake.setup(develop(options));
@@ -312,8 +314,9 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	const scenario = join(eval_.pkg, "evals", "one", "scenario.json");
 	const answers = [{ match: "^arthur send ", output: "sent", files: { "inside.md": "x", [sentinel]: "overwritten\n" } }, { match: "^arthur merge ", files: { "../../escaped.md": "x" } }];
 	writeFileSync(scenario, JSON.stringify({ turn: { message: "Note it." }, stub: answers, expect: { missing: ["inside.md"], files: { "send.txt": [`^arthur \\(eval stub\\): refused to write ${sentinel}, outside the run's repository$`] } } }));
-	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(eval_.home, "orchestration");
-	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	// As when the eval is run from a session of Arthur's own: its folders are the live Arthur's, never the turn's.
+	Object.assign(process.env, { ARTHUR_ORCHESTRATION_FOLDER: join(eval_.home, "orchestration"), ARTHUR_SESSION_FOLDER: eval_.home });
+	t.after(() => (delete process.env.ARTHUR_ORCHESTRATION_FOLDER, delete process.env.ARTHUR_SESSION_FOLDER));
 	const answer = await eval_.eval("--runs", "1");
 	assert.deepEqual(answer.out, ["develop/one: 1/1 (no baseline)", "passed 1/1 runs; moved against the baseline: none"]);
 	assert.equal(readFileSync(sentinel, "utf8"), "live\n");
@@ -324,6 +327,43 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	const env = readFileSync(join(eval_.spy, "env"), "utf8").split("\n");
 	assert.deepEqual(env.filter((line) => line.startsWith("ARTHUR_")).map((line) => line.split("=")[0]), ["ARTHUR_EVAL"]);
 	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
+});
+
+test("a scenario's agent makes the turn a project agent's: its context, and its session folder made in the run's repository, which ARTHUR_SESSION_FOLDER names; a path that is not inside the repository, or leaves it through a link of the fixture, fails", async (t) => {
+	const note = { message: "Note it." };
+	// Each way out of the repository: no text, an absolute path, the root itself, `..`, and `..` then down again through the folders the eval runs in.
+	const [cwd, own] = [process.cwd(), ".arthur/session/agents/shop"];
+	const back = [`../${basename(cwd)}/session`, `../../${basename(dirname(cwd))}/${basename(cwd)}/session`];
+	const wrong = [3, null, true, "", " ", "/tmp/session", `${cwd}/session`, "..", "../session", "a/../../session", ".", "./", "a/..", "a/../", "./..", ...back];
+	const name = (index: number) => `wrong${String(index).padStart(2, "0")}`;
+	const eval_ = await load(t, {
+		agent: { turn: note, agent: own, expect: { files: { [`${own}/after-restart.md`]: ["^steps$"] }, missing: [".arthur/session/after-restart.md"] } },
+		...{ dangling: { turn: note, agent: own }, linked: { turn: note, agent: own }, nested: { turn: note, agent: own } },
+		...Object.fromEntries(wrong.map((agent, index) => [name(index), { turn: note, agent }])),
+	});
+	// A fixture whose `.arthur`, or a folder under it, is a link out of the repository, one of them to nothing.
+	const outside = temporaryFolder();
+	mkdirSync(join(outside, "agents"));
+	symlinkSync(join(outside, "gone"), join(eval_.pkg, "evals", "dangling", "fixture", ".arthur"));
+	symlinkSync(outside, join(eval_.pkg, "evals", "linked", "fixture", ".arthur"));
+	mkdirSync(join(eval_.pkg, "evals", "nested", "fixture", ".arthur"));
+	symlinkSync(outside, join(eval_.pkg, "evals", "nested", "fixture", ".arthur", "session"));
+	const answer = await eval_.eval("--runs", "1");
+	const refused = (index: number) => `${join(eval_.pkg, "evals", name(index), "scenario.json")}: agent: expected a path inside the repository, the project agent's session folder`;
+	const link = (path: string) => `  run 1: the run failed: agent: ${own} leaves the run's repository through the fixture's link ${path}`;
+	// The link to nothing fails where the run looks at it, in Node's words, before any folder is made.
+	assert.match(answer.out[2] ?? "", /^ {2}run 1: the run failed: ENOENT: [^']+'\S+\/repo\/\.arthur'$/);
+	assert.deepEqual(answer.out.toSpliced(2, 1).slice(0, -1), [
+		"develop/agent: 1/1 (no baseline)",
+		"develop/dangling: 0/1 (no baseline)",
+		...["develop/linked: 0/1 (no baseline)", link(".arthur"), "develop/nested: 0/1 (no baseline)", link(".arthur/session/agents")],
+		...wrong.flatMap((_, index) => [`develop/${name(index)}: 0/1 (no baseline)`, `  run 1: ${refused(index)}`]),
+	]);
+	assert.deepEqual(readdirSync(outside, { recursive: true }), ["agents"], "nothing made through a link");
+	const repo = /^12\n# The project agent\n\nContext of (\S+\/arthur-eval-[^/]+\/repo) at /.exec(eval_.transcript("develop-agent-1", "stderr"))?.[1];
+	const env = readFileSync(join(eval_.spy, "env"), "utf8").split("\n").filter((line) => line.startsWith("ARTHUR_") && !line.startsWith("ARTHUR_EVAL="));
+	assert.deepEqual(env, [`ARTHUR_SESSION_FOLDER=${repo}/${own}`]);
+	assert.deepEqual(readdirSync(eval_.temp), [], "nothing made beside the run's folder, which is gone");
 });
 
 test("a help call never takes an answer and no expectation counts it: it prints what the live CLI prints, a page, the list, or an unknown command or a wrong usage with exit code 2", async (t) => {

@@ -235,11 +235,15 @@ test("coordinator.checkoutContext: the main project's role, the vision and board
 	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: "  Restart: due.\n" } }), [...expected, "## test\n\nRestart: due."].join("\n\n"), "the scenario's line replaces the plugin's live one");
 	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: {} }), expected.join("\n\n"), "a plugin left out answers nothing");
 	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: " " } }), expected.join("\n\n"), "blank text adds nothing");
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: {}, agent: false }), expected.join("\n\n"), "the coordinator's unless agent is true");
+	// The role `project` of the main project, which has no override of it; no slots, which count the live Arthur's jobs.
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: {}, agent: true }), [PROJECT_ROLE, ...expected.slice(2)].join("\n\n"), "a project agent's with agent");
 	assert.throws(() => fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: "Restart: due.", sesion: "x", other: "y" } }), {
 		message: "coordinator.checkoutContext: context names sesion, other: no such plugin answers coordinator.context; those that do: test",
 	});
-	for (const asked of [undefined, { root: copy, context: {} }, { root: 3, at, context: {} }, { root: copy, at: at.toISOString(), context: {} }, { root: copy, at }, ...[null, [], "x", { test: 3 }].map((context) => ({ root: copy, at, context }))]) {
-		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date, context: { <plugin>: <text> } }, got ${JSON.stringify(asked ?? {})}` });
+	const wrong = [undefined, { root: copy, context: {} }, { root: 3, at, context: {} }, { root: copy, at: at.toISOString(), context: {} }, { root: copy, at }, ...[null, [], "x", { test: 3 }].map((context) => ({ root: copy, at, context }))];
+	for (const asked of [...wrong, ...["true", 1, null].map((agent) => ({ root: copy, at, context: {}, agent }))]) {
+		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date, context: { <plugin>: <text> }, agent?: a boolean }, got ${JSON.stringify(asked ?? {})}` });
 	}
 });
 

@@ -59,8 +59,8 @@ async function evaluate(host: Host, args: readonly string[]): Promise<number> {
 	const baseline = readBaseline(path);
 	// No coordinator role (orchestration not enabled) refuses before any run.
 	host.jobs.prompt("coordinator");
-	// Orchestration's context for a run's copy of the fixture, at the scenario's hour, with the plugins' lines it sets.
-	const context = (root: string, { hour, context }: Scenario) => host.call<string>("coordinator.checkoutContext", { root, at: atHour(host.clock, hour, host.clock.now()), context });
+	// Orchestration's context for a run's copy of the fixture, at the scenario's hour, with the plugins' lines it sets; a project agent's with `agent`.
+	const context = (root: string, { hour, context, agent }: Scenario) => host.call<string>("coordinator.checkoutContext", { root, at: atHour(host.clock, hour, host.clock.now()), context, agent: agent !== undefined });
 	const [roles] = host.collect<{ readonly model?: unknown; readonly thinking?: unknown } | undefined>("roles.model", "coordinator");
 	const [model, thinking] = [roles?.model, roles?.thinking].map((value) => (typeof value === "string" && value !== "" ? value : undefined));
 	const agent: Agent = {

@@ -20,4 +20,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/decisions.jsonl:1412`
 - What: the `ask` record of AR-D702, which commit 34d2eb9a put on main, named three other projects of the owner in its options. The commit-msg hook (`test/other-projects.ts`, AR0627) checks every tracked file, so it refused this branch's commit, which does not touch that file (`commit refused: spec/decisions.jsonl: names the project <name>; Arthur's repository names no other project (AR0627)`, three lines), and `npm test` failed in this worktree in `test/other-projects.test.ts` alone. Commit 9339d9c4 on main wrote the record without the names, and this branch took main; commit 34d2eb9a still holds them in the history.
 - Suggestion: check whether 34d2eb9a was pushed; `arthur decision ask` could refuse a question or option that names a folder of the main checkout's `projects/`, as the hook does, so the log never holds one.
-- Status: deferred (client summary)
+- Status: ticket AR0734

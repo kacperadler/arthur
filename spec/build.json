@@ -5772,9 +5772,9 @@
   {
     "id": "AR0714",
     "title": "A project agent's voice notes and arthur send files go through the main bot to the main chat, not to its own chat",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0714-a-project-agent-s-voice-notes-and-arthur-send-files-go-through-the-main-bot-to/ticket.md",
-    "updated": "2026-11-24T13:26:09.803Z"
+    "updated": "2026-11-24T15:10:44.651Z"
   },
   {
     "id": "AR0715",

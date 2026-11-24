@@ -5944,8 +5944,8 @@
   {
     "id": "AR0736",
     "title": "arthur silent --help says every held reply goes to the coordinator outbox",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0736-arthur-silent-help-says-every-held-reply-goes-to-the-coordinator-outbox/ticket.md",
-    "updated": "2026-11-24T01:24:47.704Z"
+    "updated": "2026-11-24T01:24:58.881Z"
   }
 ]

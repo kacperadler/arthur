@@ -91,6 +91,9 @@ async function load(t: TestContext, options: ResourcesOptions = OPTIONS) {
 }
 
 const sample = (cores: number, load: number, free: number, total = 16 * GB) => ({ at: NOW.toISOString(), jobs: [], cores, load, free, total });
+// What the plugin told the coordinator, each `coordinator-message` it emitted.
+const told = (fake: { readonly emitted: readonly { readonly name: string; readonly data: unknown }[] }) =>
+	fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { text: string }).text);
 
 test("keepFree takes cpu, 0 or more cores, and memory in bytes or a percentage; anything else is refused at load", async () => {
 	const folder = temporaryFolder();
@@ -139,8 +142,8 @@ test("every spawn is refused while no machine has room, naming each machine and 
 	const machines =
 		"local: no room, short of 0.5 GB memory and 0.3 cores (1.5 GB, 0.8 cores free; keepFree 1.0 GB, 0.5 cores; a job reserves 1.0 GB, 0.5 cores); " +
 		"gpu: no room, short of 0.5 cores (3.0 GB, 0.5 cores free; keepFree 1.0 GB, 0.5 cores; a job reserves 1.0 GB, 0.5 cores)";
-	await assert.rejects(fake.host.jobs.spawn({ task: "Go." }), { message: `refused by resources: no room on local for another job: ${machines}; spawn again once a job ends` });
-	await assert.rejects(fake.host.jobs.spawn({ task: "Go.", machine: "gpu" }), { message: `refused by resources: no room on gpu for another job: ${machines}; spawn again once a job ends` });
+	await assert.rejects(fake.host.jobs.spawn({ task: "Go." }), { message: `refused by resources: no room on local for another job: ${machines}; the coordinator is told once local has room again: spawn again then` });
+	await assert.rejects(fake.host.jobs.spawn({ task: "Go.", machine: "gpu" }), { message: `refused by resources: no room on gpu for another job: ${machines}; the coordinator is told once gpu has room again: spawn again then` });
 	assert.deepEqual(records(), []);
 });
 
@@ -233,6 +236,7 @@ test("the coordinator's context, arthur resources and /resources show one line p
 	assert.deepEqual(log.mock.calls.map((call) => call.arguments), [[lines]]);
 	assert.equal(await command?.run({ args: ["AC0001", "more"], project: undefined }), 2);
 	assert.deepEqual(error.mock.calls.map((call) => call.arguments), [["usage: arthur resources [<ticket id>]"]]);
+	assert.deepEqual(told(fake), [], "room on local at the start's check and no refusal before it: nothing to tell");
 });
 
 test("a machines round is each listed machine's check: a spawn's check asked while it runs waits for it, not ssh nor the check before, and reads its numbers, or its reason", async (t) => {
@@ -280,6 +284,64 @@ test("a round's check stands until twice its check.everySeconds, so a spawn betw
 	writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(file, "utf8")), everySeconds: "300" }));
 	await free("gpu");
 	assert.equal(sshCalls(), 3, "a hand-broken cadence is no check");
+});
+
+const AGAIN = "has room again, after a spawn or continue was refused there for lack of it: start what waits for it.";
+
+test("a refusal for room is recorded once per machine until a machines round finds room there, which tells the coordinator once; a spawn's own check tells nothing", async (t) => {
+	local(t, 0, 0);
+	gpu(0, 0);
+	const { fake } = await load(t);
+	const refusals = () => fake.emitted.filter((event) => event.name === "room-refused").map((event) => event.data);
+	// A machines round that finds gpu with this free CPU and memory; its room once the round's check is kept and told.
+	const round = (freeCores: number, freeBytes: number) => {
+		fake.collect("machines.round", new Map([["gpu", Promise.resolve({ free: JSON.stringify({ cores: 8, load: 8 - freeCores, free: freeBytes, total: 16 * GB }) })]]));
+		return fake.call<Promise<number>>("resources.free", "gpu");
+	};
+	const spawn = () => fake.host.jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(await round(4, 8 * GB), 7);
+	assert.deepEqual(told(fake), [], "room, and no refusal before it: nothing to tell");
+	assert.equal(await round(0.5, 3 * GB), 0);
+	await assert.rejects(spawn(), { message: /^refused by resources: no room on gpu for another job: .*; gpu: no room, short of 0\.5 cores .*; the coordinator is told once gpu has room again: spawn again then$/ });
+	await assert.rejects(spawn(), { message: /no room on gpu/ });
+	assert.deepEqual(refusals(), [{ machine: "gpu" }], "the second refusal records nothing new");
+	assert.equal(await round(0.9, 3 * GB), 0);
+	assert.deepEqual(told(fake), [], "a round that finds it still short tells nothing");
+	assert.equal(await round(1, 2 * GB), 1, "exactly one reservation left");
+	assert.deepEqual(told(fake), [`gpu ${AGAIN}\ngpu: room for 1 more job (2.0 GB, 1.0 cores free)`]);
+	assert.equal(await round(4, 8 * GB), 7);
+	assert.equal(told(fake).length, 1, "no second message without a new refusal");
+	// Short of memory this time: a refusal for any lack of room counts, and is a new record.
+	assert.equal(await round(4, 1.5 * GB), 0);
+	await assert.rejects(spawn(), { message: /; gpu: no room, short of 0\.5 GB memory / });
+	assert.deepEqual(refusals(), [{ machine: "gpu" }, { machine: "gpu" }]);
+	// Two minutes on, a check of its own over ssh, as a spawn makes it, finds room: the next round tells, not this one.
+	gpu(4, 8 * GB);
+	fake.setNow(new Date(NOW.getTime() + 120_000));
+	assert.equal(await fake.call<Promise<number>>("resources.free", "gpu"), 7);
+	assert.equal(sshCalls(), 1);
+	assert.equal(told(fake).length, 1);
+	assert.equal(await round(2, 8 * GB), 3);
+	assert.deepEqual(told(fake).slice(1), [`gpu ${AGAIN}\ngpu: room for 3 more jobs (8.0 GB, 2.0 cores free)`]);
+	// A refusal another process recorded, `arthur spawn`'s, is its file: the next round here tells of it, and removes it.
+	const record = join(fake.host.folder, "machines", "gpu.refused");
+	writeFileSync(record, "");
+	assert.equal(await round(2, 8 * GB), 3);
+	assert.deepEqual([told(fake).length, existsSync(record)], [3, false]);
+});
+
+test("arthur run's check of local tells the coordinator of the room there after a refusal", async (t) => {
+	local(t, 1, 2 * GB);
+	gpu(0, 0);
+	const { fake, plugin } = await load(t);
+	await fake.host.jobs.spawn({ task: "One." });
+	await assert.rejects(fake.host.jobs.spawn({ task: "Two." }), { message: /no room on local for another job: .*; reserved for 1 job started since the check\); gpu: / });
+	assert.deepEqual(told(fake), []);
+	await plugin.start?.();
+	t.after(() => plugin.stop?.());
+	// The start's check counts the first job in its numbers, which the fake `os` leaves at one reservation free.
+	const said = await until("the coordinator told", () => (told(fake).length > 0 ? told(fake) : undefined));
+	assert.deepEqual(said, [`local ${AGAIN}\nlocal: room for 1 more job (2.0 GB, 1.0 cores free)`]);
 });
 
 // Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as

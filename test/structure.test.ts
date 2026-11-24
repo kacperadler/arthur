@@ -17,7 +17,7 @@ const BUDGETS = {
 
 	"core/testing": 413,
 
-	delivery: 2463,
+	delivery: 2468,
 
 	develop: 769,
 

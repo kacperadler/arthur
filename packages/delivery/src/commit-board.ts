@@ -71,11 +71,16 @@ export function commitPaths(host: Host, stepSeconds: number, { project, subject,
 		};
 		// Each path as it is, no pathspec: a new file added, a missing one removed, one whose removal is staged already left so.
 		const added = git("update-index", "--add", "--remove", "--", ...changed);
-		const checked = added.status === 0 ? vetted({ git, run }, subject, changed) : added;
-		const done = checked.status === 0 ? git("commit", "-m", subject, "--", ...changed) : checked;
-		if (done.status === 0) return `committed ${subject}: ${git("rev-parse", "--short", "HEAD").stdout.trim()}, ${changed.length} file${changed.length === 1 ? "" : "s"}`;
-		git("reset", "--", ...changed);
-		throw new Error(`${subject} not committed: ${done.stderr.trim().split("\n").at(-1)}; fix what it names, then run it again`);
+		try {
+			const checked = added.status === 0 ? vetted({ git, run }, subject, changed) : added;
+			const done = checked.status === 0 ? git("commit", "-m", subject, "--", ...changed) : checked;
+			if (done.status === 0) return `committed ${subject}: ${git("rev-parse", "--short", "HEAD").stdout.trim()}, ${changed.length} file${changed.length === 1 ? "" : "s"}`;
+			throw new Error(`${subject} not committed: ${done.stderr.trim().split("\n").at(-1)}; fix what it names, then run it again`);
+		} catch (error) {
+			// A check that threw (a package.json at HEAD that is no JSON) leaves nothing staged either.
+			git("reset", "--", ...changed);
+			throw error;
+		}
 	} finally {
 		rmSync(cache, { recursive: true, force: true });
 		lock.release();

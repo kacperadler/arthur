@@ -34,6 +34,7 @@ Exit code 1, nothing committed and none of the board's files left staged:
 - The check still running after `merge.stepSeconds` (the delivery plugin's option, an hour by default) is killed: `<subject> not committed: npm run commit-msg refused: timed out after <n> s; …`.
 - A project whose folder is no Git checkout: `git status in <folder> failed: <git's words>; nothing committed`.
 - Git's own refusal of the commit (no identity): `<subject> not committed: <git's last line>; …`.
+- The `package.json` HEAD holds is no JSON, so its check cannot be read: the command ends with the JSON parser's own words.
 - A project not in the list: `no project <name> in the project list`.
 
 Wrong usage (no subject or an empty one, more than one word, a word starting with `-`) prints `usage: arthur commit-board '<subject>' [--project <name>]` and exits 2.

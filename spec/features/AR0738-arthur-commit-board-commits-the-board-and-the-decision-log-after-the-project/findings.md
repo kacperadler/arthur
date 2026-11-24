@@ -39,3 +39,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: Three scenarios expected main to move after the coordinator's `git commit` (`packages/manage/evals/audit-autopilot`, `packages/manage/evals/retro`, `packages/delivery/evals/condition-before-review`). The stub `arthur` of a run commits nothing, so this branch changed them to expect a call `arthur commit-board`. Their rates in the baseline are those of the old roles and expectations; no live `arthur eval` ran on this branch.
 - Suggestion: run `arthur eval` once after the merge and record the new baseline. Out: new scenarios.
 - Status: open
+
+## F5. vetted throws without naming package.json or the command when the check cannot be read or started
+
+- Kind: fix
+- Found by: 2026-11-24-worker-963de939 (worker), 2026-11-24
+- Where: `packages/delivery/src/merge-outcome.ts:94`
+- What: `vetted` parses the `package.json` HEAD holds with a bare `JSON.parse` (line 94) and reads `ran.stderr.trim()` (line 98) before `ran.error`. With a `package.json` of `{` at HEAD, `arthur commit-board` ends with `Expected property name or '}' in JSON at position 1 (line 1 column 2)`, which names no file (`packages/delivery/test/commit-board.test.ts`, "a check that throws"; this branch unstages the files, the words are unchanged). With the script's spawn failing (seen with `PATH` set to "" by hand in `commit-board.ts`), it ended with `Cannot read properties of undefined (reading 'trim')`: the `ran.error?.message` of line 98 is never reached. `arthur merge` calls the same function for its `spec:` commit, after its checks ran [INFERENCE: its path was not run with either input].
+- Suggestion: `vetted` answers a refusal in both cases, `HEAD:package.json is no JSON: <the parser's words>` and `npm run commit-msg did not start: <error>`, with a test row each in `commit-board.test.ts`. Out: a change of what a missing `package.json` means.
+- Status: open

@@ -7,7 +7,7 @@ import { takeLock } from "@arthur/core/lock";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 import { fakeNpm } from "./fake-npm.ts";
-import { plantAfterCheck } from "./merge-setup.ts";
+import { noIdentityAnywhere, plantAfterCheck } from "./merge-setup.ts";
 
 // arthur commit-board and `delivery.commit` (AR0738): what a commit of the board holds, what it leaves alone, and each refusal.
 
@@ -25,9 +25,9 @@ const FIRST = { "README.md": "# acme\n", "src.ts": "export const shop = 1;\n", "
 
 // The repository `acme` (the main project) with `files` in its first commit, `blog`, a repository with no commit, and `plain`, a
 // folder that is no repository; delivery with `options` on a fake host, a fake `npm` (fake-npm.ts) after `nvm` on the PATH `nvm.path`
-// answers; `run` runs `arthur commit-board` as the CLI does, a throw being `arthur commit-board: <message>` and exit code 1,
+// answers, no PATH ("") without `onNvm`; `run` runs `arthur commit-board` as the CLI does, a throw being `arthur commit-board: <message>` and exit code 1,
 // without the lines a host with no user manager or sandbox adds.
-async function load(t: TestContext, files: Readonly<Record<string, string>> = FIRST, options: Parameters<typeof delivery>[0] = {}) {
+async function load(t: TestContext, files: Readonly<Record<string, string>> = FIRST, options: Parameters<typeof delivery>[0] = {}, onNvm = true) {
 	const [root, blog, plain, bin, nvm] = [join(temporaryFolder(), "acme"), join(temporaryFolder(), "blog"), temporaryFolder(), temporaryFolder(), temporaryFolder()];
 	for (const each of [root, blog]) {
 		mkdirSync(each);
@@ -40,7 +40,7 @@ async function load(t: TestContext, files: Readonly<Record<string, string>> = FI
 	const fake = fakeHost({ name: "delivery", root });
 	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }, { name: "blog", path: blog, prefix: "BL" }, { name: "plain", path: plain, prefix: "PL" }]);
 	const npm = fakeNpm(bin);
-	fake.provide("nvm.path", () => [nvm, bin, process.env.PATH].join(delimiter));
+	fake.provide("nvm.path", () => (onNvm ? [nvm, bin, process.env.PATH].join(delimiter) : ""));
 	await fake.setup(delivery(options));
 	const run = async (args: readonly string[], project?: string) => {
 		const [out, err] = [[] as string[], [] as string[]];
@@ -133,8 +133,15 @@ test("a checkout whose own Git config names a program is refused before any git 
 	assert.match(refused.err, /^arthur commit-board: .*\.git\/config sets filter\.x\.smudge, which a job can write and which may name a program Arthur's git would run; .*; nothing committed$/);
 	assert.deepEqual([head(), status(root)], [before, ["?? spec/decisions.jsonl"]]);
 	git(root, "config", "--unset", "filter.x.smudge");
+	// core.fsmonitor passes the check, as each git call turns it off: the program it names does not run.
+	const [ran, monitor] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "fsmonitor")];
+	writeFileSync(monitor, `#!/bin/sh\necho fsmonitor >> '${ran}'\nprintf 'token\\0/\\0'\n`, { mode: 0o755 });
+	git(root, "config", "core.fsmonitor", monitor);
 	assert.equal((await run(["Decisions: AC-D1 asked"])).err, "");
+	assert.equal(existsSync(ran), false, "the fsmonitor did not run");
 	assert.equal(git(root, "log", "-1", "--format=%s"), "Decisions: AC-D1 asked");
+	git(root, "status");
+	assert.equal(existsSync(ran), true, "a plain git status runs it");
 });
 
 test("the project's commit-msg script checks the commit first, on nvm's PATH, the hooks off: its refusal leaves the files uncommitted and unstaged", async (t) => {
@@ -212,6 +219,38 @@ test("delivery.commit commits the paths another plugin names, as arthur init's, 
 	assert.deepEqual(status(blog), ["?? README.md"]);
 	assert.equal(commit("blog"), `nothing to commit: no file of ${paths.join(", ")} changed in ${blog}`);
 	assert.throws(() => commit("nope"), /^Error: no project nope in the project list$/);
+});
+
+test("with nvm.path answering no PATH the commit-msg script runs on the PATH as it is; one that removes the command's cache folder does not fail the commit", async (t) => {
+	const { root, fake, run, shown } = await load(t, FIRST, {}, false);
+	// The real npm, as the PATH of the tests holds it.
+	write(root, { "package.json": JSON.stringify({ scripts: { "commit-msg": `rm -rf '${fake.host.folder}'/cache_* #` } }) });
+	git(root, "add", "package.json");
+	git(root, "commit", "--quiet", "-m", "the check");
+	write(root, { "spec/decisions.jsonl": "{}\n" });
+	assert.deepEqual(await run(["Decisions: AC-D1 asked"]), { code: undefined, out: `committed Decisions: AC-D1 asked: ${git(root, "rev-parse", "--short", "HEAD")}, 1 file`, err: "" });
+	assert.deepEqual(shown(), ["Decisions: AC-D1 asked", "A\tspec/decisions.jsonl"]);
+});
+
+test("a commit Git itself refuses, no identity anywhere, is said with the last line Git wrote and leaves nothing staged", async (t) => {
+	const { root, run, head } = await load(t);
+	noIdentityAnywhere(t);
+	for (const key of ["user.name", "user.email"]) git(root, "config", "--unset", key);
+	write(root, { "spec/decisions.jsonl": "{}\n", [TICKET]: "# AC0001 - Shop\n\n## Decisions\n" });
+	const [before, dirty] = [head(), status(root)];
+	const refused = await run(["Decisions: AC-D1 asked"]);
+	assert.deepEqual([refused.code, refused.out], [1, ""]);
+	assert.match(refused.err, /^arthur commit-board: Decisions: AC-D1 asked not committed: fatal: .+; fix what it names, then run it again$/);
+	assert.deepEqual([head(), status(root)], [before, dirty], "nothing committed, nothing left staged");
+});
+
+test("a check that throws, a package.json at HEAD that is no JSON, stops the commit as a refusal does: nothing committed, nothing left staged", async (t) => {
+	const { root, run, head } = await load(t, { ...FIRST, "package.json": "{" });
+	write(root, { "spec/decisions.jsonl": "{}\n", [TICKET]: "# AC0001 - Shop\n\n## Decisions\n" });
+	const [before, dirty] = [head(), status(root)];
+	const refused = await run(["Decisions: AC-D1 asked"]);
+	assert.deepEqual([refused.code, refused.out, refused.err.startsWith("arthur commit-board: ")], [1, "", true]);
+	assert.deepEqual([head(), status(root)], [before, dirty]);
 });
 
 test("the commit-msg script is killed after merge.stepSeconds, as a step of a merge is, and the commit refused", async (t) => {

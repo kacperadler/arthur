@@ -42,5 +42,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
 - 2026-11-24: AR0740 approved: an out-of-memory kill in a job ends with a memory reason naming the process, at a budget of $10; the owner: "ZF-D154 1, AR-D731 1" (AR-D731)

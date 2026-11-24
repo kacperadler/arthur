@@ -5972,8 +5972,8 @@
   {
     "id": "AR0740",
     "title": "An out-of-memory kill in a job is recorded as an arthur stop, so nobody can tell a test that ate 16 GB from a person stopping the job",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0740-an-out-of-memory-kill-in-a-job-is-recorded-as-an-arthur-stop-so-nobody-can-tell/ticket.md",
-    "updated": "2026-11-24T19:48:57.317Z"
+    "updated": "2026-11-24T19:53:51.014Z"
   }
 ]

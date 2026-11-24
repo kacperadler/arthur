@@ -1,0 +1,36 @@
+{
+	"turn": {
+		"message": "Start SH0011."
+	},
+	"timeoutSeconds": 300,
+	"stub": [
+		{
+			"match": "^arthur spawn ",
+			"exit": 1,
+			"output": "arthur spawn: refused by resources: no room on local for another job: local: no room, short of 1.2 GB memory (2.8 GB, 6.0 cores, 88 GB disk free; keepFree 2.0 GB, 1.0 cores, 20 GB disk; a job reserves 4.0 GB, 2.0 cores); the coordinator is told once local has room again: spawn again then"
+		}
+	],
+	"expect": {
+		"calls": [
+			{
+				"match": "^arthur spawn (?=.*SH0011)",
+				"times": 1
+			}
+		],
+		"never": [
+			"^arthur schedule add\\b",
+			"--ignore-restart",
+			"--budget 0\\b"
+		],
+		"tools": [
+			"^bash [\\s\\S]*\\bsleep\\b",
+			"^bash [\\s\\S]*\\b(?:while|until)\\b"
+		],
+		"reply": {
+			"match": [
+				"SH0011",
+				"\\broom\\b"
+			]
+		}
+	}
+}

@@ -5951,8 +5951,8 @@
   {
     "id": "AR0737",
     "title": "Arthur's text uses '-' instead of '—', the owner's standard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0737-arthur-s-text-uses-instead-of-the-owner-s-standard/ticket.md",
-    "updated": "2026-11-24T09:38:13.454Z"
+    "updated": "2026-11-24T09:40:33.034Z"
   }
 ]

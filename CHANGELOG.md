@@ -4,6 +4,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## Unreleased
 
+### 2026-11-24
+
+#### Changed
+
+- AR0737 Arthur's text uses '-' instead of '—', the owner's standard (58fdb06d)
+
 ### 2026-11-23
 
 #### Fixed

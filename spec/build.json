@@ -5926,5 +5926,26 @@
     "status": "planning",
     "path": "spec/features/AR0733-the-full-check-s-output-is-read-whole-never-filtered/ticket.md",
     "updated": "2026-11-20T21:38:16.770Z"
+  },
+  {
+    "id": "AR0734",
+    "title": "The coordinator commits with --no-verify, so the check that keeps other projects out of the public repository never sees its commits",
+    "status": "planning",
+    "path": "spec/features/AR0734-the-coordinator-commits-with-no-verify-so-the-check-that-keeps-other-projects/ticket.md",
+    "updated": "2026-11-24T01:23:52.057Z"
+  },
+  {
+    "id": "AR0735",
+    "title": "A spawn refused for lack of CPU waits for a job end that may never free room, so the coordinator schedules retries by hand",
+    "status": "planning",
+    "path": "spec/features/AR0735-a-spawn-refused-for-lack-of-cpu-waits-for-a-job-end-that-may-never-free-room-so/ticket.md",
+    "updated": "2026-11-24T01:23:52.677Z"
+  },
+  {
+    "id": "AR0736",
+    "title": "arthur silent --help says every held reply goes to the coordinator outbox",
+    "status": "planned",
+    "path": "spec/features/AR0736-arthur-silent-help-says-every-held-reply-goes-to-the-coordinator-outbox/ticket.md",
+    "updated": "2026-11-24T01:24:47.704Z"
   }
 ]

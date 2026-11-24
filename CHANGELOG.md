@@ -9,6 +9,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 #### Fixed
 
 - AR0716 A project agent is never told where its after-restart steps go, and its handoff request calls it the coordinator (75f8c7b3)
+- AR0734 The coordinator commits with --no-verify, so the check that keeps other projects out of the public repository never sees its commits (f998b219)
 
 #### Changed
 

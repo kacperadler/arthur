@@ -115,5 +115,12 @@
     "action": {
       "message": "The owner asked (2026-11-23 ~22:30): at 09:00, when his recommend grant ends, send him one report of the night: the 07:10 steel-thread result (already sent at 07:10), every job started, finished, reviewed or merged since 22:30, every decision answered by policy, and the questions still waiting for him (merges of ZF0092/ZF0093/ZF0094/ZF0096 and the older ZF ones). Run npx arthur silent ask first so it reaches him."
     }
+  },
+  {
+    "id": "morning-report-2026-11-25",
+    "at": "2026-11-25T08:00",
+    "action": {
+      "message": "Morning report, the owner asked for it at 21:05 on 11-24 (\"give me raport at 8 AM\"): read .arthur/session/handoff.md and arthur jobs; write one HTML page by .agents/arthur/criteria/report.md (palette, base style, the page check and the screenshots) of the night: each ticket merged, reviewed, failed or stopped with one plain line on what it changes, each job still running, decisions taken by his recommendation grant (if he typed /silent on ... --recommend) and every decision waiting for him with its id, Claude 7-day usage; save it under .arthur/reports/2026-11-25.html, send it with arthur send and a one-line caption, then reply with the decisions he must answer."
+    }
   }
 ]

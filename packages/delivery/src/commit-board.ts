@@ -58,7 +58,7 @@ export function commitPaths(host: Host, stepSeconds: number, { project, subject,
 		if (refusal !== "") throw new Error(`${refusal}; nothing committed`);
 		const git = (...words: string[]) => spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...words], { encoding: "utf8" });
 		const status = git("status", "--porcelain", "--no-renames", "-z", "--untracked-files=all", "--", ...paths);
-		if (status.status !== 0) throw new Error(`git status in ${root} failed: ${status.stderr.trim().split("\n").at(-1)}; nothing committed`);
+		if (status.status !== 0) throw new Error(`git status in ${root} failed: ${status.stderr.trim()}; nothing committed`);
 		// `XY <path>` an entry: every changed file under the pathspecs, an untracked one by its own path.
 		const changed = status.stdout.split("\0").flatMap((entry) => (entry === "" ? [] : [entry.slice(3)]));
 		if (changed.length === 0) return `nothing to commit: no file of ${paths.map((path) => path.replace(/^:\(glob\)/, "")).join(", ")} changed in ${root}`;
@@ -69,12 +69,13 @@ export function commitPaths(host: Host, stepSeconds: number, { project, subject,
 			const path = host.collect<string>("nvm.path", { root })[0] ?? "";
 			return stepRunner(root, host.jobs.slice, console.log, stepSeconds, [host.folder])(host.sandbox(root, cache, console.log))(command, { ...process.env, ...(path && { PATH: path }) });
 		};
-		const added = git("add", "--all", "--", ...changed);
+		// Each path as it is, no pathspec: a new file added, a missing one removed, one whose removal is staged already left so.
+		const added = git("update-index", "--add", "--remove", "--", ...changed);
 		const checked = added.status === 0 ? vetted({ git, run }, subject, changed) : added;
-		const done = checked.status === 0 ? git("commit", "--quiet", "-m", subject, "--", ...changed) : checked;
+		const done = checked.status === 0 ? git("commit", "-m", subject, "--", ...changed) : checked;
 		if (done.status === 0) return `committed ${subject}: ${git("rev-parse", "--short", "HEAD").stdout.trim()}, ${changed.length} file${changed.length === 1 ? "" : "s"}`;
-		git("reset", "--quiet", "--", ...changed);
-		throw new Error(`${subject} not committed: ${(done.stderr.trim() || done.stdout.trim()).split("\n").at(-1)}; fix what it names, then run it again`);
+		git("reset", "--", ...changed);
+		throw new Error(`${subject} not committed: ${done.stderr.trim().split("\n").at(-1)}; fix what it names, then run it again`);
 	} finally {
 		rmSync(cache, { recursive: true, force: true });
 		lock.release();

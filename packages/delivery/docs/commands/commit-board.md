@@ -31,6 +31,8 @@ Exit code 1, nothing committed and none of the board's files left staged:
 - The checkout's own Git config sets a key that may name a program: `<file> sets <key>, …; nothing committed`.
 - A symlink among the changed files, new or in a tracked file's place: `<files>: a symlink, which this commit never holds; remove it; nothing committed`. A tracked symlink's removal is committed.
 - The project's check refuses, or a file changed while it ran: `<subject> not committed: npm run commit-msg refused: <its last line>; fix what it names, then run it again`, or `… not committed: <files> changed while npm run commit-msg ran; …`. Reword what the check names (a ticket's line, a schedule entry) and run the command again; never commit past it with `git commit`.
+- The check still running after `merge.stepSeconds` (the delivery plugin's option, an hour by default) is killed: `<subject> not committed: npm run commit-msg refused: timed out after <n> s; …`.
+- A project whose folder is no Git checkout: `git status in <folder> failed: <git's words>; nothing committed`.
 - Git's own refusal of the commit (no identity): `<subject> not committed: <git's last line>; …`.
 - A project not in the list: `no project <name> in the project list`.
 

@@ -117,10 +117,10 @@
     }
   },
   {
-    "id": "queue-spawns-3",
-    "at": "2026-11-24T14:10",
+    "id": "queue-spawns-4",
+    "at": "2026-11-24T14:40",
     "action": {
-      "message": "Start the rest of the approved queue as room allows, in this order: AR0738 worker ($10), ZF0102 planner, ZF0082 continue, ZF0152 planner (see handoff section 1). If still no room, add another one-off entry 30 minutes later."
+      "message": "Start the rest of the approved queue as room allows, in this order: ZF0102 planner, ZF0082 continue, ZF0152 planner (see handoff section 1). If still no room, add another one-off entry 30 minutes later."
     }
   }
 ]

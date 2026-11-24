@@ -5930,16 +5930,16 @@
   {
     "id": "AR0734",
     "title": "The coordinator commits with --no-verify, so the check that keeps other projects out of the public repository never sees its commits",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0734-the-coordinator-commits-with-no-verify-so-the-check-that-keeps-other-projects/ticket.md",
-    "updated": "2026-11-24T11:32:31.291Z"
+    "updated": "2026-11-24T12:05:09.580Z"
   },
   {
     "id": "AR0735",
     "title": "A spawn refused for lack of CPU waits for a job end that may never free room, so the coordinator schedules retries by hand",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0735-a-spawn-refused-for-lack-of-cpu-waits-for-a-job-end-that-may-never-free-room-so/ticket.md",
-    "updated": "2026-11-24T11:32:32.093Z"
+    "updated": "2026-11-24T12:10:09.617Z"
   },
   {
     "id": "AR0736",

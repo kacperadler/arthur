@@ -488,6 +488,22 @@ test("a continue whose budget the job's cost has reached is refused, naming the 
 	assert.deepEqual([third, field(home, job.id, "budget")], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, "0"]);
 });
 
+test("a continued job whose record holds no cost, or one that is no number, counts its cost from 0", async () => {
+	const { agent } = resuming({ steps: [{ message: "First.", cost: 0.25 }] }, { steps: [{ message: "More.", cost: 0.5 }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	// As a record an older Arthur wrote, then one edited by hand.
+	rmSync(join(home, "jobs", job.id, "cost"));
+	await jobs.continue(job.id, "Go on.");
+	await ended(home, job.id, 2);
+	assert.equal(field(home, job.id, "cost"), "0.5000");
+	writeFileSync(join(home, "jobs", job.id, "cost"), "a lot");
+	await jobs.continue(job.id, "Go on.");
+	await ended(home, job.id, 3);
+	assert.equal(field(home, job.id, "cost"), "0.5000");
+});
+
 test("a continue whose wrapper does not start ends the job failed and says why, not continued", async (t) => {
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });

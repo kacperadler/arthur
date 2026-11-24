@@ -167,12 +167,13 @@ test("arthur stats budget: per kind the count, the median and the cost 9 in 10 s
 	const fixes = [10, 3, 1, 7, 2, 9, 4, 8, 6, 5].map((usd, index) => costing(`AC00${10 + index}`, "- Kind: fix", `worker $${usd}.00, reviews $50.00`));
 	const run = await load(t, [
 		...fixes,
-		costing("AC0030", "- Kind: feat", "worker $4.25, reviews n/a"),
-		costing("AC0031", "- Kind:   feat  ", "worker $0.5, reviews $0.10"),
+		// No Kind under the Goal (the ones in other sections are not it), and the template's line left as it was; on the board before
+		// the feats, which as many tickets name: kinds with as many go by name.
+		costing("AC0030", "", "worker $2.00, reviews $0.00"),
+		costing("AC0031", "- Kind: <!-- feat | fix | docs -->", "worker $3.00, reviews $0.00"),
 		costing("AC0032", "- Kind: docs", "worker $1.00, reviews $0.00"),
-		// No Kind under the Goal (the ones in other sections are not it), and the template's line left as it was.
-		costing("AC0033", "", "worker $2.00, reviews $0.00"),
-		costing("AC0034", "- Kind: <!-- feat | fix | docs -->", "worker $3.00, reviews $0.00"),
+		costing("AC0033", "- Kind: feat", "worker $4.25, reviews n/a"),
+		costing("AC0034", "- Kind:   feat  ", "worker $0.5, reviews $0.10"),
 		// Left out: a worker's cost n/a, no outcome.md at all; not merged: never read.
 		costing("AC0035", "- Kind: fix", "worker n/a, reviews $1.00"),
 		{ id: "AC0036", title: "AC0036", status: "merged", updated: "2026-01-02T10:00:00Z", files: { "ticket.md": kinded("AC0036", "- Kind: fix") } },

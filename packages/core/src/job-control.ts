@@ -113,7 +113,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		const asked = { ...recorded, budgetUsd: budgetUsd ?? recorded.budgetUsd };
 		// The wrapper stops a run at the first message whose cost has reached the budget, so this one would spend and end at once (AR0739).
 		const cost = Number(field("cost"));
-		if (reached(cost, asked.budgetUsd)) throw new Error(`${id}: its cost $${cost.toFixed(4)} reached the budget of $${asked.budgetUsd}, so its run would stop at once: --budget is the budget of all its runs together, not an amount on top; give one above $${Number(cost.toFixed(4))}`);
+		if (reached(cost, asked.budgetUsd)) throw new Error(`${id}: its cost $${cost.toFixed(4)} reached the budget of $${asked.budgetUsd}, so its run would stop at once: --budget is the budget of all its runs together, not an amount on top; give one above $${cost}`);
 		const passed = await steps.check(asked);
 		release = passed.release;
 		const job = { ...asked, cpu: passed.caps.cpu, memory: passed.caps.memory, feature: passed.caps.feature };

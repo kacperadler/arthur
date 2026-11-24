@@ -6,6 +6,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### 2026-11-24
 
+#### Fixed
+
+- AR0716 A project agent is never told where its after-restart steps go, and its handoff request calls it the coordinator (75f8c7b3)
+
 #### Changed
 
 - AR0737 Arthur's text uses '-' instead of '—', the owner's standard (58fdb06d)

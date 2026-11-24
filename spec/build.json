@@ -5786,9 +5786,9 @@
   {
     "id": "AR0716",
     "title": "A project agent is never told where its after-restart steps go, and its handoff request calls it the coordinator",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0716-a-project-agent-is-never-told-where-its-after-restart-steps-go-and-its-handoff/ticket.md",
-    "updated": "2026-11-24T00:21:45.405Z",
+    "updated": "2026-11-24T11:38:32.103Z",
     "after": [
       "AR0713"
     ]

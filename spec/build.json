@@ -5958,9 +5958,9 @@
   {
     "id": "AR0738",
     "title": "arthur commit-board commits the board and the decision log after the project commit-msg check (AR0667 T2)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0738-arthur-commit-board-commits-the-board-and-the-decision-log-after-the-project/ticket.md",
-    "updated": "2026-11-24T13:00:08.828Z"
+    "updated": "2026-11-24T19:30:37.635Z"
   },
   {
     "id": "AR0739",
@@ -5968,5 +5968,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0739-plan-the-coordinator-answers-from-what-is-true-now-silent-mode-ends-on-its-own/ticket.md",
     "updated": "2026-11-24T15:43:49.351Z"
+  },
+  {
+    "id": "AR0740",
+    "title": "An out-of-memory kill in a job is recorded as an arthur stop, so nobody can tell a test that ate 16 GB from a person stopping the job",
+    "status": "planning",
+    "path": "spec/features/AR0740-an-out-of-memory-kill-in-a-job-is-recorded-as-an-arthur-stop-so-nobody-can-tell/ticket.md",
+    "updated": "2026-11-24T19:48:57.317Z"
   }
 ]

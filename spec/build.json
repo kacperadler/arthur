@@ -5958,8 +5958,8 @@
   {
     "id": "AR0738",
     "title": "arthur commit-board commits the board and the decision log after the project commit-msg check (AR0667 T2)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0738-arthur-commit-board-commits-the-board-and-the-decision-log-after-the-project/ticket.md",
-    "updated": "2026-11-24T12:25:32.158Z"
+    "updated": "2026-11-24T12:30:11.145Z"
   }
 ]

@@ -39,4 +39,5 @@ Out:
 - Rewriting Git history.
 
 ## Decisions
+- 2026-11-24: AR0738 approved: arthur commit-board, AR0667 T2, at a budget of $10; the owner: "AR-D725 1" (AR-D725)
 

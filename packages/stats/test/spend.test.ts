@@ -194,12 +194,13 @@ test("/stats answers the total, by role and the top 3 tickets, or a ticket's run
 	for (const text of ["/stats 7d 30d", "/stats nope", "/stats AC0012 AC0013", "/stats ac0012", "/stats AC012"]) assert.equal(await fake.host.commands.route(text), "usage: /stats [today|yesterday|<n>d|YYYY-MM-DD] [<ticket id>]", text);
 });
 
-test("inside a job the spend view and /stats say the home is hidden, arthur stats exiting 1; arthur stats tickets still runs", async (t) => {
+test("inside a job the spend view and /stats say the home is hidden, arthur stats exiting 1; arthur stats tickets and arthur stats budget still run", async (t) => {
 	const { fake, cli } = await load(t, RUNS, TURNS, { id: "2026-11-13-worker-0000000f", project: "acme" });
-	const hidden = "the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here";
+	const hidden = "the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets and arthur stats budget run here";
 	assert.deepEqual(await cli(), { code: 1, out: "", err: `arthur stats: ${hidden}` });
 	assert.equal(await fake.host.commands.route("/stats"), hidden);
 	assert.match((await cli("tickets")).out, /^Stats of acme: 2 merged tickets\n/);
+	assert.match((await cli("budget")).out, /^Worker cost of the merged tickets of acme, by kind:\n/);
 });
 
 // What the models plugin answers as `models.windows`: each window of the report with its provider, or why there is none.
@@ -247,5 +248,5 @@ test("stats windows: no report, no window, no models plugin, each one line; wron
 	assert.deepEqual(await cli("windows", "extra"), { code: 2, out: "", err: "usage: arthur stats windows" });
 	const inJob = await load(t, RUNS, TURNS, { id: "2026-11-13-worker-0000000f", project: "acme" });
 	inJob.fake.provide("models.windows", async () => [window("anthropic", "Claude 7 Day", 0.4, { durationMs: WEEK })]);
-	assert.deepEqual(await inJob.cli("windows"), { code: 1, out: "", err: "arthur stats: the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here" });
+	assert.deepEqual(await inJob.cli("windows"), { code: 1, out: "", err: "arthur stats: the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets and arthur stats budget run here" });
 });

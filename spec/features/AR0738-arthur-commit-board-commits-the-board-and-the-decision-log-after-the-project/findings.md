@@ -48,3 +48,21 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: `vetted` parses the `package.json` HEAD holds with a bare `JSON.parse` (line 94) and reads `ran.stderr.trim()` (line 98) before `ran.error`. With a `package.json` of `{` at HEAD, `arthur commit-board` ends with `Expected property name or '}' in JSON at position 1 (line 1 column 2)`, which names no file (`packages/delivery/test/commit-board.test.ts`, "a check that throws"; this branch unstages the files, the words are unchanged). With the script's spawn failing (seen with `PATH` set to "" by hand in `commit-board.ts`), it ended with `Cannot read properties of undefined (reading 'trim')`: the `ran.error?.message` of line 98 is never reached. `arthur merge` calls the same function for its `spec:` commit, after its checks ran [INFERENCE: its path was not run with either input].
 - Suggestion: `vetted` answers a refusal in both cases, `HEAD:package.json is no JSON: <the parser's words>` and `npm run commit-msg did not start: <error>`, with a test row each in `commit-board.test.ts`. Out: a change of what a missing `package.json` means.
 - Status: open
+
+## F6. The commit-msg check arthur commit-board runs is the checkout's, not HEAD's
+
+- Kind: security
+- Found by: 2026-11-24-review-aa62214e (review), 2026-11-24
+- Where: `packages/delivery/src/merge-outcome.ts:94`
+- What: `vetted` asks `HEAD:package.json` whether a `commit-msg` script is declared, then runs `npm run --silent commit-msg`, and npm reads the script from the checkout's own `package.json`. Tried on this branch with a throwaway test on the fake host and the tests' fake npm: HEAD's script `exit 1 #` refused the commit; with the checkout's `package.json` changed to `true #` and not committed, `arthur commit-board` printed `committed Decisions: a: f12ad45, 1 file`, the changed `package.json` left ` M`. A file the script runs (`test/other-projects.ts` here) changed in the checkout does the same [INFERENCE: not run]. In `arthur merge` the checkout is HEAD when the script runs; in `arthur commit-board` whoever writes the main checkout's code chooses the check. The doc page says so since this branch.
+- Suggestion: decide with AR0667 T5, whose sandbox is what keeps the coordinator from writing code in the main checkout: either that sandbox is the answer, or `arthur commit-board` refuses while `package.json` or a tracked file outside the board differs from HEAD. Out: running the check in an export of HEAD.
+- Status: open
+
+## F7. A hard link among the board files is committed with the content of the file it shares
+
+- Kind: security
+- Found by: 2026-11-24-review-aa62214e (review), 2026-11-24
+- Where: `packages/delivery/src/commit-board.ts:69`
+- What: A symlink or a folder among the changed board files stops the commit; a hard link does not. Tried on this branch with a throwaway test: `spec/features/AC0001-shop/leak.md`, a hard link to a file outside the checkout holding `secret`, was committed (`committed Board: link: 302baff, 1 file`) and `git show HEAD:spec/features/AC0001-shop/leak.md` printed `secret`. Whether the sandbox of AR0667 T5 lets the coordinator make such a link was not tried.
+- Suggestion: refuse a changed board file whose `lstat` shows more than one link (`nlink > 1`), as a symlink is refused, after checking that nothing Arthur writes on the board is left with two links (`arthur init` links its files in from a temporary name). Out: files of the commit that did not change.
+- Status: open

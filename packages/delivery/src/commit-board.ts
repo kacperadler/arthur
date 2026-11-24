@@ -8,9 +8,9 @@ import { stepRunner } from "./merge-checks.ts";
 import { vetted } from "./merge-outcome.ts";
 
 // `arthur commit-board '<subject>'` (AR0738; AR0667's plan, T2): the one way the coordinator and a project agent commit a project's board on main. Only the
-// board's files that changed, never a symlink, after the config check and the project's `commit-msg` script, the hooks off, as the merge commits its own
-// `spec:` (merge-outcome.ts); what else the checkout holds, staged or not, stays as it was. `delivery.commit` commits the same way the paths another plugin
-// wrote (`arthur init`). docs/commands/commit-board.md.
+// board's files that changed, none a symlink or a folder, after the config check and the project's `commit-msg` script, the hooks off, as the merge commits
+// its own `spec:` (merge-outcome.ts); what else the checkout holds, staged or not, stays as it was. `delivery.commit` commits the same way the paths another
+// plugin wrote (`arthur init`). docs/commands/commit-board.md.
 
 const USAGE = "usage: arthur commit-board '<subject>' [--project <name>]";
 // What Arthur's commands write on main and the coordinator commits: the board, the decision log, the schedule, each ticket's files, the filed reports with
@@ -24,7 +24,10 @@ export const BOARD: readonly string[] = [
 	...["quality/*.md", "retro/*.md", "retro/*.html", "pyramid/*.md", "pyramid/*.html"].map((files) => `:(glob)spec/${files}`),
 ];
 
+// A path of a commit: a file's own path, or a glob pathspec, `**/` any folders or none and `*` anything but a slash, as Git reads the board's.
 export type Commit = { readonly project: string; readonly subject: string; readonly paths: readonly string[] };
+const GLOB = ":(glob)";
+const glob = (spec: string) => new RegExp(`^${spec.slice(GLOB.length).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("**/", "(.+/)?").replaceAll("*", "[^/]*")}$`, "s");
 
 export function commitBoardCommand(host: Host, stepSeconds: number): Command {
 	return {
@@ -42,7 +45,7 @@ export function commitBoardCommand(host: Host, stepSeconds: number): Command {
 	};
 }
 
-// Commits as `subject` each file under the pathspecs `paths` that changed in the project's checkout, new and deleted ones included, and answers its line,
+// Commits as `subject` each file `paths` name that changed in the project's checkout, new and deleted ones included, and answers its line,
 // `committed <subject>: <commit>, <n> files` or `nothing to commit: ...`. A refusal throws, with nothing committed and nothing left staged.
 export function commitPaths(host: Host, stepSeconds: number, { project, subject, paths }: Commit): string {
 	const root = host.board.projects().find((each) => each.name === project)?.path;
@@ -59,11 +62,12 @@ export function commitPaths(host: Host, stepSeconds: number, { project, subject,
 		const git = (...words: string[]) => spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", ...pins, "-C", root, ...words], { encoding: "utf8" });
 		const status = git("status", "--porcelain", "--no-renames", "-z", "--untracked-files=all", "--", ...paths);
 		if (status.status !== 0) throw new Error(`git status in ${root} failed: ${status.stderr.trim()}; nothing committed`);
-		// `XY <path>` an entry: every changed file under the pathspecs, an untracked one by its own path.
-		const changed = status.stdout.split("\0").flatMap((entry) => (entry === "" ? [] : [entry.slice(3)]));
+		// `XY <path>` an entry. Git also lists each file below a folder named as a pathspec: the commit's is a path of `paths` itself, or one a glob matches whole.
+		const globs = paths.filter((spec) => spec.startsWith(GLOB)).map(glob);
+		const changed = status.stdout.split("\0").map((entry) => entry.slice(3)).filter((path) => paths.includes(path) || globs.some((each) => each.test(path)));
 		if (changed.length === 0) return `nothing to commit: no file of ${paths.map((path) => path.replace(/^:\(glob\)/, "")).join(", ")} changed in ${root}`;
-		const links = changed.filter((path) => lstatSync(join(root, path), { throwIfNoEntry: false })?.isSymbolicLink());
-		if (links.length > 0) throw new Error(`${links.join(", ")}: a symlink, which this commit never holds; remove it; nothing committed`);
+		const links = changed.filter((path) => lstatSync(join(root, path), { throwIfNoEntry: false })?.isFile() === false);
+		if (links.length > 0) throw new Error(`${links.join(", ")}: a symlink or a folder, which this commit never holds; remove it; nothing committed`);
 		// The project's own check runs as a step of `arthur merge` does: in the steps' sandbox, on the PATH the nvm plugin answers for the checkout.
 		const run = (command: string) => {
 			const path = host.collect<string>("nvm.path", { root })[0] ?? "";

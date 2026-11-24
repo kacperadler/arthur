@@ -13,14 +13,14 @@ Each of these files that differs from HEAD, a new and a deleted one included, st
 - the reports `arthur ticket file` files and their pages: the `.md` files directly in `spec/quality/`, `spec/retro/` and `spec/pyramid/`, and the `.html` files directly in `spec/retro/` and `spec/pyramid/`;
 - `CHANGELOG.md`, which a merge rebuilds and leaves uncommitted when its own `spec:` commit is refused (`arthur merge --help`, step 8).
 
-Every other change in the checkout stays as it was, staged or unstaged: code, the vision and the roadmap, a ticket's attachment that is no `.md`, any other file under `spec/`. Those reach main on a worker's branch or by the owner's own commit.
+Every other change in the checkout stays as it was, staged or unstaged: code, the vision and the roadmap, a ticket's attachment that is no `.md`, any other file under `spec/`. Those reach main on a worker's branch or by the owner's own commit. So does every file below a folder named as one of these files (`spec/schedule.json/x_spec.rb`, `CHANGELOG.md/src/code.ts`): a path is the commit's only when it is one of the four files named above, or one of the `.md` and `.html` files in the folders named above.
 
 ## Steps
 
 1. Takes the project's merge lock (`<delivery folder>/<project>/merge.lock`, `arthur merge --help`) for as long as it runs: a check that fails on main resets it, and a commit made on top of the merge commit meanwhile would go with it.
 2. Asks the checkout's own Git config, as `arthur merge` does, before any git call that could run a program it names; every git call runs with the hooks off.
-3. Lists the changed files under the paths above (`git status`), and refuses the whole commit when one of them is a symlink.
-4. Stages exactly those files, then runs the project's own check, since the hooks are off: the `commit-msg` script of the `package.json` HEAD holds, as `npm run --silent commit-msg -- <Git's COMMIT_EDITMSG file>` with the subject written there, the way Git runs a `commit-msg` hook, in the sandbox of a merge's steps and on the PATH the nvm plugin answers for the checkout (`arthur merge --help`, step 8). Arthur's own runs `node test/other-projects.ts`, so a board file that names another project of the owner never reaches GitHub. A project that declares no such script commits without a check.
+3. Lists the changed files the paths above name (`git status`, then each entry held against the paths again, since Git also lists what is below a folder named as one), and refuses the whole commit when one of them is a symlink or a folder.
+4. Stages exactly those files, then runs the project's own check, since the hooks are off: when the `package.json` HEAD holds declares a `commit-msg` script, `npm run --silent commit-msg -- <Git's COMMIT_EDITMSG file>` in the checkout, with the subject written there, the way Git runs a `commit-msg` hook, in the sandbox of a merge's steps and on the PATH the nvm plugin answers for the checkout (`arthur merge --help`, step 8). npm reads the script from the checkout's own `package.json`, so an uncommitted change of that file or of a file the script runs changes the check. Arthur's own runs `node test/other-projects.ts`, so a board file that names another project of the owner never reaches GitHub. A project that declares no such script commits without a check.
 5. Commits those files alone (`git commit -m <subject> -- <files>`). Nothing is pushed: the next `arthur merge` that goes in pushes main.
 
 ## Refused
@@ -29,7 +29,7 @@ Exit code 1, nothing committed and none of the board's files left staged:
 
 - A merge of the project in a run, or another `arthur commit-board`: `main of <project> is held by pid <pid>, a merge or another commit; nothing committed: run it again once that ended`.
 - The checkout's own Git config sets a key that may name a program: `<file> sets <key>, …; nothing committed`.
-- A symlink among the changed files, new or in a tracked file's place: `<files>: a symlink, which this commit never holds; remove it; nothing committed`. A tracked symlink's removal is committed.
+- A symlink or a folder among the changed files, new or in a tracked file's place: `<files>: a symlink or a folder, which this commit never holds; remove it; nothing committed`. A tracked symlink's removal is committed.
 - The project's check refuses, or a file changed while it ran: `<subject> not committed: npm run commit-msg refused: <its last line>; fix what it names, then run it again`, or `… not committed: <files> changed while npm run commit-msg ran; …`. Reword what the check names (a ticket's line, a schedule entry) and run the command again; never commit past it with `git commit`.
 - The check still running after `merge.stepSeconds` (the delivery plugin's option, an hour by default) is killed: `<subject> not committed: npm run commit-msg refused: timed out after <n> s; …`.
 - A project whose folder is no Git checkout: `git status in <folder> failed: <git's words>; nothing committed`.
@@ -41,4 +41,4 @@ Wrong usage (no subject or an empty one, more than one word, a word starting wit
 
 ## For other plugins
 
-The plugin provides `delivery.commit`, `{ project, subject, paths }` to the same line or a throw: the steps above for the pathspecs `paths` in place of the board's. `arthur init` (the projects plugin) commits the files it wrote with it.
+The plugin provides `delivery.commit`, `{ project, subject, paths }` to the same line or a throw: the steps above for `paths` in place of the board's, each a file's path from the checkout's top or a `:(glob)` pathspec of `*` and `**/`; a file below a folder named as one of them is not committed. `arthur init` (the projects plugin) commits the files it wrote with it.

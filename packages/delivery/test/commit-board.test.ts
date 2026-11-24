@@ -98,13 +98,38 @@ test("commit-board commits every changed board file, new, changed and deleted, a
 	assert.deepEqual(readdirSync(fake.host.folder).filter((name) => name.startsWith("cache_")), [], "its cache folder is removed");
 });
 
+test("a folder named as a board file is none: no file below it is committed, a repository in a report's place neither; a tracked board file a folder replaced stops the commit", async (t) => {
+	const { root, run, head, shown } = await load(t);
+	// As a coordinator that writes only spec/ could leave them: code below folders named as the board's plain files and as its globs' own text.
+	const below = ["spec/schedule.json/evil_spec.rb", "spec/decisions.jsonl/notes.md", "CHANGELOG.md/src/code.ts", "spec/features/**/*.md/evil.rb", "spec/quality/*.md/evil.rb", "spec/features/AC0001-shop/x.md/evil.rb"];
+	write(root, Object.fromEntries(below.map((path) => [path, "code\n"])));
+	const nested = join(root, "spec/retro/2026-01-01.md");
+	mkdirSync(nested, { recursive: true });
+	git(nested, "init", "--quiet");
+	git(nested, "commit", "--quiet", "--allow-empty", "-m", "nested");
+	const [before, dirty] = [head(), status(root)];
+	const nothing = await run(["Board: nothing"]);
+	assert.deepEqual([nothing.code, nothing.err, head(), status(root)], [undefined, "", before, dirty]);
+	assert.match(nothing.out, /^nothing to commit: no file of spec\/build\.json, /);
+	// The board itself a folder now: its removal is not committed, nor the ticket beside it; put back, the ticket goes in alone.
+	rmSync(join(root, "spec/build.json"));
+	write(root, { [TICKET]: "# AC0001 - Shop\n\n## Decisions\n", "spec/build.json/evil.rb": "code\n" });
+	const replaced = status(root);
+	assert.deepEqual(await run(["Board: a ticket"]), { code: 1, out: "", err: "arthur commit-board: spec/build.json: a symlink or a folder, which this commit never holds; remove it; nothing committed" });
+	assert.deepEqual([head(), status(root)], [before, replaced]);
+	rmSync(join(root, "spec/build.json"), { recursive: true });
+	git(root, "checkout", "--", "spec/build.json");
+	assert.deepEqual(await run(["Board: a ticket"]), { code: undefined, out: `committed Board: a ticket: ${git(root, "rev-parse", "--short", "HEAD")}, 1 file`, err: "" });
+	assert.deepEqual([shown(), status(root)], [["Board: a ticket", `M\t${TICKET}`], dirty]);
+});
+
 test("a symlink among the changed board files stops the whole commit, nothing staged; once it is gone the commit goes in, a tracked symlink's removal with it", async (t) => {
 	const { root, run, head, shown } = await load(t);
 	symlinkSync("ticket.md", join(root, "spec/features/AC0001-shop/old.md"));
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "a link the owner committed");
 	const before = head();
-	const refused = (path: string) => ({ code: 1, out: "", err: `arthur commit-board: ${path}: a symlink, which this commit never holds; remove it; nothing committed` });
+	const refused = (path: string) => ({ code: 1, out: "", err: `arthur commit-board: ${path}: a symlink or a folder, which this commit never holds; remove it; nothing committed` });
 	// A new link to a file, a link to nothing, and the board itself replaced by a link to a file with a board in it.
 	const links: Readonly<Record<string, string>> = { "spec/features/AC0001-shop/plan.md": "../../../README.md", "spec/features/AC0001-shop/gone.md": "nowhere.md", "spec/build.json": "../board.json" };
 	write(root, { "board.json": "[]\n", "spec/decisions.jsonl": "{}\n" });
@@ -219,6 +244,19 @@ test("delivery.commit commits the paths another plugin names, as arthur init's, 
 	assert.deepEqual(status(blog), ["?? README.md"]);
 	assert.equal(commit("blog"), `nothing to commit: no file of ${paths.join(", ")} changed in ${blog}`);
 	assert.throws(() => commit("nope"), /^Error: no project nope in the project list$/);
+});
+
+test("of the paths another plugin names, a file is committed only when its path is one of them or a glob matches it whole: no file below a folder named so", async (t) => {
+	const { blog, fake, shown } = await load(t);
+	const paths = ["sub", "docs", "top.txt", ":(glob)docs/*.md", ":(glob)docs/**/*.txt"];
+	const named = ["top.txt", "docs/a.md", "docs/.b.md", "docs/c.txt", "docs/deep/er/c.txt", "docs/line\nbreak/c.txt"];
+	// Each listed by Git below `sub` or `docs`: a `*` that would cross a slash, a glob matched in part at either end, a dot read as any character.
+	const left = ["docs/deep/a.md", "docs/a.md.bak", "sub/docs/a.md", "docs/axmd", "sub/top.txt"];
+	write(blog, Object.fromEntries([...named, ...left].map((path) => [path, "text\n"])));
+	assert.match(fake.host.call<string>("delivery.commit", { project: "blog", subject: "docs: first", paths }), /^committed docs: first: \w+, 6 files$/);
+	// Git quotes the path with a line break in it.
+	assert.deepEqual(shown(blog).sort(), ["docs: first", ...named.map((path) => `A\t${path.includes("\n") ? JSON.stringify(path) : path}`)].sort());
+	assert.deepEqual(status(blog), left.map((path) => `?? ${path}`).sort());
 });
 
 test("with nvm.path answering no PATH the commit-msg script runs on the PATH as it is; one that removes the command's cache folder does not fail the commit", async (t) => {

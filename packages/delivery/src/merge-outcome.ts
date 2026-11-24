@@ -89,7 +89,7 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 
 // The `commit-msg` script of package.json as HEAD holds it (a step may have changed the file), run as Git runs that hook, on
 // the message in Git's message file; none declared, nothing run. A refusal, or a path changed while it ran, stops the commit.
-function vetted({ git, run }: Merged, subject: string, paths: readonly string[]): Ran {
+export function vetted({ git, run }: Pick<Merged, "git" | "run">, subject: string, paths: readonly string[]): Ran {
 	const declared = git("show", "HEAD:package.json");
 	if (declared.status !== 0 || typeof JSON.parse(declared.stdout)?.scripts?.["commit-msg"] !== "string") return { status: 0, stdout: "", stderr: "" };
 	const file = git("rev-parse", "--path-format=absolute", "--git-path", "COMMIT_EDITMSG").stdout.trim();

@@ -63,14 +63,11 @@
 				"^- \\d{4}-\\d{2}-\\d{2}: Source: audit spec/quality/2026-10-22\\.md"
 			]
 		},
-		"refs": {
-			"refs/heads/main": "moved",
-			"origin:refs/heads/main": "moved"
-		},
 		"calls": [
 			"^arthur ticket file (\\S+-)?a1b2c3d4$",
 			"^arthur ticket new ",
 			"^arthur ticket status SH0016 planned --autopilot\\b",
+			"^arthur commit-board ",
 			"^arthur spawn (?=.*--budget 1\\b)(?=.*SH0016)"
 		],
 		"never": [

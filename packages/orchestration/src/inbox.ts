@@ -2,10 +2,11 @@ import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync,
 import { join } from "node:path";
 import { type Received, received, turnText } from "@arthur/core/parts";
 import type { Event, Host } from "@arthur/core/plugin";
-import { byState } from "./context.ts";
+import { byState, jobsNow } from "./context.ts";
 import { redact } from "./credential.ts";
 import { type Box, mainBots, noticeAt, sessionFor } from "./sessions.ts";
-import { ASK, held } from "./silent.ts";
+import { held } from "./silent.ts";
+import { ASK, silentEnd } from "./silent-end.ts";
 import { voiceReplies } from "./voice-reply.ts";
 import { turn, wake } from "./wake.ts";
 
@@ -162,19 +163,24 @@ function footer(host: Host, sessions: readonly Box[]): void {
 	}
 }
 
-// Each reply or notice the extensions wrote, oldest first per session, emitted and then moved to `outbox/sent/`, a sent reply
-// then to `voice` (voice-reply.ts); while silent is on, a reply of a turn holding no owner message is not emitted but moved to
+// First the silent mode's own end, once it came (silent-end.ts). Then each reply or notice the extensions wrote, oldest first per
+// session, emitted and then moved to `outbox/sent/`, a sent reply with `jobsNow` under it, then without it to `voice`
+// (voice-reply.ts); while silent is on, a reply of a turn holding no owner message is not emitted but moved to
 // `outbox/held/`, unless its own session ran `arthur silent ask` (silent.ts). An agent's reply and notice go to its chat alone.
 function sweep(host: Host, sessions: readonly Box[], voice: (reply: Event) => void): void {
-	for (const { folder, chat } of sessions) {
+	silentEnd(host, sessions);
+	for (const { folder, chat, project } of sessions) {
 		const outbox = join(folder, "outbox");
 		const { channel, ...spot } = noticeAt(chat);
 		for (const name of list(outbox).filter((each) => each.endsWith(".json")).sort()) {
 			const file = JSON.parse(readFileSync(join(outbox, name), "utf8")) as { text: string; answers: (string | number)[]; channels: string[] } | { notice: string };
 			const box = "notice" in file || file.channels.length > 0 || !held(host.folder, folder, name) ? "sent" : "held";
 			if ("notice" in file) host.events.emit("notice", { text: redact(file.notice, host.secrets), ...noticeAt(chat) });
-			// The event names the event numbers its files hold.
-			else if (box === "sent") voice(host.events.emit("coordinator-replied", { text: file.text, answers: file.answers.map((answer) => parseInt(String(answer))), channels: channel === undefined ? file.channels : [channel], ...spot }));
+			else if (box === "sent") {
+				// The event names the event numbers its files hold.
+				const reply = host.events.emit("coordinator-replied", { text: `${file.text}\n\n${jobsNow(host, project)}`, answers: file.answers.map((answer) => parseInt(String(answer))), channels: channel === undefined ? file.channels : [channel], ...spot });
+				voice({ ...reply, data: { ...(reply.data as object), text: file.text } });
+			}
 			mkdirSync(join(outbox, box), { recursive: true });
 			renameSync(join(outbox, name), join(outbox, box, name));
 		}

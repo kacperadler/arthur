@@ -467,14 +467,25 @@ test("an instruction that starts with - or @ reaches the resumed agent as its me
 	}
 });
 
-test("a continued job without a higher budget is stopped at once at the budget its cost already reached", async () => {
-	const { agent } = resuming({ steps: [{ message: "Spent.", cost: 2, stopReason: "toolUse" }, stuck()] }, { steps: [{ message: "More.", cost: 0.01, stopReason: "toolUse" }, stuck()] });
+// AR0739: `--budget 30` on a job that had spent $49.77 was accepted, and its run ended at its first message, having spent on it.
+test("a continue whose budget the job's cost has reached is refused, naming the cost, with nothing written, no event and no agent; just above it, and --budget 0, go through", async () => {
+	const { agent, resumed } = resuming({ steps: [{ message: "Spent.", cost: 2, stopReason: "toolUse" }, stuck()] }, { steps: [{ message: "More." }] });
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
-	await ended(home, job.id);
-	await jobs.continue(job.id, "Go on.");
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "limit: budget: its cost $2.0000 reached its budget of $2" }]);
+	const refused = (cost: string, budget: string, above: string) => ({ message: `${job.id}: its cost $${cost} reached the budget of $${budget}, so its run would stop at once: --budget is the budget of all its runs together, not an amount on top; give one above $${above}` });
+	const [before, events] = [record(home, job.id), readEvents(home, 1).length];
+	await assert.rejects(jobs.continue(job.id, "Go on."), refused("2.0000", "2", "2"), "without --budget, at the record's");
+	await assert.rejects(jobs.continue(job.id, "Go on.", 2), refused("2.0000", "2", "2"), "exactly its cost");
+	await assert.rejects(jobs.continue(job.id, "Go on.", 1.5), refused("2.0000", "1.5", "2"), "below its cost");
+	assert.deepEqual([record(home, job.id), readEvents(home, 1).length, starts(resumed).length], [before, events, 0], "its lock freed too");
+	assert.equal(await jobs.continue(job.id, "Go on.", 2.0001), undefined, "a hundredth of a cent above");
 	const [, second] = await ended(home, job.id, 2);
-	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "limit: budget: its cost $2.0100 reached its budget of $2" });
+	assert.deepEqual([second, field(home, job.id, "budget")], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, "2.0001"]);
+	await assert.rejects(jobs.continue(job.id, "Go on.", 2), refused("2.0000", "2", "2"), "refused again at the same cost");
+	assert.equal(await jobs.continue(job.id, "Go on.", 0), undefined, "0 is no limit");
+	const [, , third] = await ended(home, job.id, 3);
+	assert.deepEqual([third, field(home, job.id, "budget")], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, "0"]);
 });
 
 test("a continue whose wrapper does not start ends the job failed and says why, not continued", async (t) => {
@@ -779,19 +790,35 @@ test("a continued worker moves its ticket from review back to in-progress with o
 	assert.deepEqual([readFileSync(path, "utf8"), statSync(path).mtimeMs, events("ticket-moved").length], [text, written, moves + 1]);
 });
 
-test("the arthur binary stops, steers and continues a job by its id; wrong usage exits 2, a refusal 1", async () => {
+// A repository `acme` whose config runs `agent` and whose plugin `orchestration` runs `plugin`, source text, at its setup; `arthur` is the binary there.
+function binary(agent: string, plugin = "") {
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(root);
 	writeFileSync(join(root, ".gitignore"), ".arthur/\n");
 	git(root, "init", "--quiet", "--initial-branch=main");
 	git(root, "add", "--all");
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
-	const agent = fakeAgent({ steps: [stuck()] });
-	const full = join(root, "..", "full");
-	const check = `host.jobs.beforeSpawn((spawn) => (spawn.decision !== undefined ? \`decision \${JSON.stringify(spawn.decision)} of \${spawn.id}\` : existsSync(${JSON.stringify(full)}) && !spawn.ignoreRestart ? "restart due: AC0001" : undefined))`;
-	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${check}; } }] };\n`);
+	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${plugin}; } }] };\n`);
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, NODE_COMPILE_CACHE: process.env.NODE_COMPILE_CACHE, ARTHUR_JOB_SLICE: jobSlice.slice } });
-	const home = join(root, ".arthur");
+	return { root, home: join(root, ".arthur"), arthur };
+}
+
+test("the arthur binary refuses a continue at a budget the job's cost has reached: exit 1, the cost named, the job left ended", async () => {
+	const agent = fakeAgent({ steps: [{ message: "Spent.", cost: 0.7512 }] });
+	const { home, arthur } = binary(agent);
+	const id = arthur("spawn", "Go.", "--budget", "1").stdout.trim();
+	await ended(home, id);
+	const refused = arthur("continue", id, "Go on.", "--budget", "0.75");
+	assert.deepEqual([refused.status, refused.stdout, refused.stderr], [1, "", `arthur continue: ${id}: its cost $0.7512 reached the budget of $0.75, so its run would stop at once: --budget is the budget of all its runs together, not an amount on top; give one above $0.7512\n`]);
+	assert.deepEqual([field(home, id, "state"), field(home, id, "budget"), starts(agent).length], ["ended", "1", 1]);
+	assert.equal(arthur("continue", id, "Go on.", "--budget", "0.76").stdout, `${id}: continued\n`);
+	await ended(home, id, 2);
+});
+
+test("the arthur binary stops, steers and continues a job by its id; wrong usage exits 2, a refusal 1", async () => {
+	const agent = fakeAgent({ steps: [stuck()] });
+	const full = join(temporaryFolder(), "full");
+	const { root, home, arthur } = binary(agent, `host.jobs.beforeSpawn((spawn) => (spawn.decision !== undefined ? \`decision \${JSON.stringify(spawn.decision)} of \${spawn.id}\` : existsSync(${JSON.stringify(full)}) && !spawn.ignoreRestart ? "restart due: AC0001" : undefined))`);
 	const id = arthur("spawn", "Go.").stdout.trim();
 	await running(home, id);
 	// The sandbox's walk to hide the env file (AR0443) can outlast `running`: the agent's start is what the count below asserts.

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { Bus } from "./events.ts";
 import type { Job } from "./jobs.ts";
-import { checkLimits } from "./job-limits.ts";
+import { checkLimits, reached } from "./job-limits.ts";
 import { type Machine, sshAsync } from "./job-machine.ts";
 import { capFields, recordedJob, writeMcp } from "./job-record.ts";
 import { type Caps, launch, type Slice } from "./job-scope.ts";
@@ -111,6 +111,9 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (moved !== undefined) throw new Error(`${id}: ${moved}; its record was changed since the spawn: spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
 		const asked = { ...recorded, budgetUsd: budgetUsd ?? recorded.budgetUsd };
+		// The wrapper stops a run at the first message whose cost has reached the budget, so this one would spend and end at once (AR0739).
+		const cost = Number(field("cost"));
+		if (reached(cost, asked.budgetUsd)) throw new Error(`${id}: its cost $${cost.toFixed(4)} reached the budget of $${asked.budgetUsd}, so its run would stop at once: --budget is the budget of all its runs together, not an amount on top; give one above $${Number(cost.toFixed(4))}`);
 		const passed = await steps.check(asked);
 		release = passed.release;
 		const job = { ...asked, cpu: passed.caps.cpu, memory: passed.caps.memory, feature: passed.caps.feature };

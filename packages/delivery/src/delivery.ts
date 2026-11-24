@@ -4,6 +4,7 @@ import type { Host, Job, Plugin } from "@arthur/core/plugin";
 import { autoMergePiece, type DeliveryPiece } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
 import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
+import { type Commit, commitBoardCommand, commitPaths } from "./commit-board.ts";
 import { ALWAYS_REVIEW, checkOptions, STEP_SECONDS } from "./delivery-options.ts";
 import { type HandBack, handBack } from "./hand-back.ts";
 import { identityRequirement, mergeCommand } from "./merge-command.ts";
@@ -54,6 +55,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			const { forward } = (passes = passForward(host));
 			const procedure = new URL("../roles/coordinator/review-limit.md", import.meta.url);
 			const always = options.review?.alwaysReview ?? ALWAYS_REVIEW;
+			const stepSeconds = options.merge?.stepSeconds ?? STEP_SECONDS;
 			const held = (path: string) => always.some((glob) => matchesGlob(path, glob));
 			host.jobs.registerRole({ name: "reviewer", file: new URL("../roles/reviewer.md", import.meta.url), criteria: ["styleguide", "review", "verify"] });
 			host.provide("prompt", (role: string, job: Job) => (role === "worker" ? workerCriteria(host, job) : undefined));
@@ -112,9 +114,12 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			});
 			host.commands.register(reviewCommand(host, procedure));
 			host.commands.register(reviewNeededCommand(host, held));
-			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url), held, options.merge?.stepSeconds ?? STEP_SECONDS));
+			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url), held, stepSeconds));
 			host.commands.register(takeMainCommand(host));
 			host.commands.register(changelogCommand(host));
+			host.commands.register(commitBoardCommand(host, stepSeconds));
+			// Asked by projects' `arthur init` with the files it wrote: `{ project, subject, paths }` committed as `arthur commit-board` commits the board.
+			host.provide("delivery.commit", (asked: Commit) => commitPaths(host, stepSeconds, asked));
 			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
 			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.
 			host.provide("delivery.alwaysReview", ({ paths }: { readonly paths: readonly string[] }) => paths.filter(held));

@@ -17,7 +17,7 @@ const BUDGETS = {
 
 	"core/testing": 413,
 
-	delivery: 2370,
+	delivery: 2462,
 
 	develop: 769,
 
@@ -45,7 +45,7 @@ const BUDGETS = {
 
 	orchestration: 3242,
 
-	projects: 595,
+	projects: 600,
 
 	resources: 638,
 

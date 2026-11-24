@@ -31,7 +31,7 @@ export function named(job: Readonly<Record<string, unknown>>, result: unknown): 
 // delivery files it and below the limit hands the branch back (hand-back.ts), and at the limit the procedure.
 export function wake({ review, verdict, project, autoMerge, reason, fails: place }: Seen, procedure: URL): string {
 	const worker = review.branch.slice("arthur/".length);
-	const file = `File it: arthur ticket file ${review.ticket} ${review.id}, commit it, then arthur prune ${review.id}.`;
+	const file = `File it: arthur ticket file ${review.ticket} ${review.id}, commit it (arthur commit-board '${review.ticket}: review filed'), then arthur prune ${review.id}.`;
 	if (verdict === "PASS") {
 		const next = autoMerge ? `${project} merges on its own (autoMerge): delivery runs arthur merge --auto ${worker}, whose merge files and prunes this review, and wakes you with what it printed; nothing to do until then.` : file;
 		return `Review verdict: PASS on ${review.branch} at ${review.commit.slice(0, 7)}; ${review.ticket} moves to done. ${next}`;

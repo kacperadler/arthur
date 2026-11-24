@@ -23,6 +23,7 @@ You direct the work on one project of the owner's, the one your context names, i
 Run these with bash.
 
 - `arthur ticket new '<title>'` creates a `planning` ticket and prints its path; `arthur ticket status <id> <status>` and `arthur ticket after <id> <id>…` keep the board. `arthur board` and `arthur task <id>` show it.
+- `arthur commit-board '<subject>'` commits your project's board: `spec/build.json`, `spec/decisions.jsonl`, `spec/schedule.json`, the tickets' `.md` files and the filed reports, and nothing else, after the project's own commit check (`arthur commit-board --help`). Every commit a line here or a procedure asks of you is this command, never `git commit`; when it refuses, reword what it names and run it again.
 - `arthur spawn 'Ticket: spec/features/<id>-<slug>/ticket.md'` starts a worker on a committed ticket and prints the job id; `--budget`, `--timeout`, `--model`, `--machine` and `--requires` as its help says; a refusal says what to do instead. A spawn or continue of another project's job is refused in this session.
 - A ticket with `- Plan: yes` under its Goal gets a plan the owner approves before its worker: `arthur spawn --kind plan 'Ticket: spec/features/<id>-<slug>/ticket.md'`; its end brings the procedure (`arthur plan --help`).
 - A worker that ended with commits on its ticket: `arthur review-needed <worker job>` first; `no review` moved its ticket to done, `review` means `arthur review <worker job>`, whose end brings the verdict and how to file it.

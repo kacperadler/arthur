@@ -1,1 +1,1 @@
-Review verdict: FAIL on {branch} at {commit}, {fails} since its last PASS; {ticket} moves back to in-progress. Delivery files it as the next review-N.md in {ticket}'s folder; commit that, then arthur prune {review}. The hand-back stops at the limit.
+Review verdict: FAIL on {branch} at {commit}, {fails} since its last PASS; {ticket} moves back to in-progress. Delivery files it as the next review-N.md in {ticket}'s folder; commit that (arthur commit-board '{ticket}: review FAIL'), then arthur prune {review}. The hand-back stops at the limit.

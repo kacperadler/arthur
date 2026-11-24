@@ -25,10 +25,8 @@
 				"^## Decisions\\n(?:(?!## ).*\\n)*?- \\d{4}-\\d{2}-\\d{2}: .*\\b(?:broken|404)\\b"
 			]
 		},
-		"refs": {
-			"refs/heads/main": "moved"
-		},
 		"calls": [
+			"^arthur commit-board ",
 			"^arthur review (\\S+-)?5e6f7a8b$"
 		],
 		"never": [

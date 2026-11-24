@@ -1,9 +1,10 @@
 import { existsSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import type { Host } from "@arthur/core/plugin";
 import type { Project } from "./projects.ts";
 
 // `arthur init <project>` (spec/roadmap.md, entry 42): what Arthur reads, given to a repository without a board, each file only
-// where it is missing; it commits nothing: docs/commands/init.md.
+// where it is missing, then committed by the plugin that provides `delivery.commit` (AR0738): docs/commands/init.md.
 
 export const BOARD = "spec/build.json";
 const SKELETON = new URL("../skeleton/", import.meta.url);
@@ -25,8 +26,8 @@ export function folderPrompts(project: Project): string | undefined {
 	return `project ${project.name} keeps its prompts in its folder ${project.folder}; arthur init and the onboarding write only repository files: write ${Object.keys(project.prompts).join(", ")} there yourself`;
 }
 
-// `criteria`: the criteria files the registered roles read (`host.jobs.criteria()`); `code`: the load's package folders (`host.code`).
-export function init(all: readonly Project[], args: readonly string[], flag: string | undefined, criteria: readonly string[], code: readonly string[]): number | void {
+// The criteria files are those the registered roles read (`host.jobs.criteria()`), the packages the load's (`host.code`).
+export function init(host: Host, all: readonly Project[], args: readonly string[], flag: string | undefined): number | void {
 	if (args.length !== 1 || flag !== undefined) {
 		console.error("usage: arthur init <project>");
 		return 2;
@@ -50,7 +51,7 @@ export function init(all: readonly Project[], args: readonly string[], flag: str
 	// The board last: once it is there the repository counts as given, so an init cut short can run again.
 	const files: [string, string][] = [
 		[vision, readFileSync(new URL("vision.md", SKELETON), "utf8")],
-		...criteria.map((name): [string, string] => [join(criteriaDir, `${name}.md`), criterion(name, code)]),
+		...host.jobs.criteria().map((name): [string, string] => [join(criteriaDir, `${name}.md`), criterion(name, host.code)]),
 		[".nvmrc", `${process.versions.node.split(".")[0]}\n`],
 		[BOARD, "[]\n"],
 	];
@@ -59,7 +60,13 @@ export function init(all: readonly Project[], args: readonly string[], flag: str
 	// Another init wrote it meanwhile.
 	if (left.includes(BOARD)) return refused();
 	console.log(`created: ${created.join(", ")}\nleft as it was: ${left.join(", ") || "nothing"}`);
-	console.log(`nothing committed: commit these files, then start the onboarding: arthur spawn --kind onboarding --project ${project.name} 'Onboard ${project.name}.'`);
+	// Committed as the board is, after the project's own commit check (delivery's `arthur commit-board`): a job's worktree starts from HEAD.
+	const [commit] = host.collectEach<string>("delivery.commit", { project: project.name, subject: "chore: arthur init", paths: created });
+	const next = `start the onboarding: arthur spawn --kind onboarding --project ${project.name} 'Onboard ${project.name}.'`;
+	if (commit === undefined) return console.log(`nothing committed: no plugin provides delivery.commit; commit these files, then ${next}`);
+	if ("value" in commit) return console.log(`${commit.value}\nnext: ${next}`);
+	console.error(`arthur init: nothing committed: ${commit.error.message}; commit these files, then ${next}`);
+	return 1;
 }
 
 // Writes `text` to `file` unless something is there, a symlink included, and never half of it: a link to a whole temporary file.

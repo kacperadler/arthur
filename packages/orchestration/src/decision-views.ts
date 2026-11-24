@@ -16,7 +16,7 @@ export function line(host: Host, project: Project, decision: Decision): string {
 	const now = answered !== undefined ? `answered ${answered.time.slice(0, 10)}: ${answered.decided}` : closed !== undefined ? `closed ${closed.time.slice(0, 10)}: ${closed.reason}` : state;
 	const { edited, missing } = ticketCheck(host, project, decision);
 	const note = `${edited.length > 0 ? `; edited by hand under the Decisions of ${ask.ticket}` : ""}${missing ? `; its line under the Decisions of ${ask.ticket} is missing` : ""}`;
-	return `${ask.id} ${ask.time.slice(0, 10)} ${ask.kind}${ask.ticket === undefined ? "" : ` ${ask.ticket}`}: ${oneLine(ask.question)} — ${now}${note}`;
+	return `${ask.id} ${ask.time.slice(0, 10)} ${ask.kind}${ask.ticket === undefined ? "" : ` ${ask.ticket}`}: ${oneLine(ask.question)} - ${now}${note}`;
 }
 
 // `arthur decisions <id>`: everything the log holds of one question.

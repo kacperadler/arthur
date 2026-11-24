@@ -11,7 +11,7 @@ import { type Box, noticeAt, sessionFor } from "./sessions.ts";
 // A job blocked on the owner (spec/roadmap.md, entry 27): its `job-state` to `blocked` on `user: <question>` emits one `notice`
 // `{ text: "<id> asks [<decision id>]: <question>", blocked: "<id>" }`, which every channel sends (silently in quiet hours) and
 // silent mode lets through, for a project with an agent at its chat's place (entry 86, `channel`, `instance` and `place`); a
-// question an approved class answered by policy (entry 97) ends it with ` — answered by policy (<class id>): <decided>`. The
+// question an approved class answered by policy (entry 97) ends it with ` - answered by policy (<class id>): <decided>`. The
 // question, redacted as in the decision log, is asked there first (entry 96, decision-hooks.ts);
 // a text longer than one message is cut, saying where the whole question is. Without a log for its project the notice names no
 // decision, and a log broken by hand fails the event after the notice went. Every process that loads the plugin gets the event,
@@ -41,7 +41,7 @@ export function blockedNotice(host: Host, sessions: readonly Box[]): () => void 
 		for (const name of readdirSync(asked)) if (Date.now() - (statSync(join(asked, name), { throwIfNoEntry: false })?.mtimeMs ?? Date.now()) > KEEP_MS) rmSync(join(asked, name), { force: true });
 		const question = reason.slice("user: ".length);
 		const notify = (decision?: JobQuestion) => {
-			const ending = decision?.policy === undefined ? "" : ` — answered by policy (${policyOf(decision.policy)}): ${decision.policy.decided}`;
+			const ending = decision?.policy === undefined ? "" : ` - answered by policy (${policyOf(decision.policy)}): ${decision.policy.decided}`;
 			const head = `${String(id)} asks${decision === undefined ? "" : ` [${decision.id}]`}: `;
 			const text = `${head}${redact(question, host.secrets)}${ending}`;
 			const tail = ` … (cut; /jobs shows the whole question of job ${String(id).split("-").at(-1)})`;

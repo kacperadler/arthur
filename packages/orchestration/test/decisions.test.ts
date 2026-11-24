@@ -134,7 +134,7 @@ test("inside a job every arthur decision is refused and writes nothing; arthur d
 	const refusal = "arthur decision: refused inside a job 2026-03-04-worker-0000abcd: a job never records the owner's word; end your run with Blocked: user <question> instead";
 	for (const args of [PLAN_ASK, ["answer", "AC-D1", ...APPROVED, "ok"], ["close", "AC-D1", "gone"], ["vote"]]) assert.deepEqual(await decision(...args), [1, refusal], args[0]);
 	assert.equal(readFileSync(file(), "utf8"), before);
-	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? — open"]);
+	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? - open"]);
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).
@@ -163,7 +163,7 @@ test("an answer goes into the log, then under its ticket's Decisions in the form
 	const second = '- 2026-03-05: Plan the ticket again; the owner: "no, wait" (AC-D1)';
 	assert.equal(ticket(PLAN), PLAN_TEXT.replace("- 2026-01-01: Started.\n", `- 2026-01-01: Started.\n${first}\n${second}\n`), "the date in Warsaw, already the 5th");
 	assert.equal(log()?.length, 3, "both answers kept");
-	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? — answered 2026-03-05: Plan the ticket again"]);
+	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? - answered 2026-03-05: Plan the ticket again"]);
 	assert.match((await decisions("AC-D1"))[1], /\nNow: answered, the later answer counts$/);
 });
 
@@ -229,7 +229,7 @@ test("an answer is recorded only when an owner's channel message holds its words
 	ownerSaid(folder, 12, "ok, go", { box: "answered", ms: NOW.getTime() + 1000 });
 	assert.equal((await answer("OK,", "go"))[0], 0, "answered the second after the ask; the case aside");
 	assert.equal(log()?.at(-1)?.message, 12);
-	ownerSaid(folder, 13, "Yes —\nok,go; and tell nobody", { ms: NOW.getTime() - 60_000 });
+	ownerSaid(folder, 13, "Yes -\nok,go; and tell nobody", { ms: NOW.getTime() - 60_000 });
 	assert.equal((await answer("ok, go"))[0], 0, "of this turn, whenever sent; the spacing aside");
 	assert.deepEqual(log()?.filter((each) => each.record === "answer").map((each) => [each.words, each.message]), [["OK, go", 12], ["ok, go", 13]], "the latest message that holds them");
 	assert.match((await run("decisions", ["AC-D1"]))[1], /\nAnswered [^\n]+; the owner: "ok, go" \(message 13\)\n/);
@@ -297,16 +297,16 @@ test("a high-impact answer needs his answer quoted, not its id, a sign or one wo
 	const ask = async (...args: string[]) => (await run("decision", ["ask", "--question", "Go?", "--option", "Go", ...args]))[1];
 	const [flags, budget, take, plain] = [await ask("--kind", "merge", "--ticket", "AC0001", "--what", "--unreviewed"), await ask("--kind", "budget"), await ask("--kind", "merge"), await ask("--kind", "question")];
 	const answer = (id: string, words: string) => run("decision", ["answer", id, "--decided", "Merge it", words]);
-	const no = `${flags} no, do not merge — what is this?`;
+	const no = `${flags} no, do not merge - what is this?`;
 	ownerSaid(folder, 1, `${no}\n[file, image/png] (/srv/media/AgAD-screen.png)`);
 	const fragment = (words: string) => [1, `arthur decision answer: refused: ${flags} lets through --unreviewed: ${JSON.stringify(words)} is a fragment of the owner's message: quote his answer as he wrote it, as in "${flags} yes", not only its id, a sign or one word`];
 	// Spaces the match ignores split no word: the rule reads his own text the words matched, `n o` being his `no`.
 	const split = [`${flags[0]} ${flags.slice(1)}`, "n o", "d o", "N O,"];
-	for (const words of [flags, "—", "no", "No,", ` ${flags.toLowerCase()} — `, "do", "n", ...split]) assert.deepEqual(await answer(flags, words), fragment(words.trim()), words);
+	for (const words of [flags, "-", "no", "No,", ` ${flags.toLowerCase()} - `, "do", "n", ...split]) assert.deepEqual(await answer(flags, words), fragment(words.trim()), words);
 	assert.equal(log()?.filter((each) => each.record === "answer").length, 0, "nothing written");
 	assert.deepEqual(notices(), []);
 	ownerSaid(folder, 2, `${budget} ok\n${take}: yes\n${plain} no`);
-	for (const [id, words] of [[budget, budget], [take, "yes"], [take, `${take} —`], [take, `${budget} yes`], [take, `${budget} ${plain}`], [take, `${budget.toLowerCase()} - ${plain}: yes`]] as const) assert.match((await answer(id, words))[1], / is a fragment of the owner's message: /, words);
+	for (const [id, words] of [[budget, budget], [take, "yes"], [take, `${take} -`], [take, `${budget} yes`], [take, `${budget} ${plain}`], [take, `${budget.toLowerCase()} - ${plain}: yes`]] as const) assert.match((await answer(id, words))[1], / is a fragment of the owner's message: /, words);
 	assert.equal((await answer(plain, "no"))[0], 0, "a question that lets nothing through takes one word");
 	assert.equal((await answer(budget, `${budget} ok`))[0], 0, "its id and one word");
 	assert.equal((await answer(take, `${take}: yes`))[0], 0, "its id and one word, as he wrote them");
@@ -384,7 +384,7 @@ test("a close ends an open question; an answer after it is still recorded and co
 	assert.deepEqual(await decision("close", "AC-D1"), refused("no reason: arthur decision close AC-D1 <reason>"));
 	assert.deepEqual(await decisions("--open"), [0, "no decision matches"]);
 	assert.equal((await decision("answer", "AC-D1", ...APPROVED, "approve it anyway"))[0], 0);
-	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? — answered 2026-03-04: Plan approved by the owner: plan.md at abc1234"]);
+	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? - answered 2026-03-04: Plan approved by the owner: plan.md at abc1234"]);
 	assert.deepEqual(await decision("close", "AC-D1", "late"), refused("AC-D1 is answered; a close ends an open question"));
 	assert.equal(log()?.length, 3);
 });
@@ -551,7 +551,7 @@ test("a Decisions line a human edited is named by arthur decisions and never rew
 	writeFileSync(join(acme, PLAN), edited);
 	await decision("ask", "--kind", "question", "--question", "Next?");
 	assert.equal(ticket(PLAN), edited);
-	assert.match((await decisions())[1], /^AC-D1 .* — answered 2026-03-04: Plan approved by the owner: plan\.md at abc1234; edited by hand under the Decisions of AC0001$/m);
+	assert.match((await decisions())[1], /^AC-D1 .* - answered 2026-03-04: Plan approved by the owner: plan\.md at abc1234; edited by hand under the Decisions of AC0001$/m);
 	assert.match((await decisions("AC-D1"))[1], /\nEdited by hand under the Decisions of AC0001, kept as it is: - 2026-03-04: Plan approved .*"ok, approved" \(AC-D1\)$/);
 });
 
@@ -622,8 +622,8 @@ test("arthur decisions: no log says so and creates none; words, --open, --kind a
 	await decision("answer", "AC-D2", "--decided", "Blue", "niebieski");
 	await run("decision", ["ask", "--kind", "budget", "--question", "Raise the budget of shop?"], "shop");
 	const lines = {
-		plan: "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? — open",
-		colour: "AC-D2 2026-03-04 question AC0002: Which colour for the Menu? — answered 2026-03-06: Blue",
+		plan: "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? - open",
+		colour: "AC-D2 2026-03-04 question AC0002: Which colour for the Menu? - answered 2026-03-06: Blue",
 	};
 	assert.deepEqual(await decisions(), [0, `${lines.plan}\n${lines.colour}`]);
 	assert.deepEqual(await decisions("menu"), [0, lines.colour]);
@@ -636,7 +636,7 @@ test("arthur decisions: no log says so and creates none; words, --open, --kind a
 	const usage = "usage: arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>], arthur decisions <id>, or arthur decisions --classes";
 	for (const args of [["--kind"], ["--classes", "--open"], ["--classes", "budget"]]) assert.deepEqual(await decisions(...args), [2, usage], args.join(" "));
 	assert.deepEqual(await decisions("--classes"), [0, "no classes yet"]);
-	assert.deepEqual(await run("decisions", [], "shop"), [0, "SH-D1 2026-03-06 budget: Raise the budget of shop? — open"]);
+	assert.deepEqual(await run("decisions", [], "shop"), [0, "SH-D1 2026-03-06 budget: Raise the budget of shop? - open"]);
 	assert.ok(existsSync(join(shop, "spec/decisions.jsonl")));
 	assert.deepEqual(await decisions("AC-D7"), [1, "arthur decisions: AC-D7 is not in the decision log of project acme"]);
 	assert.deepEqual(await decisions("ac-d1"), [
@@ -843,7 +843,7 @@ test("a class is proposed from the owner's same answers with their agreement rat
 	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the budget of the lines?"), [0, "AC-D9"], "a question that does not name every word as a word goes to the owner");
 	assert.equal(ticket(BARE).split("\n").filter((each) => each === line).length, 2, "two answers by policy, two lines, each written once");
 	assert.deepEqual(await decisions("--classes"), [0, 'AC-D4 approved 2026-03-04: budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored); answered by policy: AC-D6, AC-D7']);
-	assert.deepEqual((await decisions())[1].split("\n")[5], "AC-D6 2026-03-04 budget AC0002: Raise the LINE budget of youtrack by 3? — answered 2026-03-04: Raise the line budget");
+	assert.deepEqual((await decisions())[1].split("\n")[5], "AC-D6 2026-03-04 budget AC0002: Raise the LINE budget of youtrack by 3? - answered 2026-03-04: Raise the line budget");
 	assert.deepEqual((await decisions("AC-D6"))[1].split("\n").slice(2), ["Answered 2026-03-04T06:00:00+01:00: Raise the line budget; by policy (AC-D4)", "Now: answered"]);
 	const whole = (await decisions("AC-D4"))[1].split("\n");
 	assert.equal(whole[2], 'Class: budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored)');
@@ -1019,7 +1019,7 @@ test("a job's question an approved class matches is answered by policy; with no 
 	const other = "2026-03-04-worker-0000ffff";
 	blocked(other, "May I drop the archive table?");
 	assert.deepEqual(log()?.slice(-1), [{ record: "answer", id: "AC-D3", time: "2026-03-04T06:00:00+01:00", decided: "Drop the table", words: "by policy: AC-D2" }]);
-	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table? — answered by policy (AC-D2): Drop the table`);
+	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table? - answered by policy (AC-D2): Drop the table`);
 	const wake = { id: other, kind: "worker", project: "acme", state: "blocked", reason: "user: May I drop the archive table?" };
 	assert.deepEqual(fake.collect("coordinator.wake", wake).filter(Boolean), [
 		"Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. The job was not continued by itself, since no record of it is blocked on that question; say so in your reply.",
@@ -1107,7 +1107,7 @@ test("a job a plugin holds in its run, its question answered by policy, is conti
 	await until("its run", () => job.record("state") === "working");
 	job.next();
 	await fake.host.jobs.block(job.id, "May I drop the archive table?", true);
-	assert.equal(notices().at(-1), `${job.id} asks [AC-D3]: May I drop the archive table? — answered by policy (AC-D2): Drop the table`);
+	assert.equal(notices().at(-1), `${job.id} asks [AC-D3]: May I drop the archive table? - answered by policy (AC-D2): Drop the table`);
 	assert.equal(job.record("continue"), "", "held in its run: not continued yet");
 	await until("the run's end", () => job.logged("job-ended").length === 1);
 	for (const event of job.logged("job-ended")) fake.emit("job-ended", event.data);
@@ -1157,7 +1157,7 @@ test("a job's question answered by policy and longer than one message is cut bef
 	const other = "2026-03-04-worker-0000ffff";
 	// AC-D3 and AC-D4: heads of one length.
 	const head = `${other} asks [AC-D3]: `;
-	const ending = " — answered by policy (AC-D2): Drop the table";
+	const ending = " - answered by policy (AC-D2): Drop the table";
 	const tail = " … (cut; /jobs shows the whole question of job 0000ffff)";
 	const asked = "May I drop the archive table? ";
 	const whole = `${asked}${"q".repeat(4096 - head.length - asked.length - ending.length)}`;
@@ -1170,7 +1170,7 @@ test("a job's question answered by policy and longer than one message is cut bef
 
 	// An ending that leaves the head exactly its room is kept, all of the question cut; one character more, the text is cut.
 	const room = async (subject: string, [backing, proposal, asked]: readonly string[], over: number) => {
-		const [head, opening] = [`${other} asks [${asked}]: `, ` — answered by policy (${proposal}): `];
+		const [head, opening] = [`${other} asks [${asked}]: `, ` - answered by policy (${proposal}): `];
 		const decided = subject.padEnd(4096 - tail.length - head.length - opening.length + over, "s");
 		blocked("2026-03-04-worker-0000eeee", `May I ${subject}?`);
 		await decision("answer", String(backing), "--decided", decided, "yes");

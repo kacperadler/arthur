@@ -122,5 +122,12 @@
     "action": {
       "message": "Start the approved queue as CPU allows, in the order of handoff section 1 (steps 3 to 6): AR0734, AR0735, PG0164, ZF0099 worker, ZF0102 planner, ZF0082 continue. If still no room, add another one-off entry 30 minutes later."
     }
+  },
+  {
+    "id": "queue-spawns-2",
+    "at": "2026-11-24T12:40",
+    "action": {
+      "message": "Start the rest of the approved queue as room allows, in the order of handoff section 1: ZF0099 worker, ZF0102 planner, ZF0082 continue, ZF0152 planner. If still no room, add another one-off entry 30 minutes later."
+    }
   }
 ]

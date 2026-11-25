@@ -43,3 +43,4 @@ Out:
 ## Decisions
 
 - 2026-11-24: AR0740 approved: an out-of-memory kill in a job ends with a memory reason naming the process, at a budget of $10; the owner: "ZF-D154 1, AR-D731 1" (AR-D731)
+- 2026-11-25: AR0740 budget raised to $16 in total; it runs check, test and mutate on its tip after the weekly usage reset; the owner: "AR-D732: raise" (AR-D732)

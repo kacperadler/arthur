@@ -4,6 +4,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## Unreleased
 
+### 2026-11-25
+
+#### Fixed
+
+- AR0738 arthur commit-board commits the board and the decision log after the project commit-msg check (AR0667 T2) (d8811c25)
+
 ### 2026-11-24
 
 #### Added

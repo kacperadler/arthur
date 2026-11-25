@@ -5958,9 +5958,9 @@
   {
     "id": "AR0738",
     "title": "arthur commit-board commits the board and the decision log after the project commit-msg check (AR0667 T2)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0738-arthur-commit-board-commits-the-board-and-the-decision-log-after-the-project/ticket.md",
-    "updated": "2026-11-25T11:01:49.365Z"
+    "updated": "2026-11-25T11:06:07.833Z"
   },
   {
     "id": "AR0739",

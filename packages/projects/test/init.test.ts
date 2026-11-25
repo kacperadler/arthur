@@ -13,7 +13,8 @@ const SKELETON = (path: string) => readFileSync(new URL(`../skeleton/${path}`, i
 // The core's package folder, first in a real load's `code`: it ships the worker's `criteria/verify.md`.
 const CORE = dirname(dirname(fileURLToPath(import.meta.resolve("@arthur/core/testing"))));
 const NODE = `${process.versions.node.split(".")[0]}\n`;
-const NEXT = "nothing committed: commit these files, then start the onboarding: arthur spawn --kind onboarding --project shop 'Onboard shop.'";
+const ONBOARD = "start the onboarding: arthur spawn --kind onboarding --project shop 'Onboard shop.'";
+const NEXT = `nothing committed: no plugin provides delivery.commit; commit these files, then ${ONBOARD}`;
 
 // A repository with `files`, committed unless `commit` is false; with no files and no commit, an empty repository.
 function repository(files: Readonly<Record<string, string>>, commit = true): string {
@@ -82,7 +83,7 @@ test("an empty repository gets the vision and criteria skeletons, the core's ver
 	assert.match(SKELETON("vision.md"), /^# Vision\n\n## Purpose\n/);
 	assert.match(SKELETON("criteria/report.md"), /^# Report\n\n## Palette\n\n(## .+\n\n)+## The check\n$/, "the page criteria's headings, nothing under them");
 	assert.deepEqual(fake.host.board.list("shop"), [], "the board reads as an empty one");
-	// Nothing committed: the repository still has no commit, and every file is untracked.
+	// No plugin provides `delivery.commit` here: the repository still has no commit, and every file is untracked.
 	assert.throws(() => git(shop, "rev-parse", "--verify", "--quiet", "HEAD"));
 	assert.equal(git(shop, "status", "--porcelain", "--untracked-files=all").split("\n").length, created.length);
 	const again = await init(t, fake, ["shop"]);
@@ -135,6 +136,26 @@ test("an existing .nvmrc is kept unchanged, and so is the owner's vision, a syml
 	]);
 	assert.deepEqual([readFileSync(join(shop, ".nvmrc"), "utf8"), readFileSync(join(shop, "spec/vision.md"), "utf8")], ["18.20.0\n", "# Shop\n\nSells tools.\n"]);
 	assert.equal(existsSync(join(shop, "outside.md")), false, "the dangling symlink's target was not created");
+});
+
+// delivery's own answer is its tests' (packages/delivery/test/commit-board.test.ts), and the two together the root's (test/init-commit.test.ts).
+test("init has the plugin that provides delivery.commit commit the files it created, those alone, and prints its line; its refusal is exit code 1, the files left", async (t) => {
+	const shop = repository({ ".nvmrc": "18.20.0\n", "spec/vision.md": "# Shop\n\nSells tools.\n" });
+	const fake = await load([{ name: "shop", prefix: "SH", path: shop }]);
+	const asked: unknown[] = [];
+	fake.provide("delivery.commit", (commit: unknown) => (asked.push(commit), "committed chore: arthur init: abc1234, 5 files"));
+	const created = [".agents/arthur/criteria/styleguide.md", ".agents/arthur/criteria/verify.md", ".agents/arthur/criteria/autopilot.md", ".agents/arthur/criteria/report.md", "spec/build.json"];
+	const lines = [`created: ${created.join(", ")}`, "left as it was: spec/vision.md, .nvmrc"];
+	assert.deepEqual(await init(t, fake, ["shop"]), { code: undefined, out: [...lines, "committed chore: arthur init: abc1234, 5 files", `next: ${ONBOARD}`].join("\n"), err: "" });
+	assert.deepEqual(asked, [{ project: "shop", subject: "chore: arthur init", paths: created }]);
+	const blog = repository({ ".nvmrc": "18.20.0\n", "spec/vision.md": "# Blog\n" });
+	const other = await load([{ name: "shop", prefix: "SH", path: blog }]);
+	const refusal = "chore: arthur init not committed: npm run commit-msg refused: no";
+	other.provide("delivery.commit", () => {
+		throw new Error(refusal);
+	});
+	assert.deepEqual(await init(t, other, ["shop"]), { code: 1, out: lines.join("\n"), err: `arthur init: nothing committed: ${refusal}; commit these files, then ${ONBOARD}` });
+	assert.equal(git(blog, "status", "--porcelain", "--untracked-files=all").split("\n").length, created.length, "the files it wrote stay, uncommitted");
 });
 
 test("a repository without package.json still gets an .nvmrc with the major version of the Node Arthur runs on", async (t) => {

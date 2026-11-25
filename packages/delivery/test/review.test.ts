@@ -46,7 +46,7 @@ test("a PASS review runs on the branch's tip with its ticket, moves the ticket t
 		fake.emitted.filter((event) => event.name === "ticket-moved").map((event) => event.data),
 		[{ id: "AC0001", project: "acme", from: "in-progress", to: "review" }, { id: "AC0001", project: "acme", from: "review", to: "done" }],
 	);
-	assert.equal(fake.collect("coordinator.wake", { id: passed.id, kind: "review", state: "ended" })[0], `Review verdict: PASS on ${job.branch} at ${job.commit.slice(0, 7)}; AC0001 moves to done. File it: arthur ticket file AC0001 ${passed.id}, commit it, then arthur prune ${passed.id}.`);
+	assert.equal(fake.collect("coordinator.wake", { id: passed.id, kind: "review", state: "ended" })[0], `Review verdict: PASS on ${job.branch} at ${job.commit.slice(0, 7)}; AC0001 moves to done. File it: arthur ticket file AC0001 ${passed.id}, commit it (arthur commit-board 'AC0001: review filed'), then arthur prune ${passed.id}.`);
 	writeFileSync(join(root, FOLDER, "review-2.md"), "an older review\n");
 	assert.equal(fake.host.jobs.file("AC0001", passed.id), `${FOLDER}/review-3.md`);
 	assert.equal(readFileSync(join(root, FOLDER, "review-3.md"), "utf8"), `# AC0001 - Review 3\n\n- Job: ${passed.id}\n- Branch: ${job.branch}\n- Commit reviewed: ${job.commit}\n- Verdict: PASS\n\n## Final message\n\nClean.\n\nPASS`);
@@ -78,7 +78,7 @@ test("a review in no home, an eval's, is worded from the record its data names a
 	const given = { ticket: "AC0001", branch, commit };
 	const ended = { id, kind: "review", project: "acme", state: "ended", reason: "finished", records: records(given) };
 	const wake = (job: object, result: unknown) => fake.collect("coordinator.wake", job, result)[0];
-	const file = `File it: arthur ticket file AC0001 ${id}, commit it, then arthur prune ${id}.`;
+	const file = `File it: arthur ticket file AC0001 ${id}, commit it (arthur commit-board 'AC0001: review filed'), then arthur prune ${id}.`;
 	assert.equal(wake(ended, "Clean.\n\nPASS"), `Review verdict: PASS on ${branch} at 9c1d2e3; AC0001 moves to done. ${file}`);
 	assert.equal(
 		wake({ ...ended, records: records({ ...given, autoMerge: true }) }, "Clean.\n\nPASS"),
@@ -110,7 +110,7 @@ test("a FAIL moves the ticket back to in-progress and pushes nothing; a fifth re
 	assert.deepEqual(pushes, [], "a FAIL pushes nothing");
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"], "outside arthur run no hand-back: nothing filed");
 	const wake = (id: string) => String(fake.collect("coordinator.wake", { id, kind: "review" })[0]);
-	const filed = (id: string) => `Delivery files it as the next review-N.md in AC0001's folder; commit that, then arthur prune ${id}.`;
+	const filed = (id: string) => `Delivery files it as the next review-N.md in AC0001's folder; commit that (arthur commit-board 'AC0001: review FAIL'), then arthur prune ${id}.`;
 	assert.equal(
 		wake(first.id),
 		`Review verdict: FAIL on ${job.branch} at ${job.commit.slice(0, 7)}, 1 since its last PASS; AC0001 moves back to in-progress. ${filed(first.id)} It hands the branch back: ${job.id} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.`,

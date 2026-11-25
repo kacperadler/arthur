@@ -48,13 +48,10 @@
 				"^- \\d{4}-\\d{2}-\\d{2}: Source: retro spec/retro/2026-10-22\\.md"
 			]
 		},
-		"refs": {
-			"refs/heads/main": "moved",
-			"origin:refs/heads/main": "moved"
-		},
 		"calls": [
 			"^arthur ticket file (\\S+-)?e5f6a7b8$",
 			"^arthur ticket new ",
+			"^arthur commit-board ",
 			"^arthur prune .*e5f6a7b8"
 		],
 		"never": [

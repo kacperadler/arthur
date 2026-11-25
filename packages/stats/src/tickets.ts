@@ -5,7 +5,8 @@ import type { Host, Ticket } from "@arthur/core/plugin";
 // `arthur stats tickets` (spec/roadmap.md, entries 61, 110 and 111), and `stats.tickets`, the `### Stats` section of manage's
 // audit and retro prompts: per merged ticket of a project its review rounds, verdicts, cost and days, then the mean rounds, the
 // share of first-round PASS, the share of autopilot, the 3 most expensive and the first line of each finding of a FAIL review.
-// Read only, from the board and the files in each ticket's folder. docs/commands/stats-tickets.md.
+// And `arthur stats budget` (AR0739): what the workers of merged tickets cost, per kind of ticket, to pick a worker's budget by.
+// Read only, from the board and the files in each ticket's folder. docs/commands/stats-tickets.md and stats-budget.md.
 
 const REVIEW = /^review-(\d+)\.md$/;
 const DAY_MS = 86_400_000;
@@ -96,5 +97,31 @@ export function ticketStats(host: Pick<Host, "board" | "clock">, project: string
 		`Most expensive: ${known.length === 0 ? "no ticket with a known cost" : known.slice(0, TOP).map((each) => `${each.ticket.id} $${each.cost?.toFixed(2)}`).join(", ")}${unknown === 0 ? "" : `; cost unknown for ${plural(unknown, "ticket")}`}`,
 		`FAIL findings:${fails.length === 0 ? " none" : ""}`,
 		...fails.map((line) => `- ${line}`),
+	].join("\n");
+}
+
+// Per kind of merged ticket (the one word of the `- Kind:` line under its Goal, `no kind` without one), the most tickets first:
+// how many, and of their workers' costs (the first amount of the outcome's `- Cost:` line) the median and the one 9 in 10
+// stayed within, each the cost of one of them (the nearest rank). A ticket whose outcome names no worker cost is left out, and counted.
+export function budgetStats(host: Pick<Host, "board">, project: string | undefined): string {
+	const merged = host.board.list(project).filter((each) => each.status === "merged");
+	const projects = host.board.projects();
+	const where = (project === undefined ? projects[0] : projects.find((each) => each.name === project))!;
+	if (merged.length === 0) return `No merged ticket in ${where.name} yet.`;
+	const kinds = new Map<string, number[]>();
+	for (const ticket of merged) {
+		const cost = /^- Cost: worker \$(\d+(?:\.\d+)?)/m.exec(read(join(where.path, dirname(ticket.path), "outcome.md")))?.[1];
+		if (cost === undefined) continue;
+		const kind = /^- Kind:[ \t]*(\S+)[ \t]*$/m.exec(read(join(where.path, ticket.path)).split(/^## Goal$/m)[1]?.split(/^## /m)[0] ?? "")?.[1] ?? "no kind";
+		kinds.set(kind, [...(kinds.get(kind) ?? []), Number(cost)]);
+	}
+	const unknown = merged.length - [...kinds.values()].flat().length;
+	return [
+		`Worker cost of the merged tickets of ${where.name}, by kind:`,
+		...[...kinds].sort(([a, one], [b, other]) => other.length - one.length || (a < b ? -1 : 1)).map(([kind, costs]) => {
+			const rank = (share: number) => costs.toSorted((a, b) => a - b)[Math.ceil(share * costs.length) - 1]?.toFixed(2);
+			return `${kind}: ${plural(costs.length, "ticket")}, median $${rank(0.5)}, 9 in 10 within $${rank(0.9)}`;
+		}),
+		...(unknown === 0 ? [] : [`Left out: ${plural(unknown, "ticket")} whose outcome.md names no worker cost`]),
 	].join("\n");
 }

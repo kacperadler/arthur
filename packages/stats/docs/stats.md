@@ -8,6 +8,8 @@ Roadmap entry 110: the merged tickets' report, which came with manage (61), is t
 
 Roadmap entry 112: `arthur stats windows` puts each usage window of the account, which the models plugin reads from the agent's report and gives as `models.windows`, beside what Arthur spent at list price on that provider's models in the window's span, by role, each role's part of the window an estimate marked `≈` and an upper bound, since the account's use outside Arthur counts in the window too (`arthur stats windows --help`). Without the models plugin it says so in one line.
 
+AR0739: `arthur stats budget` prints, per kind of ticket, what the workers of a project's merged tickets cost, the median and the cost 9 in 10 stayed within, from the `- Cost:` line of each ticket's `outcome.md`: the figure a worker's budget is picked from (`arthur stats budget --help`).
+
 ```ts
 plugins: [orchestration({}), stats()],
 ```

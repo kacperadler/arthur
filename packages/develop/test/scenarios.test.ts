@@ -215,6 +215,17 @@ const ACTS: Readonly<Record<string, Act>> = {
 		wrong: [{ bash: `arthur spawn 'Ticket: ${SH0011}'` }, { bash: "sleep 1" }, { reply: "Started SH0011." }],
 		fails: ["the agent's bash sleep 1 matches /^bash [\\s\\S]*\\bsleep\\b/"],
 	},
+	"orchestration/room-refused-waits": {
+		right: [{ bash: `arthur spawn 'Ticket: ${SH0011}'` }, { reply: "SH0011, the warning for a product without an image, did not start: this machine has no room for another job now. It waits for room; Arthur tells me once there is some, and I start it then." }],
+		wrong: [{ bash: `arthur spawn 'Ticket: ${SH0011}'` }, { bash: "arthur schedule add --at 15:00 'Start SH0011 again.'" }, { bash: "sleep 1" }, { bash: `arthur spawn 'Ticket: ${SH0011}'` }, { reply: "SH0011 could not start; I try again at 15:00." }],
+		fails: ["/^arthur spawn (?=.*SH0011)/ matches 2 calls, expected 1", "arthur schedule add --at 15:00 Start SH0011 again. matches /^arthur schedule add\\b/", "the reply does not match /\\broom\\b/", "the agent's bash sleep 1 matches /^bash [\\s\\S]*\\bsleep\\b/"],
+	},
+	"orchestration/status-from-jobs": {
+		right: [{ bash: "arthur jobs" }, { reply: "SH0011, the warning for a product without an image, is built and its review has been running for 40 minutes. Nothing waits for you." }],
+		// AR0739: what the owner was told while a review ran.
+		wrong: [{ reply: "All quiet: no job is running, and Arthur restarts at any moment." }],
+		fails: ["no call matches /^arthur jobs\\b/", "the reply does not match /SH0011/", "the reply does not match /[Rr]eview/", "the reply matches /\\b[Nn]o jobs? "],
+	},
 	"orchestration/night-one-line": {
 		// A help call of another plugin's command (merge is delivery's) is no call the scenario scores either.
 		right: [{ bash: "arthur merge --help" }, { reply: "All quiet: no job runs, and SH0013, delivery dates at checkout, waits for your approval." }],
@@ -317,7 +328,7 @@ function load() {
 test("every scenario of the packages is acted here; its needs name an open ticket; its fixture has a vision; the baseline holds a rate for each", () => {
 	const found = scenarios(CODE);
 	assert.deepEqual([...found.keys()], Object.keys(ACTS).sort());
-	assert.equal(found.size, 20, "the scenarios of roadmap entry 68, and AR0716's of a project agent");
+	assert.equal(found.size, 22, "the scenarios of roadmap entry 68, AR0716's of a project agent, and AR0739's two");
 	const afterMerge = readFileSync(join(PACKAGES, "delivery", "roles", "coordinator", "after-merge.md"), "utf8").trim();
 	for (const [name, folder] of found) {
 		const scenario = JSON.parse(readFileSync(join(folder, "scenario.json"), "utf8"));

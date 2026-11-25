@@ -63,6 +63,14 @@
 		"passed": 3,
 		"runs": 3
 	},
+	"orchestration/room-refused-waits": {
+		"passed": 0,
+		"runs": 1
+	},
+	"orchestration/status-from-jobs": {
+		"passed": 0,
+		"runs": 1
+	},
 	"projects/onboarding-questions": {
 		"passed": 1,
 		"runs": 3

@@ -1,14 +1,17 @@
+import { LOOP } from "./run-record.ts";
+
 // Why a job's run ended, the `reason` its state says (docs/commands/spawn.md), and the one resume a second try may mend.
 
-export type Why = "time" | "budget" | "memory" | "stop";
-// What stopped the job first (wrapper.ts `halt`), how its agent ended, and its run record's `stopped` and `result` (run-record.ts).
-export type Ending = Readonly<{ why: Why | undefined; playing: boolean; timeout: string; cost: number; budgetUsd: number; overCap: string; failure: Error | undefined; killed: NodeJS.Signals | null; code: number | null; stopped: string; result: string; verdicts: string }>;
+export type Why = "time" | "budget" | "memory" | "loop" | "stop";
+// What stopped the job first (wrapper.ts `halt`), how its agent ended, and its run record's `stopped`, `looped` and `result` (run-record.ts).
+export type Ending = Readonly<{ why: Why | undefined; playing: boolean; timeout: string; cost: number; budgetUsd: number; overCap: string; looped: string; failure: Error | undefined; killed: NodeJS.Signals | null; code: number | null; stopped: string; result: string; verdicts: string }>;
 
-export function reason({ why, playing, timeout, cost, budgetUsd, overCap, failure, killed, code, stopped, result, verdicts }: Ending): string {
+export function reason({ why, playing, timeout, cost, budgetUsd, overCap, looped, failure, killed, code, stopped, result, verdicts }: Ending): string {
 	return why === "stop" ? "stopped"
 		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes${playing ? "" : ", during its install"}`
 		: why === "budget" ? `limit: budget: its cost $${cost.toFixed(4)} reached its budget of $${budgetUsd}`
 		: why === "memory" ? `limit: memory: ${overCap}`
+		: why === "loop" ? `limit: loop: the agent repeated the same failed tool call ${LOOP} times (${looped})`
 		: failure !== undefined ? `failed: ${failure.message.startsWith("no sandbox: ") ? "" : "the agent did not start: "}${failure.message}`
 		: killed !== null ? `failed: the agent was killed by ${killed}`
 		: stopped !== "" ? `failed: the agent stopped on ${stopped}`

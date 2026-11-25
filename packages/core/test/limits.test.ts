@@ -219,6 +219,21 @@ test("a kind that asks for it is resumed once at its budget, doubled, and stoppe
 	assert.equal(log.match(/\] limit: budget: \$1\.0000 reached \$1; the kind resumes once, its budget doubled to \$2\n/g)?.length, 1, log);
 });
 
+// AR0739: a worker's last message was "Nothing applied; retrying the same edit as the tool says.", and the retries spent the rest of its budget.
+test("an agent that repeats the same failed tool call 5 times in a row is stopped, limit: loop naming the call, and not resumed; 4 times, twice, with a call between is not", async () => {
+	const failing = (count: number) => Array.from({ length: count }, () => ({ tool: "edit", args: { path: "src/cart.ts", edits: [{ oldText: "a", newText: "b" }] }, output: "Nothing applied.", failed: true }));
+	const looping = fakeAgent({ steps: [...failing(5), stuck()] });
+	const { home, jobs } = setup(looping);
+	const job = await jobs.spawn({ task: "Audit.", kind: "audit" });
+	const reason = "limit: loop: the agent repeated the same failed tool call 5 times (edit src/cart.ts)";
+	assert.deepEqual(await ended(home, job.id), { id: job.id, kind: "audit", project: "acme", state: "ended", reason });
+	assert.deepEqual([field(home, job.id, "reason"), field(home, job.id, "tool-calls"), starts(looping).length], [reason, "5", 1]);
+	assert.match(field(home, job.id, "log"), /\] limit: loop: stopping the agent\n/);
+	const trying = setup(fakeAgent({ steps: [...failing(4), { tool: "read", args: { path: "src/cart.ts" } }, ...failing(4), { message: "Done." }] }));
+	const other = await trying.jobs.spawn({ task: "Go." });
+	assert.deepEqual(await ended(trying.home, other.id), { id: other.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
+});
+
 test("an agent that ignores SIGTERM at its limit gets SIGKILL after the grace; its time out while it stops at its budget, it is not resumed", () =>
 	timed(async (timeoutMinutes) => {
 		// An agent that ignores SIGTERM: stopped at its budget, it would go on until the test lets it end, which it never does.

@@ -3,8 +3,10 @@
 // not JSON comes back as it is, for the log.
 
 export type AgentEvent =
-	| { readonly kind: "tool"; readonly name: string; readonly detail: string }
-	| { readonly kind: "tool-end" }
+	// `id` pairs a call with its end; `call` is the tool with its whole arguments, by which a repeated call is told (run-record.ts),
+	// without omp's intent (`i`), which the agent words anew for each call; `failed` omp's error flag of the tool's result.
+	| { readonly kind: "tool"; readonly id: string; readonly name: string; readonly detail: string; readonly call: string }
+	| { readonly kind: "tool-end"; readonly id: string; readonly failed: boolean }
 	| { readonly kind: "turn" }
 	// `stopReason` as omp says it (`stop` ends the run, `toolUse` a turn); `error` omp's text for a failed one; `model` `<provider>/<model>`.
 	| ({ readonly kind: "message"; readonly text: string; readonly stopReason: string; readonly error: string; readonly model: string } & Spent)
@@ -15,8 +17,10 @@ export type Spent = { readonly [key in "input" | "output" | "cacheRead" | "cache
 type Part = { readonly type?: unknown; readonly text?: unknown };
 type Raw = {
 	readonly type?: unknown;
+	readonly toolCallId?: unknown;
 	readonly toolName?: unknown;
-	readonly args?: { readonly command?: unknown; readonly path?: unknown; readonly pattern?: unknown };
+	readonly args?: Readonly<Record<string, unknown>>;
+	readonly isError?: unknown;
 	readonly message?: {
 		readonly role?: unknown;
 		readonly content?: unknown;
@@ -60,12 +64,13 @@ export function agentStream(): { push(chunk: string): AgentEvent[]; end(): Agent
 }
 
 function interpret(event: Raw): AgentEvent[] {
-	const name = typeof event.toolName === "string" ? event.toolName : "";
+	const [name = "", id = ""] = [event.toolName, event.toolCallId].map((each) => (typeof each === "string" ? each : ""));
 	if (event.type === "tool_execution_start") {
-		const detail = String(event.args?.command ?? event.args?.path ?? event.args?.pattern ?? "");
-		return [{ kind: "tool", name, detail: detail.replace(/\s+/g, " ").slice(0, 100) }];
+		const { i: _intent, ...args } = event.args ?? {};
+		const detail = String(args.command ?? args.path ?? args.pattern ?? "");
+		return [{ kind: "tool", id, name, detail: detail.replace(/\s+/g, " ").slice(0, 100), call: `${name} ${JSON.stringify(args)}` }];
 	}
-	if (event.type === "tool_execution_end") return [{ kind: "tool-end" }];
+	if (event.type === "tool_execution_end") return [{ kind: "tool-end", id, failed: event.isError === true }];
 	if (event.type === "turn_start") return [{ kind: "turn" }];
 	const message = event.message;
 	if (event.type !== "message_end" || message?.role !== "assistant") return [];

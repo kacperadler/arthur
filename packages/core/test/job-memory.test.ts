@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { oomKills, watchMemory } from "../src/job-memory.ts";
-import { temporaryFolder, until } from "../src/testing.ts";
+import { temporaryFolder } from "../src/testing.ts";
 
 // The scope of a job `acme` and of its continued run, and another job's, as systemd names them.
 const [UNIT, CONTINUED, OTHER] = ["arthur-job-2026-10-16-worker-0a1b2c3d.scope", "arthur-job-2026-10-16-worker-0a1b2c3d.1795548579320.scope", "arthur-job-2026-10-16-review-4e5f6a7b.scope"];
@@ -82,6 +84,28 @@ test("oomKills asks again until the kernel's log holds the killed process's line
 	assert.equal(calls().length, 5);
 });
 
+test("oomKills asks again 100 ms after a call whose lines are not all there yet, not sooner", async (t) => {
+	// Fake time: the test sees the retry's exact rhythm, not one a slow runner stretches. job-memory.ts imports its sleep by name,
+	// which the mock reaches only once the builtin's named exports are synced; a retry still pending at the end is dropped.
+	t.mock.timers.enable({ apis: ["setTimeout"] });
+	syncBuiltinESMExports();
+	t.after(() => {
+		t.mock.timers.reset();
+		syncBuiltinESMExports();
+	});
+	const { folder, calls } = journal(t);
+	writeFileSync(join(folder, "out.1"), "");
+	const asked = oomKills(UNIT, 0);
+	assert.equal(calls().length, 1);
+	t.mock.timers.tick(99);
+	await nextTurn();
+	assert.equal(calls().length, 1, "no second call 1 ms before 100 ms");
+	t.mock.timers.tick(1);
+	await nextTurn();
+	assert.equal(calls().length, 2);
+	assert.deepEqual(await asked, kernel(kill(UNIT, 100)));
+});
+
 test("oomKills gives up after its tries, 20 unless told: with what the log holds, or one line that says why it names none", async (t) => {
 	const { folder, calls } = journal(t);
 	const [cap] = kill(UNIT, 100);
@@ -148,13 +172,14 @@ test("a kill in a scope without caps is one at a cap above the job: check says s
 	assert.match(fake.calls()[0] ?? "", /^-k -o cat --no-pager --since=@\d{10} /);
 });
 
-test("the watch samples a scope without caps every second on its own, and over hears a kill without a check", async (t) => {
+test("the watch samples a scope without caps every 1000 ms on its own, and over hears a kill without a check", (t) => {
+	t.mock.timers.enable({ apis: ["setInterval"] });
 	const { count, heard } = watched(journal(t));
 	count("oom_kill", 4);
-	const started = Date.now();
-	await until("the sample", () => heard.length > 0);
+	t.mock.timers.tick(999);
+	assert.deepEqual(heard, [], "no sample 1 ms before a second");
+	t.mock.timers.tick(1);
 	assert.deepEqual(heard, [ABOVE]);
-	assert.ok(Date.now() - started < 3_000, `sampled after ${Date.now() - started} ms`);
 });
 
 test("a kill since the last sample is told by end alone: over does not hear it, the kernel's lines are noted", async (t) => {
@@ -203,4 +228,24 @@ test("a scope whose counts cannot be read at a check is not over, and the check 
 	const bare = watchMemory("acme", "", "", "", () => assert.fail("over"), () => assert.fail("note"), 10_000, temporaryFolder());
 	assert.equal(bare.check(), undefined);
 	assert.equal(await bare.end(), undefined);
+});
+
+test("without a scope the watch sums the processes with ps every sampleMs against the job's cap, and without a cap runs no ps", async (t) => {
+	const folder = temporaryFolder();
+	// A `ps` first on `PATH` that notes each call and prints no process: the sum stays 0, under any cap.
+	writeFileSync(join(folder, "ps"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${folder}/calls'\n`, { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => (process.env.PATH = saved));
+	process.env.PATH = [folder, saved].join(delimiter);
+	const calls = () => (existsSync(join(folder, "calls")) ? readFileSync(join(folder, "calls"), "utf8").trimEnd().split("\n") : []);
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const none = watchMemory("acme", "", "", "", () => assert.fail("over"), () => assert.fail("note"), 50, "");
+	t.mock.timers.tick(50);
+	assert.deepEqual(calls(), [], "nothing to watch: no ps");
+	const capped = watchMemory("acme", "300M", "", "", () => assert.fail("over"), () => assert.fail("note"), 50, "");
+	t.mock.timers.tick(49);
+	assert.deepEqual(calls(), []);
+	t.mock.timers.tick(1);
+	assert.deepEqual(calls(), ["-A -o pid=,ppid=,pgid=,rss=,args="]);
+	assert.deepEqual([await none.end(), await capped.end()], [undefined, undefined]);
 });

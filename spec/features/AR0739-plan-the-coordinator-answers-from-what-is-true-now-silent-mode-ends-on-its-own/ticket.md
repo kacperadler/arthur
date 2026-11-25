@@ -68,3 +68,4 @@ Out:
 - 2026-11-24: Plan approved by the owner: plan.md at 4857d36a; the owner: "AR-D728 1" (AR-D728)
 - 2026-11-24: The owner approved AR0739's budget of $45 in total; it commits its written work, runs the checks and goes to review; the owner: "AR-D730 1, AR-D729 1, ZF-D147 1, ZF-D144 1" (AR-D730)
 - 2026-11-25: AR0739: a fresh worker on the default model with $15 takes its branch, runs check, test and mutate, fixes what fails and goes to review, after the weekly usage reset; the owner: "AR-D733 yes" (AR-D733)
+- 2026-11-25: Merge AR0739 into main; the owner: "ZF-D194 A, AR-D735 yes" (AR-D735)

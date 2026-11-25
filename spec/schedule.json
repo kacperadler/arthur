@@ -122,5 +122,12 @@
     "action": {
       "message": "Morning report, the owner asked for it at 21:05 on 11-24 (\"give me raport at 8 AM\"): read .arthur/session/handoff.md and arthur jobs; write one HTML page by .agents/arthur/criteria/report.md (palette, base style, the page check and the screenshots) of the night: each ticket merged, reviewed, failed or stopped with one plain line on what it changes, each job still running, decisions taken by his recommendation grant (if he typed /silent on ... --recommend) and every decision waiting for him with its id, Claude 7-day usage; save it under .arthur/reports/2026-11-25.html, send it with arthur send and a one-line caption, then reply with the decisions he must answer."
     }
+  },
+  {
+    "id": "after-reset-2026-11-25",
+    "at": "2026-11-25T09:05",
+    "action": {
+      "message": "Weekly usage reset is due: check arthur usage, then do the UPDATE section of .arthur/session/handoff.md: merges ZF-D156 and ZF-D157, fresh default-model workers for ZF0150 (commit its 14 files first), AR0738, AR0740 ($6), AR0739 ($15), and spawn ZF0167 ($30, no --model)."
+    }
   }
 ]

@@ -5975,5 +5975,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0740-an-out-of-memory-kill-in-a-job-is-recorded-as-an-arthur-stop-so-nobody-can-tell/ticket.md",
     "updated": "2026-11-24T20:00:21.469Z"
+  },
+  {
+    "id": "AR0741",
+    "title": "No test pins detached: true on the job wrapper, so a spawn's Ctrl-C could reach a running job unnoticed",
+    "status": "planning",
+    "path": "spec/features/AR0741-no-test-pins-detached-true-on-the-job-wrapper-so-a-spawn-s-ctrl-c-could-reach-a/ticket.md",
+    "updated": "2026-11-25T12:07:47.384Z"
   }
 ]

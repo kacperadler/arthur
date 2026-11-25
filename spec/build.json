@@ -5965,9 +5965,9 @@
   {
     "id": "AR0739",
     "title": "Plan: the coordinator answers from what is true now, silent mode ends on its own, and a job is not stopped by a budget it already spent",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0739-plan-the-coordinator-answers-from-what-is-true-now-silent-mode-ends-on-its-own/ticket.md",
-    "updated": "2026-11-25T11:54:17.369Z"
+    "updated": "2026-11-25T12:47:12.621Z"
   },
   {
     "id": "AR0740",

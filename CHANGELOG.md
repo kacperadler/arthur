@@ -9,6 +9,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 #### Fixed
 
 - AR0738 arthur commit-board commits the board and the decision log after the project commit-msg check (AR0667 T2) (d8811c25)
+- AR0739 Plan: the coordinator answers from what is true now, silent mode ends on its own, and a job is not stopped by a budget it already spent (5eeebb24)
 
 ### 2026-11-24
 

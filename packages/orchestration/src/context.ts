@@ -27,6 +27,15 @@ export function byState<T extends { readonly state: string }>(jobs: readonly T[]
 	return groups;
 }
 
+// `Jobs now: <n> <state> (<kind> <short id>, …), …` for the jobs not ended, by state, or `Jobs now: none`; with `project`, its
+// jobs only. Arthur puts it under each reply it sends (inbox.ts, AR0739), read from the records as the reply goes out, so the
+// state the owner reads there is never the model's memory of its turn.
+export function jobsNow(host: Host, project: string | undefined): string {
+	const jobs = byState(host.jobs.list().filter((job) => job.state !== "ended" && (project === undefined || job.project === project)));
+	const groups = [...jobs].map(([state, each]) => `${each.length} ${state || "no state"} (${each.map((job) => `${job.kind} ${job.id.split("-").at(-1)}`).join(", ")})`);
+	return `Jobs now: ${groups.join(", ") || "none"}`;
+}
+
 // A project agent up since its start, while the pid its supervisor's pid file names runs with the start time written there (the
 // supervisor's own check, coordinator.ts); else down since its end mark, NaN without one (never seen ending, as after `arthur run` crashed).
 function agentSince(folder: string): { readonly up: boolean; readonly since: number } {

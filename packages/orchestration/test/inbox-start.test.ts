@@ -5,7 +5,7 @@ import { type TestContext, test } from "node:test";
 import { NOT_TRANSCRIBED } from "@arthur/core/parts";
 import { fakeHost, until } from "@arthur/core/testing";
 import { inbox } from "../src/inbox.ts";
-import { DAY, load, RESTART, sorted } from "./inbox-setup.ts";
+import { DAY, load, NONE, RESTART, sorted } from "./inbox-setup.ts";
 import { NO_UNIX_SOCKET } from "./unix-socket.ts";
 
 // The inbox at its start (inbox-setup.ts): what a restart left in its folders, and a message's parts.
@@ -32,7 +32,7 @@ test("at the start, a message left in turn/ that a written reply answers is answ
 	await box.start();
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages(), [{ content: `[via telegram, ${RESTART}]\n> A new 107.\n\n[via telegram, ${RESTART}]\n> Not answered.`, step: 0 }]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Redone.", answers: [107, 108], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Redone.${NONE}`, answers: [107, 108], channels: ["telegram"] }]);
 	assert.deepEqual(sorted(join(box.folder, "inbox", "answered")), ["101", "107", "107-3000", "108", "109-2000"]);
 	assert.deepEqual(sorted(join(box.folder, "outbox", "sent")).filter((name) => name.startsWith("09") || name.startsWith("1000")), ["1000-000001.json"]);
 });
@@ -49,7 +49,7 @@ test("a message's parts are one turn, each part's text in order; a voice note wi
 	assert.deepEqual(box.messages(), [{ content: `[via telegram]\n> [photo, image/jpeg] (${PHOTO.path})\n> ${NOT_TRANSCRIBED}\n> What is it?`, step: 0 }]);
 	assert.deepEqual(box.emitted("coordinator-replied"), [
 		{ text: NOT_TRANSCRIBED, answers: [seq], channels: ["telegram"], place: "12" },
-		{ text: "Seen.", answers: [seq], channels: ["telegram"] },
+		{ text: `Seen.${NONE}`, answers: [seq], channels: ["telegram"] },
 	]);
 });
 

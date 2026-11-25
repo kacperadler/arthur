@@ -18,6 +18,8 @@ type Send = (message: { files: string[]; place?: string }) => () => Promise<stri
 
 const VOICE = { kind: "voice", path: "/srv/media/note.ogg", mime: "audio/ogg", seconds: 4 };
 const TEXT = { kind: "text", text: "And the budget?", mime: "text/plain" };
+// The line Arthur puts under each reply it sends (context.ts, `jobsNow`), which no voice note speaks: no job here is in a run.
+const NONE = "\n\nJobs now: none";
 
 async function setup(speak: Speak, send: Send = () => async () => "sent 1 file in 1 message") {
 	const root = temporaryFolder();
@@ -71,10 +73,10 @@ test("a reply to a voice note goes after its text as a voice note, through the c
 	assert.deepEqual(box.spoken, ["Merged AR0081."], "only the reply that answers a voice note is spoken");
 	assert.deepEqual(box.sent, [{ files: ["/home/speak/14.ogg"] }]);
 	assert.deepEqual(box.replies(), [
-		{ text: "Typed only.", answers: [typed.seq], channels: ["test"] },
-		{ text: "Read the docs.", answers: [wake.seq], channels: [] },
-		{ text: "Media only.", answers: [media.seq], channels: ["test"] },
-		{ text: "Merged AR0081.", answers: [typed.seq, spoken.seq], channels: ["test"] },
+		{ text: `Typed only.${NONE}`, answers: [typed.seq], channels: ["test"] },
+		{ text: `Read the docs.${NONE}`, answers: [wake.seq], channels: [] },
+		{ text: `Media only.${NONE}`, answers: [media.seq], channels: ["test"] },
+		{ text: `Merged AR0081.${NONE}`, answers: [typed.seq, spoken.seq], channels: ["test"] },
 	], `nothing for the voice note ${unanswered.seq} the replies do not answer, on telegram, which has no channel.send`);
 });
 
@@ -90,8 +92,8 @@ test("voice notes from two places and two channels that one reply answers: spoke
 	assert.deepEqual(box.spoken, ["First", "Second"]);
 	assert.deepEqual(box.sent, [{ files: ["/home/speak/First.ogg"] }, { files: ["/home/speak/Second.ogg"] }]);
 	assert.deepEqual(box.replies(), [
-		{ text: "First", answers: [broken.seq, one.seq, two.seq, other.seq], channels: ["test", "telegram"] },
-		{ text: "Second", answers: [later.seq], channels: ["test"] },
+		{ text: `First${NONE}`, answers: [broken.seq, one.seq, two.seq, other.seq], channels: ["test", "telegram"] },
+		{ text: `Second${NONE}`, answers: [later.seq], channels: ["test"] },
 		{ text: "voice note not sent: telegram provides no channel.send", answers: [other.seq], channels: ["telegram"] },
 	], "the line goes to that channel alone, once its voice note is made");
 });
@@ -131,7 +133,7 @@ test("a voice note that cannot be made or sent: the text went, and one line on t
 		await box.reply("Done.", [note], ["test"]);
 		await until(`the line: ${why}`, () => box.replies().length === 2);
 		assert.deepEqual(box.replies(), [
-			{ text: "Done.", answers: [note.seq], channels: ["test"] },
+			{ text: `Done.${NONE}`, answers: [note.seq], channels: ["test"] },
 			{ text: `voice note not sent: ${why}`, answers: [note.seq], channels: ["test"] },
 		]);
 		assert.deepEqual(box.sent, []);
@@ -153,8 +155,8 @@ test("a channel without channel.send gets the line; with no plugin providing spe
 	// The voice step of each reply is only promises, all settled before the next turn of the event loop.
 	await new Promise(setImmediate);
 	assert.deepEqual(alone.replies(), [
-		{ text: "Done.", answers: [first.seq], channels: ["test"] },
-		{ text: "Again.", answers: [second.seq], channels: ["test"] },
+		{ text: `Done.${NONE}`, answers: [first.seq], channels: ["test"] },
+		{ text: `Again.${NONE}`, answers: [second.seq], channels: ["test"] },
 	]);
 	assert.deepEqual(alone.sent, []);
 });
@@ -175,7 +177,7 @@ test("while the inbox runs, its sweep every 500 ms sends the voice note of a rep
 	assert.deepEqual(spoken, ["Started."]);
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data), [
 		{ text: NOT_TRANSCRIBED, answers: [note.seq], channels: ["test"] },
-		{ text: "Started.", answers: [note.seq], channels: ["test"] },
+		{ text: `Started.${NONE}`, answers: [note.seq], channels: ["test"] },
 	]);
 });
 
@@ -215,5 +217,5 @@ test("a project agent's reply to a voice note in its chat goes out with its chat
 	await plugin.stop?.();
 	await until("the voice note", () => sent.length === 1);
 	assert.deepEqual(sent, [{ files: ["/home/speak/Shipped.ogg"], place: "42", instance: "shop" }]);
-	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data), [{ text: "Shipped.", answers: [note.seq], channels: ["test"], instance: "shop", place: "42" }]);
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data), [{ text: `Shipped.${NONE}`, answers: [note.seq], channels: ["test"], instance: "shop", place: "42" }]);
 });

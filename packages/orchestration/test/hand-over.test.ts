@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { type AgentStep, fakeHost, until } from "@arthur/core/testing";
 import extension, { pause } from "../src/inbox-extension.ts";
 import { inbox } from "../src/inbox.ts";
-import { AGAIN_MARK, agentClock, ARTHUR, FAILED, gates, goesAgain, handed, load, RESTART, sorted } from "./inbox-setup.ts";
+import { AGAIN_MARK, agentClock, ARTHUR, FAILED, gates, goesAgain, handed, load, NONE, RESTART, sorted } from "./inbox-setup.ts";
 import { NO_UNIX_SOCKET } from "./unix-socket.ts";
 
 // The inbox's hand-over (inbox-setup.ts): a message omp loses, or a turn that ends without a reply, goes again, after a backoff.
@@ -21,7 +21,7 @@ test("a hand-over that throws is retried each tick; the third failure in a row i
 		{ text: "the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row (fake agent: sendUserMessage failed); it keeps trying" },
 	]);
 	assert.deepEqual(box.messages(), [{ content: "[via telegram]\n> Go.", step: 0 }]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Done.${NONE}`, answers: [said], channels: ["telegram"] }]);
 });
 
 const WATCHDOG = "(no turn started within 30 s); it keeps trying";
@@ -42,7 +42,7 @@ test("a hand-over omp takes and then loses goes again, with its mark, after 30 s
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages(), [{ content: `[via telegram, ${RESTART}]\n> Not answered.`, step: 0 }]);
 	assert.deepEqual(box.emitted("notice"), [{ text: `the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row ${WATCHDOG}` }]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Redone.", answers: [108], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Redone.${NONE}`, answers: [108], channels: ["telegram"] }]);
 });
 
 test("a turn whose agent_end says it goes on and then starts none, as after omp's compaction, ends with it after 30 s idle; the next message goes", { skip: NO_UNIX_SOCKET }, async (t) => {
@@ -71,8 +71,8 @@ test("a turn whose agent_end says it goes on and then starts none, as after omp'
 		["[via telegram]\n> Go.", "[via telegram]\n> Next."],
 	);
 	assert.deepEqual(box.emitted("coordinator-replied"), [
-		{ text: "Done.", answers: [first], channels: ["telegram"] },
-		{ text: "Again.", answers: [second], channels: ["telegram"] },
+		{ text: `Done.${NONE}`, answers: [first], channels: ["telegram"] },
+		{ text: `Again.${NONE}`, answers: [second], channels: ["telegram"] },
 	]);
 	assert.deepEqual(box.emitted("notice"), []);
 });
@@ -93,7 +93,7 @@ test("omp busy past 30 s before the turn starts, as through its compaction befor
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1 || (move(500), false));
 	await box.ticked();
 	assert.deepEqual(box.messages(), [{ content: "[via telegram]\n> Go.", step: 0 }]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Done.${NONE}`, answers: [said], channels: ["telegram"] }]);
 	assert.deepEqual(box.emitted("notice"), []);
 });
 
@@ -107,7 +107,7 @@ test("a turn that ends in an error answers nothing; its message is delivered aga
 		{ content: "[via telegram]\n> Go.", step: 0 },
 		{ content: "[via telegram, sent before; its turn ended without a reply]\n> Go.", step: 3 },
 	]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Done.${NONE}`, answers: [said], channels: ["telegram"] }]);
 });
 
 test("a turn that keeps ending without a reply has its messages go again at once, then after 5 s, then 10 s; only the third such turn is told", { skip: NO_UNIX_SOCKET }, async (t) => {
@@ -189,8 +189,8 @@ test("a reply ends the wait: the next turn that ends without a reply has its mes
 		["[via telegram]\n> Go.", `${AGAIN_MARK}\n> Go.`, `${AGAIN_MARK}\n> Go.`, "[via telegram]\n> Again?", `${AGAIN_MARK}\n> Again?`],
 	);
 	assert.deepEqual(box.emitted("coordinator-replied"), [
-		{ text: "Done.", answers: [first], channels: ["telegram"] },
-		{ text: "Again.", answers: [second], channels: ["telegram"] },
+		{ text: `Done.${NONE}`, answers: [first], channels: ["telegram"] },
+		{ text: `Again.${NONE}`, answers: [second], channels: ["telegram"] },
 	]);
 	assert.deepEqual(box.emitted("notice"), []);
 });
@@ -215,7 +215,7 @@ test("a new owner message ends the wait: the waiting messages and the new one go
 	assert.equal(box.messages().length, 4, "the owner's message goes at the next tick, 1 ms before the wait's end on the agent's clock");
 	assert.equal(box.messages()[3]?.content, [`${AGAIN_MARK}\n> Go.`, "[Arthur: test]\n> Write the morning report.", "[via telegram]\n> Now?", ARTHUR].join("\n\n"));
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [first, scheduled, second], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Done.${NONE}`, answers: [first, scheduled, second], channels: ["telegram"] }]);
 });
 
 test("the wait before a failed turn's messages go again is none the first time, then 5 s doubling, at most 5 min", () => {
@@ -236,6 +236,6 @@ test("a coordinator restarted mid-turn gets the message once more, marked, answe
 		{ content: "[via telegram]\n> Start AR0081.", step: 0 },
 		{ content: `[via telegram, ${RESTART}]\n> Start AR0081.`, step: 0 },
 	]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Done.${NONE}`, answers: [said], channels: ["telegram"] }]);
 	assert.equal(box.starts().length, 2);
 });

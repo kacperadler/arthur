@@ -14,6 +14,8 @@ export const AGAIN = "Your reply above has not been sent; write one reply that a
 export const ARTHUR = "The messages marked [Arthur] or [Arthur: <plugin>] come from Arthur (a job's end, a plugin), not from the owner.";
 // The decision log's line of a wake blocked on the owner whose question shop's log does not hold (decision-hooks.ts).
 export const NOT_YET = "Its question was not in the decision log yet: arthur decisions --kind job --project shop shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue 2026-10-17-worker-0000abcd '<his answer>'; answered by policy, the plugin continues the job with that decision by itself: say so in your reply.";
+// The line Arthur puts under each reply it sends when no job is in a run (context.ts, `jobsNow`).
+export const NONE = "\n\nJobs now: none";
 export const RESTART = "sent before a restart; no reply to it was sent";
 export const DAY = 24 * 3_600_000;
 

@@ -67,3 +67,4 @@ Out:
 - 2026-11-24: The owner asked for this ticket after a wrong status answer and days of held replies ("I want to fix what was wrong, you tell me now i'm right on both counts so create a AR ticket so this will not appear again in the future").
 - 2026-11-24: Plan approved by the owner: plan.md at 4857d36a; the owner: "AR-D728 1" (AR-D728)
 - 2026-11-24: The owner approved AR0739's budget of $45 in total; it commits its written work, runs the checks and goes to review; the owner: "AR-D730 1, AR-D729 1, ZF-D147 1, ZF-D144 1" (AR-D730)
+- 2026-11-25: AR0739: a fresh worker on the default model with $15 takes its branch, runs check, test and mutate, fixes what fails and goes to review, after the weekly usage reset; the owner: "AR-D733 yes" (AR-D733)

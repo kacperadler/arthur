@@ -92,7 +92,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 		...(resume === undefined ? [`@${join(folder, "task")}`] : ["--", resume]),
 	];
 	// What stopped the job first, which its state says, whatever came after; `final` once nothing may resume it: its time
-	// is up, its memory went over its cap, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its
+	// is up, it ran out of memory, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its
 	// ending as it is, and rules out a resume.
 	let why = undefined as Why | undefined;
 	let final = false;
@@ -106,7 +106,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 		note(`${what}: stopping the ${playing ? "agent" : "install"}`);
 		if (child?.pid !== undefined) stopping = stopGroup(child.pid, id, note);
 	};
-	process.on("SIGTERM", () => halt("stop"));
+	process.on("SIGTERM", () => watching.check() ?? halt("stop")); // Once the scope counts an out-of-memory kill, systemd's stop of the scope, not `arthur stop`.
 	guard(() => appendFileSync(join(folder, "log"), "")); // The one use that creates `log`.
 	save("pid", String(process.pid));
 	started = true;
@@ -117,12 +117,12 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	const cancel = deadline(Number(timeout), () => halt("time"));
 	const used = existsSync(join(folder, "usage")) ? field("usage") : undefined; // Missing until a first message, and from a record an older Arthur wrote.
 	const record = runRecord(save, Number(spent ?? 0) || 0, usageOf(used), (cost) => reached(cost, budgetUsd) && halt("budget"));
-	// What went over a memory cap, the job's own or its ticket's.
+	// What ran out of memory: the job's own cap, its ticket's, or one above the job.
 	let overCap = "";
 	const watching = watchMemory(id, memory, feature, featureMemory, (what) => {
 		overCap = what;
 		halt("memory");
-	}, Number(process.env.ARTHUR_TEST_MEMORY_SAMPLE_MS) || undefined); // A test's sample, which launch passes on under node's test runner only.
+	}, note, Number(process.env.ARTHUR_TEST_MEMORY_SAMPLE_MS) || undefined, process.env.ARTHUR_TEST_SCOPE); // A test's sample and scope, under its runner only.
 	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, place, extensions), secrets, "env", note, "the install", unsandboxed === "true")(["GIT_NO_REPLACE_OBJECTS=1", ...cached(join(folder, "cache"), command)]), note, (chunk) => installed.push(chunk), (running) => (child = running)).catch((error: Error) => error).finally(installed.end).finally(() => stopping); // The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, its sandbox's refusal (`no sandbox: ...`) included, or a stop or a limit during it, starts no agent, and the job ends only once the stop of the install's group is over (AR0481). Its git, as the agent's, reads past refs/replace (AR0621).
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over; its npm's cache is the install's, the record's, never the shared one (AR0456).
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
@@ -168,8 +168,8 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	}
 	cancel();
 	quiet();
-	// A kill over the cap that ended the agent before a sample saw it ends the job at the cap all the same.
-	const went = watching();
+	// A kill that ended the agent before a sample saw it ends the job out of memory all the same; the log names each killed process.
+	const went = await watching.end();
 	if (went !== undefined && why === undefined) [why, overCap] = ["memory", went];
 	endScope(id);
 	const undelivered = guard(() => {

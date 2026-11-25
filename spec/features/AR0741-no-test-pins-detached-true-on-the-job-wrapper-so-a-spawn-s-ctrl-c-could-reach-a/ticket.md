@@ -26,7 +26,7 @@ Found by mutate on the AR0740 branch (worker `2026-11-25-worker-ab0e1866`, tip 3
 ## Scope
 
 In:
-- `packages/core/test/job-scope.test.ts` (or the existing test of the launch path): the new test.
+- `packages/core/test/scope.test.ts` (or `spawn.test.ts`, whichever already starts the wrapper through `job-scope.ts`): the new test.
 
 Out:
 - Any change to `job-scope.ts` itself; the AR0740 fix (out-of-memory end).

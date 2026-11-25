@@ -33,11 +33,11 @@ async function load(t: TestContext, tickets: readonly Ticket[]) {
 	const plugin = stats();
 	await fake.setup(plugin);
 	const command = fake.commands.find((each) => each.name === "stats");
-	const run = async (args: readonly string[] = [], project?: string) => {
+	const run = async (args: readonly string[] = [], project?: string, report = "tickets") => {
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (text: string) => out.push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
-		const code = await Promise.try(() => command?.run({ args: ["tickets", ...args], project })).finally(() => t.mock.restoreAll());
+		const code = await Promise.try(() => command?.run({ args: [report, ...args], project })).finally(() => t.mock.restoreAll());
 		return { code: code ?? 0, out: out.join("\n"), err: err.join("\n") };
 	};
 	// `stats.tickets` as manage's audit and retro ask it for their prompt's `### Stats`.
@@ -156,4 +156,49 @@ test("a finding's first line: a heading at any level from 1 to 6, a section's en
 		["## Findings\n## Notes\n- x", []],
 	];
 	for (const [text, expected] of rows) assert.deepEqual(findingLines(final(text)), expected, text);
+});
+
+// `arthur stats budget` (AR0739): a ticket as `arthur ticket new` makes it, its Kind under its Goal; `outcome` above with its worker's cost.
+const kinded = (id: string, kind: string) => `# ${id}\n\n## Description\n\n- Kind: chore\n\n## Goal\n\nX.\n\n${kind}\n- Plan: no\n\n## Done means\n\n- Kind: docs\n`;
+const costing = (id: string, kind: string, cost: string, status = "merged"): Ticket => ({ id, title: id, status, updated: "2026-01-02T10:00:00Z", files: { "ticket.md": kinded(id, kind), "outcome.md": outcome(id, cost) } });
+
+test("arthur stats budget: per kind the count, the median and the cost 9 in 10 stayed within, of the workers alone; an unknown cost is left out and counted", async (t) => {
+	// Ten fixes costing $1 to $10 out of order, so a sort by text (10 before 2) would show; the reviews' cost counts nowhere.
+	const fixes = [10, 3, 1, 7, 2, 9, 4, 8, 6, 5].map((usd, index) => costing(`AC00${10 + index}`, "- Kind: fix", `worker $${usd}.00, reviews $50.00`));
+	const run = await load(t, [
+		...fixes,
+		// No Kind under the Goal (the ones in other sections are not it), and the template's line left as it was; on the board before
+		// the feats, which as many tickets name: kinds with as many go by name.
+		costing("AC0030", "", "worker $2.00, reviews $0.00"),
+		costing("AC0031", "- Kind: <!-- feat | fix | docs -->", "worker $3.00, reviews $0.00"),
+		costing("AC0032", "- Kind: docs", "worker $1.00, reviews $0.00"),
+		costing("AC0033", "- Kind: feat", "worker $4.25, reviews n/a"),
+		costing("AC0034", "- Kind:   feat  ", "worker $0.5, reviews $0.10"),
+		// Left out: a worker's cost n/a, no outcome.md at all; not merged: never read.
+		costing("AC0035", "- Kind: fix", "worker n/a, reviews $1.00"),
+		{ id: "AC0036", title: "AC0036", status: "merged", updated: "2026-01-02T10:00:00Z", files: { "ticket.md": kinded("AC0036", "- Kind: fix") } },
+		costing("AC0037", "- Kind: fix", "worker $900.00, reviews $0.00", "done"),
+	]);
+	assert.deepEqual(await run([], undefined, "budget"), {
+		code: 0,
+		err: "",
+		out: [
+			"Worker cost of the merged tickets of acme, by kind:",
+			"fix: 10 tickets, median $5.00, 9 in 10 within $9.00",
+			"feat: 2 tickets, median $0.50, 9 in 10 within $4.25",
+			"no kind: 2 tickets, median $2.00, 9 in 10 within $3.00",
+			"docs: 1 ticket, median $1.00, 9 in 10 within $1.00",
+			"Left out: 2 tickets whose outcome.md names no worker cost",
+		].join("\n"),
+	});
+});
+
+test("arthur stats budget: an eleventh ticket moves the 9-in-10 cost to the tenth; no merged ticket, another project, wrong usage and an unknown project", async (t) => {
+	const run = await load(t, Array.from({ length: 11 }, (_, index) => costing(`AC00${10 + index}`, "- Kind: fix", `worker $${index + 1}.00, reviews $0.00`)));
+	assert.equal((await run([], "acme", "budget")).out, "Worker cost of the merged tickets of acme, by kind:\nfix: 11 tickets, median $6.00, 9 in 10 within $10.00");
+	assert.deepEqual(await run([], "other", "budget"), { code: 0, err: "", out: "No merged ticket in other yet." });
+	assert.deepEqual(await run(["now"], undefined, "budget"), { code: 2, out: "", err: "usage: arthur stats budget [--project <name>]" });
+	await assert.rejects(run([], "nope", "budget"), /unknown project nope; projects: acme, other/);
+	const none = await load(t, [costing("AC0001", "- Kind: fix", "worker $1.00, reviews $0.00", "in-progress")]);
+	assert.deepEqual(await none([], undefined, "budget"), { code: 0, err: "", out: "No merged ticket in acme yet." });
 });

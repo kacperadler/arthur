@@ -1,0 +1,34 @@
+{
+	"turn": {
+		"message": "how is it going?"
+	},
+	"stub": [
+		{
+			"match": "^arthur jobs",
+			"output": "working\nSH0011  review  working  40m  $0.21/$2.00  953209e8\nended\nSH0011  worker  ended  14:41  $4.12/$13.62  5c6d7e8f  finished"
+		}
+	],
+	"expect": {
+		"refs": {
+			"refs/heads/main": "kept",
+			"origin:refs/heads/main": "kept"
+		},
+		"calls": [
+			"^arthur jobs\\b"
+		],
+		"never": [
+			"^arthur spawn ",
+			"^arthur review",
+			"^arthur merge "
+		],
+		"reply": {
+			"match": [
+				"SH0011",
+				"[Rr]eview"
+			],
+			"never": [
+				"\\b[Nn]o jobs? (?:is |are )?run"
+			]
+		}
+	}
+}

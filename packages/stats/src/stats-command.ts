@@ -2,19 +2,19 @@ import { parseArgs } from "node:util";
 import type { Host } from "@arthur/core/plugin";
 import { parseSince } from "./spend-read.ts";
 import { spend } from "./spend.ts";
-import { ticketStats } from "./tickets.ts";
+import { budgetStats, ticketStats } from "./tickets.ts";
 import { windows } from "./windows.ts";
 
-// `arthur stats`, the spend view, `arthur stats tickets`, the merged tickets' report, `arthur stats windows`, the usage windows
-// beside the spend, and `/stats` (spec/roadmap.md, entries 110 to 112): docs/commands/stats.md, stats-tickets.md and stats-windows.md.
+// `arthur stats`, the spend view, `arthur stats tickets`, the merged tickets' report, `arthur stats budget`, what their workers cost
+// per kind, `arthur stats windows`, the usage windows beside the spend, and `/stats` (spec/roadmap.md, entries 110 to 112, and AR0739):
+// docs/commands/stats.md, stats-tickets.md, stats-budget.md and stats-windows.md.
 
 const USAGE = "usage: arthur stats [--since today|yesterday|<n>d|YYYY-MM-DD] [--project <name>] [--role <role>] [--ticket <id>] [--model <provider/model>]";
-const TICKETS_USAGE = "usage: arthur stats tickets [--project <name>]";
 const WINDOWS_USAGE = "usage: arthur stats windows";
 const PHONE_USAGE = "usage: /stats [today|yesterday|<n>d|YYYY-MM-DD] [<ticket id>]";
 const TICKET = /^[A-Z]+\d{4,}$/;
-// A job's sandbox hides Arthur's home, so the plugin's folder (job-sandbox.ts); the report reads only the board.
-const HIDDEN = "the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets runs here";
+// A job's sandbox hides Arthur's home, so the plugin's folder (job-sandbox.ts); the reports read only the board.
+const HIDDEN = "the spend is kept in Arthur's home, which a job cannot read; arthur stats tickets and arthur stats budget run here";
 
 export function statsCommand(host: Host): void {
 	host.commands.register({
@@ -34,9 +34,11 @@ export function statsCommand(host: Host): void {
 			},
 		},
 		async run({ args, project }) {
-			if (args[0] === "tickets") {
-				if (args.length > 1) return (console.error(TICKETS_USAGE), 2);
-				return void console.log(ticketStats(host, project));
+			// The reports of a project's merged tickets.
+			const report = args[0] === "tickets" ? ticketStats : args[0] === "budget" ? budgetStats : undefined;
+			if (report !== undefined) {
+				if (args.length > 1) return (console.error(`usage: arthur stats ${args[0]} [--project <name>]`), 2);
+				return void console.log(report(host, project));
 			}
 			if (args[0] === "windows" && args.length > 1) return (console.error(WINDOWS_USAGE), 2);
 			if (host.job !== undefined) return (console.error(`arthur stats: ${HIDDEN}`), 1);

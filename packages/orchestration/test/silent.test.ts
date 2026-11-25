@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import fs, { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { type AgentStep, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
@@ -10,11 +11,19 @@ import { NO_UNIX_SOCKET } from "./unix-socket.ts";
 import { ownerSaid } from "./owner-said.ts";
 
 // The silent mode (spec/roadmap.md, entry 47, AR0127): `arthur silent` and `/silent`, its state file, the replies and notices it
-// holds, and its line in the coordinator's context.
+// holds, its line in the coordinator's context, and its own end (AR0739).
 
 const PATH = process.env.PATH ?? "";
 const NOW = new Date("2026-10-19T08:00:00Z");
 const WORK = "AR0207 to AR0209 merged; stop at $20";
+// An `on` at NOW without `--until`: its end 24 hours on, its answer, and the end's sentence in the context.
+const DAY = 86_400_000;
+const END = new Date(NOW.getTime() + DAY).toISOString();
+const ON = "silent: on until 10:00 on tue 2026-10-20";
+const ENDS = (at: string) => `It ends on its own at ${at}, and Arthur tells the owner.`;
+// The line Arthur puts under each reply it sends (context.ts, `jobsNow`): no job here is in a run.
+const sent = (...texts: string[]) => texts.map((text) => `${text}\n\nJobs now: none`);
+const USAGE = "usage: arthur silent [on '<the work; its stop condition>' [--until <HH:MM>] | off | ask]\n       /silent on <the work> [--until <HH:MM>] [--usage <percent>] [--tickets <id>,...] --recommend, the owner's grant, on his phone only";
 
 // The plugin set up on a fake host in Warsaw, its coordinator not started; `silent.json` written before the setup when given,
 // as an earlier process left it; with `agent`, project shop has its agent, in the folder `shop`. `run` is `arthur silent
@@ -43,7 +52,7 @@ async function setup(t: TestContext, before?: string, agent = false) {
 		},
 		route: (text: string) => fake.host.commands.route(text),
 		silent: (notice: unknown) => fake.call<boolean>("coordinator.silent", notice),
-		state: () => (existsSync(join(folder, "silent.json")) ? (JSON.parse(readFileSync(join(folder, "silent.json"), "utf8")) as { since: string; seq: number; work: string }) : undefined),
+		state: () => (existsSync(join(folder, "silent.json")) ? (JSON.parse(readFileSync(join(folder, "silent.json"), "utf8")) as { since: string; seq: number; work: string; until: string }) : undefined),
 		// A reply as the inbox extension writes it to the outbox of the session folder `of`, named after the time it was written.
 		reply(text: string, channels: readonly string[], at = Date.now(), of = folder) {
 			mkdirSync(join(of, "outbox"), { recursive: true });
@@ -51,6 +60,7 @@ async function setup(t: TestContext, before?: string, agent = false) {
 		},
 		sweep: () => plugin.stop?.(),
 		replied: () => fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => (event.data as { text: string }).text),
+		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => event.data),
 		held: (of = folder) => (existsSync(join(of, "outbox", "held")) ? readdirSync(join(of, "outbox", "held")).length : 0),
 		async context() {
 			printed.length = 0;
@@ -63,9 +73,9 @@ async function setup(t: TestContext, before?: string, agent = false) {
 test("/silent twice: on, then off with what happened meanwhile, built from the events since it went on", async (t) => {
 	const { fake, route, state } = await setup(t);
 	fake.emit("job-ended", { id: "2026-10-19-worker-00000001", kind: "worker", project: "arthur", state: "ended", reason: "finished" });
-	assert.equal(await route("/silent"), "silent: on");
+	assert.equal(await route("/silent"), ON);
 	const on = state();
-	assert.deepEqual(on, { since: NOW.toISOString(), seq: 2, work: "" }, "the event before it, and its own phone-command, are not part of it");
+	assert.deepEqual(on, { since: NOW.toISOString(), seq: 2, work: "", until: END }, "the event before it, and its own phone-command, are not part of it");
 	const jobs = ["2026-10-19-worker-0000000a", "2026-10-19-worker-0000000b", "2026-10-19-worker-0000000c", "2026-10-19-worker-0000000d"];
 	fake.emit("job-ended", { id: jobs[0], kind: "worker", project: "arthur", state: "ended", reason: "finished" });
 	fake.emit("job-ended", { id: jobs[1], kind: "worker", project: "arthur", state: "ended", reason: "failed: the agent exited 1" });
@@ -83,22 +93,22 @@ test("/silent twice: on, then off with what happened meanwhile, built from the e
 		].join("\n"),
 	);
 	assert.equal(state(), undefined);
-	assert.equal(await route("/silent on"), "silent: on");
+	assert.equal(await route("/silent on"), ON);
 	assert.equal(await route("/silent off"), "silent: off, nothing happened meanwhile");
 });
 
 test("arthur silent on while on keeps since when and replaces the work; the context names both", async (t) => {
 	const { fake, run, state, context } = await setup(t);
 	assert.equal(await context(), undefined, "no section while off");
-	assert.deepEqual(await run("on", "AR0207 merged"), [0, "silent: on"]);
+	assert.deepEqual(await run("on", "AR0207 merged"), [0, ON]);
 	fake.setNow(new Date("2026-10-19T09:30:00Z"));
 	fake.emit("notice", { text: "later" });
-	assert.deepEqual(await run("on", WORK), [0, "silent: on"]);
-	assert.deepEqual(state(), { since: NOW.toISOString(), seq: 0, work: WORK });
-	assert.equal(await context(), `On since 10:00 on mon 2026-10-19, for: ${WORK}.`);
+	assert.deepEqual(await run("on", WORK), [0, "silent: on until 11:30 on tue 2026-10-20"], "its end is this on's");
+	assert.deepEqual(state(), { since: NOW.toISOString(), seq: 0, work: WORK, until: "2026-10-20T09:30:00.000Z" });
+	assert.equal(await context(), `On since 10:00 on mon 2026-10-19, for: ${WORK}. ${ENDS("11:30 on tue 2026-10-20")}`);
 	assert.deepEqual(await run("off"), [0, "silent: off, meanwhile: 1 notice held:\n- later"], "what came after the first on");
-	assert.deepEqual(await run("on"), [0, "silent: on"]);
-	assert.equal(await context(), "On since 11:30 on mon 2026-10-19, for: nothing named; the owner turned it on.");
+	assert.deepEqual(await run("on"), [0, "silent: on until 11:30 on tue 2026-10-20"]);
+	assert.equal(await context(), `On since 11:30 on mon 2026-10-19, for: nothing named; the owner turned it on. ${ENDS("11:30 on tue 2026-10-20")}`);
 });
 
 test("arthur silent off while off answers silent: off and changes nothing; a wrong word is the usage", async (t) => {
@@ -107,10 +117,9 @@ test("arthur silent off while off answers silent: off and changes nothing; a wro
 	assert.deepEqual(await run("off"), [0, "silent: off"]);
 	assert.deepEqual(await run("ask"), [0, "silent: off"]);
 	assert.deepEqual(readdirSync(folder).sort(), before);
-	const usage = "usage: arthur silent [on '<the work; its stop condition>' | off | ask]\n       /silent on <the work> [--until <HH:MM>] [--usage <percent>] [--tickets <id>,...] --recommend, the owner's grant, on his phone only";
-	assert.deepEqual(await run("loud"), [2, usage]);
-	assert.deepEqual(await run("off", "now"), [2, usage]);
-	assert.equal(await route("/silent please"), usage.replace("arthur silent", "/silent"));
+	assert.deepEqual(await run("loud"), [2, USAGE]);
+	assert.deepEqual(await run("off", "now"), [2, USAGE]);
+	assert.equal(await route("/silent please"), USAGE.replace("arthur silent", "/silent"));
 	assert.deepEqual(readdirSync(folder).sort(), before);
 });
 
@@ -133,20 +142,20 @@ test("while on, a reply to only Arthur's messages is held; an owner's is sent; a
 	reply("Your answer.", ["telegram"]);
 	reply("Written before the ask.", [], Date.now() - 1000);
 	await sweep();
-	assert.deepEqual(replied(), ["Your answer."]);
+	assert.deepEqual(replied(), sent("Your answer."));
 	assert.equal(held(), 2);
 	assert.deepEqual(await run("ask"), [0, "silent: on; the reply of this turn goes to the owner"]);
 	reply("Before the ask, swept after it.", [], Date.now() - 1000);
 	reply("A decision for you.", [], Date.now() + 1);
 	reply("The next wake.", [], Date.now() + 2);
 	await sweep();
-	assert.deepEqual(replied(), ["Your answer.", "A decision for you."]);
+	assert.deepEqual(replied(), sent("Your answer.", "A decision for you."));
 	assert.equal(existsSync(join(folder, "silent-ask")), false, "one ask, one reply");
 	assert.equal(held(), 4);
 	await run("off");
 	reply("Done: all merged.", []);
 	await sweep();
-	assert.deepEqual(replied(), ["Your answer.", "A decision for you.", "Done: all merged."]);
+	assert.deepEqual(replied(), sent("Your answer.", "A decision for you.", "Done: all merged."));
 	await run("on");
 	await run("ask");
 	await run("off");
@@ -180,7 +189,7 @@ test("an ask lets through only the next reply of the session that ran it; anothe
 	assert.deepEqual([replied(), held(shop), asks()], [[], 1, [true, false]], "the agent's reply does not use up the coordinator's ask");
 	reply("Merge AR0207?", [], Date.now() + 2);
 	await sweep();
-	assert.deepEqual([replied(), held(), asks()], [["Merge AR0207?"], 0, [false, false]]);
+	assert.deepEqual([replied(), held(), asks()], [sent("Merge AR0207?"), 0, [false, false]]);
 	// In the agent's session: its own ask, which the coordinator's reply does not use up.
 	process.env.ARTHUR_ORCHESTRATION_FOLDER = shop;
 	assert.deepEqual(await run("ask"), [0, "silent: on; the reply of this turn goes to the owner"]);
@@ -191,7 +200,7 @@ test("an ask lets through only the next reply of the session that ran it; anothe
 	reply("Shop: approve SH0001?", [], Date.now() + 4, shop);
 	reply("Shop: the next wake.", [], Date.now() + 5, shop);
 	await sweep();
-	assert.deepEqual([replied(), held(shop), asks()], [["Merge AR0207?", "Shop: approve SH0001?"], 2, [false, false]], "one ask, one reply of its session");
+	assert.deepEqual([replied(), held(shop), asks()], [sent("Merge AR0207?", "Shop: approve SH0001?"), 2, [false, false]], "one ask, one reply of its session");
 	// A session's folder no project names (a removed agent's, another home's): the coordinator's ask.
 	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(folder, "agents", "blog");
 	await run("ask");
@@ -211,12 +220,13 @@ test("an ask lets through only the next reply of the session that ran it; anothe
 	assert.deepEqual(asks(), [true, true], "on while on keeps each ask");
 });
 
+// The state an Arthur before AR0739 wrote has no `until`: it ends 24 hours after its `since`.
 test("a restart while on: still on, the context says so, held replies stay held and the next one is held too", async (t) => {
 	const state = JSON.stringify({ since: "2026-10-19T06:15:00.000Z", seq: 0, work: WORK });
 	const { folder, reply, sweep, replied, held, context, silent } = await setup(t, state);
 	mkdirSync(join(folder, "outbox", "held"), { recursive: true });
 	writeFileSync(join(folder, "outbox", "held", "1-000001.json"), JSON.stringify({ text: "Held before.", answers: [1], channels: [] }));
-	assert.equal(await context(), `On since 08:15 on mon 2026-10-19, for: ${WORK}.`);
+	assert.equal(await context(), `On since 08:15 on mon 2026-10-19, for: ${WORK}. ${ENDS("08:15 on tue 2026-10-20")}`);
 	reply("After the restart.", []);
 	await sweep();
 	assert.deepEqual(replied(), []);
@@ -224,19 +234,115 @@ test("a restart while on: still on, the context says so, held replies stay held 
 	assert.equal(silent({ text: "x" }), true);
 });
 
-test("a state file that does not parse counts as on, its context line names it, and arthur silent off removes it", async (t) => {
-	for (const broken of ["{ not json", JSON.stringify({ since: 5 }), "null"]) {
-		const { folder, run, reply, sweep, replied, context, silent } = await setup(t, broken);
+test("a state file that does not parse counts as on, its context line names it, it never ends on its own, and arthur silent off removes it", async (t) => {
+	const whole = { since: NOW.toISOString(), seq: 0, work: WORK };
+	for (const broken of ["{ not json", JSON.stringify({ since: 5 }), "null", JSON.stringify({ ...whole, since: "this morning" }), JSON.stringify({ ...whole, until: "tonight" }), JSON.stringify({ ...whole, until: null })]) {
+		const { fake, folder, run, reply, sweep, replied, notices, context, silent } = await setup(t, broken);
 		const file = join(folder, "silent.json");
 		assert.equal(await context(), `On: ${file} does not parse, so it counts as on; \`arthur silent off\` removes it.`, broken);
 		assert.equal(silent({ text: "x" }), true);
+		// Long past any end.
+		fake.setNow(new Date(NOW.getTime() + 30 * DAY));
 		reply("Held.", []);
 		await sweep();
-		assert.deepEqual(replied(), []);
+		assert.deepEqual([replied(), notices(), existsSync(file)], [[], [], true], broken);
 		assert.deepEqual(await run("off"), [0, `silent: off, ${file} did not parse, so what happened meanwhile is unknown`]);
 		assert.equal(existsSync(file), false);
 		assert.equal(await context(), undefined);
 	}
+});
+
+// AR0739: turned on for a night's work, it stayed on for six days, and every reply to a job's end, a review or a merge was held.
+test("at its end the mode goes off on its own: nothing a moment before; then one notice with what happened meanwhile, each session's ask gone, and the next reply sent", async (t) => {
+	const { fake, folder, shop, run, reply, sweep, replied, notices, held, state, silent } = await setup(t, undefined, true);
+	mkdirSync(shop, { recursive: true });
+	assert.deepEqual(await run("on", WORK, "--until", "09:00"), [0, "silent: on until 09:00 on tue 2026-10-20"], "the next 09:00 in Warsaw");
+	assert.deepEqual(state(), { since: NOW.toISOString(), seq: 0, work: WORK, until: "2026-10-20T07:00:00.000Z" });
+	for (const each of [folder, shop]) writeFileSync(join(each, "silent-ask"), String(Date.now() + 60_000));
+	const job = "2026-10-19-worker-0000000a";
+	fake.emit("job-ended", { id: job, kind: "worker", project: "arthur", state: "ended", reason: "finished" });
+	fake.emit("notice", { text: "later" });
+	fake.setNow(new Date("2026-10-20T06:59:59.999Z"));
+	reply("A job ended.", []);
+	await sweep();
+	assert.deepEqual([replied(), notices(), held(), silent({ text: "x" })], [[], [], 1, true], "a millisecond before its end");
+	fake.setNow(new Date("2026-10-20T07:00:00.000Z"));
+	reply("The review passed.", []);
+	await sweep();
+	const told = `silent: off on its own, its end 09:00 on tue 2026-10-20 came (on since 10:00 on mon 2026-10-19, for: ${WORK}); meanwhile: 1 job ended: 1 finished (${job}); 1 notice held:\n- later`;
+	assert.deepEqual(notices(), [{ text: told }]);
+	assert.deepEqual([state(), silent({ text: "x" }), readdirSync(folder).filter((name) => name.startsWith("silent")), existsSync(join(shop, "silent-ask"))], [undefined, false, [], false]);
+	assert.deepEqual([replied(), held()], [sent("The review passed."), 1], "the reply of the sweep that ended it goes out, and what was held stays held");
+	// The end came once: a second sweep, and an off by hand after it, tell nothing more.
+	await sweep();
+	assert.deepEqual([await run("off"), notices().length], [[0, "silent: off"], 1]);
+});
+
+test("an on without --until ends 24 hours on, a state without until 24 hours after its since; an off by hand first leaves the end nothing to tell", async (t) => {
+	const plain = await setup(t);
+	await plain.run("on");
+	plain.fake.setNow(new Date(NOW.getTime() + DAY - 1));
+	await plain.sweep();
+	assert.deepEqual([plain.notices(), plain.state()?.until], [[], END]);
+	plain.fake.setNow(new Date(NOW.getTime() + DAY));
+	await plain.sweep();
+	assert.deepEqual([plain.notices(), plain.state()], [[{ text: "silent: off on its own, its end 10:00 on tue 2026-10-20 came (on since 10:00 on mon 2026-10-19, for: nothing named); nothing happened meanwhile" }], undefined]);
+	// As the state of 2026-11-18 was: on for days, written without an end.
+	const old = await setup(t, JSON.stringify({ since: "2026-10-18T06:15:00.000Z", seq: 0, work: WORK }));
+	old.fake.setNow(new Date("2026-10-19T06:14:59.999Z"));
+	await old.sweep();
+	assert.deepEqual(old.notices(), []);
+	old.fake.setNow(new Date("2026-10-19T06:15:00.000Z"));
+	old.reply("A job ended.", []);
+	await old.sweep();
+	assert.deepEqual(old.notices(), [{ text: `silent: off on its own, its end 08:15 on mon 2026-10-19 came (on since 08:15 on sun 2026-10-18, for: ${WORK}); nothing happened meanwhile` }]);
+	assert.deepEqual(old.replied(), sent("A job ended."));
+	const byHand = await setup(t);
+	await byHand.run("on", WORK);
+	byHand.fake.setNow(new Date(NOW.getTime() + 2 * DAY));
+	assert.deepEqual(await byHand.run("off"), [0, "silent: off, nothing happened meanwhile"]);
+	await byHand.sweep();
+	assert.deepEqual(byHand.notices(), []);
+});
+
+// The end and an `arthur silent off` of another process at the same instant: each read the state, one renames its file first.
+test("of the end and an off by hand at once, the one that finds the state file taken tells nothing: no notice from the end, silent: off from the off", async (t) => {
+	const { fake, folder, run, sweep, notices, state } = await setup(t);
+	const rename = fs.renameSync;
+	// The other process takes the file between this one's read of the state and its rename.
+	const taken = (act: () => unknown) => {
+		const mocked = t.mock.method(fs, "renameSync", (from: string, to: string) => {
+			if (from === join(folder, "silent.json")) rmSync(from);
+			rename(from, to);
+		});
+		syncBuiltinESMExports();
+		return Promise.try(act).finally(() => {
+			mocked.mock.restore();
+			syncBuiltinESMExports();
+		});
+	};
+	await run("on", WORK);
+	fake.setNow(new Date(NOW.getTime() + DAY));
+	await taken(sweep);
+	assert.deepEqual([notices(), state(), readdirSync(folder).filter((name) => name.startsWith("silent"))], [[], undefined, []]);
+	await run("on", WORK);
+	assert.deepEqual(await taken(() => run("off")), [0, "silent: off"]);
+	assert.equal(state(), undefined);
+});
+
+test("--until without --recommend: from the shell and the phone, each on's own; a time that is none is refused and nothing written; another bound alone is the usage", async (t) => {
+	const { fake, run, route, state } = await setup(t);
+	assert.deepEqual(await run("on", WORK, "--until", "noon"), [1, "arthur silent: refused: --until noon: a time of day, HH:MM"]);
+	assert.equal(await route(`/silent on ${WORK} --until 24:00`), "silent: refused: --until 24:00: a time of day, HH:MM");
+	for (const args of [["--until"], ["--until", "09:00", "--until", "10:00"], ["--usage", "80"], ["--tickets", "AR0207"], ["--until", "09:00", "--usage", "80"]]) assert.deepEqual(await run("on", WORK, ...args), [2, USAGE], args.join(" "));
+	assert.equal(state(), undefined);
+	assert.equal(await route(`/silent on ${WORK} --until 18:30`), "silent: on until 18:30 on mon 2026-10-19");
+	assert.deepEqual(state(), { since: NOW.toISOString(), seq: 2, work: WORK, until: "2026-10-19T16:30:00.000Z" }, "the flag is no part of the work");
+	fake.setNow(new Date("2026-10-19T12:00:00Z"));
+	assert.deepEqual(await run("on", "--until", "10:00", WORK), [0, "silent: on until 10:00 on tue 2026-10-20"], "10:00 today is past: the next one");
+	assert.deepEqual(state(), { since: NOW.toISOString(), seq: 2, work: WORK, until: "2026-10-20T08:00:00.000Z" });
+	assert.equal(await route("/silent on two  spaces"), "silent: on until 14:00 on tue 2026-10-20");
+	assert.equal(state()?.work, "two  spaces", "without a flag the phone's work is the text as written");
 });
 
 test("through the coordinator: while on, a turn of only a wake is held, a wake and an owner message in one turn are answered", { skip: NO_UNIX_SOCKET }, async (t) => {
@@ -261,7 +367,7 @@ test("through the coordinator: while on, a turn of only a wake is held, a wake a
 	const owner = fake.emit("message-received", { channel: "telegram", parts: [{ kind: "text", text: "How is it going?", mime: "text/plain" }] }).seq;
 	const replies = () => fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data);
 	await until("the sent reply", () => replies().length === 1);
-	assert.deepEqual(replies(), [{ text: "Sent reply.", answers: [wake, owner], channels: ["telegram"] }]);
+	assert.deepEqual(replies(), [{ text: sent("Sent reply.")[0], answers: [wake, owner], channels: ["telegram"] }]);
 	assert.equal(JSON.parse(readFileSync(join(held, readdirSync(held)[0] ?? ""), "utf8")).text, "Held reply.");
 });
 
@@ -321,10 +427,10 @@ test("a grant with --until answers an ask with --recommend by its recommendation
 	const { fake, phone, ask, log, state, grant, context } = await granting(t);
 	const said = await phone("on", WORK, "--until", "12:00", "--recommend");
 	const id = grant();
-	assert.equal(said, `silent: on; the owner's grant ${id}: an arthur decision ask with --recommend is answered by its recommendation until 12:00 on mon 2026-10-19; ${NEVER}`);
+	assert.equal(said, `silent: on until 12:00 on mon 2026-10-19; the owner's grant ${id}: an arthur decision ask with --recommend is answered by its recommendation until 12:00 on mon 2026-10-19; ${NEVER}`);
 	assert.deepEqual(fake.emitted.find((event) => event.name === "silent-grant")?.data, { work: WORK, until: "2026-10-19T10:00:00.000Z" });
-	assert.deepEqual(state(), { since: NOW.toISOString(), seq: 1, work: WORK, grant: { id, until: "2026-10-19T10:00:00.000Z" } }, "seq: the phone command's own event");
-	assert.equal(await context(), `On since 10:00 on mon 2026-10-19, for: ${WORK}.\nWhile it holds, the owner's grant ${id}: an arthur decision ask with --recommend is answered by its recommendation until 12:00 on mon 2026-10-19; ${NEVER}.`);
+	assert.deepEqual(state(), { since: NOW.toISOString(), seq: 1, work: WORK, until: "2026-10-19T10:00:00.000Z", grant: { id, until: "2026-10-19T10:00:00.000Z" } }, "seq: the phone command's own event; the grant's --until is the mode's end");
+	assert.equal(await context(), `On since 10:00 on mon 2026-10-19, for: ${WORK}. ${ENDS("12:00 on mon 2026-10-19")}\nWhile it holds, the owner's grant ${id}: an arthur decision ask with --recommend is answered by its recommendation until 12:00 on mon 2026-10-19; ${NEVER}.`);
 	assert.deepEqual(await ask("--recommend", "1"), [0, ANSWERED("AC-D1", id, "Blue")]);
 	assert.deepEqual(log().at(-1), { record: "answer", id: "AC-D1", time: "2026-10-19T10:00:00+02:00", decided: "Blue", words: `by recommendation: ${id}` }, "no --picked: never scored as the owner's pick");
 	assert.deepEqual(await ask("--recommend", "Red, the brand's"), [0, ANSWERED("AC-D2", id, "Red, the brand's")]);
@@ -349,14 +455,14 @@ test("arthur silent on --recommend from a shell is refused in every form, writin
 	assert.deepEqual(state().grant?.until, "2026-10-19T10:00:00.000Z", "a refused shell grant leaves the phone's as it is");
 });
 
-test("a grant with --usage holds while models.usage reads under that percent; none, or no reading, answers nothing", async (t) => {
+test("a grant with --usage holds while models.usage reads under that percent; none, or no reading, answers nothing; it ends with the mode, 24 hours on", async (t) => {
 	const { fake, phone, ask, state, grant } = await granting(t);
 	assert.equal(await phone("on", WORK, "--usage", "80", "--recommend"), "silent: refused: --usage needs the models plugin, which reads the usage (models.usage)");
 	assert.equal(state(), undefined, "nothing written");
 	let used: number | null | undefined = 79.5;
 	fake.provide("models.usage", () => used);
-	assert.match(await phone("on", WORK, "--usage", "80", "--recommend"), /^silent: on; the owner's grant /);
-	assert.deepEqual(state().grant, { id: grant(), usage: 80 });
+	assert.match(await phone("on", WORK, "--usage", "80", "--recommend"), /^silent: on until 10:00 on tue 2026-10-20; the owner's grant /);
+	assert.deepEqual([state().until, state().grant], [END, { id: grant(), usage: 80 }]);
 	assert.deepEqual(await ask("--recommend", "1"), [0, ANSWERED("AC-D1", grant(), "Blue")]);
 	used = 80;
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D2"], "80% is not under 80%");
@@ -364,11 +470,16 @@ test("a grant with --usage holds while models.usage reads under that percent; no
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D3"], "no usage report");
 	used = null;
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D4"], "a reading that is no number");
+	used = 10;
+	fake.setNow(new Date(NOW.getTime() + DAY - 1));
+	assert.deepEqual(await ask("--recommend", "1"), [0, ANSWERED("AC-D5", grant(), "Blue")], "a millisecond before the mode's end");
+	fake.setNow(new Date(NOW.getTime() + DAY));
+	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D6"], "at the mode's end, before any sweep turned it off");
 });
 
 test("a grant with --tickets answers only an ask of one of its tickets", async (t) => {
 	const { phone, ask, grant } = await granting(t);
-	assert.equal(await phone("on", WORK, "--tickets", "ac0001,AC0099", "--recommend"), `silent: on; the owner's grant ${grant()}: an arthur decision ask with --recommend is answered by its recommendation for AC0001, AC0099; ${NEVER}`);
+	assert.equal(await phone("on", WORK, "--tickets", "ac0001,AC0099", "--recommend"), `${ON}; the owner's grant ${grant()}: an arthur decision ask with --recommend is answered by its recommendation for AC0001, AC0099; ${NEVER}`);
 	assert.deepEqual(await ask("--recommend", "1", "--ticket", "AC0001"), [0, ANSWERED("AC-D1", grant(), "Blue")]);
 	assert.deepEqual(await ask("--recommend", "1", "--ticket", "AC0002"), [0, "AC-D2"], "another ticket");
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D3"], "no ticket");
@@ -416,7 +527,7 @@ test("a grant ends with arthur silent off, an on without --recommend and /silent
 	}
 });
 
-test("a grant is refused without a bound or with one it cannot hold, writing nothing; a bound without --recommend is the usage", async (t) => {
+test("a grant is refused without a bound or with one it cannot hold, writing nothing; a bound but --until without --recommend is the usage", async (t) => {
 	const { fake, phone, state } = await granting(t);
 	fake.provide("models.usage", () => 10);
 	const refused = (why: string) => `silent: refused: ${why}`;
@@ -425,10 +536,10 @@ test("a grant is refused without a bound or with one it cannot hold, writing not
 	for (const usage of ["0", "101", "1.5", "abc"]) assert.equal(await phone("on", WORK, "--usage", usage, "--recommend"), refused(`--usage ${usage}: a whole percent from 1 to 100`));
 	for (const tickets of ["AC0001,", "AC-1", ","]) assert.equal(await phone("on", WORK, "--tickets", tickets, "--recommend"), refused(`--tickets ${tickets}: ticket ids, comma-separated`));
 	assert.equal(state(), undefined);
-	const usage = "usage: /silent [on '<the work; its stop condition>' | off | ask]\n       /silent on <the work> [--until <HH:MM>] [--usage <percent>] [--tickets <id>,...] --recommend, the owner's grant, on his phone only";
-	for (const args of [["--until", "12:00"], ["--recommend", "--recommend", "--until", "12:00"], ["--recommend", "--until", "12:00", "--until", "13:00"], ["--recommend", "--until"]]) {
+	const usage = USAGE.replace("arthur silent", "/silent");
+	for (const args of [["--usage", "50"], ["--tickets", "AC0001"], ["--recommend", "--recommend", "--until", "12:00"], ["--recommend", "--until", "12:00", "--until", "13:00"], ["--recommend", "--until"]]) {
 		assert.equal(await phone("on", WORK, ...args), usage, args.join(" "));
 	}
 	assert.equal(state(), undefined);
-	assert.match(await phone("on", WORK, "--usage", "100", "--recommend"), /^silent: on; /, "100% is a bound");
+	assert.match(await phone("on", WORK, "--usage", "100", "--recommend"), /^silent: on until 10:00 on tue 2026-10-20; the owner's grant /, "100% is a bound");
 });

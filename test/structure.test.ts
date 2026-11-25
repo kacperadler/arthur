@@ -13,11 +13,11 @@ const BUDGETS = {
 
 	"commit-rules": 184,
 
-	core: 7649,
+	core: 7682,
 
 	"core/testing": 413,
 
-	delivery: 2370,
+	delivery: 2473,
 
 	develop: 769,
 
@@ -43,9 +43,9 @@ const BUDGETS = {
 
 	nvm: 98,
 
-	orchestration: 3244,
+	orchestration: 3322,
 
-	projects: 595,
+	projects: 600,
 
 	resources: 661,
 
@@ -55,7 +55,7 @@ const BUDGETS = {
 
 	speak: 248,
 
-	stats: 575,
+	stats: 603,
 
 	telegram: 707,
 

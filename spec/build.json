@@ -5958,22 +5958,36 @@
   {
     "id": "AR0738",
     "title": "arthur commit-board commits the board and the decision log after the project commit-msg check (AR0667 T2)",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0738-arthur-commit-board-commits-the-board-and-the-decision-log-after-the-project/ticket.md",
-    "updated": "2026-11-24T20:08:43.495Z"
+    "updated": "2026-11-25T11:06:07.833Z"
   },
   {
     "id": "AR0739",
     "title": "Plan: the coordinator answers from what is true now, silent mode ends on its own, and a job is not stopped by a budget it already spent",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0739-plan-the-coordinator-answers-from-what-is-true-now-silent-mode-ends-on-its-own/ticket.md",
-    "updated": "2026-11-24T15:43:49.351Z"
+    "updated": "2026-11-25T12:47:12.621Z"
   },
   {
     "id": "AR0740",
     "title": "An out-of-memory kill in a job is recorded as an arthur stop, so nobody can tell a test that ate 16 GB from a person stopping the job",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0740-an-out-of-memory-kill-in-a-job-is-recorded-as-an-arthur-stop-so-nobody-can-tell/ticket.md",
-    "updated": "2026-11-24T20:00:21.469Z"
+    "updated": "2026-11-25T12:38:43.136Z"
+  },
+  {
+    "id": "AR0741",
+    "title": "No test pins detached: true on the job wrapper, so a spawn's Ctrl-C could reach a running job unnoticed",
+    "status": "planning",
+    "path": "spec/features/AR0741-no-test-pins-detached-true-on-the-job-wrapper-so-a-spawn-s-ctrl-c-could-reach-a/ticket.md",
+    "updated": "2026-11-25T12:07:47.384Z"
+  },
+  {
+    "id": "AR0742",
+    "title": "npm run mutate leaves test jobs' wrapper and agent processes running under /tmp/arthur-test-*",
+    "status": "planning",
+    "path": "spec/features/AR0742-npm-run-mutate-leaves-test-jobs-wrapper-and-agent-processes-running-under-tmp/ticket.md",
+    "updated": "2026-11-25T12:39:04.978Z"
   }
 ]

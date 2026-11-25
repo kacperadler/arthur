@@ -8,7 +8,7 @@ import { type AgentStep, fakeAgent, temporaryFolder, until } from "@arthur/core/
 import extension from "../src/inbox-extension.ts";
 import { handOver } from "../src/hand-over.ts";
 import { queue } from "../src/inbox.ts";
-import { AGAIN, agentClock, ARTHUR, gates, jobEnded, load, NOT_YET, PATH, repository, sorted } from "./inbox-setup.ts";
+import { AGAIN, agentClock, ARTHUR, gates, jobEnded, load, NONE, NOT_YET, PATH, repository, sorted } from "./inbox-setup.ts";
 import { NO_UNIX_SOCKET } from "./unix-socket.ts";
 
 // The coordinator's inbox (inbox-setup.ts): an owner's message and a job's end each reach a turn, marked, and its reply goes back.
@@ -25,8 +25,8 @@ test("a message while idle is one turn marked with its channel, its reply emitte
 		{ content: "[via telegram]\n> And AR0085.", step: 3 },
 	]);
 	assert.deepEqual(box.emitted("coordinator-replied"), [
-		{ text: "Started.", answers: [first], channels: ["telegram"] },
-		{ text: "Also started.", answers: [second], channels: ["telegram"] },
+		{ text: `Started.${NONE}`, answers: [first], channels: ["telegram"] },
+		{ text: `Also started.${NONE}`, answers: [second], channels: ["telegram"] },
 	]);
 	assert.deepEqual(sorted(join(box.folder, "inbox", "answered")), [box.file(first), box.file(second)].sort());
 	assert.deepEqual([...sorted(join(box.folder, "inbox", "queued")), ...sorted(join(box.folder, "inbox", "turn")), ...sorted(join(box.folder, "outbox")).filter((name) => name !== "sent")], []);
@@ -46,7 +46,7 @@ test("a message mid-turn joins it after the next tool call as an aside, never a 
 	gate.open("one");
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages()[1], { content: "[via telegram, sent during this turn]\n> Stop AR0081, start AR0085 instead.", options: { deliverAs: "aside" }, step: 2 });
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Stopped AR0081; AR0085 runs.", answers: [first, second], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Stopped AR0081; AR0085 runs.${NONE}`, answers: [first, second], channels: ["telegram"] }]);
 });
 
 test("two messages in one tool call reach the turn in one aside, in order, and the reply goes to both channels", { skip: NO_UNIX_SOCKET }, async (t) => {
@@ -59,7 +59,7 @@ test("two messages in one tool call reach the turn in one aside, in order, and t
 	gate.open("one");
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages().slice(1), [{ content: "[via telegram, sent during this turn]\n> Two.\n\n[via slack, sent during this turn]\n> Three.", options: { deliverAs: "aside" }, step: 2 }]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Both.", answers: [first, second, third], channels: ["telegram", "slack"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Both.${NONE}`, answers: [first, second, third], channels: ["telegram", "slack"] }]);
 });
 
 test("a message after the last tool call, the reply already written, resumes the turn; only the second reply is emitted, answering both", { skip: NO_UNIX_SOCKET }, async (t) => {
@@ -74,7 +74,7 @@ test("a message after the last tool call, the reply already written, resumes the
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages()[1], { content: `[via telegram, sent during this turn, after your last tool call]\n> And the budget?\n\n${AGAIN}`, options: { continue: true }, step: 3 });
 	await sleep(1200);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Second reply.", answers: [first, second], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `Second reply.${NONE}`, answers: [first, second], channels: ["telegram"] }]);
 });
 
 test("past omp's 8 continuations in a turn, a message is not answered by that turn's reply but is the next turn", { skip: NO_UNIX_SOCKET }, async (t) => {
@@ -95,8 +95,8 @@ test("past omp's 8 continuations in a turn, a message is not answered by that tu
 	await until("two replies", () => box.emitted("coordinator-replied").length === 2);
 	// The ninth was refused, so its turn ended with r8, the reply before the refused end.
 	assert.deepEqual(box.emitted("coordinator-replied"), [
-		{ text: "r8", answers: numbers.slice(0, 9), channels: ["telegram"] },
-		{ text: "next", answers: [numbers[9]], channels: ["telegram"] },
+		{ text: `r8${NONE}`, answers: numbers.slice(0, 9), channels: ["telegram"] },
+		{ text: `next${NONE}`, answers: [numbers[9]], channels: ["telegram"] },
 	]);
 	assert.deepEqual(box.messages().at(-1), { content: "[via telegram]\n> m9", step: 29 });
 });
@@ -123,7 +123,7 @@ test("several messages while idle, each within a second of the last, are one tur
 	await until("the turn", () => box.messages().length > 0 || (move(500), false));
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages(), [{ content: "[via telegram]\n> One.\n\n[via telegram]\n> Two.\n\n[via telegram]\n> Three.\n\n[via telegram]\n> Four.", step: 0 }]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "All three.", answers: numbers, channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: `All three.${NONE}`, answers: numbers, channels: ["telegram"] }]);
 });
 
 test("job ends and a schedule message mid-turn wait for the next turn: one message from Arthur with one instruction line", { skip: NO_UNIX_SOCKET }, async (t) => {
@@ -168,8 +168,8 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 	].join("\n");
 	assert.deepEqual(box.messages()[2], { content: wake, options: { attribution: "agent" }, step: 5 });
 	assert.deepEqual(box.emitted("coordinator-replied"), [
-		{ text: "Answered.", answers: [first, second], channels: ["telegram"] },
-		{ text: "Read the ends.", answers: [...wakes, scheduled], channels: [] },
+		{ text: `Answered.${NONE}`, answers: [first, second], channels: ["telegram"] },
+		{ text: `Read the ends.${NONE}`, answers: [...wakes, scheduled], channels: [] },
 	]);
 });
 

@@ -92,7 +92,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 		...(resume === undefined ? [`@${join(folder, "task")}`] : ["--", resume]),
 	];
 	// What stopped the job first, which its state says, whatever came after; `final` once nothing may resume it: its time
-	// is up, it ran out of memory, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its
+	// is up, it ran out of memory, it repeated a failed tool call, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its
 	// ending as it is, and rules out a resume.
 	let why = undefined as Why | undefined;
 	let final = false;
@@ -116,7 +116,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
 	const used = existsSync(join(folder, "usage")) ? field("usage") : undefined; // Missing until a first message, and from a record an older Arthur wrote.
-	const record = runRecord(save, Number(spent ?? 0) || 0, usageOf(used), (cost) => reached(cost, budgetUsd) && halt("budget"));
+	const record = runRecord(save, Number(spent ?? 0) || 0, usageOf(used), (cost) => reached(cost, budgetUsd) && halt("budget"), () => halt("loop"));
 	// What ran out of memory: the job's own cap, its ticket's, or one above the job.
 	let overCap = "";
 	const watching = watchMemory(id, memory, feature, featureMemory, (what) => {
@@ -159,7 +159,7 @@ async function run(home: string, id: string, agent: string, place: Parameters<ty
 		record.clearStop();
 		[code, killed] = await play(args(`Your budget of $${budget} ran out and was doubled to $${doubled}, once. Go on with the task where you stopped.`));
 	}
-	const ending = () => endingOf({ why, timeout, playing, cost: record.cost(), budgetUsd, overCap, failure, killed, code, stopped: record.stopped(), result: record.result(), verdicts });
+	const ending = () => endingOf({ why, timeout, playing, cost: record.cost(), budgetUsd, overCap, looped: record.looped(), failure, killed, code, stopped: record.stopped(), result: record.result(), verdicts });
 	const first = ending(), again = final ? undefined : resumeFor(first, verdicts); // One resume, by the budget's path, unless a stop or a limit came.
 	if (again !== undefined) {
 		note(`resume: ${first}; the run resumes once`);

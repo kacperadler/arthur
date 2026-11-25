@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import type { Event } from "@arthur/core/plugin";
@@ -17,6 +17,8 @@ const BLOG: Chat = { plugin: "discord", place: "7" };
 const FROM = "The messages marked [from <session>] come from another session of Arthur's (arthur agent tell), not from the owner.";
 const ARTHUR = "The messages marked [Arthur] or [Arthur: <plugin>] come from Arthur (a job's end, a plugin), not from the owner.";
 const list = (dir: string) => (existsSync(dir) ? readdirSync(dir).sort() : []);
+// The line Arthur puts under each reply it sends, when no job is in a run (context.ts, `jobsNow`).
+const NONE = "\n\nJobs now: none";
 
 // The inbox alone, `agents` its project agents; `replay` hands an event again to its handlers, as `arthur run` does after a
 // crash, or as another process that got it does.
@@ -130,12 +132,57 @@ test("an agent's reply and notice go to its chat: its channel, bot and place; wh
 	box.run.stop();
 	const emitted = (name: string) => box.fake.emitted.filter((event) => event.name === name).map((event) => event.data);
 	assert.deepEqual(emitted("coordinator-replied"), [
-		{ text: "Coordinator done.", answers: [8], channels: ["telegram"] },
-		{ text: "Done.", answers: [5], channels: ["telegram"], place: "42", instance: "shop" },
-		{ text: "Blog done.", answers: [7], channels: ["discord"], place: "7" },
+		{ text: `Coordinator done.${NONE}`, answers: [8], channels: ["telegram"] },
+		{ text: `Done.${NONE}`, answers: [5], channels: ["telegram"], place: "42", instance: "shop" },
+		{ text: `Blog done.${NONE}`, answers: [7], channels: ["discord"], place: "7" },
 	]);
 	assert.deepEqual(emitted("notice"), [{ text: "the coordinator's notice" }, { text: "shop's inbox could not hand 1 message(s) to the agent 3 times in a row", channel: "telegram", instance: "shop", place: "42" }]);
 	assert.deepEqual([list(join(box.folder("shop"), "outbox", "held")), list(join(box.folder("shop"), "outbox", "sent"))], [["1000-000002.json"], ["1000-000001.json", "1000-000003.json"]]);
+});
+
+// AR0739: the coordinator told the owner that no job was running while its own context listed a review as working.
+test("each reply Arthur sends ends with the jobs not ended, read from their records as it goes out: by state, an agent's of its project alone; a notice and a held reply get no line", (t) => {
+	const box = routed(t);
+	const write = (session: string | undefined, name: string, entry: object) => {
+		mkdirSync(join(box.folder(session), "outbox"), { recursive: true });
+		writeFileSync(join(box.folder(session), "outbox", `${name}.json`), JSON.stringify(entry));
+	};
+	// A record as a spawn leaves it, the files the line reads; `spawned` orders them, the newest first.
+	const record = (id: string, project: string, state: string, spawned: number) => {
+		const job = join(box.folder(), "..", "jobs", id);
+		mkdirSync(job, { recursive: true });
+		for (const [name, text] of Object.entries({ kind: id.split("-")[3] ?? "", project, task: "Go.", ...(state === "" ? {} : { state }) })) writeFileSync(join(job, name), text);
+		utimesSync(join(job, "kind"), spawned, spawned);
+	};
+	const replies = () => box.fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => (event.data as { text: string }).text);
+	write(undefined, "1000-000001", { text: "No job runs.", answers: ["8-1000"], channels: ["telegram"] });
+	box.run.start();
+	box.run.stop();
+	assert.deepEqual(replies(), [`No job runs.${NONE}`]);
+	record("2026-01-01-review-953209e8", "arthur", "working", 5);
+	record("2026-01-01-worker-0a1b2c3d", "shop", "blocked", 4);
+	record("2026-01-01-worker-1b2c3d4e", "shop", "working", 3);
+	record("2026-01-01-worker-2c3d4e5f", "shop", "ended", 2);
+	record("2026-01-01-audit-3d4e5f60", "arthur", "", 1);
+	writeFileSync(join(box.fake.host.folder, "silent.json"), JSON.stringify({ since: "2026-01-01T00:00:00.000Z", seq: 0, work: "the cart", until: "2026-01-02T00:00:00.000Z" }));
+	write(undefined, "2000-000001", { text: "No job runs,\nI think.", answers: ["9-1000"], channels: ["telegram"] });
+	write(undefined, "2000-000002", { text: "A review ended.", answers: ["10-1000"], channels: [] });
+	write(undefined, "2000-000003", { notice: "the coordinator's notice" });
+	write("shop", "2000-000001", { text: "Shop's status.", answers: ["11-1000"], channels: ["telegram"] });
+	write("blog", "2000-000001", { text: "Blog's status.", answers: ["12-1000"], channels: ["discord"] });
+	box.run.stop();
+	assert.deepEqual(replies().slice(1), [
+		"No job runs,\nI think.\n\nJobs now: 1 blocked (worker 0a1b2c3d), 2 working (review 953209e8, worker 1b2c3d4e), 1 no state (audit 3d4e5f60)",
+		"Shop's status.\n\nJobs now: 1 blocked (worker 0a1b2c3d), 1 working (worker 1b2c3d4e)",
+		`Blog's status.${NONE}`,
+	]);
+	assert.deepEqual(box.fake.emitted.filter((event) => event.name === "notice").map((event) => event.data), [{ text: "the coordinator's notice" }]);
+	assert.deepEqual(JSON.parse(readFileSync(join(box.folder(), "outbox", "held", "2000-000002.json"), "utf8")), { text: "A review ended.", answers: ["10-1000"], channels: [] }, "held as it was written");
+	// The line is the records' at that sweep, not the last one's: the review ended since.
+	writeFileSync(join(box.folder(), "..", "jobs", "2026-01-01-review-953209e8", "state"), "ended");
+	write(undefined, "3000-000001", { text: "And now?", answers: ["13-1000"], channels: ["telegram"] });
+	box.run.stop();
+	assert.equal(replies().at(-1), "And now?\n\nJobs now: 1 blocked (worker 0a1b2c3d), 1 working (worker 1b2c3d4e), 1 no state (audit 3d4e5f60)");
 });
 
 // AR0713: an ask is its session's own, so a removed agent's goes to the coordinator with the reply it was run for.
@@ -152,7 +199,7 @@ test("while silent, a removed agent's ask moves to the coordinator's folder with
 		assert.deepEqual([existsSync(gone), existsSync(ask) && readFileSync(ask, "utf8")], own === undefined ? [false, "1000"] : [true, own]);
 		box.run.stop();
 		const replied = box.fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data);
-		assert.deepEqual([replied, existsSync(ask)], own === undefined ? [[{ text: "Shop: approve SH0001?", answers: [4], channels: [] }], false] : [[], true]);
+		assert.deepEqual([replied, existsSync(ask)], own === undefined ? [[{ text: `Shop: approve SH0001?${NONE}`, answers: [4], channels: [] }], false] : [[], true]);
 	}
 });
 
@@ -209,8 +256,8 @@ test("an agent's reply to a turn of Arthur's messages alone names its chat's cha
 	box.run.stop();
 	const emitted = (name: string) => box.fake.emitted.filter((event) => event.name === name).map((event) => event.data);
 	assert.deepEqual(emitted("coordinator-replied"), [
-		{ text: "Shop's last reply.", answers: [7], channels: ["telegram"] },
-		{ text: "Blog's job ended.", answers: [6], channels: ["discord"], place: "7" },
+		{ text: `Shop's last reply.${NONE}`, answers: [7], channels: ["telegram"] },
+		{ text: `Blog's job ended.${NONE}`, answers: [6], channels: ["discord"], place: "7" },
 	]);
 	assert.deepEqual(emitted("notice"), [{ text: "shop's notice" }]);
 	// Its draft and its sent and held replies stay; its answered messages stay in its turn/, only the unanswered one is the coordinator's.

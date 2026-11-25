@@ -5972,9 +5972,9 @@
   {
     "id": "AR0740",
     "title": "An out-of-memory kill in a job is recorded as an arthur stop, so nobody can tell a test that ate 16 GB from a person stopping the job",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0740-an-out-of-memory-kill-in-a-job-is-recorded-as-an-arthur-stop-so-nobody-can-tell/ticket.md",
-    "updated": "2026-11-24T20:00:21.469Z"
+    "updated": "2026-11-25T12:38:43.136Z"
   },
   {
     "id": "AR0741",
@@ -5982,5 +5982,12 @@
     "status": "planning",
     "path": "spec/features/AR0741-no-test-pins-detached-true-on-the-job-wrapper-so-a-spawn-s-ctrl-c-could-reach-a/ticket.md",
     "updated": "2026-11-25T12:07:47.384Z"
+  },
+  {
+    "id": "AR0742",
+    "title": "npm run mutate leaves test jobs' wrapper and agent processes running under /tmp/arthur-test-*",
+    "status": "planning",
+    "path": "spec/features/AR0742-npm-run-mutate-leaves-test-jobs-wrapper-and-agent-processes-running-under-tmp/ticket.md",
+    "updated": "2026-11-25T12:39:04.978Z"
   }
 ]

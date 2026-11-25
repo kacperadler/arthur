@@ -24,10 +24,11 @@ export const BOARD: readonly string[] = [
 	...["quality/*.md", "retro/*.md", "retro/*.html", "pyramid/*.md", "pyramid/*.html"].map((files) => `:(glob)spec/${files}`),
 ];
 
-// A path of a commit: a file's own path, or a glob pathspec, `**/` any folders or none and `*` anything but a slash, as Git reads the board's.
+// A path of a commit: a file's own path, or a glob pathspec, `**/` any folders or none and `*` anything but a slash, as Git reads the board's; any other
+// character is itself (`u`: one left unescaped is a syntax error, not a literal).
 export type Commit = { readonly project: string; readonly subject: string; readonly paths: readonly string[] };
 const GLOB = ":(glob)";
-const glob = (spec: string) => new RegExp(`^${spec.slice(GLOB.length).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("**/", "(.+/)?").replaceAll("*", "[^/]*")}$`, "s");
+const glob = (spec: string) => new RegExp(`^${spec.slice(GLOB.length).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("**/", "(.+/)?").replaceAll("*", "[^/]*")}$`, "su");
 
 export function commitBoardCommand(host: Host, stepSeconds: number): Command {
 	return {

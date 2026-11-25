@@ -248,12 +248,14 @@ test("delivery.commit commits the paths another plugin names, as arthur init's, 
 
 test("of the paths another plugin names, a file is committed only when its path is one of them or a glob matches it whole: no file below a folder named so", async (t) => {
 	const { blog, fake, shown } = await load(t);
-	const paths = ["sub", "docs", "top.txt", ":(glob)docs/*.md", ":(glob)docs/**/*.txt"];
-	const named = ["top.txt", "docs/a.md", "docs/.b.md", "docs/c.txt", "docs/deep/er/c.txt", "docs/line\nbreak/c.txt"];
-	// Each listed by Git below `sub` or `docs`: a `*` that would cross a slash, a glob matched in part at either end, a dot read as any character.
-	const left = ["docs/deep/a.md", "docs/a.md.bak", "sub/docs/a.md", "docs/axmd", "sub/top.txt"];
+	// `(1)+^${x}` and `[y]`: each a character of its own, not a regular expression's.
+	const paths = ["sub", "docs", "top.txt", ":(glob)docs/*.md", ":(glob)docs/**/*.txt", ":(glob)docs/(1)+^${x}*.cfg", ":(glob)docs/[y].log"];
+	const named = ["top.txt", "docs/a.md", "docs/.b.md", "docs/c.txt", "docs/deep/er/c.txt", "docs/line\nbreak/c.txt", "docs/(1)+^${x}a.cfg"];
+	// Each listed by Git below `sub` or `docs`: a `*` that would cross a slash, a glob matched in part at either end, a dot read as any character, a `+`
+	// read as a repeat, a bracket read as a set.
+	const left = ["docs/deep/a.md", "docs/a.md.bak", "sub/docs/a.md", "docs/axmd", "sub/top.txt", "docs/(1))^${x}a.cfg", "docs/y.log"];
 	write(blog, Object.fromEntries([...named, ...left].map((path) => [path, "text\n"])));
-	assert.match(fake.host.call<string>("delivery.commit", { project: "blog", subject: "docs: first", paths }), /^committed docs: first: \w+, 6 files$/);
+	assert.match(fake.host.call<string>("delivery.commit", { project: "blog", subject: "docs: first", paths }), /^committed docs: first: \w+, 7 files$/);
 	// Git quotes the path with a line break in it.
 	assert.deepEqual(shown(blog).sort(), ["docs: first", ...named.map((path) => `A\t${path.includes("\n") ? JSON.stringify(path) : path}`)].sort());
 	assert.deepEqual(status(blog), left.map((path) => `?? ${path}`).sort());

@@ -57,7 +57,8 @@ for (const [index, step] of steps.entries()) {
 say({ type: "agent_end", messages: [] });
 `;
 
-const commit = (message: string): Step => ({ bash: `git add -A && git commit -qm '${message}' && git push -q` });
+// The board's commit, as the roles and procedures ask for it (AR0738); the stub of a run commits nothing.
+const commit = (message: string): Step => ({ bash: `arthur commit-board '${message}'` });
 const KIND = "- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->";
 const DECISION = "<!-- - YYYY-MM-DD: one decision the human made, in one line. -->";
 const APPROVED = "- 2026-10-21: The owner approved it.\n";
@@ -123,12 +124,12 @@ const ACTS: Readonly<Record<string, Act>> = {
 			{ reply: "SH0011, the warning for a product without an image, is built, your condition on broken image links included; its review started." },
 		],
 		wrong: [{ bash: "arthur review-needed 5e6f7a8b" }, { bash: "arthur review 5e6f7a8b" }, { reply: "SH0011 is built; its review started." }],
-		fails: [`${SH0011} does not match /^## Done means`, `${SH0011} does not match /^## Decisions`, "refs/heads/main stayed at "],
+		fails: [`${SH0011} does not match /^## Done means`, `${SH0011} does not match /^## Decisions`, "no call matches /^arthur commit-board /"],
 	},
 	"delivery/review-pass": {
 		// With autoMerge on, delivery merges the branch itself (`arthur merge --help`, "On its own"); the merge files and prunes the review.
 		right: [{ reply: "SH0005, the cart's undo notice naming the removed item, passed its review; Arthur merges it on its own, and I tell you once it is in." }],
-		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, commit("SH0005: review 1 filed"), { bash: "arthur prune 1f2e3d4c" }, { bash: "arthur merge --auto 4d5e6f70" }, { reply: "SH0005 is merged without you." }],
+		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, { bash: "git add -A && git commit -qm 'SH0005: review 1 filed' && git push -q" }, { bash: "arthur prune 1f2e3d4c" }, { bash: "arthur merge --auto 4d5e6f70" }, { reply: "SH0005 is merged without you." }],
 		fails: ["refs/heads/main moved", "arthur merge --auto 4d5e6f70 matches /^arthur merge /", "arthur ticket file SH0005 1f2e3d4c matches /^arthur ticket file /", "arthur prune 1f2e3d4c matches /^arthur prune /"],
 	},
 	"delivery/review-pass-hook": {

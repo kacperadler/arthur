@@ -2,7 +2,7 @@
 
 Usage: `arthur init <project>`. Comes with the `projects` plugin.
 
-Gives the repository of `<project>`, a project's name (`arthur projects --help`), what Arthur reads, in its folder (the main checkout), each file only where nothing is there yet:
+Gives the repository of `<project>`, a project's name (`arthur projects --help`), what Arthur reads, in its folder (the main checkout), each file only where nothing is there yet, and commits the files it wrote:
 
 - its vision, `spec/vision.md`, and its criteria files in `.agents/arthur/criteria/`: one per criteria file a registered role reads (`host.jobs.criteria()`), today `styleguide.md`, which every job and the coordinator read, `verify.md`, how a change is proved, which workers and reviewers read, `autopilot.md`, the coordinator's, and `report.md`, how a page for the owner looks and is checked, which the coordinator, the retro and the auditor read. Each is a skeleton, its headings and nothing under them, for the onboarding below to draft. A name this plugin ships no skeleton for gets the `criteria/<name>.md` a package of this load ships (`host.code`, the first in load order), as that package wrote it (the core's `verify.md`, its headings alone; manage's `audit.md` and `retro.md`, delivery's `review.md`); else its title alone (`code-review` is `# Code review`);
 - `.nvmrc`, the major version of the Node Arthur runs on (`24` today), for the nvm plugin (roadmap entry 84), unless the repository has one, kept then as it is; a repository without `package.json` gets one too;
@@ -15,10 +15,11 @@ A file is written whole under a temporary name and linked in, never over anythin
 ```
 created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/verify.md, .agents/arthur/criteria/autopilot.md, .agents/arthur/criteria/report.md, .nvmrc, spec/build.json
 left as it was: nothing
-nothing committed: commit these files, then start the onboarding: arthur spawn --kind onboarding --project shop 'Onboard shop.'
+committed chore: arthur init: 3f2a1b9, 7 files
+next: start the onboarding: arthur spawn --kind onboarding --project shop 'Onboard shop.'
 ```
 
-It commits nothing: a job's worktree starts from HEAD, so the files must be committed before the onboarding starts.
+It commits the files it created, and only those, as `chore: arthur init`, since a job's worktree starts from HEAD: the plugin that provides `delivery.commit` (delivery) makes the commit as `arthur commit-board` commits the board, with the hooks off and after the project's own `commit-msg` script (`arthur commit-board --help`), and its line is printed. What it refuses (the checkout's own Git config naming a program, the project's check, a merge in a run, Git with no identity) leaves the files written and uncommitted, exit code 1: `arthur init: nothing committed: <why>; commit these files, then start the onboarding: …`. Without such a plugin nothing is committed, exit code 0: `nothing committed: no plugin provides delivery.commit; commit these files, then start the onboarding: …`.
 
 Refused, exit code 1, writing nothing: a project not in the list (`arthur init: unknown project <name>; projects: <names>`); a repository that has a board already, `spec/build.json` (`arthur init: <project> has a board already, <path>; arthur init is for a repository without one`), so a project with tickets is never given a skeleton over its own files. Of two inits of one project at the same moment, the one that finds the board written by the other is refused the same way. Wrong usage (no project, more than one, or `--project`): `usage: arthur init <project>`, exit code 2.
 

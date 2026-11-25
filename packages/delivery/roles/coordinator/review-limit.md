@@ -2,7 +2,7 @@
 
 The branch failed review four times since its last PASS: rounds 2 to 4 started by themselves, a fifth review is refused, and the owner decides what comes next (`arthur review --help`). Spawn nothing on this branch until he does.
 
-1. File every review of the branch not filed yet, `arthur ticket file <ticket id> <review job>`, and commit them; then read the findings of the four FAILs in the ticket's `review-N.md` files.
+1. File every review of the branch not filed yet, `arthur ticket file <ticket id> <review job>`, and commit them (`arthur commit-board '<ticket id>: reviews filed'`); then read the findings of the four FAILs in the ticket's `review-N.md` files.
 2. Pick the recommendation:
    - the same finding in several FAILs: fix or split the ticket and start again;
    - different findings, each smaller than the last: a fifth round;

@@ -427,23 +427,23 @@ test("without the test's sample a job without a user manager is sampled every 10
 	assert.equal(await endedWith(home, job.id), "finished");
 });
 
-test("a test's memory sample reaches the wrapper only under node's test runner; no other ARTHUR_ variable does", async (t) => {
+test("a test's memory sample and scope reach the wrapper only under node's test runner; no other ARTHUR_ variable does", async (t) => {
 	const gate = join(temporaryFolder(), "gate");
 	t.after(() => writeFileSync(gate, ""));
 	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
 	const context = process.env.NODE_TEST_CONTEXT;
 	t.after(() => {
-		for (const name of ["ARTHUR_TEST_MEMORY_SAMPLE_MS", "ARTHUR_OTHER"]) delete process.env[name];
+		for (const name of ["ARTHUR_TEST_MEMORY_SAMPLE_MS", "ARTHUR_TEST_SCOPE", "ARTHUR_OTHER"]) delete process.env[name];
 		if (context !== undefined) process.env.NODE_TEST_CONTEXT = context;
 	});
-	Object.assign(process.env, { ARTHUR_TEST_MEMORY_SAMPLE_MS: "500", ARTHUR_OTHER: "set" });
+	Object.assign(process.env, { ARTHUR_TEST_MEMORY_SAMPLE_MS: "500", ARTHUR_TEST_SCOPE: join(temporaryFolder(), "none.scope"), ARTHUR_OTHER: "set" });
 	// The names of the `ARTHUR_` variables the wrapper started with.
 	const started = async () => {
 		const { id } = await jobs.spawn({ task: "Go." });
 		const environ = readFileSync(`/proc/${read(join(home, "jobs", id, "pid"))}/environ`, "utf8").split("\0");
 		return environ.map((line) => line.split("=")[0] ?? "").filter((name) => name.startsWith("ARTHUR_")).toSorted();
 	};
-	assert.deepEqual(await started(), ["ARTHUR_GUARDED", "ARTHUR_TEST_MEMORY_SAMPLE_MS"]);
+	assert.deepEqual(await started(), ["ARTHUR_GUARDED", "ARTHUR_TEST_MEMORY_SAMPLE_MS", "ARTHUR_TEST_SCOPE"]);
 	delete process.env.NODE_TEST_CONTEXT;
 	assert.deepEqual(await started(), ["ARTHUR_GUARDED"]);
 });
@@ -481,4 +481,71 @@ test("a job over its ticket's memory cap ends limit: memory naming the ticket, a
 	// Its end says it ran on: a job of the ticket that the slice's cap ended would end limit: memory.
 	writeFileSync(gate, "");
 	assert.equal(await endedWith(home, other.id), "finished");
+});
+
+const ABOVE = "limit: memory: the kernel killed a process of the job, out of memory at a cap above the job: the one all jobs share, or the machine's";
+
+// systemd stops a scope after an out-of-memory kill in it, unless its OOMPolicy is continue: SIGTERM to each of its processes,
+// the wrapper among them (AR0740). The scope here is a folder of the test's (`ARTHUR_TEST_SCOPE`) and the kernel's log a
+// `journalctl` of its own, so the wrapper's part runs without a user manager, inside a job too; the kernel's is the test below.
+test("once its scope counts an out-of-memory kill a job ends limit: memory, at systemd's SIGTERM or the next sample, its log naming the killed process; a SIGTERM without a kill is arthur stop's", async (t) => {
+	noManager(t);
+	const folder = temporaryFolder();
+	const scope = join(folder, "arthur-job-acme.scope");
+	mkdirSync(scope);
+	const count = (kills: number) => writeFileSync(join(scope, "memory.events"), `low 0\nhigh 0\nmax 0\noom 0\noom_kill ${kills}\noom_group_kill 0\n`);
+	const lines = [
+		"oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=user.slice,mems_allowed=0,oom_memcg=/user.slice/arthur-jobs.slice,task_memcg=/user.slice/arthur-jobs.slice/arthur-job-acme.scope,task=bun,pid=4242,uid=1000",
+		"Memory cgroup out of memory: Killed process 4242 (bun) total-vm:42129440kB, anon-rss:16654488kB, file-rss:32000kB, shmem-rss:0kB, UID:1000 pgtables:43076kB oom_score_adj:1000",
+	];
+	writeFileSync(join(folder, "journalctl"), `#!/bin/sh\ncat <<'END'\n${lines.join("\n")}\nEND\n`, { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => {
+		process.env.PATH = saved;
+		delete process.env.ARTHUR_TEST_SCOPE;
+	});
+	Object.assign(process.env, { PATH: [folder, saved].join(delimiter), ARTHUR_TEST_SCOPE: scope });
+	const gate = join(temporaryFolder(), "gate");
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
+	// A new job whose scope counts `kills` once its agent runs, its wrapper then sent SIGTERM or left to its sample: its reason and log.
+	const run = async (kills: number, sigterm: boolean) => {
+		count(0);
+		const job = await jobs.spawn({ task: "Go." });
+		const log = join(home, "jobs", job.id, "log");
+		await until("the agent", () => read(log)?.includes("] agent: "));
+		count(kills);
+		if (sigterm) process.kill(Number(read(join(home, "jobs", job.id, "pid"))), "SIGTERM");
+		return [await endedWith(home, job.id), readFileSync(log, "utf8")] as const;
+	};
+	for (const sigterm of [true, false]) {
+		const [reason, log] = await run(1, sigterm);
+		assert.equal(reason, ABOVE, `SIGTERM: ${sigterm}`);
+		const told = new RegExp(`\\] limit: memory: stopping the agent\\n(?:.*\\n)*\\[arthur [^\\]]+\\] the kernel: oom-kill:.*,task=bun,pid=4242,uid=1000\\n\\[arthur [^\\]]+\\] the kernel: Memory cgroup out of memory: Killed process 4242 \\(bun\\) total-vm:42129440kB, anon-rss:16654488kB, .*\\n(?:.*\\n)*\\[arthur [^\\]]+\\] ended: ${ABOVE}\\n$`);
+		assert.match(log, told);
+		assert.doesNotMatch(log, /arthur stop/);
+	}
+	const [reason, log] = await run(0, true);
+	assert.equal(reason, "stopped");
+	assert.match(log, /\] arthur stop: stopping the agent\n/);
+	assert.doesNotMatch(log, /the kernel|limit: memory/);
+});
+
+// The kernel's and systemd's part (AR0740): the joint slice's cap is the only one, the kernel kills the hog there, and systemd
+// stops the job's scope with SIGTERM, which the wrapper took for arthur stop. The kernel's log names the hog where this user
+// may read it (the groups adm and systemd-journal).
+test("a job without a cap whose process the kernel kills at the joint slice's cap ends limit: memory, not stopped, its log naming the process", needsManager, async (t) => {
+	const unit = `${jobSlice.slice}.slice`;
+	// No swap beyond the joint cap, so the hog reaches it; the slice keeps its swap for the other tests.
+	execFileSync("systemctl", ["--user", "set-property", "--runtime", unit, "MemorySwapMax=0"]);
+	t.after(() => execFileSync("systemctl", ["--user", "set-property", "--runtime", unit, "MemorySwapMax=infinity"]));
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, on, hog } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, { ...jobSlice, memory: "300M" });
+	writeFileSync(on, "");
+	const job = await jobs.spawn({ task: "Hog." });
+	assert.equal(await endedWith(home, job.id), ABOVE);
+	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");
+	assert.doesNotMatch(log, /arthur stop/);
+	const readable = spawnSync("journalctl", ["-k", "-n", "1", "-o", "cat", "--no-pager"], { encoding: "utf8" }).stdout?.trim();
+	assert.match(log, readable ? new RegExp(`\\] the kernel: .*Killed process ${read(hog)} \\(`) : /\] the kernel's log names no process killed in arthur-job-/);
 });

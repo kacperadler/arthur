@@ -13,6 +13,7 @@ import { type Bus, eventBus } from "../src/events.ts";
 import { insideJob } from "../src/inside-job.ts";
 import { steerJob, stopJob } from "../src/job-control.ts";
 import { GRACE_SECONDS } from "../src/job-stop.ts";
+import { processTable } from "../src/process-table.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import steerExtension from "../src/steer.ts";
 import { queueSteer } from "../src/steer-inbox.ts";
@@ -106,6 +107,19 @@ test("arthur stop ends a running job stopped: SIGTERM to the agent and the proce
 	assert.equal(alive(tool), false);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: stopping the agent\n(.*\n)?\[arthur [^\]]+\] ended: stopped\n$/);
 	assert.doesNotMatch(field(home, job.id, "log") ?? "", /SIGKILL/);
+});
+
+test("a job's wrapper leads a process group of its own, so a signal to the group of the arthur that spawned it misses the job", async (t) => {
+	bare(t);
+	const { agent, dir } = script((dir) => [`sleep 300 & echo $! > '${dir}/tool'`, "wait"]);
+	reap(t, join(dir, "tool"));
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await running(home, job.id);
+	const wrapper = Number(field(home, job.id, "pid"));
+	assert.equal(processTable().find((entry) => entry.pid === wrapper)?.pgid, wrapper);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
+	await ended(home, job.id);
 });
 
 test("arthur stop during the install a prepare asked for ends the job stopped: the install is stopped and no agent starts, though it exits 0", async () => {

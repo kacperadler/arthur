@@ -5979,9 +5979,9 @@
   {
     "id": "AR0741",
     "title": "No test pins detached: true on the job wrapper, so a spawn's Ctrl-C could reach a running job unnoticed",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0741-no-test-pins-detached-true-on-the-job-wrapper-so-a-spawn-s-ctrl-c-could-reach-a/ticket.md",
-    "updated": "2026-11-25T12:07:47.384Z"
+    "updated": "2026-11-26T01:07:02.067Z"
   },
   {
     "id": "AR0742",

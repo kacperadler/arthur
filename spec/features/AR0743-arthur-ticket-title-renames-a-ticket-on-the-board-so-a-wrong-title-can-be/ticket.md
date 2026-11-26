@@ -38,3 +38,4 @@ Out:
 - Correcting that project's title itself: the coordinator runs the command after the merge.
 
 ## Decisions
+- 2026-11-26: AR0743 not now: parked until the production T+3 run is proven; the owner: "AR-D736: not now. Park it until the production T+3 run is proven." (AR-D736)

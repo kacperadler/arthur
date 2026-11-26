@@ -5989,5 +5989,12 @@
     "status": "planning",
     "path": "spec/features/AR0742-npm-run-mutate-leaves-test-jobs-wrapper-and-agent-processes-running-under-tmp/ticket.md",
     "updated": "2026-11-25T12:39:04.978Z"
+  },
+  {
+    "id": "AR0743",
+    "title": "arthur ticket title renames a ticket on the board, so a wrong title can be corrected in the changelog",
+    "status": "planning",
+    "path": "spec/features/AR0743-arthur-ticket-title-renames-a-ticket-on-the-board-so-a-wrong-title-can-be/ticket.md",
+    "updated": "2026-11-26T13:31:36.728Z"
   }
 ]

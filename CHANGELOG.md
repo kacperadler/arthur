@@ -4,6 +4,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## Unreleased
 
+### 2026-11-26
+
+#### Fixed
+
+- AR0740 An out-of-memory kill in a job is recorded as an arthur stop, so nobody can tell a test that ate 16 GB from a person stopping the job (f2835f2f)
+
 ### 2026-11-25
 
 #### Fixed

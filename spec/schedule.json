@@ -129,5 +129,13 @@
     "action": {
       "message": "Weekly usage reset is due: check arthur usage, then do the UPDATE section of .arthur/session/handoff.md: merges ZF-D156 and ZF-D157, fresh default-model workers for ZF0150 (commit its 14 files first), AR0738, AR0740 ($6), AR0739 ($15), and spawn ZF0167 ($30, no --model)."
     }
+  },
+  {
+    "id": "project-daily",
+    "at": "08:45",
+    "action": {
+      "message": "Daily report for the project named in the procedure, as its binding brief asks.",
+      "procedure": ".arthur/zf-daily.md"
+    }
   }
 ]

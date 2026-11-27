@@ -44,5 +44,5 @@ Out:
 
 - 2026-11-17: Source: audit spec/quality/2026-11-17.md
 - 2026-11-17: Source: F2 of AR0708
-- 2026-11-23: AR0716 approved: a project agent is told where its after-restart steps go, handoff text says this session, budget $10; the owner: "PG-D177 PG-D178 AR-D703 AR-D704 AR-D705 AR-D706 AR-D707 KA-D37 yes" (AR-D706)
-- 2026-11-24: Merge AR0716; the owner: "AR-D716 1, AR-D717 1, PG-D184 1, PG-D182 1, AR-D718 1, AR-D719 1, AR-D720 1, PG-D183 1, ZF-D95 1, ZF-D107 2, ZF-D72 2" (AR-D716)
+- 2026-11-23: AR0716 approved: a project agent is told where its after-restart steps go, handoff text says this session, budget $10; the owner: "another project's decision another project's decision AR-D703 AR-D704 AR-D705 AR-D706 AR-D707 another project's decision yes" (AR-D706)
+- 2026-11-24: Merge AR0716; the owner: "AR-D716 1, AR-D717 1, another project's decision 1, another project's decision 1, AR-D718 1, AR-D719 1, AR-D720 1, another project's decision 1, another project's decision 1, another project's decision 2, another project's decision 2" (AR-D716)

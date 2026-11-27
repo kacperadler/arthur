@@ -40,5 +40,5 @@ Out:
 
 - 2026-11-17: Source: audit spec/quality/2026-11-17.md
 - 2026-11-17: Source: F4 of AR0705
-- 2026-11-23: AR0717 approved: the vision says project agents are built, budget $10; the owner: "PG-D177 PG-D178 AR-D703 AR-D704 AR-D705 AR-D706 AR-D707 KA-D37 yes" (AR-D707)
-- 2026-11-23: Project agents are a later version, already built: vision row 66 says "Later, built", the diagrams and the roadmap keep them as the first later item, marked built; the owner: "AR-D712 1 arthur-ci-oom.sh - done KA-D39 1" (AR-D712)
+- 2026-11-23: AR0717 approved: the vision says project agents are built, budget $10; the owner: "another project's decision another project's decision AR-D703 AR-D704 AR-D705 AR-D706 AR-D707 another project's decision yes" (AR-D707)
+- 2026-11-23: Project agents are a later version, already built: vision row 66 says "Later, built", the diagrams and the roadmap keep them as the first later item, marked built; the owner: "AR-D712 1 arthur-ci-oom.sh - done another project's decision 1" (AR-D712)

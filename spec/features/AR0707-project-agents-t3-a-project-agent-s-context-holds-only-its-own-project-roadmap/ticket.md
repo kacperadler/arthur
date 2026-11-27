@@ -34,5 +34,5 @@ Out:
 
 ## Decisions
 - 2026-11-13: AR0707 approved; the owner: "AR-D673 yes" (AR-D673)
-- 2026-11-15: Merge AR0707 (project agents T3); the owner: "AR-D681 - merge it MD-D39 - send MD-D40 - keep MD-D41 - merge" (AR-D681)
+- 2026-11-15: Merge AR0707 (project agents T3); the owner: "AR-D681 - merge it another project's decision - send another project's decision - keep another project's decision - merge" (AR-D681)
 

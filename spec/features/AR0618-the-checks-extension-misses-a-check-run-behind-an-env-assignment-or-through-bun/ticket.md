@@ -14,7 +14,7 @@ A worker's `check` run is recorded only when the command line holds `npm run che
 
 ## Goal
 
-Seen 2026-11-04 on PG0001 (worker `2026-11-04-worker-4746b4c2`): the job ran `TMPDIR=$PWD/node_modules/.tmp npm run check 2>&1; echo check=$?` on its clean tip, exit 0, and `<home>/delivery/<job>/checks` was never written; `arthur review` printed `... is reviewed only once the job's checks passed on its clean tip (...): no check`. The matcher is `packages/delivery/src/checks-extension.ts:97`: `/(?:^|[;&|(\n])\s*npm\s+(test|t|run\s+(?:test|check|mutate))(?=$|[\s;&|)])/g`, which allows nothing between the separator and `npm`.
+Seen 2026-11-04 on another project's ticket (worker `2026-11-04-worker-4746b4c2`): the job ran `TMPDIR=$PWD/node_modules/.tmp npm run check 2>&1; echo check=$?` on its clean tip, exit 0, and `<home>/delivery/<job>/checks` was never written; `arthur review` printed `... is reviewed only once the job's checks passed on its clean tip (...): no check`. The matcher is `packages/delivery/src/checks-extension.ts:97`: `/(?:^|[;&|(\n])\s*npm\s+(test|t|run\s+(?:test|check|mutate))(?=$|[\s;&|)])/g`, which allows nothing between the separator and `npm`.
 
 - Kind: fix
 

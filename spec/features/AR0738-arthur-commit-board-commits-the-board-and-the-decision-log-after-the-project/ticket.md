@@ -42,6 +42,6 @@ Out:
 - 2026-11-24: AR0738 approved: arthur commit-board, AR0667 T2, at a budget of $10; the owner: "AR-D725 1" (AR-D725)
 - 2026-11-24: The owner approved AR0738's budget of $20; it commits its written work, runs the checks and goes to review; the owner: "AR-D726 1" (AR-D726)
 - 2026-11-24: The owner approved AR0738's budget of $28; it runs the checks on its tip, fixes what fails and goes to review; the owner: "AR-D727 1" (AR-D727)
-- 2026-11-24: The owner approved AR0738's budget of $12 for a fresh worker that takes the old branch, finishes, runs the checks and goes to review; the owner: "AR-D730 1, AR-D729 1, ZF-D147 1, ZF-D144 1" (AR-D729)
+- 2026-11-24: The owner approved AR0738's budget of $12 for a fresh worker that takes the old branch, finishes, runs the checks and goes to review; the owner: "AR-D730 1, AR-D729 1, another project's decision 1, another project's decision 1" (AR-D729)
 - 2026-11-25: Merge AR0738 (arthur commit-board) into main; the owner: "AR-D734 yes" (AR-D734)
 

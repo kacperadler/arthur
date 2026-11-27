@@ -47,4 +47,4 @@ Out:
 
 - 2026-11-24: Source: audit spec/quality/2026-11-24.md
 - 2026-11-24: Source: F2 of AR0713
-- 2026-11-24: AR0734 approved: the coordinator and project roles never commit with --no-verify, and AR0667 T2 gets its own ticket; the owner: "AR-D716 1, AR-D717 1, PG-D184 1, PG-D182 1, AR-D718 1, AR-D719 1, AR-D720 1, PG-D183 1, ZF-D95 1, ZF-D107 2, ZF-D72 2" (AR-D719)
+- 2026-11-24: AR0734 approved: the coordinator and project roles never commit with --no-verify, and AR0667 T2 gets its own ticket; the owner: "AR-D716 1, AR-D717 1, another project's decision 1, another project's decision 1, AR-D718 1, AR-D719 1, AR-D720 1, another project's decision 1, another project's decision 1, another project's decision 2, another project's decision 2" (AR-D719)

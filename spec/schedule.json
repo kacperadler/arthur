@@ -106,14 +106,14 @@
     "id": "fable-spawns",
     "at": "2026-11-23T19:05",
     "action": {
-      "message": "Spawn the waiting approved tickets on --model claude-fable-5-2 as CPU allows (handoff, the ~18:45 lines): AR0715 $10, PG0155 $15, PG0156 $15, KA0137 $15, AR0717 $10; AR0716 after AR0713. If still no room, add another one-off entry 20 minutes later."
+      "message": "Spawn the waiting approved tickets on --model claude-fable-5-2 as CPU allows (handoff, the ~18:45 lines): AR0715 $10, another project's ticket $15, another project's ticket $15, another project's ticket $15, AR0717 $10; AR0716 after AR0713. If still no room, add another one-off entry 20 minutes later."
     }
   },
   {
     "id": "morning-report",
     "at": "2026-11-24T09:00",
     "action": {
-      "message": "The owner asked (2026-11-23 ~22:30): at 09:00, when his recommend grant ends, send him one report of the night: the 07:10 steel-thread result (already sent at 07:10), every job started, finished, reviewed or merged since 22:30, every decision answered by policy, and the questions still waiting for him (merges of ZF0092/ZF0093/ZF0094/ZF0096 and the older ZF ones). Run npx arthur silent ask first so it reaches him."
+      "message": "The owner asked (2026-11-23 ~22:30): at 09:00, when his recommend grant ends, send him one report of the night: the 07:10 steel-thread result (already sent at 07:10), every job started, finished, reviewed or merged since 22:30, every decision answered by policy, and the questions still waiting for him (merges of another project's ticket/another project's ticket/another project's ticket/another project's ticket and the older ZF ones). Run npx arthur silent ask first so it reaches him."
     }
   },
   {
@@ -127,7 +127,7 @@
     "id": "after-reset-2026-11-25",
     "at": "2026-11-25T09:05",
     "action": {
-      "message": "Weekly usage reset is due: check arthur usage, then do the UPDATE section of .arthur/session/handoff.md: merges ZF-D156 and ZF-D157, fresh default-model workers for ZF0150 (commit its 14 files first), AR0738, AR0740 ($6), AR0739 ($15), and spawn ZF0167 ($30, no --model)."
+      "message": "Weekly usage reset is due: check arthur usage, then do the UPDATE section of .arthur/session/handoff.md: merges another project's decision and another project's decision, fresh default-model workers for another project's ticket (commit its 14 files first), AR0738, AR0740 ($6), AR0739 ($15), and spawn another project's ticket ($30, no --model)."
     }
   },
   {

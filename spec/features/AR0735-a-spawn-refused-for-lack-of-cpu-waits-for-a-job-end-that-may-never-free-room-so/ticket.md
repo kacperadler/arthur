@@ -46,5 +46,5 @@ Out:
 ## Decisions
 
 - 2026-11-24: Source: audit spec/quality/2026-11-24.md
-- 2026-11-24: AR0735 approved: resources wakes the coordinator when a machine that refused a job has room again, budget $3; the owner: "AR-D716 1, AR-D717 1, PG-D184 1, PG-D182 1, AR-D718 1, AR-D719 1, AR-D720 1, PG-D183 1, ZF-D95 1, ZF-D107 2, ZF-D72 2" (AR-D720)
+- 2026-11-24: AR0735 approved: resources wakes the coordinator when a machine that refused a job has room again, budget $3; the owner: "AR-D716 1, AR-D717 1, another project's decision 1, another project's decision 1, AR-D718 1, AR-D719 1, AR-D720 1, another project's decision 1, another project's decision 1, another project's decision 2, another project's decision 2" (AR-D720)
 - 2026-11-24: The owner approved AR0735 budget raised from $3 to $10; it continues on its branch; the owner: "AR-D723 1, AR-D724 1" (AR-D723)

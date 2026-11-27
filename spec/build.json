@@ -5996,5 +5996,40 @@
     "status": "planning",
     "path": "spec/features/AR0743-arthur-ticket-title-renames-a-ticket-on-the-board-so-a-wrong-title-can-be/ticket.md",
     "updated": "2026-11-26T13:31:36.728Z"
+  },
+  {
+    "id": "AR0744",
+    "title": "The commit check lets other projects' ticket and decision ids into the public repository",
+    "status": "planning",
+    "path": "spec/features/AR0744-the-commit-check-lets-other-projects-ticket-and-decision-ids-into-the-public/ticket.md",
+    "updated": "2026-11-27T01:14:34.805Z"
+  },
+  {
+    "id": "AR0745",
+    "title": "A failed check on main resets main past a commit made during the checks, and deletes its files",
+    "status": "planning",
+    "path": "spec/features/AR0745-a-failed-check-on-main-resets-main-past-a-commit-made-during-the-checks-and/ticket.md",
+    "updated": "2026-11-27T01:14:35.191Z"
+  },
+  {
+    "id": "AR0746",
+    "title": "A FAIL review's hand-back refused for room retries only when a job ends, which may never happen",
+    "status": "planning",
+    "path": "spec/features/AR0746-a-fail-review-s-hand-back-refused-for-room-retries-only-when-a-job-ends-which/ticket.md",
+    "updated": "2026-11-27T01:14:35.582Z"
+  },
+  {
+    "id": "AR0747",
+    "title": "A project chat that misspells its bot silently uses the main bot, so its agent never hears the owner",
+    "status": "planning",
+    "path": "spec/features/AR0747-a-project-chat-that-misspells-its-bot-silently-uses-the-main-bot-so-its-agent/ticket.md",
+    "updated": "2026-11-27T01:14:35.982Z"
+  },
+  {
+    "id": "AR0748",
+    "title": "A project agent's restart and handoff texts still call it the coordinator",
+    "status": "planning",
+    "path": "spec/features/AR0748-a-project-agent-s-restart-and-handoff-texts-still-call-it-the-coordinator/ticket.md",
+    "updated": "2026-11-27T01:14:36.380Z"
   }
 ]

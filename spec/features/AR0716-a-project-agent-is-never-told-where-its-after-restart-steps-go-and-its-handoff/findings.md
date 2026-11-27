@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/session/src/handoff-extension.ts:141`, `packages/session/src/handoff-extension.ts:113`
 - What: the session plugin hands the same extension to every session (`packages/session/src/session.ts:65`), so a project agent whose conversation starts with its handoff reads `[Arthur] The coordinator just started again. Before that you wrote this handoff (...)` (line 141), and a handoff it did not write is noted as `no new handoff when the coordinator's turn ended` (line 113), which `arthur run` prints in that agent's `session: agent:<project>: ...` line. The ticket's Scope names only the two request texts, which now say "this session".
 - Suggestion: say "This session just started again" and "when the turn ended"; update `packages/session/docs/session.md:33`, `packages/session/test/restart-setup.ts:19` and the tests that quote the second line. Nothing else changes.
-- Status: deferred (client summary)
+- Status: ticket AR0748
 
 ## F3. An eval scenario with `agent` runs on the coordinator's model, not the project agents'
 

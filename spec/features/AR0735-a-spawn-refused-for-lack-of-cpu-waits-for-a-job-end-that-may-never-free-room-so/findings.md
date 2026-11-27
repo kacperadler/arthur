@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/hand-back.ts:9`, `packages/delivery/src/hand-back.ts:70`
 - What: a hand-back step (the worker's continue, the next review) refused by another plugin is kept "for the next `job-ended`, when a slot may be free". A refusal by resources for lack of CPU has the cause this ticket names: a job's end may free no room, and no job may end. The refusal is recorded and the coordinator is told when the machine has room, but delivery does not try the step again then, and the coordinator's message does not name the hand-back. Read from the code; not run.
 - Suggestion: delivery tries its kept steps again on a signal that room is back (an event resources emits when it tells the coordinator), beside `job-ended`.
-- Status: deferred (client summary)
+- Status: ticket AR0746
 
 ## F4. The vision's interface line for resources names neither `room-refused` nor the message on room
 

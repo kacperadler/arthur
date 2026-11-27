@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/telegram/src/telegram.ts:50`, `packages/discord/src/discord.ts:58`, `packages/telegram/src/telegram.ts:79`
 - What: `named(instance)` answers the main bot for a name no bot has, so a project whose `orchestration.project({ chat })` misspells its bot gets its replies, notices, voice notes and `arthur send` files sent by the main bot with the chat's place (the tests `channel.send: by the bot its instance names ...` in telegram and `send: by the bot its instance names ...` in discord show it for files), and its agent never hears the owner. Telegram's `arthur doctor` line says `missing: no bot named <instance> in bots` but is not critical; discord has no such line.
 - Suggestion: make that line critical in telegram and add it to discord, so `arthur run` does not start with such a chat; the fallback in `named` can then stay for a bot removed while slices wait.
-- Status: deferred (client summary)
+- Status: ticket AR0747
 
 ## F4. `--place` from a project agent's session on a named bot goes by the main bot
 

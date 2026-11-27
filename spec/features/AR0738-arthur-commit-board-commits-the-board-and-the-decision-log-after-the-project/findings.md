@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/merge-command.ts:159`
 - What: After a failed check the merge runs `git reset --quiet --keep <before>` without looking whether HEAD is still its own merge commit. A commit made on main while the checks ran (the owner's own `git commit`, or any commit not made by `arthur commit-board`, which now holds the merge lock) is dropped with the merge commit, its files put back [INFERENCE: read from the lines, not run; `packages/delivery/src/merge-recovery.ts:34` guards the same move with a compare-and-swap].
 - Suggestion: reset only when HEAD is the merge commit (`git update-ref HEAD <before> <merge commit>`, then `git read-tree -m -u`, as `merge-recovery.ts` does); else leave main and say which commit landed on top. `merge-command.ts` is at 220 counted lines, so this needs a split or a budget decision.
-- Status: deferred (client summary)
+- Status: ticket AR0745
 
 ## F4. The eval baseline was recorded before the roles named arthur commit-board
 

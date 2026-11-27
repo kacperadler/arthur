@@ -49,7 +49,9 @@ function hooked(files: Readonly<Record<string, string>>) {
 const refused = (where: string) => `commit refused: ${where}: names the project Web.Shop; Arthur's repository names no other project (AR0627)`;
 
 test("no tracked file of Arthur, nor a commit HEAD brings, names another project of the main checkout's projects/, or one of its ids", async () => {
-	assert.deepEqual(namings(ROOT, await otherProjects(ROOT, { ARTHUR_JOB: STARTED }), headMessages(ROOT)), []);
+	const found = namings(ROOT, await otherProjects(ROOT, { ARTHUR_JOB: STARTED }), headMessages(ROOT));
+	// The count and the first 20 only: a deepEqual diff of the tens of thousands of lines a wrong prefix finds here grows to many GB.
+	assert.equal(found.length, 0, found.slice(0, 20).join("\n"));
 });
 
 test("a project of projects/ but arthur, a folder, is named by a tracked file's path or content or a commit message, in any case or as a slug", async () => {

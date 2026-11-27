@@ -1,0 +1,14 @@
+# AR0744 - Findings
+
+What was discovered while doing this ticket but is not part of it: bugs, risks, gaps, and suggested changes. Workers add entries on their branch; the merge adds the passed review's notes of kind security, bug or risk. One entry per finding, numbered, never deleted: only its Status changes.
+
+A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it), `ticket <id>` (a planning ticket carries it), `deferred (client summary)` (it goes to the client in a summary, not on the board), or `dropped (<reason>)`. `open` lives only until the merge, which settles every `Status: open` entry as the project's findings mode says: a planning ticket each (the default), one planning ticket for all of them, or `deferred (client summary)`.
+
+## F1. The test kit hides a job's ARTHUR_JOB, so the real-checkout check reads it from /proc
+
+- Kind: test
+- Found by: 2026-11-27-worker-e2c7cb0a (worker), 2026-11-27
+- Where: `packages/core/src/test-env.ts:8`, `test/other-projects.test.ts:13-15`
+- What: the kit deletes every `ARTHUR_` variable before a test runs, so in a job `npm test`'s real-checkout test of `test/other-projects.ts` cannot learn the other projects' prefixes from `<home>/projects/prefixes` (their configs give `EACCES` there) and fails with one `its prefix was not learned` line per project. The plan assumed the test keeps `process.env`. The branch reads the `ARTHUR_JOB` the test process started with from `/proc/self/environ`, which holds only on Linux; elsewhere a job's `npm test` would fail that test.
+- Suggestion: the kit exports the job's record path it cleared (for example `startedJob` from `@arthur/core/testing`), and the test reads that instead of `/proc`; the kit still clears the variable itself.
+- Status: open

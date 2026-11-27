@@ -6000,9 +6000,9 @@
   {
     "id": "AR0744",
     "title": "The commit check lets other projects' ticket and decision ids into the public repository",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0744-the-commit-check-lets-other-projects-ticket-and-decision-ids-into-the-public/ticket.md",
-    "updated": "2026-11-27T09:53:52.907Z",
+    "updated": "2026-11-27T10:11:43.869Z",
     "after": [
       "AR0749"
     ]

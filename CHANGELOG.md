@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 #### Fixed
 
+- AR0744 The commit check lets other projects' ticket and decision ids into the public repository (56bb690d)
 - AR0749 Jobs can read each configured project's ticket prefix, so the public-repo check works inside a job (ef28f150)
 
 ### 2026-11-26

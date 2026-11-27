@@ -4,6 +4,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## Unreleased
 
+### 2026-11-27
+
+#### Fixed
+
+- AR0749 Jobs can read each configured project's ticket prefix, so the public-repo check works inside a job (ef28f150)
+
 ### 2026-11-26
 
 #### Fixed

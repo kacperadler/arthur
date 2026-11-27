@@ -58,3 +58,4 @@ Out:
 - 2026-11-27: AR0744 runs npm run check, npm test and npm run mutate alone once the other running job ends; the coordinator continues it then; the owner: "AR-D740 2" (AR-D740)
 - 2026-11-27: The schedule file moves to the git-ignored .arthur/schedule.json; spec/schedule.json leaves the repository; the owner: "1. Yes" (AR-D741)
 - 2026-11-27: The daily project procedure file gets a neutral name, .arthur/project-daily.md; the owner: "2. Why not" (AR-D742)
+- 2026-11-27: Merge AR0744 into main; the owner: "AR-D743 1, ZF-D296 1, ZF-D295 1" (AR-D743)

@@ -359,7 +359,7 @@ test("the hidden ~/.ssh, Git's and gh's credentials and the guarded list's ssh l
 	writeFileSync(join(record, "guarded"), `env ${join(folder, "planted-env")}\n`);
 	const guarded = `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`;
 	// The rest of the list is the home's (AR0590): hidden whole, with the record and the projects plugin's lists shown.
-	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
+	const home = [realpathSync(folder), `+${record}`, ...["checkouts", "folders", "prefixes"].map((name) => `+${join(folder, "projects", name)}`)];
 	for (const [where, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
 		where === undefined ? delete process.env.HOME : (process.env.HOME = where);
 		assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }, guarded), [join(folder, "env"), ...expected, ...expected.flatMap((ssh) => stores(dirname(ssh))), ...home], `HOME=${where}`);
@@ -372,7 +372,7 @@ test("the hidden credentials take $XDG_CONFIG_HOME's git/credentials and gh and 
 	const user = userInfo().homedir;
 	const record = join(folder, "jobs", "2026-11-09-worker-0a1b2c3d");
 	mkdirSync(record, { recursive: true });
-	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
+	const home = [realpathSync(folder), `+${record}`, ...["checkouts", "folders", "prefixes"].map((name) => `+${join(folder, "projects", name)}`)];
 	const [xdg, gh] = [join(folder, "xdg"), join(folder, "gh-config")];
 	const rows: ReadonlyArray<readonly [string | undefined, string | undefined, readonly string[]]> = [
 		[xdg, gh, [join(xdg, "git", "credentials"), join(xdg, "gh"), gh]],
@@ -400,7 +400,7 @@ test("hidden: the home whole, but shown the job's own record, its project's othe
 		writeFileSync(join(record, "kind"), "worker");
 		if (project !== undefined) writeFileSync(join(record, "project"), project);
 	}
-	const lists = [`+${join(home, "projects", "checkouts")}`, `+${join(home, "projects", "folders")}`];
+	const lists = ["checkouts", "folders", "prefixes"].map((name) => `+${join(home, "projects", name)}`);
 	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }, "").filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
 	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
 	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
@@ -829,7 +829,7 @@ test("a sandboxed job reads no token of the env file: not by its path, a link, n
 	assert.equal(arthur(join(worktree, "own"), "leak").stdout, "leaked ARTHUR_SECRET_TOKEN\n", "outside the sandbox the same command reads the token");
 });
 
-test("a job of shop1 gets Permission denied on shop2's checkout, its project folder, other jobs' worktrees and the env file; it keeps its worktree, root, Git folder, record, install, config and own project folder (AR0593)", { skip: bare }, async () => {
+test("a job of shop1 gets Permission denied on shop2's checkout, its project folder, other jobs' worktrees and the env file; it keeps its worktree, root, Git folder, record, install, config, own project folder and every project's prefix (AR0593, AR0749)", { skip: bare }, async () => {
 	const folder = temporaryFolder();
 	// shop1 and shop2 in one parent folder, so their jobs' worktrees share one `.arthur-worktrees`; shop1's Git folder beside its checkout.
 	const [shop1, shop2, arthur, home] = [join(folder, "shop1"), join(folder, "shop2"), join(folder, "arthur"), join(folder, "home")] as const;
@@ -853,6 +853,7 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 	mkdirSync(join(home, "projects"), { recursive: true });
 	writeFileSync(join(home, "projects", "checkouts"), `shop1 ${shop1}\nshop2 ${shop2}\narthur ${arthur}\n`);
 	writeFileSync(join(home, "projects", "folders"), [`shop1 ${join(arthur, "projects", "shop1")}`, `shop2 ${join(arthur, "projects", "shop2")}`, `twin ${shop1}`, `git ${join(folder, "shop1.git")}`, `jobs ${join(home, "jobs")}`, `install ${install}`, ""].join("\n"));
+	writeFileSync(join(home, "projects", "prefixes"), "shop1 SA\nshop2 SB\narthur AR\n");
 	// The docker plugin's folder as its prepare leaves it: each job's script, and its own file of machines told (AR-D597).
 	const own = `${home}/docker/jobs/$(basename "$ARTHUR_JOB")/docker`;
 	const reads = {
@@ -873,6 +874,7 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 		"the install": join(install, "package.json"),
 		"the config": join(arthur, "arthur.config.ts"),
 		"its project folder": join(arthur, "projects", "shop1", "project.config.ts"),
+		"the projects plugin's prefixes": join(home, "projects", "prefixes"),
 	};
 	const lines = Object.entries(reads).map(([name, path]) => `if cat "${path}" >/dev/null 2>"$ARTHUR_JOB/err"; then echo "${name} read"; elif grep -q 'Permission denied' "$ARTHUR_JOB/err"; then echo "${name} denied"; else echo "${name} failed"; fi`);
 	const commit = "echo x > new.txt && git add new.txt && git -c user.name=test -c user.email=test@example.com -c commit.gpgsign=false commit --quiet -m sandboxed && echo 'a commit made'";

@@ -1,105 +1,99 @@
 # AR0744 - Plan
 
-- Job: 2026-11-27-plan-9b49c2f2
-- Planned at: 9509c86ce73c7499ae175d5e7f12f2919bcf10d2
+- Job: 2026-11-27-plan-4bfb0802
+- Planned at: 7e4edf35ed835977535978604c22ee2ad470fe93
 
 ## Approach
-The check will also refuse other projects' ticket ids (`<prefix>` plus 4 or more digits) and decision ids (`<prefix>-D<n>`), in tracked file paths, in file contents (giving file and line) and in commit messages. Each prefix is read when the check runs, by importing `projects/<name>/project.config.ts` the way the projects plugin does (`packages/projects/src/project-file.ts`). No prefix is written in the code. Arthur's own folder `arthur` is never read, so `AR` ids pass, and so do the fixture prefixes (AC, SH, DM, BL).
+The check also refuses other projects' ticket ids (`<prefix>` plus 4 or more digits) and decision ids (`<prefix>-D<n>`). It looks in tracked file paths, in file contents (naming file and line) and in commit messages. No prefix is written in the code. This plan follows the owner's Option 1 (AR-D737): AR0749 publishes `<home>/projects/prefixes` and shows it to jobs, so a job's commits are checked fully. The pass-with-a-warning path of the earlier plan is gone.
 
-Inside a job's sandbox the other configs cannot be read. Nothing else readable there holds a prefix (see Not available directly). This plan follows Option 2:
-- In a job's sandbox, a config that fails with EACCES while `ARTHUR_JOB` is set gets one stderr line saying its ids are not checked there. That project's name is still checked. That one case alone passes.
-- Anywhere else, a prefix that cannot be learned refuses the commit.
-- Every route to GitHub runs where the configs can be read: `arthur commit-board`, the merge's checks on main, and the merge's `spec:` commit. They all use the step sandbox (`stepSandbox`, `packages/core/src/job-sandbox.ts:165-171`), which hides only the env file and credentials.
+How the check learns each prefix, for every folder of the main checkout's `projects/` except `arthur` (the same project list as today):
+1. It imports `projects/<name>/project.config.ts`, as `readProjects` does (`packages/projects/src/project-file.ts:28-31`), and takes the `projects.prefix` piece. This works on main, in `arthur commit-board` and in the merge's step sandbox.
+2. If that fails (in a job's sandbox the import gives `EACCES`; I confirmed this for every other config here), it reads the line `<name> <prefix>` from `<home>/projects/prefixes`. `<home>` is `dirname(dirname($ARTHUR_JOB))`, because the wrapper sets `ARTHUR_JOB` to `<home>/jobs/<id>` (`packages/core/src/wrapper.ts:134`).
+3. If neither gives a prefix matching `^[A-Z]+$`, the commit is refused, naming the project's config and both reasons. The check never passes silently.
 
-The 19 tracked files are reworded by the coordinator on main with `arthur commit-board`, not on the worker's branch, for two reasons:
-- The merge refuses any worker branch that changes `spec/features/*/ticket.md` or `spec/decisions.jsonl` (`PAPERS`, `packages/orchestration/src/paper-check.ts:8`). 14 of the 19 files are those.
-- No job can learn the real prefixes, so a worker could not find the lines. The coordinator has them in its context (`projectLine`, `packages/projects/src/projects.ts:103-105`).
+Arthur's own `AR` ids pass because the `arthur` folder is never read. The fixture prefixes (AC, SH, DM, BL) pass because no project has them. On GitHub CI there is no `projects/`, so nothing is checked, as today.
+
+Rewording the tracked ids stays with the coordinator, on main, with `arthur commit-board`, for two reasons:
+- The merge refuses a worker branch that touches `spec/features/*/ticket.md` or `spec/decisions.jsonl` (`PAPERS`, `packages/orchestration/src/paper-check.ts:8`).
+- One timing change from the filed plan: the rewording must land on main **before the worker is spawned**. The hook runs the worktree's own `test/other-projects.ts`, which greps the whole index (`git grep --cached`). Once the worker's new check is in its worktree, every commit it makes, and its `npm test`, would fail on the old ids. The coordinator can find the lines itself, and once AR0749 is merged a job can run the same grep against the prefixes file.
 
 The worker writes the check, its tests and the docs.
 
 Left alone:
-- The name matching and the `Signed-off-by` exemption (AR-D501).
-- `.githooks/commit-msg`, `npm run commit-msg`, the core, every plugin.
+- Name matching and the `Signed-off-by` exemption (AR-D501).
+- `npm run commit-msg`, the core and every plugin (AR0749 owns the projects and core changes).
 - The published history (AR-D499).
-- The cross-project schedule and the `project-daily` procedure path (see Open questions).
+- The cross-project schedule and the `project-daily` procedure path (Open questions).
+- A project listed in the prefixes file but with no folder under `projects/` is not checked, as today.
 
 ## Not available directly
-- **What is missing:** inside a job's sandbox nothing readable holds another project's prefix. Where I checked:
-  - `projects/<other>/` is hidden by `hidden()` (`packages/core/src/job-sandbox.ts:103-120`, from `<home>/projects/folders`). Here `cat` gave "Permission denied" and `import()` gave `EACCES` for all four configs; Arthur's own imported.
-  - The only home files a job may read, `<home>/projects/checkouts` and `folders`, hold names and paths only (`packages/projects/src/projects.ts:54-55`).
-  - The job's env has only `ARTHUR_JOB`, `ARTHUR_GUARDED` and `ARTHUR_INSTALL`.
-  - The other projects' checkouts are hidden.
-- **Why it matters:** the sandbox runs this check on every worker commit. The job's hooks (`.git/worktrees/<id>/arthur-hooks/commit-msg`) chain to the worktree's `.githooks/commit-msg`. `npm test` runs it too.
-- **Option 1: publish the prefixes.** The projects plugin writes `<name> <prefix>` lines to `<home>/projects/prefixes`, `hidden()` shows that file to jobs, and the check reads it in a job and refuses when it learns nothing.
-  - Cost: two more packages (projects, core), with tests and docs.
-  - It must be its own ticket, merged and restarted before this one. This ticket's worker and reviewer run under today's wrapper and plugin, so a refusing check would block their commits and `npm test`.
-  - Risk: every Arthur job can read every other project's prefix. Jobs already read their names and checkout paths.
-- **Option 2: read the configs wherever possible.** In a job's sandbox (EACCES with `ARTHUR_JOB` set) the check says on stderr that those projects' ids are not checked, and passes for that reason only. Every other failure refuses.
-  - Cost: the check only.
-  - Risk: an id in a worker's commit is caught at its merge, not at commit time. That merge fails before any push, and the branch is reworded.
-- **Option 3: refuse in a job's sandbox.**
-  - Cost: the smallest.
-  - Risk: every commit of every Arthur job, and every `npm test` there, fails while another project is configured. No worker can deliver.
-- **Recommendation: Option 2.**
+- none. The owner chose Option 1 (AR-D737). This plan depends on AR0749 being merged and Arthur restarted first. AR0749 is not on this checkout's HEAD: `<home>/projects/prefixes` does not exist here yet, and `spec/build.json` lists AR0744 `after` AR0749.
 
 ## Files
 - **`test/other-projects.ts`**:
-  - `otherProjects(root, env = process.env)` becomes async. For each folder of `projects/` but `arthur`, it returns `{ name, prefix }` or `{ name, unread: <why> }`.
-  - It reads the prefix by `import(pathToFileURL(<folder>/project.config.ts))`. The prefix is the default export's entry with `projects.prefix`, checked against `^[A-Z]+$` because that file is human-edited, as `PREFIX` in `packages/projects/src/project-options.ts:15`.
-  - Mark whether the failure was EACCES with `env.ARTHUR_JOB` set.
-  - `namings` keeps its name findings and adds, per project with a prefix:
-    - paths matching `\b<P>(-D\d+|\d{4,})\b`, reported as `<path>: names the project <name>`;
-    - content from `git grep --cached -a -z -n -o -w -E -e '<P>(-D[0-9]+|[0-9]{4,})'`. Each record is `path\0line\0match\n`, checked here with git 2.43. Reported as `<path>:<line>: names the project <name>`;
-    - each message's `unsigned()` text, by a RegExp built from the prefix.
-  - A project with `unread` outside a job, or with any error other than EACCES, is a finding: `projects/<name>/project.config.ts: its prefix was not read (<why>), so its ids cannot be checked`.
-  - The `import.meta.main` block awaits these. For each in-job EACCES project it prints `ids of the project <name> not checked here: its project.config.ts cannot be read in a job's sandbox; arthur commit-board and arthur merge check them` and keeps exit code 0 for that.
-  - Update the header comment.
+  - `otherProjects(root, env = process.env)` becomes async. For each folder of `projects/` except `arthur` it returns `{ name, prefix }` or `{ name, unlearned: <why> }`.
+  - The prefix comes from the config import first, then from the line `/^(\S+) ([A-Z]+)$/` for that name in `<home>/projects/prefixes`. The file is read only when `env.ARTHUR_JOB` is non-empty.
+  - The config's prefix is checked against `^[A-Z]+$`, as `PREFIX` in `packages/projects/src/project-options.ts:15`, because the file is human-edited. A malformed line counts as missing.
+  - `namings(root, projects, messages)` keeps its name findings. For each project with a prefix it adds:
+    - paths matching `\b<P>(-D\d+|\d{4,})\b`: `<path>: names the project <name>`;
+    - contents from `git grep --cached -a -z -n -o -w -E -e '<P>(-D[0-9]+|[0-9]{4,})'`. Each record is `path\0line\0match\n`; I checked this format with git 2.43, and `-w` drops `XWS0150`. Reported as `<path>:<line>: names the project <name>`;
+    - each message's `unsigned()` text, against a RegExp built from the prefix: `<where>: names the project <name>`.
+  - Each unlearned project is a finding: `projects/<name>/project.config.ts: its prefix was not learned (<import error>; <prefixes file>: <missing, or no line for it>), so its ids cannot be checked`.
+  - The `import.meta.main` block awaits these and prints each finding under the existing `commit refused: …` line, exit 1.
+  - The header comment is updated.
 - **`test/other-projects.test.ts`**:
-  - `checkout()` writes real fixture configs: `export default [{ projects: { prefix: "WS", path: "../.." } }];` for `Web.Shop`, and `prefix: "AR"` for `arthur`. Today's file is empty, which the new check would refuse.
-  - Existing calls `await otherProjects(...)`.
-  - Add the rows of Done means 1-4 to the hook test and the `namings` test.
-  - Hook rows that expect a refusal outside a job spawn `git` with `ARTHUR_JOB` removed from the env.
-- **`docs/setup.md:127`**: the paragraph also covers ids. Prefixes come from each `project.config.ts`. In a job's sandbox the check prints which projects' ids it could not check, and commit-board and the merge do check them.
-- **The tracked files the Goal lists, done by the coordinator on main with `arthur commit-board` before this ticket's merge** (not a worker file):
-  - the 13 `spec/features/*/ticket.md`;
+  - `checkout()` writes real fixture configs, because the current empty files would now be refused: `export default [{ projects: { prefix: "WS", path: "../.." } }];` for `Web.Shop` and `prefix: "AR"` for `arthur`.
+  - Existing calls become `await otherProjects(root, env)`, with an env that has `ARTHUR_JOB` emptied, because a worker's job inherits it.
+  - The hook's `commit()` spawns `git` with an explicit env: `ARTHUR_JOB` empty, or a fixture `<tmp>/home/jobs/x`.
+  - Add the rows of Done means 1 to 4. The first test (the real checkout) keeps `process.env`.
+- **`.githooks/commit-msg`**: the comment line also says "or its ticket or decision ids".
+- **`docs/setup.md:127`**: the paragraph also covers ids. Prefixes come from each `project.config.ts`, or in a job from `<home>/projects/prefixes`. A prefix learned from neither refuses the commit.
+- **Tracked files, reworded by the coordinator on main with `arthur commit-board` before the worker is spawned** (not a worker file). The audit found:
+  - the 13 `spec/features/*/ticket.md` files;
   - `spec/decisions.jsonl` (21 lines);
-  - `spec/schedule.json` (3 lines; line 130 is a past one-off entry);
+  - `spec/schedule.json` (3 lines);
   - `spec/quality/2026-11-24.md:30`;
-  - `spec/retro/2026-11-11.md` and `spec/retro/2026-11-11.html`.
+  - `spec/retro/2026-11-11.md` and `.html`.
 
-  Each id is replaced by words like "another project's ticket" or "another project's decision". Every `(AR-D<n>)` marker stays.
+  The coordinator re-runs the grep at main's tip, so anything added since the audit is included. Each id becomes words like "another project's ticket" or "another project's decision". Every `(AR-D<n>)` marker stays.
 
 ## Risks
-- **An answer's line reappears.** A line answered by policy is matched by its whole text (`packages/orchestration/src/decision-log.ts:140-146`). If a ticket's Decisions line and its log record are reworded differently, the next `arthur decision` writes the old line back, id included. The coordinator rewords both identically. A plain answer line is matched by `(AR-D<n>)` and never rewritten (`ticketLines`, line 125).
-- **A decision record no longer parses.** Records must stay valid (`problem()`, `decision-log.ts:55-67`). Only text fields change, never an `id`, which must already carry Arthur's prefix.
-- **A test counts the real log.** `packages/manage/test/repeats.test.ts:273-274` counts the first 673 lines of the real `spec/decisions.jsonl`. Rewording inside those lines must keep each record's kind and its answer. That test is run after the rewording.
-- **The merge fails if rewording is late or incomplete.** If this ticket merges before the coordinator's rewording, or with a line missed, its `npm test` on main fails and the merge is refused before any push. The order is enforced, not assumed.
-- **A false positive.** `\b` and `-w` stop matches inside longer tokens. Matching is case-sensitive, as Arthur writes ids, so lowercase commit hashes never match. A title holding an id is caught at its uppercase spelling in `ticket.md` and `spec/build.json` before its lowercase slug matters.
-- **A real prefix equal to a fixture prefix (AC, SH, DM, BL)** would fail on thousands of fixture lines at the merge. The audit counted 19 files, so none collides ([INFERENCE]: I could not read the real prefixes).
-- **Tests that run inside a job** inherit `ARTHUR_JOB`. Rows asserting a refusal unset it.
-- **The EACCES row** uses `chmod 000` on a fixture config and is skipped as root (`process.getuid?.() === 0`), where permissions do not apply. GitHub's runner is not root ([INFERENCE]).
-- **Import cost.** The hook now imports up to four configs and their plugin modules from the main checkout's `node_modules`. Arthur's own config imported that way in this sandbox. Expect a short delay per commit.
+- **The worker cannot commit if main still holds ids.** The hook checks the whole index with the worktree's new check. The coordinator rewords first. The worker's first step greps with the prefixes file and stops with a report if anything is listed; it does not reword spec papers itself.
+- **AR0749 not live.** Without the file, every job commit in Arthur's repository would be refused once this is merged. The ticket order (`after: AR0749`) and the restart come first. The worker confirms `<home>/projects/prefixes` exists before it starts.
+- **An answer's line reappears.** A line answered by policy is matched by its whole text (`packages/orchestration/src/decision-log.ts:140-146`). The coordinator rewords a ticket's Decisions line and its log record identically. A plain answer line is matched by `(AR-D<n>)` (`ticketLines`, line 125).
+- **A decision record stops parsing** (`problem()`, `decision-log.ts:55-67`). Only text fields change, never an `id`.
+- **The real-log test.** `packages/manage/test/repeats.test.ts:273-274` counts the first 673 lines of `spec/decisions.jsonl`. Rewording must keep each record's kind and answer. That test is re-run after the rewording.
+- **Rewording commit subjects.** commit-board still runs the old check, which ignores ids, so the coordinator's subjects for these commits must name no id.
+- **Merging main into the worker's branch.** That makes `headMessages` list main's commits since the branch point (`HEAD^1..HEAD`). A published commit there whose subject holds an id would fail the worker's `npm test`, and history is not rewritten (AR-D499). The worker merges main only if it has to, and reports such a commit rather than working around it. At the merge on main, `HEAD^1` is main, so this does not apply.
+- **False positives.** `\b` and `-w` stop matches inside longer tokens. Matching is case-sensitive, so lowercase hashes never match. A real prefix equal to a fixture prefix would fail on fixture lines. The audit counted only 19 files, so none collides ([INFERENCE]: I could not read the real prefixes).
+- **A stale prefixes file in a job** (the owner changed a prefix but Arthur has not restarted). The job checks the old prefix. The merge on main imports the configs and catches the new one before any push.
+- **This plan, and the worker's tests and docs, are public.** None names a real project or prefix; the fixtures use `WS`, `QQ` and `Web.Shop`.
+- **Import cost.** The hook imports up to four configs outside a job. In a job each import fails fast with EACCES (observed here).
 
 ## How to test
-1. **Done 1** (file holding an id is refused): in the hook test, stage `deploy.md` with `WS0150` on line 2, then a file with `WS-D156`. Each commit gives `[1, "commit refused: deploy.md:2: names the project Web.Shop; Arthur's repository names no other project (AR0627)"]`. Main's check returns 0 for the same commit. A path holding `WS0150` is also refused.
-2. **Done 2** (message holding an id is refused): rows for `fix: as WS-D156 asked` (the subject) and `docs: x\n\nFor WS0150.` (the body) each give `refused("the commit message")`. In the `namings` test, a merge's branch commit holding `WS0150` is named as `commit <hash>`.
-3. **Done 3** (prefixes read at run time; own and fixture prefixes pass):
-   - These pass in a file and in a message: `AR0001`, `AR-D1`, `AC0001`, `SH-D2`, `DM0003`, `BL-D4`, `WS015` (3 digits) and `XWS0150`.
-   - The prefix comes from the fixture's config, not the code: a second fixture whose config says `prefix: "QQ"` refuses `QQ0150` and passes `WS0150`.
-   - A config with no prefix, or a lowercase one, is refused outside a job.
-4. **Done 4** (job's sandbox): with the fixture's config at `chmod 000`:
-   - with `ARTHUR_JOB` set: `[0, "ids of the project Web.Shop not checked here: ..."]`, and a message naming `web-shop` is still refused;
-   - without it: exit 1 with the `its prefix was not read (EACCES ...)` finding.
+1. **Done 1 (file holding an id refused):** in the hook test, with `ARTHUR_JOB` empty:
+   - Stage `deploy.md` with `WS0150` on line 2, then a version with `WS-D156`. Each gives `[1, "commit refused: deploy.md:2: names the project Web.Shop; Arthur's repository names no other project (AR0627)"]`.
+   - A file whose path holds `WS0150` is refused.
+   - These rows fail on main, whose check returns 0.
+2. **Done 2 (message holding an id refused):**
+   - `fix: as WS-D156 asked` (subject) and `docs: x\n\nFor WS0150.` (body) each give `refused("the commit message")`.
+   - In the `namings` test, a merge's branch commit holding `WS0150` is named `commit <hash>`.
+3. **Done 3 (prefixes read at run time; Arthur's own and fixture prefixes pass):**
+   - These pass in a file and in a message: `AR0001`, `AR-D1`, `AC0001`, `SH-D2`, `DM0003`, `BL-D4`, `WS015` and `XWS0150`.
+   - A fixture whose config says `prefix: "QQ"` refuses `QQ0150` and passes `WS0150`.
+   - A config with no prefix, or a lowercase one, and no `ARTHUR_JOB`, is refused with the `its prefix was not learned` finding.
+4. **Done 4 (job's sandbox):** `projects/Web.Shop/project.config.ts` is removed from the fixture so its import fails, a deterministic stand-in for EACCES that needs no root skip. `ARTHUR_JOB` is `<tmp>/home/jobs/x`:
+   - with `<tmp>/home/projects/prefixes` holding `arthur AR\nWeb.Shop WS\n`: `WS0150` in a file and in a message is refused, and a clean commit passes (0, "");
+   - with the file missing, holding no `Web.Shop` line, or holding `Web.Shop ws`: exit 1 with the `not learned` finding;
+   - with `ARTHUR_JOB` empty: exit 1 as well.
 
-   In the worker's own job, `node test/other-projects.ts <message file>` on the real checkout prints one such line per other project and exits 0.
-5. **Done 5** (no tracked id left):
-   - After rewording, the coordinator runs the audit's `git grep -l -E` with the four real prefixes in `~/arthur`; the result must be empty.
-   - The coordinator also runs `node --test packages/manage/test/repeats.test.ts`.
-   - At the merge, the first test of `test/other-projects.test.ts` (`namings(ROOT, await otherProjects(ROOT), headMessages(ROOT))` deep-equal `[]`) runs in the step sandbox with the real prefixes and proves it on main.
-   - No job can prove this point: no job can read the prefixes.
-6. **Done 6:** `npm test` and `npm run check`, each one bash call with a 1800 s timeout.
+   In the worker's own job: `node test/other-projects.ts <message file>` on the real checkout exits 0 and prints nothing after the rewording.
+5. **Done 5 (no tracked id left):**
+   - In the worker's job, the real-checkout test (`namings(ROOT, await otherProjects(ROOT), headMessages(ROOT))` deep-equals `[]`) runs with the real prefixes from the file.
+   - The same test runs at the merge with the configs.
+   - The coordinator also runs the audit's `git grep -l -E` with the real prefixes in `~/arthur` after rewording (empty), and `node --test packages/manage/test/repeats.test.ts`.
+6. **Done 6:** `npm test` and `npm run check`, each in one bash call with a 1800 s timeout.
 
 ## Open questions
-- Done 4 says "still learns the prefixes or refuses to pass silently". Option 2 reads that as "never passes without saying so": in a job's sandbox the check prints which projects' ids it could not check, and refuses everywhere a commit can reach GitHub. If you want a job's own commits refused or fully checked too, that is Option 1 as its own ticket, merged before this one. Which do you want?
-- The cross-project schedule (Scope, Out): should the coordinator's wakes for other projects leave `spec/schedule.json`, for example by putting them in the config's `schedule` entries or in a git-ignored file? The file is public and tracked, and line 130 already listed another project's work.
-- The `project-daily` entry (`spec/schedule.json:134-139`) names its procedure file by a path spelled with another project's prefix. It is not an id, so neither the new check nor Done 5's grep covers it. Should the coordinator rename that file in `.arthur/` and the entry's path to a neutral name, or leave it?
+- The cross-project schedule (Scope, Out): should the coordinator's wakes for other projects leave `spec/schedule.json`, for example into each project config's `schedule` piece or a git-ignored file? The file is public and tracked, and line 130 already listed another project's pending work by id.
+- The `project-daily` entry (`spec/schedule.json:134-139`) names its procedure file by a path spelled with another project's prefix. It is not an id, so neither the new check nor Done 5's grep catches it. Should the coordinator rename that file in `.arthur/`, and the entry's path, to a neutral name, or leave it?

@@ -13,8 +13,8 @@ const NO_JOB = { ...process.env, ARTHUR_JOB: "" };
 // The ARTHUR_JOB this process started with, which the kit cleared: in a job's sandbox, where the configs of projects/ do not load,
 // the real checkout's check learns their prefixes from that job's home (Linux's /proc; none elsewhere).
 const STARTED = existsSync("/proc/self/environ") ? /(?:^|\0)ARTHUR_JOB=([^\0]*)/.exec(readFileSync("/proc/self/environ", "utf8"))?.[1] : undefined;
-// A null piece too: the file is hand-edited, and the check reads it before the projects plugin refuses it.
-const config = (prefix: string) => `export default [{ github: { workflow: "ci.yml" } }, null, { projects: { prefix: "${prefix}", path: "../.." } }];\n`;
+// A null and a string piece too: the file is hand-edited, and the check reads it before the projects plugin refuses it.
+const config = (prefix: string) => `export default [{ github: { workflow: "ci.yml" } }, null, "piece", { projects: { prefix: "${prefix}", path: "../.." } }];\n`;
 // Ids no project of the fixtures has: Arthur's own, the other fixture prefixes', too short, inside a longer word, lowercase.
 const PASS = "AR0001 AR-D1 AC0001 SH-D2 DM0003 BL-D4 WS015 XWS0150 WS0150a ws0150 WS-D\n";
 

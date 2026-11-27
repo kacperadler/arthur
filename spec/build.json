@@ -6002,7 +6002,10 @@
     "title": "The commit check lets other projects' ticket and decision ids into the public repository",
     "status": "planning",
     "path": "spec/features/AR0744-the-commit-check-lets-other-projects-ticket-and-decision-ids-into-the-public/ticket.md",
-    "updated": "2026-11-27T01:14:34.805Z"
+    "updated": "2026-11-27T01:14:34.805Z",
+    "after": [
+      "AR0749"
+    ]
   },
   {
     "id": "AR0745",
@@ -6031,5 +6034,12 @@
     "status": "planning",
     "path": "spec/features/AR0748-a-project-agent-s-restart-and-handoff-texts-still-call-it-the-coordinator/ticket.md",
     "updated": "2026-11-27T01:14:36.380Z"
+  },
+  {
+    "id": "AR0749",
+    "title": "Jobs can read each configured project's ticket prefix, so the public-repo check works inside a job",
+    "status": "planning",
+    "path": "spec/features/AR0749-jobs-can-read-each-configured-project-s-ticket-prefix-so-the-public-repo-check/ticket.md",
+    "updated": "2026-11-27T06:45:04.604Z"
   }
 ]

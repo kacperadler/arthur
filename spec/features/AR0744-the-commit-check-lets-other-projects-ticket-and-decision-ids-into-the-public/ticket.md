@@ -53,3 +53,4 @@ Out:
 ## Decisions
 
 - 2026-11-27: Source: audit spec/quality/2026-11-27.md
+- 2026-11-27: Plan the ticket again: Option 1, a separate ticket first lets jobs read the other projects prefixes, and AR0744 checks job commits fully against them; the owner: "AR-D737 option 1" (AR-D737)

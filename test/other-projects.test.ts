@@ -13,7 +13,8 @@ const NO_JOB = { ...process.env, ARTHUR_JOB: "" };
 // The ARTHUR_JOB this process started with, which the kit cleared: in a job's sandbox, where the configs of projects/ do not load,
 // the real checkout's check learns their prefixes from that job's home (Linux's /proc; none elsewhere).
 const STARTED = existsSync("/proc/self/environ") ? /(?:^|\0)ARTHUR_JOB=([^\0]*)/.exec(readFileSync("/proc/self/environ", "utf8"))?.[1] : undefined;
-const config = (prefix: string) => `export default [{ github: { workflow: "ci.yml" } }, { projects: { prefix: "${prefix}", path: "../.." } }];\n`;
+// A null piece too: the file is hand-edited, and the check reads it before the projects plugin refuses it.
+const config = (prefix: string) => `export default [{ github: { workflow: "ci.yml" } }, null, { projects: { prefix: "${prefix}", path: "../.." } }];\n`;
 // Ids no project of the fixtures has: Arthur's own, the other fixture prefixes', too short, inside a longer word, lowercase.
 const PASS = "AR0001 AR-D1 AC0001 SH-D2 DM0003 BL-D4 WS015 XWS0150 WS0150a ws0150 WS-D\n";
 
@@ -73,7 +74,7 @@ test("a project of projects/ but arthur, a folder, is named by a tracked file's 
 });
 
 test("a project's ticket and decision ids, its prefix read from its config, name it in a tracked file's path or line or a message; others' do not", async () => {
-	const files = { "notes.md": PASS, "docs/XWS0150-WS015.md": "", "docs/deploy.md": "First.\nAfter WS0150 and WS-D156, WS01500 again.\nWS-D7\n", "logo.bin": "\0WS0150\n", "spec/WS-D7/plan.md": "" };
+	const files = { "notes.md": PASS, "docs/XWS0150-WS015.md": "", "docs/deploy.md": "First.\nAfter WS0150 and WS-D156, WS01500 again.\nWS-D90\nWS9099\n", "logo.bin": "\0WS0150\n", "spec/WS-D7/plan.md": "" };
 	const root = checkout(files);
 	const where = (...each: string[]) => each.map((one) => `${one}: names the project Web.Shop`);
 	const at = (message: string) => {
@@ -81,9 +82,10 @@ test("a project's ticket and decision ids, its prefix read from its config, name
 		return namings(root, [{ name: "Web.Shop", prefix: "WS" }], headMessages(root));
 	};
 	const head = () => `commit ${git(root, "rev-parse", "--short", "HEAD")}`;
-	assert.deepEqual(at("fix: as WS-D156 asked"), where("spec/WS-D7/plan.md", "docs/deploy.md:2", "docs/deploy.md:3", "logo.bin:1", head()));
-	assert.deepEqual(at("docs: x\n\nFor WS0150."), where("spec/WS-D7/plan.md", "docs/deploy.md:2", "docs/deploy.md:3", "logo.bin:1", head()), "in the body");
-	assert.deepEqual(at(`docs: x\n\n${PASS}`), where("spec/WS-D7/plan.md", "docs/deploy.md:2", "docs/deploy.md:3", "logo.bin:1"), "Arthur's own and other prefixes' ids");
+	const lines = ["spec/WS-D7/plan.md", "docs/deploy.md:2", "docs/deploy.md:3", "docs/deploy.md:4", "logo.bin:1"];
+	assert.deepEqual(at("fix: as WS-D156 asked"), where(...lines, head()));
+	assert.deepEqual(at("docs: x\n\nFor WS0150."), where(...lines, head()), "in the body");
+	assert.deepEqual(at(`docs: x\n\n${PASS}`), where(...lines), "Arthur's own and other prefixes' ids");
 	const other = checkout({ "projects/Web.Shop/project.config.ts": config("QQ"), "deploy.md": "WS0150\nQQ0150\n" });
 	assert.deepEqual(namings(other, await otherProjects(other, NO_JOB), []), where("deploy.md:2"), "the prefix its config holds, not a fixed one");
 });
@@ -170,10 +172,11 @@ test("a prefix not in its config is learned in a job from <home>/projects/prefix
 	rmSync(file);
 	assert.deepEqual(why(job), [1, `${file}: missing`]);
 	assert.deepEqual(why(NO_JOB), [1, "no ARTHUR_JOB, so no prefixes file"]);
-	for (const written of ['export default [{ projects: { path: "../.." } }];\n', config("ws")]) {
-		const other = checkout({ "projects/Web.Shop/project.config.ts": written });
+	const unreadable = ['export default [{ projects: { path: "../.." } }];\n', config("ws"), "export default [{ projects: null }];\n", 'export default [{ projects: { prefix: ["WS"], path: "../.." } }];\n'];
+	for (const written of unreadable) {
+		const other = checkout({ "projects/Web.Shop/project.config.ts": written, "deploy.md": "web.shop WS0150\n" });
 		const reason = "no projects.project({ prefix }) of capital letters A-Z; no ARTHUR_JOB, so no prefixes file";
 		const finding = `projects/Web.Shop/project.config.ts: its prefix was not learned (${reason}), so its ids cannot be checked`;
-		assert.deepEqual(namings(other, await otherProjects(other, NO_JOB), []), [finding], written);
+		assert.deepEqual(namings(other, await otherProjects(other, NO_JOB), []), ["deploy.md: names the project Web.Shop", finding], written);
 	}
 });

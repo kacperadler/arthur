@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Retro 2026-11-27</title><style>:root{--ink:#0a0a0a;--paper:#ffffff;--grey:#f2f2f2;--blue:#0033ff;--red:#d40000}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif}header{background:var(--ink);color:var(--paper);padding:32px 18px 24px;text-align:center;border-bottom:6px solid var(--blue)}header ul{list-style:none;padding:0}header h1{margin:0 auto;max-width:860px;font-size:30px;line-height:1.1;font-weight:800}header p{margin:12px auto 0;max-width:720px;color:#cfcfcf}main{max-width:900px;margin:0 auto;padding:0 16px 48px}li{margin:.3em 0}li.sub{margin-left:1.5em;list-style:circle}.red{color:var(--red)}h2{font-size:22px;line-height:1.2;font-weight:800;margin:40px 0 6px;padding-bottom:6px;border-bottom:3px solid var(--ink);text-align:center}code{font:13px ui-monospace,Menlo,monospace;background:var(--grey);color:var(--ink);padding:1px 4px;overflow-wrap:anywhere}.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}.cols>div{border:2px solid var(--ink);padding:0 14px}.cols>div.after{border-color:var(--blue)}.cols p{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 ui-monospace,Menlo,monospace}@media (max-width:640px){.cols{grid-template-columns:1fr}}.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 6px;border:1.5px solid var(--ink);border-radius:3px;background:var(--paper);color:var(--ink)}.tag.code{background:var(--ink);color:var(--paper)}.tag.static{border-color:var(--blue);color:var(--blue)}.tag.prose{border-color:#555555;color:#555555}.tag.you{border-color:var(--red);color:var(--red)}</style></head>
+<body>
+<header>
+<h1>Retro 2026-11-27</h1>
+<ul>
+<li>Job: 2026-11-27-retro-4d854e46</li>
+<li>Merges up to: 95719c596a62e589913816dbdfe698ff73d4c263</li>
+</ul>
+</header>
+<main>
+<h2>Period</h2>
+<ul>
+<li>2026-11-20 to 11-27: 14 tickets merged. Project agents: AR0713 (silent ask per session), AR0714 (voice notes and files go to the agent's own chat), AR0715 (shared-chat refusal), AR0716 (after-restart file), AR0717 (vision wording). Keeping the public repo clean: AR0734 (no <code>--no-verify</code>), AR0738 (<code>arthur commit-board</code>), AR0744 (id check), AR0749 (jobs can read the prefixes). Operations: AR0735 (wake when room is back), AR0739 (status line, silent mode ends, budgets), AR0740 (out-of-memory end). Text fixes: AR0736, AR0737.</li>
+<li>Reviews: 13 tickets reviewed, 10 passed the first round (77%), 3 FAILs and no ticket failed twice. The three: AR0716 (a path check could be bypassed), AR0717 (the roadmap and two diagrams still said what the vision dropped), AR0738 (a folder named like a board file got committed). AR0736 merged by autopilot with no review.</li>
+<li>Cost: the outcomes add up to $95.76, but the real cost is higher. The outcomes of AR0738 and AR0739 leave out the earlier workers ($28 and $42.76, AR-D729, AR-D733).</li>
+<li>What went badly: 10 budget raises asked, all approved. 3 branches that had passed review still had to merge main and be checked or reviewed again: AR0713, AR0714 and AR0740. Jobs were cut at the 2-hour limit in the middle of mutate. AR0744's runs were killed 4 times by the shared memory cap; a coordinator correction says one process grew to about 17 GB. I found no ticket for that cause.</li>
+<li>What went well: no budget question after AR0739 merged (11-25 13:43). AR0744 and AR0749 were planned, built and reviewed in one day.</li>
+<li>A gap with no ticket: the tests that need tmux or systemd are skipped in every job, every review and every merge check (<code>packages/core/docs/commands/spawn.md:143</code>; AR0739 F3, AR0740 F1). I confirmed it in this job: a Unix socket gives <code>EACCES</code> and <code>systemctl --user</code> exits 1.</li>
+<li>Repeat decisions: 44 asks, 95% agreed with the recommendation. No class proposed:</li>
+<li class="sub">The budget raises' decided texts all differ, and AR0739 stopped those questions.</li>
+<li class="sub">The 5 merges waited by rule (they change a role or the hook).</li>
+<li class="sub">Approving a ticket stays the owner's call (coordinator.md:100).</li>
+</ul>
+<h2>1. The outcome counts every worker of a ticket, not only the last one</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0738 outcome.md: "worker $1.21". AR-D727 and AR-D729 show the earlier worker had already spent $28 before a fresh worker took its branch.</li>
+<li>AR0739 outcome.md: "worker $1.01". AR-D733: the earlier worker "used $42.76 of $45".</li>
+<li>AR0740 outcome.md: "worker $4.06", branch <code>2026-11-25-worker-ab0e1866</code>. AR-D732 (11-24) asked about a worker that had already used its $10. [INFERENCE: that was an earlier job; the merged branch is dated 11-25.]</li>
+<li>Stats of this retro: "Most expensive: AR0714 $23.28", while AR0739 cost at least $43.77.</li>
+</ul>
+<p>Why it matters: since AR0739, every worker's budget comes from the <code>9 in 10 within</code> figure of <code>arthur stats budget</code> (coordinator.md:29). That figure reads only this line (<code>packages/stats/src/tickets.ts:113</code>). So exactly the tickets that ran out of budget pull future budgets down, and that brings more budget questions.</p>
+<p>Scope: <code>packages/delivery/src/merge-outcome.ts</code>, the <code>- Cost:</code> line of <code>settleTicket</code></p>
+<div class="cols">
+<div><h3>Before</h3>
+<p><code>const live = (id: string) =&gt; records.find((record) =&gt; record.id === id)?.cost;</code>
+`<code> </code>- Cost: worker ${dollars([live(job.id)])}, reviews ${dollars(ended.map(([review]) =&gt; live(review.id) ?? review.cost))}; review rounds ${reviews.length}<code>, </code>`</p></div>
+<div class="after"><h3>After</h3>
+<p><code>const live = (id: string) =&gt; records.find((record) =&gt; record.id === id)?.cost;</code>
+<code>// Every worker of the ticket counts, a fresh one that took over an earlier worker's branch too (AR0738, AR0739).</code>
+<code>const workers = records.filter((record) =&gt; record.kind === "worker" &amp;&amp; record.tickets.some((path) =&gt; job.tickets.includes(path)));</code>
+`<code> </code>- Cost: worker ${dollars(workers.map((record) =&gt; record.cost))}, reviews ${dollars(ended.map(([review]) =&gt; live(review.id) ?? review.cost))}; review rounds ${reviews.length}<code>, </code>`</p></div>
+</div>
+<h2>2. A job's default time limit covers check, test and mutate on 2 cores</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0714 correction "Your run hit its time limit; go on from your worktree as it is: … run npm run check &amp;&amp; npm test and npm run mutate on the committed tip".</li>
+<li>Correction "You ran past the 2-hour limit during mutate."</li>
+<li>Correction "You ran past the 2-hour limit during a repeated mutate."</li>
+<li>Correction "the previous review of this branch ran out its 120 minutes without a verdict."</li>
+<li>AR0740 continues that restart a cut mutate: "Only resume npm run mutate on 3bdf0972…", "Run npm run mutate on ba04522c to the end", "Your saved mutate run on ba04522c is at 72 of 94", "Your mutate run on 36b27dd4 is saved at 50 tried".</li>
+<li>AR-D729: one resumed round "spent $8, nearly all of it reloading its long earlier conversation".</li>
+<li>Cause: <code>arthur.config.ts:41</code> has had <code>perJob: { cpu: 2 }</code> since AR-D701 (11-22); its comment says "a full suite took 711 s on 3 cores". <code>test/mutate.ts:81</code> stops starting mutants 1500 s into a call, so 94 to 100 mutants take several calls. The owner's config sets no <code>core.jobs.timeoutMinutes</code>, so the 120 default holds.</li>
+</ul>
+<p>Why it matters: on 2 cores, the checks alone fill most of 120 minutes. Jobs get cut while verifying, and each continue costs a steer from the coordinator and a reload of the whole conversation. Risk: a stuck job holds its slot up to 4 hours; the budget and the loop stop still cap its cost.</p>
+<p>Scope: <code>packages/core/src/config.ts</code>, the <code>jobs</code> defaults of the loaded config (line 115)</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p><code>timeoutMinutes: core.jobs?.timeoutMinutes ?? 120,</code></p></div>
+<div class="after"><h3>After</h3>
+<p><code>timeoutMinutes: core.jobs?.timeoutMinutes ?? 240,</code></p></div>
+</div>
+<h2>3. Autopilot's default budget is its cap</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR-D700: AR0728 "used its pre-approved $1 without a commit"; the owner raised it to $3.</li>
+<li>AR-D718 and AR-D724: AR0736, a one-sentence doc fix, ran out at $1. The owner was asked twice and picked $3 both times; its outcome says $2.16.</li>
+<li>AR0739 F4: <code>arthur stats budget</code> prints "fix: 89 tickets, median $2.28", so about every second autopilot fix stops at $1.</li>
+<li>Stats: autopilot merged 1 of 14 tickets.</li>
+</ul>
+<p>Why it matters: each of these stops becomes a budget question the owner always answers with the cap. Making the default equal to the cap raises no limit he has not already granted.</p>
+<p>Scope: <code>packages/orchestration/src/autopilot.ts</code>, the two constants</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p><code>// When </code>autopilot<code> leaves them out: the budget of a pre-approved ticket's worker, and the most </code>--budget<code> may give it.</code>
+<code>export const AUTOPILOT_BUDGET = 1;</code>
+<code>export const AUTOPILOT_CAP = 3;</code></p></div>
+<div class="after"><h3>After</h3>
+<p><code>// When </code>autopilot<code> leaves them out: the budget of a pre-approved ticket's worker, the cap itself (a fix's median cost is above $1), and the most </code>--budget<code> may give it.</code>
+<code>export const AUTOPILOT_BUDGET = 3;</code>
+<code>export const AUTOPILOT_CAP = 3;</code></p></div>
+</div>
+<h2>4. A worker tests a path check against the forms the reviewer will try</h2>
+<p>Kind: chore</p>
+<p>Evidence:</p>
+<ul>
+<li>AR0716 review-1.md, F1: <code>relative(".", agent)</code> accepted <code>../&lt;cwd name&gt;/x</code>, which lands outside the repository.</li>
+<li>AR0716 review-1.md, F2: removing <code>isAbsolute(agent) ||</code> failed no test.</li>
+<li>AR0716 findings F4: a symlink shipped in the fixture takes the eval stub's writes outside the repository.</li>
+<li>AR0738 review-1.md, F1: the folder <code>spec/schedule.json/</code> matched as a pathspec, and everything below it was committed.</li>
+<li>AR0738 findings F7: a hard link among the board files was committed with an outside file's contents.</li>
+</ul>
+<p>Why it matters: 2 of the period's 3 FAILs, and two security findings still open, came from a path check tried only against the ticket's own examples. Both reviewers found the bypasses with the forms listed below. <code>worker.md:21</code> already asks for "every way it could still break", in general words, and was missed twice. A shared helper cannot hold this: there are about 10 hand-written path guards (<code>commit-rules.ts:34</code>, <code>roles.ts:32</code>, <code>schedule-options.ts:112</code>, <code>uptime-options.ts:99</code>, …), and a git pathspec is not a file path. The worker reads this step before its final message.</p>
+<p>Scope: <code>.agents/arthur/criteria/verify.md</code>, step 4</p>
+<div class="cols">
+<div><h3>Before</h3>
+<p>4. The Goal, the way a user meets it: run the changed command as its doc page says (<code>npx arthur &lt;cmd&gt; --help</code> prints it), then the command itself in a temporary folder; and run each command a line you wrote tells someone to run, exactly as written.</p></div>
+<div class="after"><h3>After</h3>
+<p>4. The Goal, the way a user meets it: run the changed command as its doc page says (<code>npx arthur &lt;cmd&gt; --help</code> prints it), then the command itself in a temporary folder; and run each command a line you wrote tells someone to run, exactly as written. A check that limits a path (one a file a human edits names, a Git pathspec, a file it reads or commits) gets a test row for each form that could get past it: an absolute path, a <code>..</code> that climbs out and comes back down through the current folder's name, a symlink and a hard link to a file outside, and a folder with the name of the file it expects.</p></div>
+</div>
+<h2>Dead sentences</h2>
+<p>Nothing in the period's FAILs, findings, outcomes or corrections touched these. I read only the tickets, reviews and corrections listed here, not the event logs.</p>
+<ul>
+<li><code>packages/delivery/roles/coordinator/review-failed-limit.md</code>: the whole procedure. No ticket failed more than once.</li>
+<li><code>packages/uptime/roles/coordinator/site-down.md</code>: the whole runbook. [INFERENCE: no site going down shows up in the period's tickets, findings or corrections.]</li>
+<li><code>packages/github/roles/coordinator/ci-failed-owner.md</code>, <code>ci-failed-worker.md</code>. [INFERENCE: same basis; AR0740's correction says its branch passed CI.]</li>
+<li><code>packages/projects/roles/onboarding.md</code> and <code>packages/projects/roles/coordinator/onboarding-ended.md</code>: no onboarding ran.</li>
+<li><code>.agents/arthur/criteria/review.md:24</code>: "A plugin is tested against another real plugin instead of the fake host, or a fake of an outside service answers in a shape its documentation does not show…"</li>
+<li><code>.agents/arthur/criteria/review.md:25</code>: "A test uses a production resource name … or leaves one behind."</li>
+<li><code>.agents/arthur/criteria/review.md:26</code>: "Something can lose the owner's work…"</li>
+<li><code>.agents/arthur/criteria/review.md:30</code>: "Something listens on a public address, or a text that is not English reaches code, docs or the user."</li>
+<li><code>packages/delivery/roles/reviewer.md:16</code>: "A file it still shows as binary … you read on disk in your checkout…"</li>
+<li><code>packages/core/roles/worker.md:42</code>: "…and never symlink another checkout into it."</li>
+<li><code>packages/core/criteria/verify.md</code>: headings only, no sentence.</li>
+</ul>
+</main>
+</body></html>

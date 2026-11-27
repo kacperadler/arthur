@@ -6041,5 +6041,33 @@
     "status": "merged",
     "path": "spec/features/AR0749-jobs-can-read-each-configured-project-s-ticket-prefix-so-the-public-repo-check/ticket.md",
     "updated": "2026-11-27T07:16:27.774Z"
+  },
+  {
+    "id": "AR0750",
+    "title": "The outcome counts every worker of a ticket, not only the last one",
+    "status": "planning",
+    "path": "spec/features/AR0750-the-outcome-counts-every-worker-of-a-ticket-not-only-the-last-one/ticket.md",
+    "updated": "2026-11-27T21:38:45.208Z"
+  },
+  {
+    "id": "AR0751",
+    "title": "A job's default time limit covers check, test and mutate on 2 cores",
+    "status": "planning",
+    "path": "spec/features/AR0751-a-job-s-default-time-limit-covers-check-test-and-mutate-on-2-cores/ticket.md",
+    "updated": "2026-11-27T21:38:45.618Z"
+  },
+  {
+    "id": "AR0752",
+    "title": "Autopilot's default budget is its cap",
+    "status": "planning",
+    "path": "spec/features/AR0752-autopilot-s-default-budget-is-its-cap/ticket.md",
+    "updated": "2026-11-27T21:38:46.011Z"
+  },
+  {
+    "id": "AR0753",
+    "title": "A worker tests a path check against the forms the reviewer will try",
+    "status": "planning",
+    "path": "spec/features/AR0753-a-worker-tests-a-path-check-against-the-forms-the-reviewer-will-try/ticket.md",
+    "updated": "2026-11-27T21:38:46.422Z"
   }
 ]

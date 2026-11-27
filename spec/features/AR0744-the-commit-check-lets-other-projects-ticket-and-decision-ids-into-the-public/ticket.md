@@ -55,3 +55,4 @@ Out:
 - 2026-11-27: Source: audit spec/quality/2026-11-27.md
 - 2026-11-27: Plan the ticket again: Option 1, a separate ticket first lets jobs read the other projects prefixes, and AR0744 checks job commits fully against them; the owner: "AR-D737 option 1" (AR-D737)
 - 2026-11-27: Plan approved by the owner: plan.md at 5b673802; the owner: "AR-D738 yes" (AR-D738)
+- 2026-11-27: AR0744 runs npm run check, npm test and npm run mutate alone once the other running job ends; the coordinator continues it then; the owner: "AR-D740 2" (AR-D740)

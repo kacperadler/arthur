@@ -6038,8 +6038,8 @@
   {
     "id": "AR0749",
     "title": "Jobs can read each configured project's ticket prefix, so the public-repo check works inside a job",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0749-jobs-can-read-each-configured-project-s-ticket-prefix-so-the-public-repo-check/ticket.md",
-    "updated": "2026-11-27T06:45:04.604Z"
+    "updated": "2026-11-27T06:55:17.532Z"
   }
 ]

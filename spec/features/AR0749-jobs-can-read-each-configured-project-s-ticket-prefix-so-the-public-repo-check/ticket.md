@@ -47,3 +47,4 @@ Out:
 ## Decisions
 
 - 2026-11-27: Source: AR0744 plan, Option 1, chosen by the owner (AR-D737)
+- 2026-11-27: Plan approved by the owner: plan.md at d883aaed; the owner: "AR-D739 yes" (AR-D739)

@@ -89,10 +89,10 @@ test("a project file's refusals name the file: missing, not a list, a piece with
 	await setup(file("good", `export default [{ projects: ${entry} }, { uptime: [] }];\n`));
 });
 
-test("each load keeps every project's name and checkout in <home>/projects/checkouts, and its name and folder in folders, rewritten only when the list changed", async () => {
+test("each load keeps every project's name and checkout in <home>/projects/checkouts, its name and folder in folders, its name and prefix in prefixes, rewritten only when the list changed", async () => {
 	const [shop, blog] = [repository(), repository()];
 	const first = await load({ list: [{ name: "web-shop", prefix: "SH", path: shop }] });
-	const file = join(first.host.folder, "checkouts");
+	const [file, prefixes] = [join(first.host.folder, "checkouts"), join(first.host.folder, "prefixes")];
 	// The config loaded again in the same home folder, as each `arthur` command does.
 	const reload = async (list: Given["list"]) => {
 		const again = fakeHost({ name: "projects" });
@@ -100,17 +100,29 @@ test("each load keeps every project's name and checkout in <home>/projects/check
 		await again.setup({ setup: (host) => projects(written).setup({ ...host, folder: first.host.folder, options: written }) });
 	};
 	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\n`);
-	const inode = statSync(file).ino;
+	assert.equal(readFileSync(prefixes, "utf8"), "web-shop SH\n");
+	const [inode, prefixesInode] = [statSync(file).ino, statSync(prefixes).ino];
 	await reload([{ name: "web-shop", prefix: "SH", path: shop }]);
-	assert.equal(statSync(file).ino, inode, "the same list leaves the file as it is");
+	assert.deepEqual([statSync(file).ino, statSync(prefixes).ino], [inode, prefixesInode], "the same list leaves the files as they are");
 	await reload([{ name: "web-shop", prefix: "SH", path: shop }, { name: "blog", prefix: "BL", path: blog }]);
 	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\nblog ${blog}\n`);
+	assert.equal(readFileSync(prefixes, "utf8"), "web-shop SH\nblog BL\n");
 	const folders = readFileSync(join(first.host.folder, "folders"), "utf8");
 	assert.match(folders, /^web-shop \/\S+\/web-shop\nblog \/\S+\/blog\n$/);
 	await assert.rejects(reload([{ name: "web-shop", prefix: "SH", path: join(shop, "gone") }]), /is not a folder/);
 	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\nblog ${blog}\n`, "a config that does not load leaves the list as it was");
 	assert.equal(readFileSync(join(first.host.folder, "folders"), "utf8"), folders);
-	assert.deepEqual(readdirSync(first.host.folder), ["checkouts", "folders"]);
+	assert.equal(readFileSync(prefixes, "utf8"), "web-shop SH\nblog BL\n");
+	// A prefix not of capital letters A-Z is refused, and never written: no file in a new home, the last good one kept over a written one.
+	for (const bad of ["sh", "S1", "S-H", "", "SH\nXX", "SH BL"]) {
+		const list = [{ name: "web-shop", prefix: bad, path: shop }];
+		const fresh = fakeHost({ name: "projects" });
+		await assert.rejects(fresh.setup({ setup: (host) => projects(options({ list })).setup({ ...host, options: options({ list }) }) }), /expected capital letters A-Z/, JSON.stringify(bad));
+		assert.equal(existsSync(join(fresh.host.folder, "prefixes")), false, JSON.stringify(bad));
+		await assert.rejects(reload(list), /expected capital letters A-Z/, JSON.stringify(bad));
+		assert.equal(readFileSync(prefixes, "utf8"), "web-shop SH\nblog BL\n", JSON.stringify(bad));
+	}
+	assert.deepEqual(readdirSync(first.host.folder), ["checkouts", "folders", "prefixes"]);
 });
 
 test("inside a job only the job's own project is imported and served, the lists left as they were; a job of a project no folder holds is refused", async () => {
